@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EFTO Item Collection Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        #gameCanvas {
+            display: block;
+            border: 2px solid #333;
+            background: url('assets/background.jpg') center center / cover no-repeat;
+        }
+
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 24px;
+            z-index: 100;
+            border: 2px solid #ff6b6b;
+        }
+
+        #restartBtn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        #restartBtn:hover {
+            background: #ee5a24;
+        }
+
+        #audioToggleBtn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        #audioToggleBtn:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: scale(1.1);
+        }
+
+        #audioToggleBtn.muted {
+            background: rgba(255, 107, 107, 0.8);
+        }
+
+        #audioToggleBtn.muted:hover {
+            background: rgba(255, 107, 107, 0.9);
+        }
+
+        /* Name Entry Screen */
+        #nameEntry {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 200;
+            border: 2px solid #4ECDC4;
+            min-width: 400px;
+        }
+
+        #nameEntry h2 {
+            color: #4ECDC4;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+
+        #playerNameInput {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #4ECDC4;
+            color: white;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 10px;
+            width: 250px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        #playerNameInput:focus {
+            outline: none;
+            border-color: #26d0ce;
+            box-shadow: 0 0 10px rgba(78, 205, 196, 0.5);
+        }
+
+        #startGameBtn {
+            background: #4ECDC4;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            font-weight: bold;
+            min-width: 120px;
+        }
+
+        #startGameBtn:hover {
+            background: #26d0ce;
+        }
+
+        #startGameBtn:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        #viewScoresBtn {
+            background: #FFD700;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            font-weight: bold;
+            min-width: 120px;
+        }
+
+        #viewScoresBtn:hover {
+            background: #FFC700;
+        }
+
+        /* High Scores Screen */
+        #highScores {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 200;
+            border: 2px solid #FFD700;
+            min-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        #highScores h2 {
+            color: #FFD700;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+
+        .score-entry {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+            margin: 5px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            font-size: 16px;
+        }
+
+        .score-entry.top3 {
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid #FFD700;
+        }
+
+        .score-rank {
+            font-weight: bold;
+            color: #FFD700;
+            min-width: 40px;
+        }
+
+        .score-name {
+            flex: 1;
+            text-align: left;
+            margin-left: 20px;
+        }
+
+        .score-points {
+            font-weight: bold;
+            color: #4ECDC4;
+        }
+
+        .score-date {
+            font-size: 12px;
+            color: #999;
+            margin-left: 20px;
+            min-width: 80px;
+        }
+
+        #backToMenuBtn {
+            background: #666;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        #backToMenuBtn:hover {
+            background: #555;
+        }
+
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="1000" height="600"></canvas>
+    
+    <!-- Name Entry Screen -->
+    <div id="nameEntry">
+        <h2>Welcome to EFTO!</h2>
+        <p style="margin-bottom: 20px; color: #ccc;">Enter your name to start playing</p>
+        <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" />
+        <br>
+        <button id="startGameBtn" onclick="startGame()">Start Game</button>
+        <button id="viewScoresBtn" onclick="showHighScores()">High Scores</button>
+    </div>
+
+    <!-- High Scores Screen -->
+    <div id="highScores" style="display: none;">
+        <h2>🏆 High Scores 🏆</h2>
+        <div id="scoresList"></div>
+        <button id="backToMenuBtn" onclick="showNameEntry()">Back to Menu</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOver" style="display: none;">
+        <h2>Game Over!</h2>
+        <p id="finalScore">Final Score: 0</p>
+        <p id="newHighScore" style="display: none; color: #FFD700; font-weight: bold; margin: 10px 0;">🎉 NEW HIGH SCORE! 🎉</p>
+        <button id="restartBtn" onclick="restartGame()">Play Again</button>
+        <button id="viewScoresBtn2" onclick="showHighScores()">View High Scores</button>
+    </div>
+
+    <!-- Audio Toggle Button -->
+    <button id="audioToggleBtn" onclick="toggleAudio()" title="Toggle Audio">🔊</button>
+
+    <script src="game.js"></script>
+</body>
+</html> 
