@@ -13,9 +13,8 @@ const gameConfig = {
         startingScore: 20,          // First power-up spawns at this score
         spawnChance: 1.0,          // Probability of spawning when conditions are met (0.0 to 1.0)
         // Examples:
-        spawnInterval: 20,       // Power-ups every 20 points
+        spawnInterval: 10,       // Power-ups every 20 points
         customSpawnPoints: [50, 100, 200 ,300], // Extra power-ups at these specific scores
-        // spawnChance: 0.8,        // 80% chance to spawn when conditions are met
         
         // Cut Time Power-up Settings
         cutTime: {
@@ -69,8 +68,8 @@ const gameConfig = {
     
     // === LEVEL PROGRESSION ===
     levels: {
-        // Point thresholds for each level
-        thresholds: [0, 20, 50, 70, 100, 130], // Level 1-6 thresholds
+        // Point thresholds for each level (doubled to accommodate increased point values)
+        thresholds: [0, 40, 100, 140, 200, 260], // Level 1-6 thresholds (doubled)
         // Speed multipliers for each level (tripled from original)
         speedMultipliers: [1.5, 2.5, 3.5, 5.0, 6.5], // Level 1-5 multipliers
         levelBeyond5Increment: 1.0, // Each level beyond 5 adds this much speed (tripled)
@@ -152,12 +151,17 @@ class Player {
     // Update player state
     update(targetX, targetY, canvasWidth, canvasHeight) {
         // Smooth mouse following (frame rate normalized)
-        const distance = targetX - this.x;
         const normalizedSmoothing = gameConfig.player.moveSmoothing * gameState.deltaTimeMultiplier;
-        this.x += distance * Math.min(normalizedSmoothing, 1.0); // Cap at 1.0 to prevent overshooting
+        
+        // Update both X and Y positions with smooth following
+        const distanceX = targetX - this.x;
+        const distanceY = targetY - this.y;
+        this.x += distanceX * Math.min(normalizedSmoothing, 1.0); // Cap at 1.0 to prevent overshooting
+        this.y += distanceY * Math.min(normalizedSmoothing, 1.0);
         
         // Keep player within bounds
         this.x = Math.max(0, Math.min(canvasWidth - this.width, this.x));
+        this.y = Math.max(0, Math.min(canvasHeight - this.height, this.y));
         
         // Update impact timer (frame rate normalized)
         if (this.impactTimer > 0) {
@@ -282,7 +286,7 @@ const gameItems = [
     { id: "ring2", name: "Ring2", image: "items/ring2.png", value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
     { id: "ring3", name: "Ring3", image: "items/ring3.png", value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
     { id: "gold", name: "Gold", image: "items/gold.png", value: 4, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 1 },
-    { id: "cloak", name: "Cloak", image: "items/7.png", value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 1 },
+    { id: "cloak", name: "Cloak", image: "items/7.png", value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 2 },
     { id: "ashjrethul", name: "Ashjrethul", image: "items/4.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2 },
     { id: "maladath", name: "Maladath", image: "items/maladath.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2.5 },
     { id: "ashkandi", name: "Ashkandi", image: "items/2.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2 },
@@ -331,13 +335,29 @@ const damageProjectiles = [
         image: "assets/speed-boost.png", 
         damage: 0, // 3% HP damage (less than fireball)
         type: "common", 
-        baseProbability: 0.020, 
+        baseProbability: 0.005, // Same spawn rate as power_word_shield
         sound: "assets/speedboost.mp3",
         speed: { min: 1.5, max: 2.5 }, // Reduced from 2.0-4.0 for better balance
         size: { width: 100, height: 100 },
         color: "#FF0000",
         effects: "speed_increase",
         speedIncreaseOptions: [10, 20, 30] // Possible percentage increases
+    },
+    
+    // Power Word Shield projectile - Same spawn rate as speedboost
+    { 
+        id: "power_word_shield_projectile", 
+        name: "Power Word Shield", 
+        image: "assets/powerwordshield.jpg", 
+        damage: 0, // No damage - beneficial effect
+        type: "common", 
+        baseProbability: 0.005, // Same spawn rate as speedboost
+        sound: "assets/shield_cast.mp3",
+        speed: { min: 1.0, max: 2.0 }, // Slower speed for easier collection
+        size: { width: 120, height: 120 },
+        color: "#87CEEB",
+        effects: "freeze_time",
+        freezeDurationOptions: [60, 180, 300] // 1, 3, or 5 seconds at 60fps
     },
     
     // Rare damage projectiles - Lower probability, more damage
@@ -372,20 +392,7 @@ const powerUpItems = [
         baseProbability: 0.25, // 25% base chance
         speedScaling: true // Increases probability based on game speed
     },
-    {
-        id: "power_word_shield",
-        name: "Power Word Shield",
-        image: "assets/powerwordshield.jpg",
-        effect: "freeze_time",
-        value: 0, // No direct value, creates protective effect
-        duration: 360, // Duration in frames (2 seconds at 60fps) - configurable via gameConfig
-        type: "utility",
-        color: "#87CEEB",
-        sound: "assets/shield_cast.mp3",
-        description: "Freezes all projectiles",
-        baseProbability: 0.15, // Base 15% chance when conditions are met
-        speedScaling: true // Increases probability based on game speed
-    },
+
     {
         id: "health_potion",
         name: "Health Potion",
@@ -1136,6 +1143,13 @@ class DamageProjectile {
             this.speedIncreasePercent = options[Math.floor(Math.random() * options.length)];
         }
         
+        // Freeze time specific properties
+        if (this.data.effects === "freeze_time") {
+            // Randomly select one of the freeze duration options
+            const options = this.data.freezeDurationOptions;
+            this.freezeDuration = options[Math.floor(Math.random() * options.length)];
+        }
+        
         // Create image object for this projectile
         this.projectileImage = new Image();
         this.projectileImage.src = projectileData.image;
@@ -1166,11 +1180,18 @@ class DamageProjectile {
         const drawHeight = this.height;
         const borderPadding = 8; // Padding for border around projectiles with variable values
         
-        // Draw red border for projectiles with variable values (like speed boost)
+        // Draw colored border for projectiles with variable values
         if (this.data.effects === "speed_increase" && this.speedIncreasePercent) {
             ctx.strokeStyle = '#FF0000';
             ctx.lineWidth = 3;
             ctx.shadowColor = '#FF0000';
+            ctx.shadowBlur = 8;
+            ctx.strokeRect(this.x - borderPadding, this.y - borderPadding, drawWidth + (borderPadding * 2), drawHeight + (borderPadding * 2));
+            ctx.shadowBlur = 0; // Reset shadow
+        } else if (this.data.effects === "freeze_time" && this.freezeDuration) {
+            ctx.strokeStyle = '#87CEEB';
+            ctx.lineWidth = 3;
+            ctx.shadowColor = '#87CEEB';
             ctx.shadowBlur = 8;
             ctx.strokeRect(this.x - borderPadding, this.y - borderPadding, drawWidth + (borderPadding * 2), drawHeight + (borderPadding * 2));
             ctx.shadowBlur = 0; // Reset shadow
@@ -1226,6 +1247,25 @@ class DamageProjectile {
                     ctx.lineTo(endX, endY);
                     ctx.stroke();
                 }
+            } else if (this.data.id === "power_word_shield_projectile") {
+                // Power Word Shield placeholder - cyan shield with glow
+                ctx.fillStyle = '#87CEEB';
+                ctx.beginPath();
+                ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/2.5, 0, Math.PI * 2);
+                ctx.fill();
+                // Add shield cross pattern
+                ctx.strokeStyle = '#87CEEB';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(this.x + drawWidth/2, this.y + drawHeight/4);
+                ctx.lineTo(this.x + drawWidth/2, this.y + drawHeight*3/4);
+                ctx.moveTo(this.x + drawWidth/4, this.y + drawHeight/2);
+                ctx.lineTo(this.x + drawWidth*3/4, this.y + drawHeight/2);
+                ctx.stroke();
             }
         }
         
@@ -1250,6 +1290,27 @@ class DamageProjectile {
             ctx.font = 'bold 14px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(`+${this.speedIncreasePercent}%`, textX, textY + 4);
+        } else if (this.data.effects === "freeze_time" && this.freezeDuration) {
+            // Background for text readability
+            const textX = this.x + drawWidth/2;
+            const textY = this.y + drawHeight + 20;
+            const textWidth = 60;
+            const textHeight = 18;
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(textX - textWidth/2, textY - textHeight/2, textWidth, textHeight);
+            
+            // Border around text background
+            ctx.strokeStyle = '#87CEEB';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(textX - textWidth/2, textY - textHeight/2, textWidth, textHeight);
+            
+            // Text - convert frames to seconds for display
+            const seconds = Math.round(this.freezeDuration / 60);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${seconds}s`, textX, textY + 4);
         }
         
         ctx.restore();
@@ -1665,7 +1726,9 @@ function spawnPowerUp() {
 
 function updatePlayer() {
     const targetX = mouseX - player.width / 2;
-    player.update(targetX, mouseY, canvas.width, canvas.height);
+    const targetY = mouseY - player.height / 2; // Center the player on mouse Y
+    
+    player.update(targetX, targetY, canvas.width, canvas.height);
 }
 
 function createCollectionParticles(x, y) {
@@ -1817,9 +1880,10 @@ function updateGame() {
     
 
 
-    // Update falling items
+    // Update falling items (freeze them if freeze time is active)
     fallingItems = fallingItems.filter(item => {
-        const stillActive = item.update();
+        // Only update items if freeze time is not active
+        const stillActive = gameState.freezeTimeActive ? true : item.update();
         
         if (!stillActive && item.missed) {
             gameState.missedItems++;
@@ -1914,13 +1978,21 @@ function updateGame() {
                     gameState.currentSpeedIncreasePercent = 100;
                     gameState.speedIncreaseMultiplier = 2.0; // Max 2x speed
                 }
+            } else if (fireball.data && fireball.data.effects === "freeze_time") {
+                // Apply freeze time effect (Power Word Shield as projectile) with variable duration
+                gameState.freezeTimeActive = true;
+                gameState.freezeTimeTimer = fireball.freezeDuration; // Use the randomly selected duration
+                
+                // Don't reduce health for beneficial projectiles - skip damage and health check
+                createCollectionParticles(fireball.x + fireball.width/2, fireball.y + fireball.height/2);
+                return false; // Remove the projectile that was collected
             }
             
-            // Reduce health based on projectile damage (percentage-based)
+            // Reduce health based on projectile damage (percentage-based) - only for harmful projectiles
             const damage = fireball.data ? fireball.data.damage : 5; // Default to 5% for old fireballs
             gameState.health = Math.max(0, gameState.health - damage);
             
-            // Create particles based on projectile type
+            // Create particles based on projectile type (for harmful projectiles)
             const particleColor = fireball.data ? fireball.data.color : '#FF0000';
             for (let i = 0; i < gameConfig.gameplay.impactParticleCount; i++) {
                 particles.push(new Particle(fireball.x + fireball.width/2, fireball.y + fireball.height/2, particleColor));
@@ -1937,9 +2009,10 @@ function updateGame() {
         return stillActive;
     });
 
-    // Update power-up items
+    // Update power-up items (freeze them if freeze time is active)
     activePowerUps = activePowerUps.filter(powerUp => {
-        const stillActive = powerUp.update();
+        // Only update power-ups if freeze time is not active
+        const stillActive = gameState.freezeTimeActive ? true : powerUp.update();
         
         if (stillActive && powerUp.checkCollision(player)) {
             // Apply power-up effect
@@ -2217,7 +2290,7 @@ function drawGame() {
         ctx.fillStyle = '#87CEEB';
         ctx.font = 'bold 16px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText('🛡️ PROJECTILES FROZEN 🛡️', canvas.width / 2, 120);
+        ctx.fillText('🛡️ ALL ITEMS FROZEN 🛡️', canvas.width / 2, 120);
         
         // Show remaining time
         const remainingSeconds = (gameState.freezeTimeTimer / 60).toFixed(1);
@@ -2240,6 +2313,7 @@ function drawGame() {
         ctx.fillText(`${remainingSeconds}s remaining`, canvas.width / 2, yPos + 20);
         ctx.textAlign = 'left';
     }
+
 
     
     // Draw settings screen if active
