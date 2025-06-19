@@ -25,6 +25,13 @@ const gameConfig = {
             minScoreForSpawn: 50,   // Minimum score before it can spawn
             spawnChance: 0.1,       // 10% chance when other conditions are met
         },
+        
+        // Freeze Time Power-up Settings (Power Word Shield)
+        freezeTime: {
+            enabled: true,
+            duration: 120,          // Freeze duration in frames (120 = 2 seconds at 60fps)
+            freezeAllProjectiles: true, // Freeze all damage projectiles
+        },
     },
     
     // === AUDIO SETTINGS ===
@@ -49,6 +56,7 @@ const gameConfig = {
         healthLossOnMiss: 1,        // HP lost when missing an item (%)
         particleCount: 15,          // Number of particles per collection
         impactParticleCount: 30,    // Number of particles per fireball impact
+        targetFPS: 60,              // Target FPS for speed calculations (normalizes speed across different frame rates)
     },
     
     // === PLAYER SETTINGS ===
@@ -62,11 +70,12 @@ const gameConfig = {
     // === LEVEL PROGRESSION ===
     levels: {
         // Point thresholds for each level
-        thresholds: [0, 50, 100, 130, 150, 160], // Level 1-6 thresholds
-        // Speed multipliers for each level
-        speedMultipliers: [1.0, 1.3, 1.6, 2.0, 2.4], // Level 1-5 multipliers
-        levelBeyond5Increment: 0.3, // Each level beyond 5 adds this much speed
-        maxSpeedMultiplier: 6.0,    // Cap on speed multiplier
+        thresholds: [0, 20, 50, 70, 100, 130], // Level 1-6 thresholds
+        // Speed multipliers for each level (tripled from original)
+        speedMultipliers: [1.5, 2.5, 3.5, 5.0, 6.5], // Level 1-5 multipliers
+        levelBeyond5Increment: 1.0, // Each level beyond 5 adds this much speed (tripled)
+        maxSpeedMultiplier: 9.0,   // Cap on speed multiplier (increased)
+        initialSpeedMultiplier: 1.2, // Starting speed multiplier when game begins
     },
     
     // === ITEM DROP PROBABILITIES ===
@@ -75,6 +84,7 @@ const gameConfig = {
         epic: 0.05,                 // Epic items base probability (5%)
         special: 0.02,              // Special items base probability (2%)
         legendary: 0.01,            // Legendary items base probability (1%)
+        zee_zgnan: 0.002,           // Zee Zgnan items base probability (0.2%) - Ultra rare, one-time only
         tier_set: 0.005,            // Tier set items base probability (0.5%) - Win condition items
     },
     
@@ -141,16 +151,17 @@ class Player {
     
     // Update player state
     update(targetX, targetY, canvasWidth, canvasHeight) {
-        // Smooth mouse following
+        // Smooth mouse following (frame rate normalized)
         const distance = targetX - this.x;
-        this.x += distance * gameConfig.player.moveSmoothing;
+        const normalizedSmoothing = gameConfig.player.moveSmoothing * gameState.deltaTimeMultiplier;
+        this.x += distance * Math.min(normalizedSmoothing, 1.0); // Cap at 1.0 to prevent overshooting
         
         // Keep player within bounds
         this.x = Math.max(0, Math.min(canvasWidth - this.width, this.x));
         
-        // Update impact timer
+        // Update impact timer (frame rate normalized)
         if (this.impactTimer > 0) {
-            this.impactTimer--;
+            this.impactTimer -= gameState.deltaTimeMultiplier;
             if (this.impactTimer <= 0) {
                 this.isReacting = false;
             }
@@ -199,7 +210,8 @@ let gameState = {
     score: 0,
     missedItems: 0,
     gameRunning: false,  // Start as false until name is entered
-    speedMultiplier: 1,
+    gamePaused: false,   // Add pause state
+    speedMultiplier: gameConfig.levels.initialSpeedMultiplier,
     perfectCollections: 0,
     baseDropSpeed: gameConfig.gameplay.baseDropSpeed,
 
@@ -217,6 +229,16 @@ let gameState = {
     timeSlowMultiplier: 1.0,
     lastPowerUpScore: 0, // Track last score when power-up was spawned
     
+    // Freeze time effects
+    freezeTimeActive: false,
+    freezeTimeTimer: 0,
+    
+    // Speed increase effects (from speed boost projectiles)
+    speedIncreaseActive: false,
+    speedIncreaseTimer: 0,
+    speedIncreaseMultiplier: 1.0,
+    currentSpeedIncreasePercent: 0, // For display purposes
+    
     // Cut time tracking
     cutTimeSpawned: 0,  // Track how many cut_time power-ups have spawned
     permanentSpeedReduction: 1.0, // Permanent speed multiplier from cut_time effects
@@ -229,6 +251,19 @@ let gameState = {
     
     // Player info
     playerName: '',
+    
+    // UI state
+    menuButtonBounds: null, // For click detection on settings screen buttons
+    pauseMenuBounds: null,  // For click detection on pause menu buttons
+    
+    // FPS tracking
+    fpsCounter: 0,
+    fpsLastTime: Date.now(),
+    fpsFrameCount: 0,
+    
+    // Frame rate normalization
+    lastFrameTime: Date.now(),
+    deltaTimeMultiplier: 1.0, // Multiplier to normalize speed based on actual vs target FPS
 };
 
 // High Scores System
@@ -243,25 +278,23 @@ const gameItems = [
     
     
     
-    { id: "ring1", name: "Ring 1", image: "items/ring1.png", value: 4, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
-    { id: "ring2", name: "Ring2", image: "items/ring2.png", value: 4, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
-    { id: "ring3", name: "Ring3", image: "items/ring3.png", value: 4, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
-    { id: "gold", name: "Gold", image: "items/gold.png", value: 8, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 1 },
-    
-    { id: "ashjrethul", name: "Ashjrethul", image: "items/4.png", value: 3, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2 },
-    { id: "maladath", name: "Maladath", image: "items/maladath.png", value: 3, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 3 },
-    { id: "ashkandi", name: "Ashkandi", image: "items/2.png", value: 1, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2 },
-    { id: "ashkandi2", name: "Another Ashkandi", image: "items/ashkandi.png", value: 1, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2 },
-    { id: "quick-strike-ring", name: "Quick Strike Ring", image: "items/quick-strike-ring.png", value: 1, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 0.8 },
-    { id: "brutality_blade", name: "Brutality Blade", image: "items/3.png", value: 1, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1.8 },
-    { id: "dalrends", name: "Dal Rends", image: "items/dalrends.png", value: 1, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1.8 },
-   
-    { id: "crulshorukh", name: "Crulshorukh", image: "items/6.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 2.4 },
-    { id: "cloak", name: "Cloak", image: "items/7.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 2.4 },
-    { id: "dragonstalker", name: "Dragon Stalker Set", image: "items/dragonstalker.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 2.4 },
-    { id: "drakefangtalisman", name: "Drake Fang Talisman", image: "items/dft.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 2.4 },
-    { id: "onslaught", name: "Onslaught", image: "items/onslaught.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 2.4 },
-    { id: "tunder", name: "Tunder", image: "items/tunder.png", value: 5, collected: 0, type: "legendary", baseProbability: gameConfig.itemProbabilities.legendary, sound: "", size_multiplier: 3.0 },
+    { id: "ring1", name: "Ring 1", image: "items/ring1.png", value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
+    { id: "ring2", name: "Ring2", image: "items/ring2.png", value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
+    { id: "ring3", name: "Ring3", image: "items/ring3.png", value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
+    { id: "gold", name: "Gold", image: "items/gold.png", value: 4, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 1 },
+    { id: "cloak", name: "Cloak", image: "items/7.png", value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 1 },
+    { id: "ashjrethul", name: "Ashjrethul", image: "items/4.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2 },
+    { id: "maladath", name: "Maladath", image: "items/maladath.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2.5 },
+    { id: "ashkandi", name: "Ashkandi", image: "items/2.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2 },
+    { id: "ashkandi2", name: "Another Ashkandi", image: "items/ashkandi.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1 },
+    { id: "quick-strike-ring", name: "Quick Strike Ring", image: "items/quick-strike-ring.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 0.8 },
+    { id: "brutality_blade", name: "Brutality Blade", image: "items/3.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1.8 },
+    { id: "dalrends", name: "Dal Rends", image: "items/dalrends.png", value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1.8 },  
+    { id: "crulshorukh", name: "Crulshorukh", image: "items/6.png", value: 7, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 2.4 },
+    { id: "drakefangtalisman", name: "Drake Fang Talisman", image: "items/dft.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 1.7 },
+    { id: "onslaught", name: "Onslaught", image: "items/onslaught.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 1},
+    { id: "ThunderFury", name: "Thunder Fury", image: "items/tunder.png", value: 5, collected: 0, type: "legendary", baseProbability: gameConfig.itemProbabilities.legendary, sound: "", size_multiplier: 2.8 },
+    { id: "zee", name: "Zee Zgnan Tigar", image: "items/zee.png", value: 15, collected: 0, spawned: 0, type: "zee_zgnan", baseProbability: gameConfig.itemProbabilities.zee_zgnan, sound: "", size_multiplier: 2.0 },
     
     // TIER SET ITEMS - Collect all 8 to win the game! (One chance only - missing any piece makes victory impossible)
     { id: "ds_helm", name: "Dragonstalker's Helm", image: "items/dshelm.png", value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: "", setPosition: 1, size_multiplier: 1 },
@@ -285,10 +318,26 @@ const damageProjectiles = [
         type: "common", 
         baseProbability: 0.025, 
         sound: "assets/fireballimpact.mp3",
-        speed: { min: 2, max: 3.5 },
+        speed: { min: 1.2, max: 2.0 }, // Reduced from 2.0-3.5 for better balance
         size: { width: 120, height: 120 },
         color: "#FF4500",
         effects: "burn"
+    },
+    
+    // Speed boost projectile - Common type, increases game speed on hit
+    { 
+        id: "speedboost", 
+        name: "Speed Boost", 
+        image: "assets/speed-boost.png", 
+        damage: 0, // 3% HP damage (less than fireball)
+        type: "common", 
+        baseProbability: 0.020, 
+        sound: "assets/speedboost.mp3",
+        speed: { min: 1.5, max: 2.5 }, // Reduced from 2.0-4.0 for better balance
+        size: { width: 100, height: 100 },
+        color: "#FF0000",
+        effects: "speed_increase",
+        speedIncreaseOptions: [10, 20, 30] // Possible percentage increases
     },
     
     // Rare damage projectiles - Lower probability, more damage
@@ -300,7 +349,7 @@ const damageProjectiles = [
         type: "rare", 
         baseProbability: 0.008, 
         sound: "assets/frostimpact.mp3",
-        speed: { min: 1, max: 3 },
+        speed: { min: 0.8, max: 1.8 }, // Reduced from 1.0-3.0 for better balance
         size: { width: 90, height: 90 },
         color: "#00BFFF",
         effects: "freeze"
@@ -319,19 +368,23 @@ const powerUpItems = [
         type: "utility",
         color: "#4169E1",
         sound: "assets/mana_drink.mp3",
-        description: "Slows down time"
+        description: "Slows down time",
+        baseProbability: 0.25, // 25% base chance
+        speedScaling: true // Increases probability based on game speed
     },
     {
         id: "power_word_shield",
         name: "Power Word Shield",
         image: "assets/powerwordshield.jpg",
-        effect: "heal",
-        value: 10, // Heal 10 HP
-        duration: 0, // Instant effect
-        type: "heal",
-        color: "#FFD700",
+        effect: "freeze_time",
+        value: 0, // No direct value, creates protective effect
+        duration: 360, // Duration in frames (2 seconds at 60fps) - configurable via gameConfig
+        type: "utility",
+        color: "#87CEEB",
         sound: "assets/shield_cast.mp3",
-        description: "Restores 10 HP"
+        description: "Freezes all projectiles",
+        baseProbability: 0.15, // Base 15% chance when conditions are met
+        speedScaling: true // Increases probability based on game speed
     },
     {
         id: "health_potion",
@@ -343,7 +396,9 @@ const powerUpItems = [
         type: "heal",
         color: "#FF69B4",
         sound: "assets/heal_drink.mp3",
-        description: "Restores 20 HP"
+        description: "Restores 20 HP",
+        baseProbability: 0.30, // 30% base chance
+        healthScaling: true // Increases probability when health is low
     },
     {
         id: "time_cutter",
@@ -357,7 +412,8 @@ const powerUpItems = [
         sound: "assets/time_cut.mp3",
         description: "Permanently reduces game speed",
         maxSpawns: 2, // Maximum times this can spawn in a game
-        spawnChance: 0.1 // 10% chance when conditions are met (very rare)
+        spawnChance: 0.1, // 10% chance when conditions are met (very rare)
+        baseProbability: 0.10 // 10% base chance (very rare)
     }
 ];
 
@@ -389,7 +445,8 @@ const sounds = {
     ohoo: new Audio('assets/ohoo.mp3'),              // 66 collections
     nakoj: new Audio('assets/nakoj.mp3'),            // 99 collections
     roll: new Audio('assets/roll.mp3'),               // 130 collections
-    fireballimpact: new Audio('assets/fireballimpact.mp3')  // Very loud fireball impact sound
+    fireballimpact: new Audio('assets/fireballimpact.mp3'),  // Very loud fireball impact sound
+    wegotit2: new Audio('assets/weGotIt2.mp3')       // Dragonstalker item collected sound
 };
 
 // Set up background music
@@ -431,6 +488,43 @@ document.addEventListener('mousemove', (e) => {
     mouseY = e.clientY - rect.top;
 });
 
+// Mouse click handling for settings screen buttons
+document.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    
+    // Handle settings screen buttons
+    if (gameState.showSettings && !gameState.gameRunning && gameState.menuButtonBounds) {
+        // Check if click is on the "Back to Menu" button
+        if (clickX >= gameState.menuButtonBounds.x && 
+            clickX <= gameState.menuButtonBounds.x + gameState.menuButtonBounds.width &&
+            clickY >= gameState.menuButtonBounds.y && 
+            clickY <= gameState.menuButtonBounds.y + gameState.menuButtonBounds.height) {
+            gameState.showSettings = false;
+            showNameEntry();
+        }
+    }
+    
+    // Handle pause menu buttons
+    if (gameState.gamePaused && gameState.pauseMenuBounds) {
+        const continueBtn = gameState.pauseMenuBounds.continue;
+        const restartBtn = gameState.pauseMenuBounds.restart;
+        
+        // Check continue button
+        if (clickX >= continueBtn.x && clickX <= continueBtn.x + continueBtn.width &&
+            clickY >= continueBtn.y && clickY <= continueBtn.y + continueBtn.height) {
+            togglePause(); // Resume game
+        }
+        
+        // Check restart button
+        if (clickX >= restartBtn.x && clickX <= restartBtn.x + restartBtn.width &&
+            clickY >= restartBtn.y && clickY <= restartBtn.y + restartBtn.height) {
+            pauseAndRestart();
+        }
+    }
+});
+
 // Also handle touch for mobile devices
 document.addEventListener('touchmove', (e) => {
     e.preventDefault();
@@ -440,14 +534,71 @@ document.addEventListener('touchmove', (e) => {
     mouseY = touch.clientY - rect.top;
 });
 
+// Touch handling for settings screen buttons
+document.addEventListener('touchend', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.changedTouches[0];
+    const touchX = touch.clientX - rect.left;
+    const touchY = touch.clientY - rect.top;
+    
+    // Handle settings screen buttons
+    if (gameState.showSettings && !gameState.gameRunning && gameState.menuButtonBounds) {
+        e.preventDefault();
+        
+        // Check if touch is on the "Back to Menu" button
+        if (touchX >= gameState.menuButtonBounds.x && 
+            touchX <= gameState.menuButtonBounds.x + gameState.menuButtonBounds.width &&
+            touchY >= gameState.menuButtonBounds.y && 
+            touchY <= gameState.menuButtonBounds.y + gameState.menuButtonBounds.height) {
+            gameState.showSettings = false;
+            showNameEntry();
+        }
+    }
+    
+    // Handle pause menu buttons
+    if (gameState.gamePaused && gameState.pauseMenuBounds) {
+        e.preventDefault();
+        const continueBtn = gameState.pauseMenuBounds.continue;
+        const restartBtn = gameState.pauseMenuBounds.restart;
+        
+        // Check continue button
+        if (touchX >= continueBtn.x && touchX <= continueBtn.x + continueBtn.width &&
+            touchY >= continueBtn.y && touchY <= continueBtn.y + continueBtn.height) {
+            togglePause(); // Resume game
+        }
+        
+        // Check restart button
+        if (touchX >= restartBtn.x && touchX <= restartBtn.x + restartBtn.width &&
+            touchY >= restartBtn.y && touchY <= restartBtn.y + restartBtn.height) {
+            pauseAndRestart();
+        }
+    }
+});
+
 // Keyboard controls for settings
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab' || e.key === 'i' || e.key === 'I') {
+    // Check if name entry screen is visible (disable shortcuts during name input)
+    const nameEntryVisible = document.getElementById('nameEntry').style.display !== 'none';
+    
+    if (!nameEntryVisible && (e.key === 'Tab' || e.key === 'i' || e.key === 'I')) {
         e.preventDefault();
-        gameState.showSettings = !gameState.showSettings;
+        // Only toggle settings if game is not running or is paused
+        if (!gameState.gameRunning || gameState.gamePaused) {
+            gameState.showSettings = !gameState.showSettings;
+        }
     }
     if (e.key === 'Escape') {
-        gameState.showSettings = false;
+        e.preventDefault();
+        if (gameState.showSettings) {
+            gameState.showSettings = false;
+            // If game isn't running, return to name entry
+            if (!gameState.gameRunning) {
+                showNameEntry();
+            }
+        } else if (gameState.gameRunning) {
+            // Toggle pause when game is running
+            togglePause();
+        }
     }
 });
 
@@ -546,8 +697,10 @@ function calculateItemProbability(item) {
     }
     
     // Cap probabilities to maintain rarity
-    if (item.baseProbability === 0.01) {
-        return Math.min(0.12, finalProbability); // Ultra rare caps at 12%
+    if (item.baseProbability === 0.002) {
+        return Math.min(0.08, finalProbability); // Zee Zgnan caps at 8% (ultra ultra rare)
+    } else if (item.baseProbability === 0.01) {
+        return Math.min(0.12, finalProbability); // Legendary caps at 12%
     } else if (item.baseProbability === 0.1) {
         return Math.min(0.4, finalProbability); // Rare caps at 40%
     } else if (item.baseProbability === 0.4) {
@@ -669,6 +822,9 @@ function selectRandomItem() {
         // Exclude tier set items that have already been collected or missed (one chance only)
         if (item.type === "tier_set" && (item.collected > 0 || item.missed > 0)) return false;
         
+        // Exclude zee_zgnan items that have already spawned (one chance only)
+        if (item.type === "zee_zgnan" && item.spawned > 0) return false;
+        
         return true;
     });
     
@@ -716,6 +872,11 @@ class FallingItem {
         // Select item based on probability weights FIRST
         this.itemData = selectRandomItem();
         
+        // Mark zee_zgnan items as spawned (one-time only items)
+        if (this.itemData.type === "zee_zgnan") {
+            this.itemData.spawned++;
+        }
+        
         // Apply size multiplier from item data
         const sizeMultiplier = this.itemData.size_multiplier || 1;
         this.width = gameConfig.visuals.itemSize * sizeMultiplier;
@@ -723,14 +884,14 @@ class FallingItem {
         
         // Random speed variation: 0.5x to 2.0x of base speed for dynamic gameplay
         const speedVariation = 0.5 + Math.random() * 1.5; // Random between 0.5 and 2.0
-        this.speed = gameState.baseDropSpeed * gameState.speedMultiplier * gameState.permanentSpeedReduction * speedVariation;
+        this.speed = gameState.baseDropSpeed * gameState.speedMultiplier * gameState.permanentSpeedReduction * gameState.speedIncreaseMultiplier * speedVariation;
         
         // Create image object for this specific item
         this.itemImage = new Image();
         this.itemImage.src = this.itemData.image;
         
         this.rotation = 0;
-        this.rotationSpeed = (Math.random() - 0.5) * 0.2;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.05;
         
         // Animation properties for borders
         this.borderAnimation = 0;
@@ -738,9 +899,9 @@ class FallingItem {
     }
 
     update() {
-        this.y += this.speed;
-        this.rotation += this.rotationSpeed;
-        this.borderAnimation += this.borderPulseSpeed;
+        this.y += this.speed * gameState.deltaTimeMultiplier;
+        this.rotation += this.rotationSpeed * gameState.deltaTimeMultiplier;
+        this.borderAnimation += this.borderPulseSpeed * gameState.deltaTimeMultiplier;
         
         // Check if item fell off screen
         if (this.y > canvas.height + 180) {
@@ -784,6 +945,8 @@ class FallingItem {
                 ctx.fillStyle = this.itemData.type === 'regular' ? '#00FF00' : 
                                this.itemData.type === 'epic' ? '#9932CC' : 
                                this.itemData.type === 'special' ? '#FF69B4' : 
+                               this.itemData.type === 'legendary' ? '#FFD700' :
+                               this.itemData.type === 'zee_zgnan' ? '#FF0080' :
                                this.itemData.type === 'tier_set' ? '#00FFFF' : '#FFD700';
                 ctx.fillRect(-drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
                 
@@ -807,12 +970,7 @@ class FallingItem {
         
         switch(this.itemData.type) {
             case 'regular':
-                // Round green border with proper padding
-                ctx.strokeStyle = '#00FF00';
-                ctx.lineWidth = 2;
-                ctx.beginPath();
-                ctx.arc(0, 0, borderRadius + basePadding, 0, Math.PI * 2);
-                ctx.stroke();
+                // No border for regular items
                 break;
                 
             case 'epic':
@@ -856,6 +1014,40 @@ class FallingItem {
                 
                 // Inner border with padding
                 ctx.strokeStyle = '#FFD700';
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 15;
+                ctx.beginPath();
+                ctx.arc(0, 0, borderRadius + basePadding + 5, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.shadowBlur = 0; // Reset shadow
+                break;
+                
+            case 'zee_zgnan':
+                // Ultra rare deep pink/magenta dramatic animated border
+                const zeePulse = Math.sin(this.borderAnimation * 2.5) * 0.6 + 0.4; // 0 to 1
+                const zeeGlow = Math.sin(this.borderAnimation * 2) * 0.5 + 0.5; // 0 to 1
+                const zeeSparkle = Math.sin(this.borderAnimation * 3) * 0.3 + 0.7; // sparkle effect
+                
+                // Triple layer ultra-rare border
+                // Outer massive glow
+                ctx.strokeStyle = '#FF0080';
+                ctx.lineWidth = 6 * zeePulse;
+                ctx.shadowColor = '#FF0080';
+                ctx.shadowBlur = 40 * zeeGlow;
+                ctx.beginPath();
+                ctx.arc(0, 0, borderRadius + basePadding + 30 + (12 * zeePulse), 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Middle layer
+                ctx.strokeStyle = '#FF69B4';
+                ctx.lineWidth = 4 * zeeSparkle;
+                ctx.shadowBlur = 25;
+                ctx.beginPath();
+                ctx.arc(0, 0, borderRadius + basePadding + 15, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Inner core
+                ctx.strokeStyle = '#FFFFFF';
                 ctx.lineWidth = 2;
                 ctx.shadowBlur = 15;
                 ctx.beginPath();
@@ -925,10 +1117,24 @@ class DamageProjectile {
         
         // Random speed variation based on projectile data
         const speedVariation = projectileData.speed.min + Math.random() * (projectileData.speed.max - projectileData.speed.min);
-        this.speed = gameState.baseDropSpeed * gameState.speedMultiplier * gameState.permanentSpeedReduction * speedVariation;
+        
+        // Use separate scaling for projectiles with higher base speed but maintained ratios
+        const baseProjectileMultiplier = 1.5; // Start projectiles 50% faster than before
+        const projectileSpeedMultiplier = Math.min((gameState.levelSpeedMultiplier * 0.6 + baseProjectileMultiplier), 4.5); // Cap at 4.5x total, includes base boost
+        const projectileSpeedIncrease = gameState.speedIncreaseActive ? 
+            Math.min(gameState.speedIncreaseMultiplier * 0.5, 1.15) : 1.0; // Reduce speed boost impact to max 15%
+        
+        this.speed = gameState.baseDropSpeed * projectileSpeedMultiplier * gameState.permanentSpeedReduction * projectileSpeedIncrease * speedVariation;
         
         // Visual effects
         this.glowAnimation = 0;
+        
+        // Speed boost specific properties
+        if (this.data.effects === "speed_increase") {
+            // Randomly select one of the speed increase options
+            const options = this.data.speedIncreaseOptions;
+            this.speedIncreasePercent = options[Math.floor(Math.random() * options.length)];
+        }
         
         // Create image object for this projectile
         this.projectileImage = new Image();
@@ -936,8 +1142,8 @@ class DamageProjectile {
     }
 
     update() {
-        this.y += this.speed;
-        this.glowAnimation += 0.2;
+        this.y += this.speed * gameState.deltaTimeMultiplier;
+        this.glowAnimation += 0.2 * gameState.deltaTimeMultiplier;
         
         if (this.y > canvas.height + this.height) {
             return false;
@@ -958,6 +1164,17 @@ class DamageProjectile {
         // Force consistent size regardless of source image dimensions
         const drawWidth = this.width;
         const drawHeight = this.height;
+        const borderPadding = 8; // Padding for border around projectiles with variable values
+        
+        // Draw red border for projectiles with variable values (like speed boost)
+        if (this.data.effects === "speed_increase" && this.speedIncreasePercent) {
+            ctx.strokeStyle = '#FF0000';
+            ctx.lineWidth = 3;
+            ctx.shadowColor = '#FF0000';
+            ctx.shadowBlur = 8;
+            ctx.strokeRect(this.x - borderPadding, this.y - borderPadding, drawWidth + (borderPadding * 2), drawHeight + (borderPadding * 2));
+            ctx.shadowBlur = 0; // Reset shadow
+        }
         
         // Check if projectile image is loaded, otherwise draw a placeholder
         if (this.projectileImage && this.projectileImage.complete && this.projectileImage.naturalWidth > 0) {
@@ -974,6 +1191,16 @@ class DamageProjectile {
                 ctx.fillStyle = '#FFD700';
                 ctx.beginPath();
                 ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/3, 0, Math.PI * 2);
+                ctx.fill();
+            } else if (this.data.id === "speedboost") {
+                // Speed boost placeholder - red circle with percentage
+                ctx.fillStyle = '#FF0000';
+                ctx.beginPath();
+                ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/2.5, 0, Math.PI * 2);
                 ctx.fill();
             } else if (this.data.id === "frostbolt") {
                 // Frostbolt placeholder
@@ -1000,6 +1227,29 @@ class DamageProjectile {
                     ctx.stroke();
                 }
             }
+        }
+        
+        // Draw variable value text underneath for projectiles with special effects
+        if (this.data.effects === "speed_increase" && this.speedIncreasePercent) {
+            // Background for text readability
+            const textX = this.x + drawWidth/2;
+            const textY = this.y + drawHeight + 20;
+            const textWidth = 60;
+            const textHeight = 18;
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(textX - textWidth/2, textY - textHeight/2, textWidth, textHeight);
+            
+            // Border around text background
+            ctx.strokeStyle = '#FF0000';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(textX - textWidth/2, textY - textHeight/2, textWidth, textHeight);
+            
+            // Text
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`+${this.speedIncreasePercent}%`, textX, textY + 4);
         }
         
         ctx.restore();
@@ -1052,7 +1302,7 @@ class PowerUpItem {
         
         // Slower speed for power-ups (easier to collect)
         const speedVariation = 0.6 + Math.random() * 0.8; // Slower than regular items
-        this.speed = gameState.baseDropSpeed * gameState.speedMultiplier * gameState.permanentSpeedReduction * speedVariation;
+        this.speed = gameState.baseDropSpeed * gameState.speedMultiplier * gameState.permanentSpeedReduction * gameState.speedIncreaseMultiplier * speedVariation;
         
         // Visual effects
         this.rotation = 0;
@@ -1066,10 +1316,10 @@ class PowerUpItem {
     }
 
     update() {
-        this.y += this.speed * gameState.timeSlowMultiplier; // Affected by time slow
-        this.rotation += this.rotationSpeed;
-        this.glowAnimation += 0.15;
-        this.pulseAnimation += 0.1;
+        this.y += this.speed * gameState.timeSlowMultiplier * gameState.deltaTimeMultiplier; // Affected by time slow and frame rate
+        this.rotation += this.rotationSpeed * gameState.deltaTimeMultiplier;
+        this.glowAnimation += 0.15 * gameState.deltaTimeMultiplier;
+        this.pulseAnimation += 0.1 * gameState.deltaTimeMultiplier;
         
         if (this.y > canvas.height + this.height) {
             this.missed = true;
@@ -1172,6 +1422,12 @@ class PowerUpItem {
                 gameState.health = Math.min(gameState.maxHealth, gameState.health + this.data.value);
                 break;
                 
+            case "freeze_time":
+                // Freeze all projectiles for the configured duration
+                gameState.freezeTimeActive = true;
+                gameState.freezeTimeTimer = gameConfig.powerUps.freezeTime.duration;
+                break;
+                
             case "cut_time":
                 // Permanently reduce game speed
                 const reductionAmount = gameConfig.powerUps.cutTime.speedReduction;
@@ -1196,9 +1452,9 @@ class Particle {
     }
 
     update() {
-        this.x += this.vx;
-        this.y += this.vy;
-        this.life--;
+        this.x += this.vx * gameState.deltaTimeMultiplier;
+        this.y += this.vy * gameState.deltaTimeMultiplier;
+        this.life -= gameState.deltaTimeMultiplier;
         return this.life > 0;
     }
 
@@ -1287,6 +1543,49 @@ function spawnFireball() {
     spawnDamageProjectile();
 }
 
+// Calculate power-up probability based on speed and other factors
+function calculatePowerUpProbability(powerUp) {
+    // Use base probability if not specified
+    let finalProbability = powerUp.baseProbability || 0.33; // Default 33% chance
+    
+    // Apply speed scaling for power-ups that have this property
+    if (powerUp.speedScaling) {
+        // Calculate current effective speed multiplier
+        const currentSpeed = gameState.levelSpeedMultiplier * gameState.permanentSpeedReduction * gameState.speedIncreaseMultiplier;
+        
+        // Increase probability based on speed - more speed = more shields needed
+        // Base speed 1.0 = no bonus, speed 2.0 = +50% probability, speed 3.0 = +100% probability
+        const speedBonus = Math.max(0, (currentSpeed - 1.0) * 0.5); // 50% bonus per speed multiplier above 1.0
+        finalProbability += speedBonus;
+        
+        // Additional bonus based on level (higher levels = more dangerous)
+        const levelBonus = Math.max(0, (gameState.currentLevel - 1) * 0.1); // 10% bonus per level above 1
+        finalProbability += levelBonus;
+        
+        // Bonus if player health is low (more shields when struggling)
+        if (gameState.health <= 30) {
+            finalProbability += 0.3; // 30% bonus when health is low
+        } else if (gameState.health <= 50) {
+            finalProbability += 0.15; // 15% bonus when health is medium-low
+        }
+    }
+    
+    // Apply health scaling for healing items - MORE likely when health is LOW
+    if (powerUp.healthScaling) {
+        if (gameState.health <= 30) {
+            finalProbability += 0.5; // 50% bonus when health is critically low
+        } else if (gameState.health <= 50) {
+            finalProbability += 0.3; // 30% bonus when health is medium-low
+        } else if (gameState.health <= 70) {
+            finalProbability += 0.15; // 15% bonus when health is getting low
+        }
+        // No bonus when health is high (above 70%) - healing not needed
+    }
+    
+    // Cap probability to prevent it from becoming too high
+    return Math.min(0.8, finalProbability); // Max 80% chance
+}
+
 function spawnPowerUp() {
     // Check if power-ups are enabled
     if (!gameConfig.powerUps.enabled) return;
@@ -1326,13 +1625,36 @@ function spawnPowerUp() {
             }
         }
         
-        // Select random power-up from available options
+        // Select power-up using weighted probability based on game conditions
         if (availablePowerUps.length > 0) {
-            const randomPowerUp = availablePowerUps[Math.floor(Math.random() * availablePowerUps.length)];
-            activePowerUps.push(new PowerUpItem(randomPowerUp));
+            // Calculate probabilities for each power-up
+            const powerUpsWithProbability = availablePowerUps.map(powerUp => ({
+                powerUp: powerUp,
+                probability: calculatePowerUpProbability(powerUp)
+            }));
+            
+            // Create weighted selection pool
+            const weightedPool = [];
+            powerUpsWithProbability.forEach(({ powerUp, probability }) => {
+                // Add power-up to pool based on its probability (multiply by 100 for precision)
+                const weight = Math.floor(probability * 100);
+                for (let i = 0; i < weight; i++) {
+                    weightedPool.push(powerUp);
+                }
+            });
+            
+            // Select random power-up from weighted pool, fallback to random if pool is empty
+            let selectedPowerUp;
+            if (weightedPool.length > 0) {
+                selectedPowerUp = weightedPool[Math.floor(Math.random() * weightedPool.length)];
+            } else {
+                selectedPowerUp = availablePowerUps[Math.floor(Math.random() * availablePowerUps.length)];
+            }
+            
+            activePowerUps.push(new PowerUpItem(selectedPowerUp));
             
             // Track cut_time spawns
-            if (randomPowerUp.id === "time_cutter") {
+            if (selectedPowerUp.id === "time_cutter") {
                 gameState.cutTimeSpawned++;
             }
             
@@ -1394,6 +1716,13 @@ function playFireballImpactSound() {
     sounds.fireballimpact.play().catch(e => console.log('Fireball impact sound failed to play'));
 }
 
+function playDragonstalkerSound() {
+    if (!audioInitialized || audioState.isMuted) return;
+    sounds.wegotit2.volume = volumeSettings.effects;
+    sounds.wegotit2.currentTime = 0;
+    sounds.wegotit2.play().catch(e => console.log('Dragonstalker sound failed to play'));
+}
+
 function startBackgroundMusic() {
     if (!audioInitialized || audioState.isMuted) return;
     sounds.background.volume = volumeSettings.background;
@@ -1452,17 +1781,35 @@ function playItemSound(item) {
 }
 
 function updateGame() {
-    if (!gameState.gameRunning) return;
+    if (!gameState.gameRunning || gameState.gamePaused) return;
     
     // Update elapsed time
     gameState.elapsedTime = (Date.now() - gameState.gameStartTime) / 1000;
 
-    // Update time slow effect
+    // Update time slow effect (frame rate normalized)
     if (gameState.timeSlowActive) {
-        gameState.timeSlowTimer--;
+        gameState.timeSlowTimer -= gameState.deltaTimeMultiplier;
         if (gameState.timeSlowTimer <= 0) {
             gameState.timeSlowActive = false;
             gameState.timeSlowMultiplier = 1.0;
+        }
+    }
+    
+    // Update freeze time effect (frame rate normalized)
+    if (gameState.freezeTimeActive) {
+        gameState.freezeTimeTimer -= gameState.deltaTimeMultiplier;
+        if (gameState.freezeTimeTimer <= 0) {
+            gameState.freezeTimeActive = false;
+        }
+    }
+    
+    // Update speed increase effect (frame rate normalized)
+    if (gameState.speedIncreaseActive) {
+        gameState.speedIncreaseTimer -= gameState.deltaTimeMultiplier;
+        if (gameState.speedIncreaseTimer <= 0) {
+            gameState.speedIncreaseActive = false;
+            gameState.speedIncreaseMultiplier = 1.0;
+            gameState.currentSpeedIncreasePercent = 0;
         }
     }
 
@@ -1500,11 +1847,13 @@ function updateGame() {
             updateGameLevel(); // Update level based on collections
             gameState.speedMultiplier = gameState.levelSpeedMultiplier; // Use level-based speed
             createCollectionParticles(item.x + item.width/2, item.y + item.height/2);
-            playItemSound(item.itemData);
             
-            // Check for tier set completion if this was a tier set item
+            // Play special sound for Dragonstalker items, otherwise play regular item sound
             if (item.itemData.type === "tier_set") {
+                playDragonstalkerSound();
                 checkTierSetCompletion();
+            } else {
+                playItemSound(item.itemData);
             }
             
             // Play total sound when reaching configured trigger
@@ -1529,9 +1878,10 @@ function updateGame() {
 
 
 
-    // Update fireballs
+    // Update fireballs (freeze them if freeze time is active)
     fireballs = fireballs.filter(fireball => {
-        const stillActive = fireball.update();
+        // Only update projectiles if freeze time is not active
+        const stillActive = gameState.freezeTimeActive ? true : fireball.update();
         
         if (stillActive && fireball.checkCollision(player)) {
             // Play appropriate impact sound based on projectile type
@@ -1539,6 +1889,32 @@ function updateGame() {
             
             // Trigger player impact reaction
             player.onHit();
+            
+            // Apply special effects based on projectile type
+            if (fireball.data && fireball.data.effects === "speed_increase") {
+                // Apply cumulative speed increase effect
+                const increasePercent = fireball.speedIncreasePercent;
+                gameState.speedIncreaseActive = true;
+                gameState.speedIncreaseTimer = 600; // 10 seconds at 60fps (reset timer)
+                
+                // Make speed boosts cumulative
+                if (gameState.speedIncreaseActive && gameState.currentSpeedIncreasePercent > 0) {
+                    // Add to existing boost
+                    gameState.currentSpeedIncreasePercent += increasePercent;
+                } else {
+                    // First boost
+                    gameState.currentSpeedIncreasePercent = increasePercent;
+                }
+                
+                // Update multiplier based on cumulative percentage
+                gameState.speedIncreaseMultiplier = 1 + (gameState.currentSpeedIncreasePercent / 100);
+                
+                // Cap the cumulative boost at 100% to prevent extreme speeds
+                if (gameState.currentSpeedIncreasePercent > 100) {
+                    gameState.currentSpeedIncreasePercent = 100;
+                    gameState.speedIncreaseMultiplier = 2.0; // Max 2x speed
+                }
+            }
             
             // Reduce health based on projectile damage (percentage-based)
             const damage = fireball.data ? fireball.data.damage : 5; // Default to 5% for old fireballs
@@ -1595,9 +1971,9 @@ function drawSettings() {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Settings panel
-    const panelWidth = 600;
-    const panelHeight = 500;
+    // Settings panel - made larger to fit all content
+    const panelWidth = 650;
+    const panelHeight = 600;
     const panelX = (canvas.width - panelWidth) / 2;
     const panelY = (canvas.height - panelHeight) / 2;
     
@@ -1613,82 +1989,119 @@ function drawSettings() {
     ctx.textAlign = 'center';
     ctx.fillText('GAME ITEMS', canvas.width/2, panelY + 50);
     
-    // Instructions
+    // Instructions (different for in-game vs menu)
     ctx.fillStyle = '#CCC';
     ctx.font = '16px Arial';
-    ctx.fillText('Press TAB or I to toggle • ESC to close', canvas.width/2, panelY + 80);
+    if (gameState.gameRunning) {
+        ctx.fillText('Press TAB or I to toggle • ESC to close', canvas.width/2, panelY + 80);
+    } else {
+        ctx.fillText('Press ESC to return to menu', canvas.width/2, panelY + 80);
+    }
     
-    let yPos = panelY + 120;
+    let yPos = panelY + 110;
     ctx.textAlign = 'left';
-    ctx.font = 'bold 20px Arial';
+    ctx.font = 'bold 18px Arial';
     
-    // Regular Items Section (1 point)
+    // Regular Items Section (4 points)
     ctx.fillStyle = '#00FF00';
-    ctx.fillText('REGULAR ITEMS (1 point each):', panelX + 30, yPos);
-    yPos += 25;
+    ctx.fillText('REGULAR ITEMS (4 points each):', panelX + 30, yPos);
+    yPos += 22;
     ctx.fillStyle = '#FFF';
-    ctx.font = '14px Arial';
-    ctx.fillText('Ashkandi, Brutality Blade', panelX + 50, yPos);
-    yPos += 35;
+    ctx.font = '13px Arial';
+    ctx.fillText('Rings, Gold', panelX + 50, yPos);
+    yPos += 28;
     
-    // Epic Items Section (3 points)
+    // Epic Items Section (1-3 points)
     ctx.fillStyle = '#9932CC';
-    ctx.font = 'bold 20px Arial';
-    ctx.fillText('EPIC ITEMS (3 points each):', panelX + 30, yPos);
-    yPos += 25;
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText('EPIC ITEMS (1-3 points each):', panelX + 30, yPos);
+    yPos += 22;
     ctx.fillStyle = '#FFF';
-    ctx.font = '14px Arial';
-    ctx.fillText('Ashjrethul, Maladath', panelX + 50, yPos);
-    yPos += 35;
+    ctx.font = '13px Arial';
+    ctx.fillText('Ashjrethul, Maladath, Ashkandi, Brutality Blade', panelX + 50, yPos);
+    yPos += 28;
     
     // Special Items Section (4 points)
     ctx.fillStyle = '#FF69B4';
-    ctx.font = 'bold 20px Arial';
+    ctx.font = 'bold 18px Arial';
     ctx.fillText('SPECIAL ITEMS (4 points each):', panelX + 30, yPos);
-    yPos += 25;
+    yPos += 22;
     ctx.fillStyle = '#FFF';
-    ctx.font = '14px Arial';
-    ctx.fillText('Crulshorukh, Cloak, Ring', panelX + 50, yPos);
-    yPos += 35;
+    ctx.font = '13px Arial';
+    ctx.fillText('Crulshorukh, Cloak, Dragonstalker, Onslaught', panelX + 50, yPos);
+    yPos += 28;
     
     // Legendary Items Section (5 points)
     ctx.fillStyle = '#FFD700';
-    ctx.font = 'bold 20px Arial';
+    ctx.font = 'bold 18px Arial';
     ctx.fillText('LEGENDARY ITEMS (5 points each):', panelX + 30, yPos);
-    yPos += 25;
+    yPos += 22;
     ctx.fillStyle = '#FFF';
-    ctx.font = '14px Arial';
-    ctx.fillText('Tunder (rare drop)', panelX + 50, yPos);
-    yPos += 35;
+    ctx.font = '13px Arial';
+    ctx.fillText('Tunder (very rare drop)', panelX + 50, yPos);
+    yPos += 28;
+    
+    // Zee Zgnan Items Section (15 points)
+    ctx.fillStyle = '#FF0080';
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText('ZEE ZGNAN ITEMS (15 points each):', panelX + 30, yPos);
+    yPos += 22;
+    ctx.fillStyle = '#FF0080';
+    ctx.font = 'bold 14px Arial';
+    ctx.fillText('⚡ ULTRA RARE - ONLY ONE CHANCE! ⚡', panelX + 50, yPos);
+    yPos += 18;
+    ctx.fillStyle = '#FFF';
+    ctx.font = '13px Arial';
+    ctx.fillText('Zee Zgnan Tigar (extremely rare, once per game)', panelX + 50, yPos);
+    yPos += 28;
     
     // Tier Set Items Section (6 points + WIN CONDITION)
     ctx.fillStyle = '#00FFFF';
-    ctx.font = 'bold 20px Arial';
+    ctx.font = 'bold 18px Arial';
     ctx.fillText('TIER SET ITEMS (6 points each):', panelX + 30, yPos);
-    yPos += 25;
+    yPos += 22;
     ctx.fillStyle = '#00FFFF';
-    ctx.font = 'bold 16px Arial';
+    ctx.font = 'bold 14px Arial';
     ctx.fillText('🏆 COLLECT ALL 8 TO WIN THE GAME! 🏆', panelX + 50, yPos);
-    yPos += 20;
+    yPos += 18;
     ctx.fillStyle = '#FFF';
-    ctx.font = '14px Arial';
+    ctx.font = '13px Arial';
     ctx.fillText('Dragonstalker Set: Helm, Spaulders, Breastplate,', panelX + 50, yPos);
-    ctx.fillText('Bracers, Gauntlets, Belt, Legguards, Greaves', panelX + 50, yPos + 15);
-    yPos += 40;
+    ctx.fillText('Bracers, Gauntlets, Belt, Legguards, Greaves', panelX + 50, yPos + 14);
+    yPos += 35;
     
-
-    
-    // Other Items Section
-    ctx.fillStyle = '#FF4500';
-    ctx.font = 'bold 20px Arial';
-    ctx.fillText('OTHER ELEMENTS:', panelX + 30, yPos);
-    yPos += 30;
-    
-    ctx.fillStyle = '#FFF';
-    ctx.font = '16px Arial';
-    ctx.fillText('efto.png - Player character', panelX + 50, yPos);
-    ctx.fillText('fireball.png - Dangerous obstacles', panelX + 50, yPos + 25);
-    ctx.fillText('vano.png - Impact reaction face', panelX + 50, yPos + 50);
+    // Back to Menu button (only when not in game)
+    if (!gameState.gameRunning) {
+        const buttonY = panelY + panelHeight - 60;
+        const buttonWidth = 150;
+        const buttonHeight = 40;
+        const buttonX = panelX + (panelWidth - buttonWidth) / 2;
+        
+        // Button background
+        ctx.fillStyle = '#4ECDC4';
+        ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+        
+        // Button border
+        ctx.strokeStyle = '#26d0ce';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(buttonX, buttonY, buttonWidth, buttonHeight);
+        
+        // Button text
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Back to Menu', buttonX + buttonWidth/2, buttonY + 25);
+        
+        // Store button coordinates for click detection
+        gameState.menuButtonBounds = {
+            x: buttonX,
+            y: buttonY,
+            width: buttonWidth,
+            height: buttonHeight
+        };
+    } else {
+        gameState.menuButtonBounds = null;
+    }
     
     ctx.textAlign = 'left';
 }
@@ -1758,12 +2171,12 @@ function drawGame() {
     ctx.fillText(`${Math.ceil(gameState.health)}%`, healthBarX + healthBarWidth/2, healthBarY + 15);
     ctx.textAlign = 'left';
     
-    // Game speed display - bottom left
+    // Game speed and FPS display - bottom left
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(10, canvas.height - 50, 200, 40);
+    ctx.fillRect(10, canvas.height - 50, 280, 40);
     ctx.strokeStyle = '#888';
     ctx.lineWidth = 1;
-    ctx.strokeRect(10, canvas.height - 50, 200, 40);
+    ctx.strokeRect(10, canvas.height - 50, 280, 40);
     
     ctx.fillStyle = '#FFD700';
     ctx.font = 'bold 14px Arial';
@@ -1775,6 +2188,15 @@ function drawGame() {
     const effectiveSpeed = gameState.levelSpeedMultiplier * gameState.permanentSpeedReduction;
     const speedText = `${effectiveSpeed.toFixed(1)}x`;
     ctx.fillText(speedText, 110, canvas.height - 30);
+    
+    // FPS display
+    ctx.fillStyle = '#00FF00';
+    ctx.font = 'bold 14px Arial';
+    ctx.fillText('FPS:', 180, canvas.height - 30);
+    
+    ctx.fillStyle = 'white';
+    ctx.font = '14px Arial';
+    ctx.fillText(`${gameState.fpsCounter}`, 210, canvas.height - 30);
     
     // Show permanent reduction if active
     if (gameState.permanentSpeedReduction < 1.0) {
@@ -1789,11 +2211,45 @@ function drawGame() {
         ctx.font = '14px Arial';
         ctx.fillText(`(${gameState.timeSlowMultiplier.toFixed(1)}x slow)`, 150, canvas.height - 30);
     }
+    
+    // Freeze time indicator if active
+    if (gameState.freezeTimeActive) {
+        ctx.fillStyle = '#87CEEB';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('🛡️ PROJECTILES FROZEN 🛡️', canvas.width / 2, 120);
+        
+        // Show remaining time
+        const remainingSeconds = (gameState.freezeTimeTimer / 60).toFixed(1);
+        ctx.font = '14px Arial';
+        ctx.fillText(`${remainingSeconds}s remaining`, canvas.width / 2, 140);
+        ctx.textAlign = 'left';
+    }
+    
+    // Speed increase indicator if active
+    if (gameState.speedIncreaseActive) {
+        ctx.fillStyle = '#FF0000';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        const yPos = gameState.freezeTimeActive ? 170 : 120; // Avoid overlap with freeze indicator
+        ctx.fillText(`⚡ SPEED BOOST +${gameState.currentSpeedIncreasePercent}% ⚡`, canvas.width / 2, yPos);
+        
+        // Show remaining time
+        const remainingSeconds = (gameState.speedIncreaseTimer / 60).toFixed(1);
+        ctx.font = '14px Arial';
+        ctx.fillText(`${remainingSeconds}s remaining`, canvas.width / 2, yPos + 20);
+        ctx.textAlign = 'left';
+    }
 
     
     // Draw settings screen if active
     if (gameState.showSettings) {
         drawSettings();
+    }
+    
+    // Draw pause menu if game is paused
+    if (gameState.gamePaused) {
+        drawPauseMenu();
     }
 }
 
@@ -1833,7 +2289,8 @@ function restartGame() {
         score: 0,
         missedItems: 0,
         gameRunning: false,  // Will be set to true when game starts
-        speedMultiplier: 1,
+        gamePaused: false,   // Reset pause state
+        speedMultiplier: gameConfig.levels.initialSpeedMultiplier,
         perfectCollections: 0,
         baseDropSpeed: gameConfig.gameplay.baseDropSpeed,
 
@@ -1851,6 +2308,16 @@ function restartGame() {
         timeSlowMultiplier: 1.0,
         lastPowerUpScore: 0,
         
+        // Reset freeze time effects
+        freezeTimeActive: false,
+        freezeTimeTimer: 0,
+        
+        // Reset speed increase effects
+        speedIncreaseActive: false,
+        speedIncreaseTimer: 0,
+        speedIncreaseMultiplier: 1.0,
+        currentSpeedIncreasePercent: 0,
+        
         // Reset cut time tracking
         cutTimeSpawned: 0,
         permanentSpeedReduction: 1.0,
@@ -1862,7 +2329,20 @@ function restartGame() {
         gameUnwinnable: false,
         
         // Keep player name
-        playerName: currentPlayerName
+        playerName: currentPlayerName,
+        
+        // Reset UI state
+        menuButtonBounds: null,
+        pauseMenuBounds: null,
+        
+        // Reset FPS tracking
+        fpsCounter: 0,
+        fpsLastTime: Date.now(),
+        fpsFrameCount: 0,
+        
+        // Reset frame rate normalization
+        lastFrameTime: Date.now(),
+        deltaTimeMultiplier: 1.0,
     };
     
     // Reset collection counts and missed counts for all items
@@ -1870,6 +2350,9 @@ function restartGame() {
         item.collected = 0;
         if (item.type === "tier_set") {
             item.missed = 0;
+        }
+        if (item.type === "zee_zgnan") {
+            item.spawned = 0;
         }
     });
     
@@ -1898,6 +2381,22 @@ function restartGame() {
 
 // Game loop
 function gameLoop() {
+    const currentTime = Date.now();
+    
+    // Calculate delta time multiplier for frame rate normalization
+    const deltaTime = currentTime - gameState.lastFrameTime;
+    const targetFrameTime = 1000 / gameConfig.gameplay.targetFPS; // Target time per frame in ms
+    gameState.deltaTimeMultiplier = deltaTime / targetFrameTime;
+    gameState.lastFrameTime = currentTime;
+    
+    // Calculate FPS
+    gameState.fpsFrameCount++;
+    if (currentTime - gameState.fpsLastTime >= 1000) { // Update every second
+        gameState.fpsCounter = gameState.fpsFrameCount;
+        gameState.fpsFrameCount = 0;
+        gameState.fpsLastTime = currentTime;
+    }
+    
     updateGame();
     drawGame();
     requestAnimationFrame(gameLoop);
@@ -2131,6 +2630,7 @@ function showNameEntry() {
     document.getElementById('nameEntry').style.display = 'block';
     document.getElementById('highScores').style.display = 'none';
     document.getElementById('gameOver').style.display = 'none';
+    gameState.showSettings = false; // Hide settings when returning to menu
     
     // Focus on name input
     const nameInput = document.getElementById('playerNameInput');
@@ -2143,8 +2643,20 @@ function showHighScores() {
     document.getElementById('nameEntry').style.display = 'none';
     document.getElementById('highScores').style.display = 'block';
     document.getElementById('gameOver').style.display = 'none';
+    gameState.showSettings = false; // Hide settings when showing high scores
     
     displayHighScores();
+}
+
+// Show items/settings screen from menu
+function showItemsFromMenu() {
+    // Hide all UI screens
+    document.getElementById('nameEntry').style.display = 'none';
+    document.getElementById('highScores').style.display = 'none';
+    document.getElementById('gameOver').style.display = 'none';
+    
+    // Show settings overlay
+    gameState.showSettings = true;
 }
 
 // Start the game with the entered name
@@ -2193,10 +2705,10 @@ function drawDragonstalkerProgress() {
     // Only show if at least one piece is collected or missed
     if (gameState.tierSetCollected === 0 && gameState.tierSetMissed === 0) return;
     
-    // Panel positioning - top right area
-    const panelX = canvas.width - 320;
+    // Panel positioning - top right area (made wider to fit item names)
+    const panelX = canvas.width - 380;
     const panelY = 100;
-    const panelWidth = 300;
+    const panelWidth = 360;
     const panelHeight = 240;
     
     // Background
@@ -2272,7 +2784,8 @@ function drawDragonstalkerProgress() {
             ctx.fillText('□', x, y);
         }
         
-        // Item name with appropriate color
+        // Item name with appropriate color - use shortened names for better fit
+        const shortName = item.name.replace("Dragonstalker's ", "");
         if (isCollected) {
             ctx.fillStyle = '#00FF00'; // Green for collected
         } else if (isMissed) {
@@ -2280,7 +2793,7 @@ function drawDragonstalkerProgress() {
         } else {
             ctx.fillStyle = '#AAAAAA'; // Gray for not encountered
         }
-        ctx.fillText(item.name, x + 20, y);
+        ctx.fillText(shortName, x + 20, y);
         
         yOffset += 18;
     });
@@ -2385,6 +2898,8 @@ function drawUnifiedPanel() {
                 color = '#FF69B4'; // hot pink
             } else if (item.type === 'legendary') {
                 color = '#FFD700'; // gold
+            } else if (item.type === 'zee_zgnan') {
+                color = '#FF0080'; // deep pink/magenta
             }
             
             ctx.fillStyle = color;
@@ -2398,4 +2913,109 @@ function drawUnifiedPanel() {
             ctx.fillText('...', startX, startY + yOffset);
         }
     }
+}
+
+// Toggle pause function
+function togglePause() {
+    if (!gameState.gameRunning) return;
+    
+    gameState.gamePaused = !gameState.gamePaused;
+    
+    if (gameState.gamePaused) {
+        // Pause background music
+        if (!sounds.background.paused) {
+            sounds.background.pause();
+        }
+    } else {
+        // Resume background music if it was playing before
+        if (gameState.perfectCollections >= gameConfig.audio.backgroundMusicStart && !audioState.isMuted) {
+            sounds.background.play().catch(e => console.log('Background music failed to resume'));
+        }
+    }
+}
+
+// Pause from restart function
+function pauseAndRestart() {
+    restartGame();
+}
+
+function drawPauseMenu() {
+    // Semi-transparent overlay
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Pause menu panel
+    const panelWidth = 400;
+    const panelHeight = 300;
+    const panelX = (canvas.width - panelWidth) / 2;
+    const panelY = (canvas.height - panelHeight) / 2;
+    
+    ctx.fillStyle = 'rgba(20, 20, 20, 0.95)';
+    ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
+    ctx.strokeStyle = '#FFD700';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
+    
+    // Title
+    ctx.fillStyle = '#FFD700';
+    ctx.font = 'bold 36px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('PAUSED', canvas.width/2, panelY + 60);
+    
+    // Instructions
+    ctx.fillStyle = '#CCC';
+    ctx.font = '18px Arial';
+    ctx.fillText('Game is paused', canvas.width/2, panelY + 100);
+    ctx.font = '16px Arial';
+    ctx.fillText('Press ESC or click Continue to resume', canvas.width/2, panelY + 125);
+    
+    // Continue button
+    const continueButtonWidth = 150;
+    const continueButtonHeight = 45;
+    const continueButtonX = panelX + (panelWidth / 2) - continueButtonWidth - 10;
+    const continueButtonY = panelY + 180;
+    
+    ctx.fillStyle = '#4ECDC4';
+    ctx.fillRect(continueButtonX, continueButtonY, continueButtonWidth, continueButtonHeight);
+    ctx.strokeStyle = '#26d0ce';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(continueButtonX, continueButtonY, continueButtonWidth, continueButtonHeight);
+    
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText('Continue', continueButtonX + continueButtonWidth/2, continueButtonY + 28);
+    
+    // Restart button
+    const restartButtonWidth = 150;
+    const restartButtonHeight = 45;
+    const restartButtonX = panelX + (panelWidth / 2) + 10;
+    const restartButtonY = panelY + 180;
+    
+    ctx.fillStyle = '#FF6B6B';
+    ctx.fillRect(restartButtonX, restartButtonY, restartButtonWidth, restartButtonHeight);
+    ctx.strokeStyle = '#ff5252';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(restartButtonX, restartButtonY, restartButtonWidth, restartButtonHeight);
+    
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 18px Arial';
+    ctx.fillText('Restart', restartButtonX + restartButtonWidth/2, restartButtonY + 28);
+    
+    // Store button coordinates for click detection
+    gameState.pauseMenuBounds = {
+        continue: {
+            x: continueButtonX,
+            y: continueButtonY,
+            width: continueButtonWidth,
+            height: continueButtonHeight
+        },
+        restart: {
+            x: restartButtonX,
+            y: restartButtonY,
+            width: restartButtonWidth,
+            height: restartButtonHeight
+        }
+    };
+    
+    ctx.textAlign = 'left';
 }
