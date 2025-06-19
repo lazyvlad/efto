@@ -75,15 +75,20 @@ const gameConfig = {
         epic: 0.05,                 // Epic items base probability (5%)
         special: 0.02,              // Special items base probability (2%)
         legendary: 0.01,            // Legendary items base probability (1%)
+        tier_set: 0.005,            // Tier set items base probability (0.5%) - Win condition items
     },
     
     // === VISUAL SETTINGS ===
     visuals: {
-        itemSize: 120,              // Size of falling items (width & height)
+        itemSize: 120,              // Base size of falling items (multiplied by each item's size_multiplier)
+        powerUpItemSize: 120,       // Size of power-up items (width & height)
         playerWidth: 85,
         playerHeight: 165,
         playerSpeed: 12,
         minYSpacing: 250,           // Minimum spacing between falling objects
+        forceItemAspectRatio: true, // Force square aspect ratio for all items
+        // NOTE: Individual items can have size_multiplier property (default 1.0)
+        // Examples: size_multiplier: 1.5 = 50% larger, size_multiplier: 2.0 = double size
     }
 };
 
@@ -216,6 +221,12 @@ let gameState = {
     cutTimeSpawned: 0,  // Track how many cut_time power-ups have spawned
     permanentSpeedReduction: 1.0, // Permanent speed multiplier from cut_time effects
     
+    // Tier Set tracking
+    tierSetCollected: 0,  // Number of tier set pieces collected
+    tierSetMissed: 0,     // Number of tier set pieces missed (makes game unwinnable)
+    gameWon: false,       // Track if player has won
+    gameUnwinnable: false, // Track if game can no longer be won
+    
     // Player info
     playerName: '',
 };
@@ -232,25 +243,35 @@ const gameItems = [
     
     
     
-    { id: "ring1", name: "Ring 1", image: "items/ring1.png", value: 4, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "" },
-    { id: "ring2", name: "Ring2", image: "items/ring2.png", value: 4, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "" },
-    { id: "ring3", name: "Ring3", image: "items/ring3.png", value: 4, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "" },
-    { id: "gold", name: "Gold", image: "items/gold.png", value: 8, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "" },
+    { id: "ring1", name: "Ring 1", image: "items/ring1.png", value: 4, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
+    { id: "ring2", name: "Ring2", image: "items/ring2.png", value: 4, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
+    { id: "ring3", name: "Ring3", image: "items/ring3.png", value: 4, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
+    { id: "gold", name: "Gold", image: "items/gold.png", value: 8, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 1 },
     
-    { id: "ashjrethul", name: "Ashjrethul", image: "items/4.png", value: 3, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "" },
-    { id: "maladath", name: "Maladath", image: "items/5.png", value: 3, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "" },
-    { id: "ashkandi", name: "Ashkandi", image: "items/2.png", value: 1, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "" },
-    { id: "ashkandi2", name: "Another Ashkandi", image: "items/ashkandi.png", value: 1, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "" },
-    { id: "quick-strike-ring", name: "Quick Strike Ring", image: "items/quick-strike-ring.png", value: 1, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "" },
-    { id: "brutality_blade", name: "Brutality Blade", image: "items/3.png", value: 1, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "" },
-    { id: "dalrends", name: "Dal Rends", image: "items/dalrends.png", value: 1, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "" },
+    { id: "ashjrethul", name: "Ashjrethul", image: "items/4.png", value: 3, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2 },
+    { id: "maladath", name: "Maladath", image: "items/maladath.png", value: 3, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 3 },
+    { id: "ashkandi", name: "Ashkandi", image: "items/2.png", value: 1, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2 },
+    { id: "ashkandi2", name: "Another Ashkandi", image: "items/ashkandi.png", value: 1, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2 },
+    { id: "quick-strike-ring", name: "Quick Strike Ring", image: "items/quick-strike-ring.png", value: 1, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 0.8 },
+    { id: "brutality_blade", name: "Brutality Blade", image: "items/3.png", value: 1, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1.8 },
+    { id: "dalrends", name: "Dal Rends", image: "items/dalrends.png", value: 1, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1.8 },
    
-    { id: "crulshorukh", name: "Crulshorukh", image: "items/6.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "" },
-    { id: "cloak", name: "Cloak", image: "items/7.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "" },
-    { id: "dragonstalker", name: "Dragon Stalker Set", image: "items/dragonstalker.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "" },
-    { id: "drakefangtalisman", name: "Drake Fang Talisman", image: "items/dft.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "" },
-    { id: "onslaught", name: "Onslaught", image: "items/onslaught.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "" },
-    { id: "tunder", name: "Tunder", image: "items/tunder.png", value: 5, collected: 0, type: "legendary", baseProbability: gameConfig.itemProbabilities.legendary, sound: "" }
+    { id: "crulshorukh", name: "Crulshorukh", image: "items/6.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 2.4 },
+    { id: "cloak", name: "Cloak", image: "items/7.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 2.4 },
+    { id: "dragonstalker", name: "Dragon Stalker Set", image: "items/dragonstalker.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 2.4 },
+    { id: "drakefangtalisman", name: "Drake Fang Talisman", image: "items/dft.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 2.4 },
+    { id: "onslaught", name: "Onslaught", image: "items/onslaught.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 2.4 },
+    { id: "tunder", name: "Tunder", image: "items/tunder.png", value: 5, collected: 0, type: "legendary", baseProbability: gameConfig.itemProbabilities.legendary, sound: "", size_multiplier: 3.0 },
+    
+    // TIER SET ITEMS - Collect all 8 to win the game! (One chance only - missing any piece makes victory impossible)
+    { id: "ds_helm", name: "Dragonstalker's Helm", image: "items/dshelm.png", value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: "", setPosition: 1, size_multiplier: 1 },
+    { id: "ds_shoulders", name: "Dragonstalker's Spaulders", image: "items/dsshoulders.png", value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: "", setPosition: 2, size_multiplier: 1 },
+    { id: "ds_chest", name: "Dragonstalker's Breastplate", image: "items/dschest.png", value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: "", setPosition: 3, size_multiplier: 1 },
+    { id: "ds_bracers", name: "Dragonstalker's Bracers", image: "items/dsbracers.png", value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: "", setPosition: 4, size_multiplier: 1 },
+    { id: "ds_gloves", name: "Dragonstalker's Gauntlets", image: "items/dshands.png", value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: "", setPosition: 5, size_multiplier: 1 },
+    { id: "ds_belt", name: "Dragonstalker's Belt", image: "items/dsbelt.png", value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: "", setPosition: 6, size_multiplier: 1 },
+    { id: "ds_legs", name: "Dragonstalker's Legguards", image: "items/dslegs.png", value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: "", setPosition: 7, size_multiplier: 1 },
+    { id: "ds_boots", name: "Dragonstalker's Greaves", image: "items/dsboots.png", value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: "", setPosition: 8, size_multiplier: 1 }
 ];
 
 // Damage projectiles database with structured data
@@ -641,7 +662,15 @@ function selectRandomProjectile() {
 
 // Select item based on probability weights
 function selectRandomItem() {
-    const droppableItems = gameItems.filter(item => item.type !== "milestone");
+    const droppableItems = gameItems.filter(item => {
+        // Exclude milestone items
+        if (item.type === "milestone") return false;
+        
+        // Exclude tier set items that have already been collected or missed (one chance only)
+        if (item.type === "tier_set" && (item.collected > 0 || item.missed > 0)) return false;
+        
+        return true;
+    });
     
     // Calculate probability for each item
     const itemsWithProbability = droppableItems.map(item => ({
@@ -684,14 +713,17 @@ class FallingItem {
         this.y = attemptY;
         recentDropYPositions.push(this.y);
         
-        this.width = gameConfig.visuals.itemSize;
-        this.height = gameConfig.visuals.itemSize;
+        // Select item based on probability weights FIRST
+        this.itemData = selectRandomItem();
+        
+        // Apply size multiplier from item data
+        const sizeMultiplier = this.itemData.size_multiplier || 1;
+        this.width = gameConfig.visuals.itemSize * sizeMultiplier;
+        this.height = gameConfig.visuals.itemSize * sizeMultiplier;
+        
         // Random speed variation: 0.5x to 2.0x of base speed for dynamic gameplay
         const speedVariation = 0.5 + Math.random() * 1.5; // Random between 0.5 and 2.0
         this.speed = gameState.baseDropSpeed * gameState.speedMultiplier * gameState.permanentSpeedReduction * speedVariation;
-        
-        // Select item based on probability weights
-        this.itemData = selectRandomItem();
         
         // Create image object for this specific item
         this.itemImage = new Image();
@@ -699,11 +731,16 @@ class FallingItem {
         
         this.rotation = 0;
         this.rotationSpeed = (Math.random() - 0.5) * 0.2;
+        
+        // Animation properties for borders
+        this.borderAnimation = 0;
+        this.borderPulseSpeed = 0.15;
     }
 
     update() {
         this.y += this.speed;
         this.rotation += this.rotationSpeed;
+        this.borderAnimation += this.borderPulseSpeed;
         
         // Check if item fell off screen
         if (this.y > canvas.height + 180) {
@@ -718,9 +755,14 @@ class FallingItem {
         ctx.translate(this.x + this.width/2, this.y + this.height/2);
         ctx.rotate(this.rotation);
         
+        // Use the item's actual size (which includes size_multiplier)
+        const drawWidth = this.width;
+        const drawHeight = gameConfig.visuals.forceItemAspectRatio ? this.width : this.height;
+        
         // Use the specific item image if loaded, otherwise use fallback
         if (this.itemImage && this.itemImage.complete && this.itemImage.naturalWidth > 0) {
-            ctx.drawImage(this.itemImage, -this.width/2, -this.height/2, this.width, this.height);
+            // Force the image to exact size, ignoring source dimensions
+            ctx.drawImage(this.itemImage, -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
         } else {
             // Fallback: try to extract number from old naming pattern, otherwise use first available image
             const numberMatch = this.itemData.image.match(/(\d+)\.png/);
@@ -735,13 +777,15 @@ class FallingItem {
             
             // Ensure we have a valid image to draw
             if (images.items[fallbackIndex] && images.items[fallbackIndex].complete && images.items[fallbackIndex].naturalWidth > 0) {
-                ctx.drawImage(images.items[fallbackIndex], -this.width/2, -this.height/2, this.width, this.height);
+                // Force the fallback image to exact size too
+                ctx.drawImage(images.items[fallbackIndex], -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
             } else {
-                // Final fallback: draw a colored rectangle
+                // Final fallback: draw a colored rectangle with consistent size
                 ctx.fillStyle = this.itemData.type === 'regular' ? '#00FF00' : 
                                this.itemData.type === 'epic' ? '#9932CC' : 
-                               this.itemData.type === 'special' ? '#FF69B4' : '#FFD700';
-                ctx.fillRect(-this.width/2, -this.height/2, this.width, this.height);
+                               this.itemData.type === 'special' ? '#FF69B4' : 
+                               this.itemData.type === 'tier_set' ? '#00FFFF' : '#FFD700';
+                ctx.fillRect(-drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
                 
                 // Add item name text
                 ctx.fillStyle = 'white';
@@ -751,7 +795,98 @@ class FallingItem {
             }
         }
         
+        // Draw custom borders based on item type
+        this.drawItemBorder(ctx, drawWidth, drawHeight);
+        
         ctx.restore();
+    }
+    
+    drawItemBorder(ctx, itemWidth, itemHeight) {
+        const borderRadius = Math.max(itemWidth, itemHeight) / 2;
+        const basePadding = 15; // Base padding to ensure borders don't clip items
+        
+        switch(this.itemData.type) {
+            case 'regular':
+                // Round green border with proper padding
+                ctx.strokeStyle = '#00FF00';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, 0, borderRadius + basePadding, 0, Math.PI * 2);
+                ctx.stroke();
+                break;
+                
+            case 'epic':
+                // Pulsating purple border with padding
+                const epicPulse = Math.sin(this.borderAnimation) * 0.3 + 0.7; // 0.4 to 1.0
+                ctx.strokeStyle = '#9932CC';
+                ctx.lineWidth = 2.5 * epicPulse;
+                ctx.shadowColor = '#9932CC';
+                ctx.shadowBlur = 15 * epicPulse;
+                ctx.beginPath();
+                ctx.arc(0, 0, borderRadius + basePadding + (8 * epicPulse), 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.shadowBlur = 0; // Reset shadow
+                break;
+                
+            case 'special':
+                // Hot pink glowing border with padding
+                ctx.strokeStyle = '#FF69B4';
+                ctx.lineWidth = 3;
+                ctx.shadowColor = '#FF69B4';
+                ctx.shadowBlur = 20;
+                ctx.beginPath();
+                ctx.arc(0, 0, borderRadius + basePadding + 8, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.shadowBlur = 0; // Reset shadow
+                break;
+                
+            case 'legendary':
+                // Orange very noticeable animated border with extra padding
+                const legendaryPulse = Math.sin(this.borderAnimation * 2) * 0.5 + 0.5; // 0 to 1
+                const legendaryGlow = Math.sin(this.borderAnimation * 1.5) * 0.4 + 0.6; // 0.2 to 1
+                
+                // Outer glow with extra padding
+                ctx.strokeStyle = '#FF8C00';
+                ctx.lineWidth = 4;
+                ctx.shadowColor = '#FF8C00';
+                ctx.shadowBlur = 30 * legendaryGlow;
+                ctx.beginPath();
+                ctx.arc(0, 0, borderRadius + basePadding + 20 + (8 * legendaryPulse), 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Inner border with padding
+                ctx.strokeStyle = '#FFD700';
+                ctx.lineWidth = 2;
+                ctx.shadowBlur = 15;
+                ctx.beginPath();
+                ctx.arc(0, 0, borderRadius + basePadding + 5, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.shadowBlur = 0; // Reset shadow
+                break;
+                
+            case 'tier_set':
+                // Cyan dramatic border for Dragonstalker pieces with padding
+                const tierPulse = Math.sin(this.borderAnimation * 1.2) * 0.4 + 0.6; // 0.2 to 1
+                
+                // Outer border effect with padding
+                ctx.strokeStyle = '#00FFFF';
+                ctx.lineWidth = 3 * tierPulse;
+                ctx.shadowColor = '#00FFFF';
+                ctx.shadowBlur = 25 * tierPulse;
+                ctx.beginPath();
+                ctx.arc(0, 0, borderRadius + basePadding + 12, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Inner cyan border with padding
+                ctx.strokeStyle = '#87CEEB';
+                ctx.lineWidth = 1.5;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(0, 0, borderRadius + basePadding + 3, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.shadowBlur = 0; // Reset shadow
+                break;
+        }
     }
 
     checkCollision(player) {
@@ -820,40 +955,45 @@ class DamageProjectile {
             ctx.shadowBlur = 25 * glow;
         }
         
+        // Force consistent size regardless of source image dimensions
+        const drawWidth = this.width;
+        const drawHeight = this.height;
+        
         // Check if projectile image is loaded, otherwise draw a placeholder
         if (this.projectileImage && this.projectileImage.complete && this.projectileImage.naturalWidth > 0) {
-            ctx.drawImage(this.projectileImage, this.x, this.y, this.width, this.height);
+            // Force the image to exact size, ignoring source dimensions
+            ctx.drawImage(this.projectileImage, this.x, this.y, drawWidth, drawHeight);
         } else {
-            // Draw placeholder based on projectile type
+            // Draw placeholder based on projectile type with consistent size
             if (this.data.id === "fireball") {
                 // Fireball placeholder
                 ctx.fillStyle = '#FF4500';
                 ctx.beginPath();
-                ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width/2, 0, Math.PI * 2);
+                ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/2, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.fillStyle = '#FFD700';
                 ctx.beginPath();
-                ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width/3, 0, Math.PI * 2);
+                ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/3, 0, Math.PI * 2);
                 ctx.fill();
             } else if (this.data.id === "frostbolt") {
                 // Frostbolt placeholder
                 ctx.fillStyle = '#00BFFF';
                 ctx.beginPath();
-                ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width/2, 0, Math.PI * 2);
+                ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/2, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.fillStyle = '#87CEEB';
                 ctx.beginPath();
-                ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width/3, 0, Math.PI * 2);
+                ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/3, 0, Math.PI * 2);
                 ctx.fill();
                 // Add frost effect lines
                 ctx.strokeStyle = '#FFFFFF';
                 ctx.lineWidth = 2;
                 for (let i = 0; i < 6; i++) {
                     const angle = (i * Math.PI) / 3;
-                    const startX = this.x + this.width/2 + Math.cos(angle) * (this.width/4);
-                    const startY = this.y + this.height/2 + Math.sin(angle) * (this.height/4);
-                    const endX = this.x + this.width/2 + Math.cos(angle) * (this.width/2.5);
-                    const endY = this.y + this.height/2 + Math.sin(angle) * (this.height/2.5);
+                    const startX = this.x + drawWidth/2 + Math.cos(angle) * (drawWidth/4);
+                    const startY = this.y + drawHeight/2 + Math.sin(angle) * (drawHeight/4);
+                    const endX = this.x + drawWidth/2 + Math.cos(angle) * (drawWidth/2.5);
+                    const endY = this.y + drawHeight/2 + Math.sin(angle) * (drawHeight/2.5);
                     ctx.beginPath();
                     ctx.moveTo(startX, startY);
                     ctx.lineTo(endX, endY);
@@ -907,8 +1047,8 @@ class PowerUpItem {
         this.y = attemptY;
         recentDropYPositions.push(this.y);
         
-        this.width = 120;
-        this.height = 120;
+        this.width = gameConfig.visuals.powerUpItemSize;
+        this.height = gameConfig.visuals.powerUpItemSize;
         
         // Slower speed for power-ups (easier to collect)
         const speedVariation = 0.6 + Math.random() * 0.8; // Slower than regular items
@@ -948,17 +1088,22 @@ class PowerUpItem {
         
         // Pulse effect
         const pulse = Math.sin(this.pulseAnimation) * 0.1 + 1.0;
-        const drawWidth = this.width * pulse;
-        const drawHeight = this.height * pulse;
+        
+        // Force consistent size regardless of source image dimensions
+        const baseWidth = gameConfig.visuals.powerUpItemSize;
+        const baseHeight = gameConfig.visuals.forceItemAspectRatio ? gameConfig.visuals.powerUpItemSize : this.height;
+        const drawWidth = baseWidth * pulse;
+        const drawHeight = baseHeight * pulse;
         
         ctx.translate(this.x + this.width/2, this.y + this.height/2);
         ctx.rotate(this.rotation);
         
         // Use the specific power-up image if loaded, otherwise use placeholder
         if (this.powerUpImage && this.powerUpImage.complete && this.powerUpImage.naturalWidth > 0) {
+            // Force the image to exact size, ignoring source dimensions
             ctx.drawImage(this.powerUpImage, -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
         } else {
-            // Draw placeholder based on power-up type
+            // Draw placeholder based on power-up type with consistent size
             ctx.fillStyle = this.data.color;
             ctx.beginPath();
             ctx.arc(0, 0, drawWidth/2, 0, Math.PI * 2);
@@ -1069,6 +1214,45 @@ class Particle {
 }
 
 // VanoPopup class removed - now using face replacement instead
+
+// Tier Set Management
+function checkTierSetCompletion() {
+    const tierSetItems = gameItems.filter(item => item.type === "tier_set");
+    const collectedTierItems = tierSetItems.filter(item => item.collected > 0);
+    gameState.tierSetCollected = collectedTierItems.length;
+    
+    // Check if all 8 tier set items are collected
+    if (gameState.tierSetCollected >= 8 && !gameState.gameWon) {
+        winGame();
+    }
+}
+
+function winGame() {
+    gameState.gameWon = true;
+    gameState.gameRunning = false;
+    
+    // Play victory sound (reuse total sound for now)
+    if (audioInitialized && !audioState.isMuted) {
+        sounds.total.volume = volumeSettings.effects;
+        sounds.total.currentTime = 0;
+        sounds.total.play().catch(e => console.log('Victory sound failed to play'));
+    }
+    
+    // Save the high score with special win marker
+    const rank = addHighScore(gameState.playerName + " 👑", gameState.score, gameState.perfectCollections, gameState.currentLevel);
+    
+    // Update final score display
+    document.getElementById('finalScore').textContent = 
+        `🎉 VICTORY! Complete Dragonstalker Set! 🎉\nFinal Score: ${gameState.score} | Items: ${gameState.perfectCollections} | Level: ${gameState.currentLevel}`;
+    
+    // Show victory message
+    const newHighScoreElement = document.getElementById('newHighScore');
+    newHighScoreElement.textContent = `🏆 DRAGONSTALKER SET COMPLETED! YOU WIN! 🏆`;
+    newHighScoreElement.style.display = 'block';
+    newHighScoreElement.style.color = 'gold';
+    
+    document.getElementById('gameOver').style.display = 'block';
+}
 
 // Game functions
 function spawnItem() {
@@ -1292,10 +1476,19 @@ function updateGame() {
         
         if (!stillActive && item.missed) {
             gameState.missedItems++;
-            gameState.health = Math.max(0, gameState.health - gameConfig.gameplay.healthLossOnMiss);
-            playUffSound();  // Changed from playScreamSound to playUffSound
-            if (gameState.health <= 0) {
-                endGame();
+            
+            // Handle tier set items being missed (makes game unwinnable)
+            if (item.itemData.type === "tier_set") {
+                item.itemData.missed++;
+                gameState.tierSetMissed++;
+                gameState.gameUnwinnable = true;
+                playScreamSound(); // Play scream for missed tier set items
+            } else {
+                gameState.health = Math.max(0, gameState.health - gameConfig.gameplay.healthLossOnMiss);
+                playUffSound();  // Regular uff sound for other items
+                if (gameState.health <= 0) {
+                    endGame();
+                }
             }
         }
         
@@ -1308,6 +1501,11 @@ function updateGame() {
             gameState.speedMultiplier = gameState.levelSpeedMultiplier; // Use level-based speed
             createCollectionParticles(item.x + item.width/2, item.y + item.height/2);
             playItemSound(item.itemData);
+            
+            // Check for tier set completion if this was a tier set item
+            if (item.itemData.type === "tier_set") {
+                checkTierSetCompletion();
+            }
             
             // Play total sound when reaching configured trigger
             if (gameState.perfectCollections === gameConfig.audio.totalSoundTrigger) {
@@ -1463,6 +1661,21 @@ function drawSettings() {
     ctx.fillText('Tunder (rare drop)', panelX + 50, yPos);
     yPos += 35;
     
+    // Tier Set Items Section (6 points + WIN CONDITION)
+    ctx.fillStyle = '#00FFFF';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText('TIER SET ITEMS (6 points each):', panelX + 30, yPos);
+    yPos += 25;
+    ctx.fillStyle = '#00FFFF';
+    ctx.font = 'bold 16px Arial';
+    ctx.fillText('🏆 COLLECT ALL 8 TO WIN THE GAME! 🏆', panelX + 50, yPos);
+    yPos += 20;
+    ctx.fillStyle = '#FFF';
+    ctx.font = '14px Arial';
+    ctx.fillText('Dragonstalker Set: Helm, Spaulders, Breastplate,', panelX + 50, yPos);
+    ctx.fillText('Bracers, Gauntlets, Belt, Legguards, Greaves', panelX + 50, yPos + 15);
+    yPos += 40;
+    
 
     
     // Other Items Section
@@ -1504,6 +1717,9 @@ function drawGame() {
 
     // Draw unified panel with score, level, and collections
     drawUnifiedPanel();
+    
+    // Draw Dragonstalker progress panel
+    drawDragonstalkerProgress();
     
     // Health bar - top right (moved down to avoid HTML element overlap)
     const healthBarWidth = 200;
@@ -1639,13 +1855,22 @@ function restartGame() {
         cutTimeSpawned: 0,
         permanentSpeedReduction: 1.0,
         
+        // Reset tier set tracking
+        tierSetCollected: 0,
+        tierSetMissed: 0,
+        gameWon: false,
+        gameUnwinnable: false,
+        
         // Keep player name
         playerName: currentPlayerName
     };
     
-    // Reset collection counts for all items
+    // Reset collection counts and missed counts for all items
     gameItems.forEach(item => {
         item.collected = 0;
+        if (item.type === "tier_set") {
+            item.missed = 0;
+        }
     });
     
     fallingItems = [];
@@ -1961,8 +2186,123 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+function drawDragonstalkerProgress() {
+    // Get all Dragonstalker items
+    const dragonstalkerItems = gameItems.filter(item => item.type === "tier_set");
+    
+    // Only show if at least one piece is collected or missed
+    if (gameState.tierSetCollected === 0 && gameState.tierSetMissed === 0) return;
+    
+    // Panel positioning - top right area
+    const panelX = canvas.width - 320;
+    const panelY = 100;
+    const panelWidth = 300;
+    const panelHeight = 240;
+    
+    // Background
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+    ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
+    
+    // Border with special glow effect (red if unwinnable, cyan if still possible)
+    ctx.strokeStyle = gameState.gameUnwinnable ? '#FF0000' : '#00FFFF';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = gameState.gameUnwinnable ? '#FF0000' : '#00FFFF';
+    ctx.shadowBlur = 10;
+    ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
+    ctx.shadowBlur = 0; // Reset shadow
+    
+    // Title
+    ctx.fillStyle = gameState.gameUnwinnable ? '#FF0000' : '#00FFFF';
+    ctx.font = 'bold 18px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('🐉 DRAGONSTALKER SET 🐉', panelX + panelWidth/2, panelY + 25);
+    
+    // Status message
+    if (gameState.gameUnwinnable) {
+        ctx.fillStyle = '#FF0000';
+        ctx.font = 'bold 14px Arial';
+        ctx.fillText('❌ VICTORY IMPOSSIBLE ❌', panelX + panelWidth/2, panelY + 45);
+    }
+    
+    // Progress bar
+    const progressBarX = panelX + 20;
+    const progressBarY = panelY + (gameState.gameUnwinnable ? 55 : 35);
+    const progressBarWidth = panelWidth - 40;
+    const progressBarHeight = 20;
+    
+    // Progress bar background
+    ctx.fillStyle = 'rgba(50, 50, 50, 0.8)';
+    ctx.fillRect(progressBarX, progressBarY, progressBarWidth, progressBarHeight);
+    
+    // Progress bar fill (only show progress if still winnable)
+    if (!gameState.gameUnwinnable) {
+        const progressPercent = gameState.tierSetCollected / 8;
+        const progressFillWidth = progressBarWidth * progressPercent;
+        
+        ctx.fillStyle = '#00FFFF';
+        ctx.fillRect(progressBarX, progressBarY, progressFillWidth, progressBarHeight);
+    }
+    
+    // Progress text
+    ctx.fillStyle = 'white';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(`${gameState.tierSetCollected}/8 PIECES`, panelX + panelWidth/2, progressBarY + 15);
+    
+    // Item list
+    let yOffset = gameState.gameUnwinnable ? 90 : 70;
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'left';
+    
+    dragonstalkerItems.forEach(item => {
+        const isCollected = item.collected > 0;
+        const isMissed = item.missed > 0;
+        const x = panelX + 15;
+        const y = panelY + yOffset;
+        
+        // Status indicator
+        if (isCollected) {
+            ctx.fillStyle = '#00FF00'; // Green checkmark for collected
+            ctx.fillText('✓', x, y);
+        } else if (isMissed) {
+            ctx.fillStyle = '#FF0000'; // Red X for missed
+            ctx.fillText('✗', x, y);
+        } else {
+            ctx.fillStyle = '#666666'; // Gray box for not yet encountered
+            ctx.fillText('□', x, y);
+        }
+        
+        // Item name with appropriate color
+        if (isCollected) {
+            ctx.fillStyle = '#00FF00'; // Green for collected
+        } else if (isMissed) {
+            ctx.fillStyle = '#FF0000'; // Red for missed
+        } else {
+            ctx.fillStyle = '#AAAAAA'; // Gray for not encountered
+        }
+        ctx.fillText(item.name, x + 20, y);
+        
+        yOffset += 18;
+    });
+    
+    // Bottom message
+    if (gameState.gameUnwinnable) {
+        ctx.fillStyle = '#FF0000';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('💀 MISSED DRAGONSTALKER PIECES 💀', panelX + panelWidth/2, panelY + panelHeight - 15);
+    } else if (gameState.tierSetCollected >= 6) {
+        ctx.fillStyle = '#FFD700';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('🏆 ALMOST THERE! 🏆', panelX + panelWidth/2, panelY + panelHeight - 15);
+    }
+    
+    ctx.textAlign = 'left'; // Reset text alignment
+}
+
 function drawUnifiedPanel() {
-    const collectedItems = gameItems.filter(item => item.collected > 0);
+    const collectedItems = gameItems.filter(item => item.collected > 0 && item.type !== "tier_set"); // Exclude tier set items
     
     // Panel positioning
     const startX = 20;
@@ -2006,6 +2346,19 @@ function drawUnifiedPanel() {
     ctx.font = '12px Arial';
     ctx.fillText(`${gameState.perfectCollections} items`, startX, startY + 90);
     
+    // Tier Set Progress - special highlight
+    if (gameState.tierSetCollected > 0 || gameState.tierSetMissed > 0) {
+        if (gameState.gameUnwinnable) {
+            ctx.fillStyle = '#FF0000';
+            ctx.font = 'bold 12px Arial';
+            ctx.fillText(`Dragonstalker: ${gameState.tierSetCollected}/8 ❌`, startX + 90, startY + 90);
+        } else {
+            ctx.fillStyle = '#00FFFF';
+            ctx.font = 'bold 12px Arial';
+            ctx.fillText(`Dragonstalker: ${gameState.tierSetCollected}/8 🏆`, startX + 90, startY + 90);
+        }
+    }
+    
     // Collections section (if any items collected)
     if (collectedItems.length > 0) {
         let yOffset = headerHeight + 15;
@@ -2016,7 +2369,7 @@ function drawUnifiedPanel() {
         ctx.fillText('ITEMS COLLECTED:', startX, startY + yOffset);
         yOffset += 20;
         
-        // Draw collection items
+        // Draw collection items (excluding tier set items)
         ctx.font = '13px Arial';
         
         collectedItems.slice(0, maxVisibleItems).forEach(item => {
@@ -2032,7 +2385,6 @@ function drawUnifiedPanel() {
                 color = '#FF69B4'; // hot pink
             } else if (item.type === 'legendary') {
                 color = '#FFD700'; // gold
-
             }
             
             ctx.fillStyle = color;
