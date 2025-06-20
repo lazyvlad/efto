@@ -338,8 +338,22 @@ export function drawUnifiedPanel(ctx, gameState, gameItems) {
     const dragonstalkerItems = gameItems.filter(item => item.type === "tier_set");
     const uniquePiecesCollected = dragonstalkerItems.filter(item => item.collected > 0).length;
     
-    if (uniquePiecesCollected > 0 || gameState.tierSetMissed > 0) {
-        if (gameState.gameUnwinnable) {
+    // Check for Zee Zgnan Tigar victory
+    const zeeZgnanItem = gameItems.find(item => item.type === "zee_zgnan");
+    const zeeZgnanCollected = zeeZgnanItem && zeeZgnanItem.collected > 0;
+    
+    if (uniquePiecesCollected > 0 || gameState.tierSetMissed > 0 || zeeZgnanCollected) {
+        if (gameState.gameWon) {
+            if (zeeZgnanCollected) {
+                ctx.fillStyle = '#FF69B4';
+                ctx.font = 'bold 12px Arial';
+                ctx.fillText(`Zee Zgnan Victory! 🎯`, startX + 90, startY + 90);
+            } else {
+                ctx.fillStyle = '#FFD700';
+                ctx.font = 'bold 12px Arial';
+                ctx.fillText(`Dragonstalker: ${uniquePiecesCollected}/8 👑`, startX + 90, startY + 90);
+            }
+        } else if (gameState.gameUnwinnable) {
             ctx.fillStyle = '#FF0000';
             ctx.font = 'bold 12px Arial';
             ctx.fillText(`Dragonstalker: ${uniquePiecesCollected}/8 ❌`, startX + 90, startY + 90);
@@ -413,22 +427,43 @@ export function drawDragonstalkerProgress(ctx, canvas, gameState, gameItems) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
     ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
     
-    // Border with special glow effect (red if unwinnable, cyan if still possible)
-    ctx.strokeStyle = gameState.gameUnwinnable ? '#FF0000' : '#00FFFF';
+    // Border with special glow effect (gold if won, red if unwinnable, cyan if still possible)
+    let borderColor = '#00FFFF'; // Default cyan for possible
+    if (gameState.gameWon) {
+        borderColor = '#FFD700'; // Gold for victory achieved
+    } else if (gameState.gameUnwinnable) {
+        borderColor = '#FF0000'; // Red for impossible
+    }
+    
+    ctx.strokeStyle = borderColor;
     ctx.lineWidth = 3;
-    ctx.shadowColor = gameState.gameUnwinnable ? '#FF0000' : '#00FFFF';
+    ctx.shadowColor = borderColor;
     ctx.shadowBlur = 10;
     ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
     ctx.shadowBlur = 0; // Reset shadow
     
     // Title
-    ctx.fillStyle = gameState.gameUnwinnable ? '#FF0000' : '#00FFFF';
+    ctx.fillStyle = borderColor;
     ctx.font = 'bold 18px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('🐉 DRAGONSTALKER SET 🐉', panelX + panelWidth/2, panelY + 25);
     
     // Status message
-    if (gameState.gameUnwinnable) {
+    if (gameState.gameWon) {
+        // Check if victory was achieved via Zee Zgnan Tigar
+        const zeeZgnanItem = gameItems.find(item => item.type === "zee_zgnan");
+        const zeeZgnanCollected = zeeZgnanItem && zeeZgnanItem.collected > 0;
+        
+        if (zeeZgnanCollected) {
+            ctx.fillStyle = '#FF69B4';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText('🎯 ZEE ZGNAN VICTORY! 🎯', panelX + panelWidth/2, panelY + 45);
+        } else {
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText('🏆 VICTORY ACHIEVED! 🏆', panelX + panelWidth/2, panelY + 45);
+        }
+    } else if (gameState.gameUnwinnable) {
         ctx.fillStyle = '#FF0000';
         ctx.font = 'bold 14px Arial';
         ctx.fillText('❌ VICTORY IMPOSSIBLE ❌', panelX + panelWidth/2, panelY + 45);
@@ -436,7 +471,7 @@ export function drawDragonstalkerProgress(ctx, canvas, gameState, gameItems) {
     
     // Progress bar
     const progressBarX = panelX + 20;
-    const progressBarY = panelY + (gameState.gameUnwinnable ? 55 : 35);
+    const progressBarY = panelY + (gameState.gameUnwinnable || gameState.gameWon ? 55 : 35);
     const progressBarWidth = panelWidth - 40;
     const progressBarHeight = 20;
     
@@ -444,8 +479,13 @@ export function drawDragonstalkerProgress(ctx, canvas, gameState, gameItems) {
     ctx.fillStyle = 'rgba(50, 50, 50, 0.8)';
     ctx.fillRect(progressBarX, progressBarY, progressBarWidth, progressBarHeight);
     
-    // Progress bar fill (only show progress if still winnable)
-    if (!gameState.gameUnwinnable) {
+    // Progress bar fill
+    if (gameState.gameWon) {
+        // Full gold bar for victory
+        ctx.fillStyle = '#FFD700';
+        ctx.fillRect(progressBarX, progressBarY, progressBarWidth, progressBarHeight);
+    } else if (!gameState.gameUnwinnable) {
+        // Cyan progress bar for ongoing
         const progressPercent = uniquePiecesCollected / 8;
         const progressFillWidth = progressBarWidth * progressPercent;
         
@@ -497,7 +537,23 @@ export function drawDragonstalkerProgress(ctx, canvas, gameState, gameItems) {
     });
     
     // Bottom message
-    if (gameState.gameUnwinnable) {
+    if (gameState.gameWon) {
+        // Check if victory was achieved via Zee Zgnan Tigar
+        const zeeZgnanItem = gameItems.find(item => item.type === "zee_zgnan");
+        const zeeZgnanCollected = zeeZgnanItem && zeeZgnanItem.collected > 0;
+        
+        if (zeeZgnanCollected) {
+            ctx.fillStyle = '#FF69B4';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('🎯 ZEE ZGNAN TIGAR! CONTINUE PLAYING! 🎯', panelX + panelWidth/2, panelY + panelHeight - 15);
+        } else {
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('🎉 SET COMPLETE! CONTINUE PLAYING! 🎉', panelX + panelWidth/2, panelY + panelHeight - 15);
+        }
+    } else if (gameState.gameUnwinnable) {
         ctx.fillStyle = '#FF0000';
         ctx.font = 'bold 12px Arial';
         ctx.textAlign = 'center';

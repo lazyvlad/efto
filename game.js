@@ -271,7 +271,7 @@ let gameState = {
 };
 
 // High Scores System
-const HIGH_SCORES_KEY = 'efto_high_scores';
+const HIGH_SCORES_KEY = 'dmtribut_high_scores';
 const MAX_HIGH_SCORES = 100;
 
 // Create player instance

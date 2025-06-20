@@ -1,4 +1,5 @@
 import { toggleAudio, fallbackAudioInit } from './audioSystem.js';
+import { spellSystem } from './spellSystem.js';
 
 // Input system state
 export let inputState = {
@@ -193,7 +194,14 @@ function handleKeyDown(e, gameState, restartGame, showInGameSettings, showPauseM
     // H key for high scores
     if (e.key.toLowerCase() === 'h' && gameState.currentScreen === 'menu') {
         e.preventDefault();
-        displayHighScores();
+                    try {
+                const result = displayHighScores();
+                if (result && typeof result.catch === 'function') {
+                    result.catch(console.error);
+                }
+            } catch (error) {
+                console.error('Error calling displayHighScores:', error);
+            }
         return;
     }
     
@@ -205,22 +213,63 @@ function handleKeyDown(e, gameState, restartGame, showInGameSettings, showPauseM
     }
     
     // M key for return to menu (during game over or victory)
-            if (e.key.toLowerCase() === 'm' && (gameState.currentScreen === 'gameOver' || gameState.currentScreen === 'victory')) {
+    if (e.key.toLowerCase() === 'm' && (gameState.currentScreen === 'gameOver' || gameState.currentScreen === 'victory')) {
         e.preventDefault();
         gameState.currentScreen = 'menu';
         if (updateCanvasOverlay) updateCanvasOverlay();
         return;
     }
+    
+    // Spell casting keys (Q, W, E, R) - only during gameplay
+    if (gameState.gameRunning && ['q', 'w', 'e', 'r'].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+        spellSystem.castSpellByKey(e.key, Date.now());
+        return;
+    }
 }
 
 // Update player position based on input
-export function updatePlayerPosition(player, canvas, deltaTimeMultiplier) {
+export function updatePlayerPosition(player, canvas, deltaTimeMultiplier, gameConfig) {
+    // Import gameConfig if not passed (for backward compatibility)
+    if (!gameConfig) {
+        // Fallback to default movable area settings
+        gameConfig = {
+            player: {
+                movableArea: {
+                    enabled: true,
+                    heightPercent: 0.3
+                }
+            }
+        };
+    }
+    
+    // Calculate movable area bounds
+    const movableArea = gameConfig.player.movableArea;
+    let minX = 0;
+    let maxX = canvas.width - player.width;
+    let minY = 0;
+    let maxY = canvas.height - player.height;
+    
+    // Check if player has unrestricted movement from spells
+    const hasUnrestrictedMovement = spellSystem.hasUnrestrictedMovement();
+    
+    if (movableArea.enabled && !hasUnrestrictedMovement) {
+        // Constrain to bottom portion of canvas (unless spell allows unrestricted movement)
+        const movableHeight = canvas.height * movableArea.heightPercent;
+        minY = canvas.height - movableHeight;
+        maxY = canvas.height - player.height;
+    }
+    
     if (inputState.touchActive) {
-        // Touch input - move towards touch position
-        const targetX = inputState.lastTouchX - player.width / 2;
-        const targetY = inputState.lastTouchY - player.height / 2;
+        // Touch input - move towards touch position (but respect movable area)
+        let targetX = inputState.lastTouchX - player.width / 2;
+        let targetY = inputState.lastTouchY - player.height / 2;
         
-        // Smooth movement towards touch position
+        // Constrain target position to movable area
+        targetX = Math.max(minX, Math.min(maxX, targetX));
+        targetY = Math.max(minY, Math.min(maxY, targetY));
+        
+        // Smooth movement towards constrained target position
         const dx = targetX - player.x;
         const dy = targetY - player.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -231,14 +280,14 @@ export function updatePlayerPosition(player, canvas, deltaTimeMultiplier) {
             player.y += (dy / distance) * moveSpeed;
         }
     } else {
-        // Mouse input - follow mouse position directly
+        // Mouse input - follow mouse position directly (but respect movable area)
         player.x = inputState.mouseX - player.width / 2;
         player.y = inputState.mouseY - player.height / 2;
     }
     
-    // Keep player within canvas bounds
-    player.x = Math.max(0, Math.min(canvas.width - player.width, player.x));
-    player.y = Math.max(0, Math.min(canvas.height - player.height, player.y));
+    // Keep player within movable area bounds
+    player.x = Math.max(minX, Math.min(maxX, player.x));
+    player.y = Math.max(minY, Math.min(maxY, player.y));
 }
 
 // Helper functions for menu clicks

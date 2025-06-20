@@ -29,6 +29,19 @@ export function calculateItemProbability(item, gameState) {
         probability = 0; // Can only spawn once
     }
     
+    // Apply tier set item restrictions
+    if (item.type === "tier_set") {
+        // If already collected, can't spawn again
+        if (item.collected > 0) {
+            probability = 0;
+        }
+        // If missed and not restored by Songflower, can't spawn again
+        else if (item.missed > 0) {
+            probability = 0;
+        }
+        // If missed but restored by Songflower (missed = 0), can spawn again
+    }
+    
     return probability;
 }
 

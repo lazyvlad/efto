@@ -71,6 +71,14 @@ export class FallingItem {
         const drawWidth = this.width;
         const drawHeight = gameConfig.visuals.forceItemAspectRatio ? this.width : this.height;
         
+        // Apply shadow for regular items
+        if (this.itemData.type === 'regular') {
+            ctx.shadowColor = '#00FF00';
+            ctx.shadowBlur = 8;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+        }
+        
         // Use the specific item image if loaded, otherwise use fallback
         if (this.itemImage && this.itemImage.complete && this.itemImage.naturalWidth > 0) {
             // Force the image to exact size, ignoring source dimensions
@@ -109,6 +117,14 @@ export class FallingItem {
             }
         }
         
+        // Reset shadow after drawing the item
+        if (this.itemData.type === 'regular') {
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+        }
+        
         // Draw custom borders based on item type
         this.drawItemBorder(ctx, drawWidth, drawHeight);
         
@@ -121,7 +137,23 @@ export class FallingItem {
         
         switch(this.itemData.type) {
             case 'regular':
-                // No border for regular items
+                // Greenish shadow for regular items
+                ctx.shadowColor = '#00FF00';
+                ctx.shadowBlur = 8;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+                
+                // Draw a subtle green glow around the item
+                ctx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(0, 0, borderRadius + basePadding + 2, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Reset shadow
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
                 break;
                 
             case 'epic':
@@ -208,25 +240,48 @@ export class FallingItem {
                 break;
                 
             case 'tier_set':
-                // Cyan dramatic border for Dragonstalker pieces with padding
-                const tierPulse = Math.sin(this.borderAnimation * 1.2) * 0.4 + 0.6; // 0.2 to 1
+                // Purple pulsating border that emanates outwards for Dragonstalker pieces
+                const time = Date.now() * 0.003; // Control animation speed
+                const pulseIntensity = (Math.sin(time) + 1) * 0.5; // 0 to 1
+                const maxPulseRadius = 20; // Maximum pulse distance
+                const pulseRadius = borderRadius + basePadding + (pulseIntensity * maxPulseRadius);
                 
-                // Outer border effect with padding
-                ctx.strokeStyle = '#00FFFF';
-                ctx.lineWidth = 3 * tierPulse;
-                ctx.shadowColor = '#00FFFF';
-                ctx.shadowBlur = 25 * tierPulse;
+                // Outer pulsating emanation - fades as it expands
+                const outerAlpha = 0.8 * (1 - pulseIntensity * 0.7); // Stronger fade
+                ctx.strokeStyle = `rgba(138, 43, 226, ${outerAlpha})`;
+                ctx.lineWidth = 2 + (pulseIntensity * 4); // Thicker as it pulses
+                ctx.shadowColor = `rgba(138, 43, 226, ${outerAlpha * 0.8})`;
+                ctx.shadowBlur = 15 + (pulseIntensity * 25); // Expanding glow
                 ctx.beginPath();
-                ctx.arc(0, 0, borderRadius + basePadding + 12, 0, Math.PI * 2);
+                ctx.arc(0, 0, pulseRadius, 0, Math.PI * 2);
                 ctx.stroke();
                 
-                // Inner cyan border with padding
-                ctx.strokeStyle = '#87CEEB';
-                ctx.lineWidth = 1.5;
+                // Middle ring - constant purple
+                ctx.strokeStyle = '#8A2BE2';
+                ctx.lineWidth = 3;
+                ctx.shadowColor = '#8A2BE2';
+                ctx.shadowBlur = 20;
+                ctx.beginPath();
+                ctx.arc(0, 0, borderRadius + basePadding + 8, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Inner solid border - always visible
+                ctx.strokeStyle = '#9370DB';
+                ctx.lineWidth = 2;
                 ctx.shadowBlur = 10;
                 ctx.beginPath();
-                ctx.arc(0, 0, borderRadius + basePadding + 3, 0, Math.PI * 2);
+                ctx.arc(0, 0, borderRadius + basePadding, 0, Math.PI * 2);
                 ctx.stroke();
+                
+                // Additional inner glow that pulses inward
+                const innerAlpha = 0.4 + (pulseIntensity * 0.5);
+                ctx.strokeStyle = `rgba(186, 85, 211, ${innerAlpha})`;
+                ctx.lineWidth = 1;
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(0, 0, borderRadius + basePadding - 3, 0, Math.PI * 2);
+                ctx.stroke();
+                
                 ctx.shadowBlur = 0; // Reset shadow
                 break;
         }

@@ -5,7 +5,7 @@ export const damageProjectiles = [
         id: "fireball", 
         name: "Fireball", 
         image: "assets/fireball.png", 
-        damage: 5, // 5% HP damage
+        damage: 8, // 5% HP damage
         type: "common", 
         baseProbability: 0.03, 
         sound: "assets/fireballimpact.mp3",
@@ -47,12 +47,12 @@ export const damageProjectiles = [
         shieldDurationOptions: [180, 300, 600] // 3, 5, or 10 seconds at 60fps
     },
     
-    // Frost Nova projectile - Same effects as Power Word Shield
+    // Frost Nova projectile - Same effects as Power Word Shield but with damage
     { 
         id: "frost_nova", 
         name: "Frost Nova", 
         image: "assets/frost-nova.jpg", 
-        damage: 0, // No damage - beneficial effect
+        damage: 2, // 2 HP damage despite beneficial effect
         type: "common", 
         baseProbability: 0.015, // Same spawn rate as power word shield
         sound: "assets/shield_cast.mp3",
@@ -68,7 +68,7 @@ export const damageProjectiles = [
         id: "frostbolt", 
         name: "Frostbolt", 
         image: "assets/frostbolt.png", 
-        damage: 10, // 10% HP damage
+        damage: 15, // 10% HP damage
         type: "rare", 
         baseProbability: 0.025, 
         sound: "assets/frostimpact.mp3",

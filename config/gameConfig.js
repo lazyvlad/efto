@@ -58,11 +58,11 @@ export const gameConfig = {
     
     // === GAMEPLAY SETTINGS ===
     gameplay: {
-        maxFallingItems: 4,         // Maximum falling items on screen
+        maxFallingItems: 6,         // Maximum falling items on screen
         baseDropSpeed: 2,           // Base falling speed
         itemSpawnChance: 0.02,      // Base chance per frame to spawn new item
         maxFireballs: 3,            // Maximum projectiles on screen
-        healthLossOnMiss: 1,        // HP lost when missing an item (%)
+        healthLossOnMiss: 2,        // HP lost when missing an item (%)
         particleCount: 15,          // Number of particles per collection
         impactParticleCount: 30,    // Number of particles per fireball impact
         targetFPS: 60,              // Target FPS for speed calculations (normalizes speed across different frame rates)
@@ -75,6 +75,16 @@ export const gameConfig = {
         impactDuration: 120,        // Frames to show impact face (120 = ~2 seconds)
         moveSmoothing: 0.15,        // Movement smoothing factor (0.1 = slow, 0.3 = fast)
         celebrationDuration: 120,   // Frames to show celebration for tier set collection (120 = ~2 seconds)
+        
+        // === MOVABLE AREA SETTINGS ===
+        movableArea: {
+            enabled: true,          // Enable movement constraints
+            heightPercent: 0.3,     // Player can move in bottom 30% of canvas
+            showBorder: true,       // Show visual border of movable area
+            borderColor: '#4ECDC4', // Border color (cyan)
+            borderOpacity: 0.3,     // Border opacity (30%)
+            borderWidth: 2,         // Border line thickness
+        }
     },
     
     // === LEVEL PROGRESSION ===
@@ -113,5 +123,5 @@ export const gameConfig = {
 };
 
 // High Scores System Configuration
-export const HIGH_SCORES_KEY = 'efto_high_scores';
+export const HIGH_SCORES_KEY = 'dmtribut_high_scores';
 export const MAX_HIGH_SCORES = 100; 

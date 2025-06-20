@@ -4,19 +4,31 @@ import { gameConfig } from '../config/gameConfig.js';
 export const gameItems = [
     { id: "ring1", name: "Ring 1", image: "items/ring1.png", value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
     { id: "ring2", name: "Ring2", image: "items/ring2.png", value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
-    { id: "ring3", name: "Ring3", image: "items/ring3.png", value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
+    { id: "arcane-crystal", name: "Arcane Crystal", image: "items/ring3.png", value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
+
+    { id: "miners-cape", name: "Miners Cape", image: "items/miners-cape.png", value: 1, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
+    { id: "walking-stick", name: "Walking Stick", image: "items/walking-stick.png", value: 1, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
+    
     { id: "gold", name: "Gold", image: "items/gold.png", value: 4, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 1 },
-    { id: "cloak", name: "Cloak", image: "items/7.png", value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 2 },
-    { id: "ashjrethul", name: "Ashjrethul", image: "items/4.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2 },
+    { id: "wolf-master", name: "Wolfmaster Cape", image: "items/wolfmaster-cape.png", value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 1 },
+
+
+    { id: "ashjrethul", name: "Ashjrethul", image: "items/4.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "assets/disenchant.mp3", size_multiplier: 2 },
+    
+    { id: "black-lotuses", name: "Stack of Black Lotus", image: "assets/black-lotuses.png", value: 10, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1.5 },
+    
     { id: "maladath", name: "Maladath", image: "items/maladath.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2.5 },
-    { id: "ashkandi", name: "Ashkandi", image: "items/2.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2 },
-    { id: "ashkandi2", name: "Another Ashkandi", image: "items/ashkandi.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1 },
-    { id: "quick-strike-ring", name: "Quick Strike Ring", image: "items/quick-strike-ring.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 0.8 },
-    { id: "brutality_blade", name: "Brutality Blade", image: "items/3.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1.8 },
+    { id: "ashkandi2", name: "Ashkandi, Greatsword of the Brotherhood ", image: "items/ashkandi.png", value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1 },
+    { id: "quick-strike-ring", name: "Quick Strike Ring", image: "items/quick-strike-ring.png", value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 0.8 },
+    { id: "brutality_blade", name: "Brutality Blade", image: "items/3.png", value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "assets/disenchant.mp3", size_multiplier: 1.8 },
     { id: "dalrends", name: "Dal Rends", image: "items/dalrends.png", value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1.8 },  
     { id: "crulshorukh", name: "Crulshorukh", image: "items/6.png", value: 7, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 2.4 },
-    { id: "drakefangtalisman", name: "Drake Fang Talisman", image: "items/dft.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 1.7 },
+    { id: "drakefangtalisman", name: "Drake Fang Talisman", image: "items/dft.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "assets/dft.mp3", size_multiplier: 1.2 },
+
     { id: "onslaught", name: "Onslaught", image: "items/onslaught.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 1},
+    { id: "circle-of-applied-force", name: "Circle of Applied", image: "items/circle-of-applied-force.png", value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 1},
+
+
     { id: "ThunderFury", name: "Thunder Fury", image: "items/tunder.png", value: 5, collected: 0, type: "legendary", baseProbability: gameConfig.itemProbabilities.legendary, sound: "", size_multiplier: 2.8 },
     { id: "zee", name: "Zee Zgnan Tigar", image: "items/zee.png", value: 15, collected: 0, spawned: 0, type: "zee_zgnan", baseProbability: gameConfig.itemProbabilities.zee_zgnan, sound: "", size_multiplier: 2.0 },
     

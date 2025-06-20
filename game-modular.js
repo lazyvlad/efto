@@ -11,12 +11,13 @@ import { PowerUpItem } from './classes/PowerUpItem.js';
 import { Particle } from './classes/Particle.js';
 
 import { tryAutoInitAudio, startBackgroundMusic, playVoiceSound, playUffSound, playScreamSound, playTotalSound, playFireballImpactSound, playDragonstalkerSound, playItemSound, toggleAudio, audioInitialized, audioState, volumeSettings } from './systems/audioSystem.js';
-import { loadHighScores, addHighScore, isHighScore, displayHighScores } from './systems/highScoreSystem.js';
+import { loadHighScores, addHighScore, isHighScore, displayHighScores, displayHighScoresSync } from './systems/highScoreSystem.js';
 import { initializeInputSystem, updatePlayerPosition } from './systems/inputSystem.js';
 import { drawSettings, drawPauseMenu, drawUnifiedPanel, drawDragonstalkerProgress } from './systems/renderSystem.js';
 
 import { calculateLevelSpeedMultiplier, isValidYPosition, cleanupRecentDropPositions, calculateDeltaTimeMultiplier, updateGameStateTimers, addNotification, updateNotifications, drawNotifications } from './utils/gameUtils.js';
 import { selectRandomItem, selectRandomProjectile, selectRandomPowerUp, shouldSpawnPowerUp, createCollectionParticles, calculateProjectileProbability } from './utils/spawning.js';
+import { spellSystem } from './systems/spellSystem.js';
 
 // === GLOBAL GAME STATE ===
 let gameState = {
@@ -78,7 +79,7 @@ let fallingItems = [];
 let fireballs = [];
 let powerUps = [];
 let particles = [];
-let images = { items: [] };
+let images = { items: [], spells: {} };
 let recentDropYPositions = [];
 
 // Background is handled by CSS
@@ -106,8 +107,22 @@ function init() {
     // Initialize input system
     initializeInputSystem(canvas, gameState, player, restartGame, startGame, showInGameSettings, showPauseMenu, () => {
         gameState.currentScreen = 'highScores';
-        displayHighScores();
+        safeDisplayHighScores();
     }, updateCanvasOverlay);
+    
+    // Set up spell system notification callback
+    spellSystem.setNotificationCallback((message, duration, color) => {
+        addNotification(gameState, message, duration, color);
+    });
+    
+    // Set up spell system game state callback
+    spellSystem.setGameStateCallback(() => gameState);
+    
+    // Expose gameItems to window for spell system access
+    window.gameItems = gameItems;
+    
+    // Load spell icons
+    loadSpellIcons();
     
     // Set up UI event handlers
     setupUIEventHandlers();
@@ -116,7 +131,7 @@ function init() {
     showNameEntry();
     
     // Load high scores on initialization
-    displayHighScores();
+    safeDisplayHighScores();
     
     // Initialize canvas overlay
     updateCanvasOverlay();
@@ -162,7 +177,7 @@ function gameLoop() {
         update(deltaTimeMultiplier);
     } else if (gameState.gameRunning) {
         // Update player position even when paused/in settings
-        updatePlayerPosition(player, canvas, deltaTimeMultiplier);
+        updatePlayerPosition(player, canvas, deltaTimeMultiplier, gameConfig);
     }
     
     // Update canvas overlay visibility
@@ -187,12 +202,15 @@ function update(deltaTimeMultiplier) {
     // Update notifications
     updateNotifications(gameState, deltaTimeMultiplier);
     
+    // Update spell system (pass player, canvas, and gameConfig for teleportation)
+    spellSystem.update(Date.now(), player, canvas, gameConfig);
+    
     // Update level and speed
     calculateLevelSpeedMultiplier(gameState);
     gameState.speedMultiplier = gameState.levelSpeedMultiplier;
     
     // Update player
-    updatePlayerPosition(player, canvas, deltaTimeMultiplier);
+    updatePlayerPosition(player, canvas, deltaTimeMultiplier, gameConfig);
     
     // Update player's internal timers and visual states
     if (player.updateTimers) {
@@ -259,7 +277,7 @@ function renderMainMenu() {
     ctx.fillStyle = 'white';
     ctx.font = '48px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('EFTO GAME', canvas.width/2, canvas.height/2 - 100);
+            ctx.fillText('DMTRIBUT GAME', canvas.width/2, canvas.height/2 - 100);
     
     ctx.font = '24px Arial';
     ctx.fillText('Enter your name and press SPACE to start', canvas.width/2, canvas.height/2);
@@ -267,6 +285,34 @@ function renderMainMenu() {
 }
 
 function renderGame() {
+    // Draw movable area border if enabled
+    if (gameConfig.player.movableArea.enabled && gameConfig.player.movableArea.showBorder) {
+        const movableArea = gameConfig.player.movableArea;
+        const movableHeight = canvas.height * movableArea.heightPercent;
+        const borderY = canvas.height - movableHeight;
+        
+        ctx.save();
+        ctx.strokeStyle = movableArea.borderColor;
+        ctx.globalAlpha = movableArea.borderOpacity;
+        ctx.lineWidth = movableArea.borderWidth;
+        
+        // Draw horizontal line at the top of movable area
+        ctx.beginPath();
+        ctx.moveTo(0, borderY);
+        ctx.lineTo(canvas.width, borderY);
+        ctx.stroke();
+        
+        // Optional: Draw subtle side borders
+        ctx.beginPath();
+        ctx.moveTo(0, borderY);
+        ctx.lineTo(0, canvas.height);
+        ctx.moveTo(canvas.width, borderY);
+        ctx.lineTo(canvas.width, canvas.height);
+        ctx.stroke();
+        
+        ctx.restore();
+    }
+    
     // Render all game objects
     fallingItems.forEach(item => item.draw(ctx, gameConfig));
     fireballs.forEach(fireball => fireball.draw(ctx));
@@ -377,6 +423,9 @@ function renderGame() {
     
     // Render power-up status indicators
     renderPowerUpStatus();
+    
+    // Render spell UI
+    renderSpellUI();
 }
 
 function renderGameOver() {
@@ -451,6 +500,145 @@ function renderPowerUpStatus() {
     }
 }
 
+function renderSpellUI() {
+    const currentTime = Date.now();
+    const spellPadding = 15;
+    const spellWidth = 80;
+    const spellHeight = 60;
+    
+    // Position spells in the center, just above the movement constraint line
+    const totalSpellsWidth = (spellWidth * 3) + (spellPadding * 2); // 3 spells with 2 paddings between
+    const startX = (canvas.width - totalSpellsWidth) / 2; // Center horizontally
+    
+    // Calculate position just above the movement constraint line
+    let startY = canvas.height - 100; // Default position
+    if (gameConfig.player.movableArea.enabled) {
+        const movableHeight = canvas.height * gameConfig.player.movableArea.heightPercent;
+        const borderY = canvas.height - movableHeight;
+        startY = borderY - spellHeight - 20; // 20px above the border line
+    }
+    
+    // Spell data with icons
+    const spells = [
+        { 
+            id: 'dragon_cry', 
+            key: 'Q', 
+            name: 'Dragon Cry', 
+            color: '#FF4500',
+            icon: 'assets/onyxia-buff.png'
+        },
+        { 
+            id: 'zandalari', 
+            key: 'W', 
+            name: 'Zandalari', 
+            color: '#FFD700',
+            icon: 'assets/zg-buff.png'
+        },
+        { 
+            id: 'songflower', 
+            key: 'E', 
+            name: 'Songflower', 
+            color: '#FF69B4',
+            icon: 'assets/songflower-buff.png'
+        }
+    ];
+    
+    spells.forEach((spell, index) => {
+        const x = startX + (spellWidth + spellPadding) * index;
+        const y = startY;
+        
+        // Get spell status
+        const cooldownRemaining = spellSystem.getCooldownRemaining(spell.id, currentTime);
+        const durationRemaining = spellSystem.getDurationRemaining(spell.id, currentTime);
+        const isActive = spellSystem.isSpellActive(spell.id);
+        const isOnCooldown = cooldownRemaining > 0;
+        
+        // Draw spell background
+        ctx.fillStyle = isActive ? 'rgba(0, 255, 0, 0.3)' : 
+                       isOnCooldown ? 'rgba(255, 0, 0, 0.3)' : 
+                       'rgba(255, 255, 255, 0.2)';
+        ctx.fillRect(x, y, spellWidth, spellHeight);
+        
+        // Draw spell border
+        ctx.strokeStyle = isActive ? '#00FF00' : 
+                         isOnCooldown ? '#FF0000' : 
+                         spell.color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, spellWidth, spellHeight);
+        
+        // Draw spell icon if available
+        if (spell.icon && images.spells && images.spells[spell.id]) {
+            const iconSize = 32;
+            const iconX = x + (spellWidth - iconSize) / 2;
+            const iconY = y + 5;
+            
+            // Apply opacity if on cooldown
+            if (isOnCooldown) {
+                ctx.globalAlpha = 0.5;
+            }
+            
+            ctx.drawImage(images.spells[spell.id], iconX, iconY, iconSize, iconSize);
+            
+            // Reset opacity
+            ctx.globalAlpha = 1.0;
+        } else {
+            // Fallback to key letter if no icon
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(spell.key, x + spellWidth/2, y + 25);
+        }
+        
+        // Draw key binding in bottom corner
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(spell.key, x + spellWidth/2, y + spellHeight - 20);
+        
+        // Draw spell name
+        ctx.font = '8px Arial';
+        ctx.fillText(spell.name, x + spellWidth/2, y + spellHeight - 8);
+        
+        // Draw cooldown/duration timer
+        if (isActive && durationRemaining > 0) {
+            ctx.fillStyle = '#00FF00';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText(`${durationRemaining}s`, x + spellWidth/2, y + spellHeight - 35);
+        } else if (isOnCooldown) {
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText(`${cooldownRemaining}s`, x + spellWidth/2, y + spellHeight - 35);
+        }
+    });
+    
+    // Reset text alignment
+    ctx.textAlign = 'left';
+}
+
+// Load spell icons
+function loadSpellIcons() {
+    // Dragon Cry spell icon
+    const dragonCryIcon = new Image();
+    dragonCryIcon.onload = () => {
+        images.spells.dragon_cry = dragonCryIcon;
+    };
+    dragonCryIcon.src = 'assets/onyxia-buff.png';
+    
+    // Zandalari spell icon
+    const zandalariIcon = new Image();
+    zandalariIcon.onload = () => {
+        images.spells.zandalari = zandalariIcon;
+    };
+    zandalariIcon.src = 'assets/zg-buff.png';
+    
+    // Songflower spell icon
+    const songflowerIcon = new Image();
+    songflowerIcon.onload = () => {
+        images.spells.songflower = songflowerIcon;
+    };
+    songflowerIcon.src = 'assets/songflower-buff.png';
+}
+
 // Game functions (simplified - these would contain the full logic)
 function startGame() {
     // Reset game state
@@ -464,6 +652,7 @@ function startGame() {
     gameState.tierSetCollected = 0;
     gameState.tierSetMissed = 0;
     gameState.gameUnwinnable = false;
+    gameState.gameWon = false;
     gameState.missedItems = 0;
     gameState.powerUpsSpawned = 0;
     gameState.cutTimeSpawned = 0;
@@ -519,6 +708,7 @@ function restartGame() {
     gameState.tierSetCollected = 0;
     gameState.tierSetMissed = 0;
     gameState.gameUnwinnable = false;
+    gameState.gameWon = false;
     gameState.levelSpeedMultiplier = 1.0;
     gameState.speedMultiplier = 1.0;
     gameState.permanentSpeedReduction = 0;
@@ -670,7 +860,15 @@ function updateFallingItems(deltaTimeMultiplier) {
 
 function updateProjectiles(deltaTimeMultiplier) {
     fireballs = fireballs.filter(projectile => {
-        const stillActive = gameState.freezeTimeActive ? true : projectile.update(deltaTimeMultiplier, canvas);
+        if (gameState.freezeTimeActive) {
+            return true; // Don't update when time is frozen
+        }
+        
+        // Apply spell speed effects to projectiles
+        const spellSpeedMultiplier = spellSystem.getProjectileSpeedMultiplier();
+        const adjustedDeltaTime = deltaTimeMultiplier * spellSpeedMultiplier;
+        
+        const stillActive = projectile.update(adjustedDeltaTime, canvas);
         return stillActive;
     });
 }
@@ -693,7 +891,19 @@ function checkCollisions() {
             // Update item data and score
             if (item.itemData) {
                 item.itemData.collected++;
-                gameState.score += item.itemData.value;
+                
+                // Apply spell point multipliers
+                const pointMultiplier = spellSystem.getPointMultiplier();
+                const basePoints = item.itemData.value;
+                const finalPoints = Math.round(basePoints * pointMultiplier);
+                gameState.score += finalPoints;
+                
+                // Show bonus points notification if multiplier is active
+                if (pointMultiplier > 1.0) {
+                    const bonusPercent = Math.round((pointMultiplier - 1.0) * 100);
+                    addNotification(gameState, `💰 +${bonusPercent}% Points (${finalPoints})`, 120, '#FFD700');
+                }
+                
                 gameState.perfectCollections++;
                 
                 // Create particles
@@ -772,7 +982,22 @@ function checkCollisions() {
                     const freezeSeconds = Math.round((projectile.freezeDuration || gameConfig.powerUps.freezeTime.duration) / 60);
                     addNotification(gameState, `❄️ Time Frozen ${freezeSeconds}s`, 120, '#87CEEB');
                     
-                    // Don't damage player for beneficial projectiles
+                    // Special case: Frost Nova damages player despite beneficial effect
+                    if (projectile.data.id === "frost_nova" && projectile.data.damage > 0) {
+                        // Check if shield is active - if so, block the damage
+                        if (gameState.shieldActive) {
+                            addNotification(gameState, `🛡️ Damage Blocked!`, 120, '#FFD700');
+                        } else {
+                            gameState.health = Math.max(0, gameState.health - projectile.data.damage);
+                            addNotification(gameState, `❄️ Frost Nova -${projectile.data.damage} HP`, 120, '#00BFFF');
+                            
+                            // Trigger player impact reaction
+                            if (player.onHit) {
+                                player.onHit();
+                            }
+                        }
+                    }
+                    
                     createCollectionParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles);
                     fireballs.splice(projectileIndex, 1);
                     return;
@@ -848,12 +1073,28 @@ function checkCollisions() {
 }
 
 function checkGameEndConditions() {
-    // Check win condition - verify all 8 unique Dragonstalker pieces are collected
+    // Check win conditions
+    // 1. All 8 unique Dragonstalker pieces are collected
     const dragonstalkerItems = gameItems.filter(item => item.type === "tier_set");
     const uniquePiecesCollected = dragonstalkerItems.filter(item => item.collected > 0).length;
     
-    if (uniquePiecesCollected >= 8) {
-        winGame();
+    // 2. Zee Zgnan Tigar is collected
+    const zeeZgnanItem = gameItems.find(item => item.type === "zee_zgnan");
+    const zeeZgnanCollected = zeeZgnanItem && zeeZgnanItem.collected > 0;
+    
+    if ((uniquePiecesCollected >= 8 || zeeZgnanCollected) && !gameState.gameWon) {
+        // Mark victory achieved but don't end the game
+        gameState.gameWon = true;
+        
+        // Show appropriate victory notification
+        if (zeeZgnanCollected) {
+            addNotification(gameState, `🎯 ZEE ZGNAN TIGAR! ULTIMATE VICTORY! Game continues... 🎯`, 360, '#FF69B4');
+        } else {
+            addNotification(gameState, `🏆 VICTORY! Complete Dragonstalker Set! Game continues... 🏆`, 360, '#FFD700');
+        }
+        
+        // Play victory sound (reuse total sound)
+        playTotalSound();
     }
     
     // Check lose condition
@@ -890,7 +1131,7 @@ function showHighScores() {
     document.getElementById('gameOver').style.display = 'none';
     gameState.showingSettings = false;
     
-    displayHighScores();
+    safeDisplayHighScores();
     
     // Update canvas overlay
     updateCanvasOverlay();
@@ -1011,6 +1252,24 @@ function setupUIEventHandlers() {
 // ===== HIGH SCORES FUNCTIONS =====
 // displayHighScores is imported from highScoreSystem.js
 
+// Safe wrapper for displaying high scores that works with or without server
+function safeDisplayHighScores() {
+    try {
+        // Try async version first
+        const result = displayHighScores();
+        // If it returns a Promise, handle it properly
+        if (result && typeof result.catch === 'function') {
+            result.catch(error => {
+                console.log('Async displayHighScores failed, using sync fallback:', error);
+                displayHighScoresSync();
+            });
+        }
+    } catch (error) {
+        console.log('displayHighScores threw error, using sync fallback:', error);
+        displayHighScoresSync();
+    }
+}
+
 // Audio toggle function
 function toggleAudioButton() {
     // Use the imported toggleAudio function from audioSystem
@@ -1024,24 +1283,31 @@ function endGame() {
     gameState.gameRunning = false;
     
     // Save the high score
-    const rank = addHighScore(gameState.playerName, gameState.score, gameState.perfectCollections, gameState.currentLevel);
+    try {
+        const scorePromise = addHighScore(gameState.playerName, gameState.score, gameState.perfectCollections, gameState.currentLevel);
+        if (scorePromise && typeof scorePromise.then === 'function') {
+            scorePromise.then(rank => {
+                // Show new high score message if it's in top 10
+                const newHighScoreElement = document.getElementById('newHighScore');
+                if (newHighScoreElement) {
+                    if (rank <= 10) {
+                        newHighScoreElement.textContent = `🎉 NEW HIGH SCORE! Rank #${rank} 🎉`;
+                        newHighScoreElement.style.display = 'block';
+                    } else {
+                        newHighScoreElement.style.display = 'none';
+                    }
+                }
+            }).catch(console.error);
+        }
+    } catch (error) {
+        console.error('Error saving high score:', error);
+    }
     
     // Update final score display
     const finalScoreElement = document.getElementById('finalScore');
     if (finalScoreElement) {
         finalScoreElement.textContent = 
             `Final Score: ${gameState.score} | Items: ${gameState.perfectCollections} | Level: ${gameState.currentLevel}`;
-    }
-    
-    // Show new high score message if it's in top 10
-    const newHighScoreElement = document.getElementById('newHighScore');
-    if (newHighScoreElement) {
-        if (rank <= 10) {
-            newHighScoreElement.textContent = `🎉 NEW HIGH SCORE! Rank #${rank} 🎉`;
-            newHighScoreElement.style.display = 'block';
-        } else {
-            newHighScoreElement.style.display = 'none';
-        }
     }
     
     document.getElementById('gameOver').style.display = 'block';
@@ -1056,7 +1322,14 @@ function winGame() {
     gameState.gameRunning = false;
     
     // Save the high score with special win marker
-    const rank = addHighScore(gameState.playerName + " 👑", gameState.score, gameState.perfectCollections, gameState.currentLevel);
+    try {
+        const scorePromise = addHighScore(gameState.playerName + " 👑", gameState.score, gameState.perfectCollections, gameState.currentLevel);
+        if (scorePromise && typeof scorePromise.catch === 'function') {
+            scorePromise.catch(console.error);
+        }
+    } catch (error) {
+        console.error('Error saving win high score:', error);
+    }
     
     // Update final score display
     const finalScoreElement = document.getElementById('finalScore');

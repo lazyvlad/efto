@@ -3,11 +3,23 @@ import { gameConfig } from '../config/gameConfig.js';
 // Player Class - Encapsulates all player functionality
 export class Player {
     constructor(canvasWidth, canvasHeight) {
-        this.x = canvasWidth / 2;
-        this.y = canvasHeight - 180;
         this.width = gameConfig.visuals.playerWidth;
         this.height = gameConfig.visuals.playerHeight;
         this.speed = gameConfig.visuals.playerSpeed;
+        
+        // Position player in center of movable area
+        this.x = canvasWidth / 2 - this.width / 2;
+        
+        // Calculate Y position based on movable area
+        if (gameConfig.player.movableArea.enabled) {
+            const movableHeight = canvasHeight * gameConfig.player.movableArea.heightPercent;
+            const movableAreaTop = canvasHeight - movableHeight;
+            // Position player in the middle of the movable area
+            this.y = movableAreaTop + (movableHeight / 2) - (this.height / 2);
+        } else {
+            // Fallback to original positioning
+            this.y = canvasHeight - 180;
+        }
         
         // Visual state management
         this.impactTimer = 0; // Timer for showing impact reaction
@@ -161,7 +173,17 @@ export class Player {
     // Handle window resize
     repositionOnResize(canvasWidth, canvasHeight) {
         this.x = Math.min(this.x, canvasWidth - this.width);
-        this.y = canvasHeight - 180;
+        
+        // Reposition Y based on movable area
+        if (gameConfig.player.movableArea.enabled) {
+            const movableHeight = canvasHeight * gameConfig.player.movableArea.heightPercent;
+            const movableAreaTop = canvasHeight - movableHeight;
+            // Keep player within movable area bounds
+            this.y = Math.max(movableAreaTop, Math.min(canvasHeight - this.height, this.y));
+        } else {
+            // Fallback to original positioning
+            this.y = canvasHeight - 180;
+        }
     }
     
     // Reset player state (for game restart)
