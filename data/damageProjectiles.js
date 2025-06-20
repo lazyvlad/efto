@@ -1,14 +1,16 @@
 // Damage projectiles database with structured data
+import { assetRegistry } from './assetRegistry.js';
+
 export const damageProjectiles = [
     // Common damage projectiles - Higher probability, less damage
     { 
         id: "fireball", 
         name: "Fireball", 
-        image: "assets/fireball.png", 
+        image: assetRegistry.projectiles.fireball, 
         damage: 8, // 5% HP damage
         type: "common", 
-        baseProbability: 0.03, 
-        sound: "assets/fireballimpact.mp3",
+        baseProbability: 0.035, 
+        sound: assetRegistry.audio.fireballimpact,
         speed: { min: 1.2, max: 2.0 }, // Reduced from 2.0-3.5 for better balance
         size: { width: 120, height: 120 },
         color: "#FF4500",
@@ -19,13 +21,13 @@ export const damageProjectiles = [
     { 
         id: "speedboost", 
         name: "Speed Boost", 
-        image: "assets/speed-boost.png", 
+        image: assetRegistry.powerups.speedBoost, 
         damage: 0, // 3% HP damage (less than fireball)
         type: "common", 
         baseProbability: 0.015, // Same spawn rate as power_word_shield
-        sound: "assets/speedboost.mp3",
-        speed: { min: 1.5, max: 2.5 }, // Reduced from 2.0-4.0 for better balance
-        size: { width: 90, height: 90 },
+        sound: assetRegistry.audio.speedboost,
+        speed: { min: 1.5, max: 2.3 }, // Reduced from 2.0-4.0 for better balance
+        size: { width: 80, height: 80 },
         color: "#FF0000",
         effects: "speed_increase",
         speedIncreaseOptions: [10, 20, 30] // Possible percentage increases
@@ -35,11 +37,11 @@ export const damageProjectiles = [
     { 
         id: "power_word_shield_projectile", 
         name: "Power Word Shield", 
-        image: "assets/powerwordshield.jpg", 
+        image: assetRegistry.powerups.powerWordShield, 
         damage: 0, // No damage - beneficial effect
         type: "common", 
         baseProbability: 0.01, // Same spawn rate as speedboost
-        sound: "assets/shield_cast.mp3",
+        sound: assetRegistry.audio.shieldCast,
         speed: { min: 1.0, max: 2.0 }, // Slower speed for easier collection
         size: { width: 90, height: 90 },
         color: "#87CEEB",
@@ -51,11 +53,11 @@ export const damageProjectiles = [
     { 
         id: "frost_nova", 
         name: "Frost Nova", 
-        image: "assets/frost-nova.jpg", 
+        image: assetRegistry.powerups.frostNova, 
         damage: 2, // 2 HP damage despite beneficial effect
         type: "common", 
         baseProbability: 0.015, // Same spawn rate as power word shield
-        sound: "assets/shield_cast.mp3",
+        sound: assetRegistry.audio.shieldCast,
         speed: { min: 1.0, max: 2.0 }, // Slower speed for easier collection
         size: { width: 90, height: 90 },
         color: "#87CEEB",
@@ -67,14 +69,32 @@ export const damageProjectiles = [
     { 
         id: "frostbolt", 
         name: "Frostbolt", 
-        image: "assets/frostbolt.png", 
-        damage: 15, // 10% HP damage
+        image: assetRegistry.projectiles.frostbolt, 
+        damage: 15, // 15 HP damage
         type: "rare", 
         baseProbability: 0.025, 
-        sound: "assets/frostimpact.mp3",
+        sound: assetRegistry.audio.frostimpact,
         speed: { min: 0.8, max: 1.8 }, // Reduced from 1.0-3.0 for better balance
         size: { width: 100, height: 100 },
         color: "#00BFFF",
         effects: "freeze"
+    },
+    
+    // Rare damage-over-time projectile - Very scary!
+    { 
+        id: "shadowbolt", 
+        name: "Shadowbolt", 
+        image: assetRegistry.projectiles.shadowbolt, 
+        damage: 10, // 10 HP total damage over time (2 HP per second for 5 seconds)
+        type: "rare", 
+        baseProbability: 0.01, 
+        sound: assetRegistry.audio.shadowImpact,
+        speed: { min: 0.6, max: 1.2 }, // Slower than other projectiles
+        size: { width: 110, height: 110 },
+        color: "#4B0082", // Dark purple/indigo
+        effects: "damage_over_time",
+        dotDuration: 300, // 5 seconds at 60fps
+        dotTickRate: 60, // Damage every 60 frames (1 second)
+        dotDamagePerTick: 2 // 2 HP damage per second
     }
 ]; 

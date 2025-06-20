@@ -225,7 +225,7 @@ let gameState = {
     gameStartTime: Date.now(),  // Track when game started
     elapsedTime: 0,  // Track elapsed time in seconds
     // Level system
-    currentLevel: 1,
+    currentLevel: 0, // 0-based internal level (displays as Level 1 to user)
     levelSpeedMultiplier: 1, // Fixed speed multiplier for current level
     // Power-up effects
     timeSlowActive: false,
@@ -720,42 +720,75 @@ function calculateItemProbability(item) {
 // Calculate current level and update level-based speed multiplier
 function updateGameLevel() {
     const points = gameState.score;
-    let newLevel = 1;
+    let newLevel = 0; // Start from level 0 to match new system
     
     // Find the appropriate level based on config thresholds
     for (let i = gameConfig.levels.thresholds.length - 1; i >= 0; i--) {
         if (points >= gameConfig.levels.thresholds[i]) {
-            newLevel = i + 1;
+            newLevel = i;
             break;
         }
     }
     
     // Handle levels beyond the defined thresholds
-    if (newLevel > gameConfig.levels.thresholds.length) {
+    if (newLevel >= gameConfig.levels.thresholds.length) {
         const lastThreshold = gameConfig.levels.thresholds[gameConfig.levels.thresholds.length - 1];
         const pointsBeyondLastThreshold = points - lastThreshold;
-        const levelsToAdd = Math.floor(pointsBeyondLastThreshold / 10); // Every 10 points beyond last threshold
-        newLevel = gameConfig.levels.thresholds.length + levelsToAdd;
+        const levelsToAdd = Math.floor(pointsBeyondLastThreshold / 100); // Every 100 points beyond last threshold
+        newLevel = gameConfig.levels.thresholds.length - 1 + levelsToAdd;
     }
     
     // Only update speed multiplier when level changes
     if (newLevel !== gameState.currentLevel) {
         gameState.currentLevel = newLevel;
         
-        // Calculate level-based speed multiplier using config
-        if (newLevel <= gameConfig.levels.speedMultipliers.length) {
-            // Use predefined multiplier from config
-            gameState.levelSpeedMultiplier = gameConfig.levels.speedMultipliers[newLevel - 1];
+        // Use new formula system if enabled
+        if (gameConfig.levels.useFormula) {
+            gameState.levelSpeedMultiplier = calculateSpeedFormula(newLevel);
         } else {
-            // Calculate for levels beyond predefined multipliers
-            const lastMultiplier = gameConfig.levels.speedMultipliers[gameConfig.levels.speedMultipliers.length - 1];
-            const levelsAbove = newLevel - gameConfig.levels.speedMultipliers.length;
-            gameState.levelSpeedMultiplier = lastMultiplier + (levelsAbove * gameConfig.levels.levelBeyond5Increment);
+            // Use legacy array-based system
+            if (newLevel === 0) {
+                gameState.levelSpeedMultiplier = gameConfig.levels.initialSpeedMultiplier;
+            } else if (newLevel <= gameConfig.levels.speedMultipliers.length) {
+                gameState.levelSpeedMultiplier = gameConfig.levels.speedMultipliers[newLevel - 1];
+            } else {
+                const lastMultiplier = gameConfig.levels.speedMultipliers[gameConfig.levels.speedMultipliers.length - 1];
+                const levelsAbove = newLevel - gameConfig.levels.speedMultipliers.length;
+                gameState.levelSpeedMultiplier = lastMultiplier + (levelsAbove * gameConfig.levels.levelBeyond5Increment);
+            }
         }
         
         // Cap at configured maximum
         gameState.levelSpeedMultiplier = Math.min(gameState.levelSpeedMultiplier, gameConfig.levels.maxSpeedMultiplier);
     }
+}
+
+// Mathematical formula for speed progression (same as in utils/gameUtils.js)
+function calculateSpeedFormula(level) {
+    if (level >= 6) return gameConfig.levels.maxSpeedMultiplier;
+    
+    const baseSpeed = gameConfig.levels.formulaBase;
+    const weights = gameConfig.levels.formulaWeights;
+    
+    const linearComponent = level * weights.linear;
+    const quadraticComponent = Math.pow(level, 2) * weights.quadratic;
+    const exponentialComponent = (Math.pow(weights.exponentialBase, level) - 1) * weights.exponential;
+    
+    let speed = baseSpeed + linearComponent + quadraticComponent + exponentialComponent;
+    
+    const precisionAdjustments = {
+        1: 0.05,  // Target: 1.6x
+        2: 0.01,  // Target: 2.6x  
+        3: -0.05, // Target: 3.7x
+        4: -0.1,  // Target: 5.0x
+        5: 0.2    // Target: 7.0x
+    };
+    
+    if (precisionAdjustments[level] !== undefined) {
+        speed += precisionAdjustments[level];
+    }
+    
+    return Math.round(speed * 10) / 10;
 }
 
 // Calculate dynamic probability for damage projectiles
@@ -1620,7 +1653,7 @@ function calculatePowerUpProbability(powerUp) {
         finalProbability += speedBonus;
         
         // Additional bonus based on level (higher levels = more dangerous)
-        const levelBonus = Math.max(0, (gameState.currentLevel - 1) * 0.1); // 10% bonus per level above 1
+        const levelBonus = Math.max(0, gameState.currentLevel * 0.1); // 10% bonus per level above 0
         finalProbability += levelBonus;
         
         // Bonus if player health is low (more shields when struggling)
@@ -2374,7 +2407,7 @@ function restartGame() {
         gameStartTime: Date.now(),  // Reset game start time
         elapsedTime: 0,
         // Reset level system
-        currentLevel: 1,
+        currentLevel: 0, // Reset to Level 0 (displays as Level 1)
         levelSpeedMultiplier: 1,
         // Reset power-up effects
         timeSlowActive: false,
@@ -2926,7 +2959,7 @@ function drawUnifiedPanel() {
     // Level display - below score
     ctx.fillStyle = '#FFD700';
     ctx.font = 'bold 16px Arial';
-    ctx.fillText(`Level ${gameState.currentLevel}`, startX, startY + 75);
+    ctx.fillText(`Level ${gameState.currentLevel + 1}`, startX, startY + 75);
     
     // Items count - below level
     ctx.fillStyle = '#CCC';

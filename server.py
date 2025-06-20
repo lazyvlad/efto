@@ -32,7 +32,7 @@ def save_high_scores(scores):
 @app.route('/')
 def index():
     """Serve the main game page"""
-    return send_from_directory('.', 'index-modular.html')
+    return send_from_directory('.', 'index.html')
 
 @app.route('/<path:filename>')
 def serve_static(filename):

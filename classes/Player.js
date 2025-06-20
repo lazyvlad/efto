@@ -1,39 +1,45 @@
 import { gameConfig } from '../config/gameConfig.js';
+import { assetManager } from '../utils/AssetManager.js';
+import { assetRegistry } from '../data/assetRegistry.js';
+import { responsiveScaler } from '../utils/gameUtils.js';
 
 // Player Class - Encapsulates all player functionality
 export class Player {
     constructor(canvasWidth, canvasHeight) {
-        this.width = gameConfig.visuals.playerWidth;
-        this.height = gameConfig.visuals.playerHeight;
-        this.speed = gameConfig.visuals.playerSpeed;
+        // Get responsive sizes from scaler
+        const playerSize = responsiveScaler.getSize('player');
         
-        // Position player in center of movable area
+        // Position and size (now responsive)
+        this.width = playerSize.width;
+        this.height = playerSize.height;
         this.x = canvasWidth / 2 - this.width / 2;
+        this.y = canvasHeight - this.height - responsiveScaler.scale(20);
+        this.canvasWidth = canvasWidth;
+        this.canvasHeight = canvasHeight;
         
-        // Calculate Y position based on movable area
-        if (gameConfig.player.movableArea.enabled) {
-            const movableHeight = canvasHeight * gameConfig.player.movableArea.heightPercent;
-            const movableAreaTop = canvasHeight - movableHeight;
-            // Position player in the middle of the movable area
-            this.y = movableAreaTop + (movableHeight / 2) - (this.height / 2);
-        } else {
-            // Fallback to original positioning
-            this.y = canvasHeight - 180;
-        }
+        // Movement (scaled based on device)
+        this.speed = playerSize.speed;
+        this.targetX = this.x;
+        this.smoothingFactor = 0.15;
         
-        // Visual state management
-        this.impactTimer = 0; // Timer for showing impact reaction
-        this.impactDuration = gameConfig.player.impactDuration;
-        this.celebrationTimer = 0; // Timer for tier set collection celebration
-        this.celebrationDuration = gameConfig.player.celebrationDuration;
+        // Visual state
+        this.impactTimer = 0;
+        this.impactDuration = gameConfig.player.impactDuration * (1000 / 60); // Convert frames to milliseconds
+        this.celebrationTimer = 0;
+        this.celebrationDuration = gameConfig.player.celebrationDuration * (1000 / 60); // Convert frames to milliseconds
         
-        // Image management
-        this.normalImage = new Image();
-        this.impactImage = new Image();
-        this.celebrationImage = new Image();
-        this.normalImage.src = 'assets/efto.png';
-        this.impactImage.src = 'assets/vano.png';
-        this.celebrationImage.src = 'assets/efto-win.png';
+        // Animation
+        this.bobOffset = 0;
+        this.bobSpeed = 0.05;
+        this.bobAmplitude = 2;
+        
+        // Image management using AssetManager with centralized registry
+        this.normalImage = assetManager.getImage(assetRegistry.player.normal);
+        this.impactImage = assetManager.getImage(assetRegistry.player.impact);
+        this.celebrationImage = assetManager.getImage(assetRegistry.player.celebration);
+        
+        // Current image state
+        this.currentImage = this.normalImage;
         
         // State
         this.isReacting = false;
@@ -77,9 +83,12 @@ export class Player {
     
     // Update only timers and visual states (used when position is handled elsewhere)
     updateTimers(deltaTimeMultiplier) {
+        // Convert deltaTimeMultiplier to milliseconds (assuming 60fps = 16.67ms per frame)
+        const deltaTimeMs = deltaTimeMultiplier * (1000 / 60);
+        
         // Update celebration timer first (has priority)
         if (this.celebrationTimer > 0) {
-            this.celebrationTimer -= deltaTimeMultiplier;
+            this.celebrationTimer -= deltaTimeMs;
             if (this.celebrationTimer <= 0) {
                 this.celebrationTimer = 0; // Ensure it's exactly 0
                 this.isCelebrating = false;
@@ -88,7 +97,7 @@ export class Player {
         
         // Update impact timer (only if not celebrating)
         if (!this.isCelebrating && this.impactTimer > 0) {
-            this.impactTimer -= deltaTimeMultiplier;
+            this.impactTimer -= deltaTimeMs;
             if (this.impactTimer <= 0) {
                 this.impactTimer = 0; // Ensure it's exactly 0
                 this.isReacting = false;
@@ -170,19 +179,31 @@ export class Player {
         };
     }
     
-    // Handle window resize
+    // Handle window resize with responsive scaling
     repositionOnResize(canvasWidth, canvasHeight) {
+        // Update size based on new scaling
+        const playerSize = responsiveScaler.getSize('player');
+        this.width = playerSize.width;
+        this.height = playerSize.height;
+        this.speed = playerSize.speed;
+        
+        // Update canvas dimensions
+        this.canvasWidth = canvasWidth;
+        this.canvasHeight = canvasHeight;
+        
+        // Reposition within new bounds
         this.x = Math.min(this.x, canvasWidth - this.width);
         
-        // Reposition Y based on movable area
-        if (gameConfig.player.movableArea.enabled) {
-            const movableHeight = canvasHeight * gameConfig.player.movableArea.heightPercent;
+        // Reposition Y based on responsive movable area
+        const movableAreaConfig = responsiveScaler.getMovableAreaConfig();
+        if (movableAreaConfig.enabled) {
+            const movableHeight = canvasHeight * movableAreaConfig.heightPercent;
             const movableAreaTop = canvasHeight - movableHeight;
             // Keep player within movable area bounds
             this.y = Math.max(movableAreaTop, Math.min(canvasHeight - this.height, this.y));
         } else {
-            // Fallback to original positioning
-            this.y = canvasHeight - 180;
+            // Fallback to responsive positioning
+            this.y = canvasHeight - responsiveScaler.scale(180);
         }
     }
     

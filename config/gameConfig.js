@@ -99,13 +99,25 @@ export const gameConfig = {
     
     // === LEVEL PROGRESSION ===
     levels: {
-        // Point thresholds for each level (doubled to accommodate increased point values)
-        thresholds: [0, 40, 100, 140, 200, 260], // Level 1-6 thresholds (doubled)
-        // Speed multipliers for each level (tripled from original)
-        speedMultipliers: [1.5, 2.5, 3.5, 5.0, 6.5], // Level 1-5 multipliers
-        levelBeyond5Increment: 1.0, // Each level beyond 5 adds this much speed (tripled)
-        maxSpeedMultiplier: 9.0,   // Cap on speed multiplier (increased)
-        initialSpeedMultiplier: 1.2, // Starting speed multiplier when game begins
+        // Point thresholds for each level - now supports unlimited progression!
+        thresholds: [0, 40, 100, 140, 200, 260, 350, 500, 700, 1000, 1400, 2000], // Level 0-11 thresholds
+        // Mathematical formula for speed progression (replaces hardcoded arrays)
+        formulaBase: 1.2,           // Starting speed at level 0 (restored from testing)
+        maxSpeedMultiplier: 9.0,    // Legacy cap (now only used for safety fallback)
+        
+        // === UNLIMITED PROGRESSION SETTINGS ===
+        enableSafetyCap: true,      // Enable safety cap to prevent extreme performance issues
+        safetyCap: 100.0,           // Maximum speed multiplier (100x) - prevents game from becoming unplayable
+        
+        // Formula tuning parameters
+        formulaWeights: {
+            linear: 0.25,           // Linear component weight (steady growth)
+            quadratic: 0.08,        // Quadratic component weight (accelerating growth)
+            exponential: 0.5,       // Exponential component weight (rapid late-game growth)
+            exponentialBase: 1.25   // Base for exponential component (higher = faster growth)
+        },
+        // Legacy settings removed - using formula-based system only
+        // speedMultipliers and levelBeyond5Increment removed - redundant with formula system
     },
     
     // === ITEM DROP PROBABILITIES ===

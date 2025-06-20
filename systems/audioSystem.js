@@ -1,101 +1,128 @@
 import { gameConfig } from '../config/gameConfig.js';
+import { assetManager } from '../utils/AssetManager.js';
+import { assetRegistry } from '../data/assetRegistry.js';
 
 // Audio system state
 export let audioInitialized = false;
 export let audioInitAttempted = false;
 
-// Audio objects
+// Audio objects - now managed by AssetManager
 export const sounds = {
-    voice: new Audio('assets/voice.mp3'),
-    scream: new Audio('assets/scream.mp3'),
-    uff: new Audio('assets/uff.mp3'),      // New sound for missed items
-    total: new Audio('assets/total.mp3'),   // New sound for 20 collections
-    background: new Audio('assets/background.mp3'),  // Background music
-    smukajte: new Audio('assets/SMUKAJTE.mp3'),     // 33 collections
-    ohoo: new Audio('assets/ohoo.mp3'),              // 66 collections
-    nakoj: new Audio('assets/nakoj.mp3'),            // 99 collections
-    roll: new Audio('assets/roll.mp3'),               // 130 collections
-    fireballimpact: new Audio('assets/fireballimpact.mp3'),  // Very loud fireball impact sound
-    wegotit2: new Audio('assets/weGotIt2.mp3')       // Dragonstalker item collected sound
+    get voice() { return assetManager.getAudio(assetRegistry.audio.voice); },
+    get scream() { return assetManager.getAudio(assetRegistry.audio.scream); },
+    get uff() { return assetManager.getAudio(assetRegistry.audio.uff); },
+    get total() { return assetManager.getAudio(assetRegistry.audio.total); },
+    get background() { return assetManager.getAudio(assetRegistry.audio.background); },
+    get smukajte() { return assetManager.getAudio(assetRegistry.audio.smukajte); },
+    get ohoo() { return assetManager.getAudio(assetRegistry.audio.ohoo); },
+    get nakoj() { return assetManager.getAudio(assetRegistry.audio.nakoj); },
+    get roll() { return assetManager.getAudio(assetRegistry.audio.roll); },
+    get fireballimpact() { return assetManager.getAudio(assetRegistry.audio.fireballimpact); },
+    get wegotit2() { return assetManager.getAudio(assetRegistry.audio.wegotit2); }
 };
 
 // Set up background music
 sounds.background.loop = true;
-sounds.background.volume = 0;  // Start muted
+sounds.background.volume = gameConfig.audio.volumes.background;  // Start with configured volume
 
-// Volume settings (now using config) - Start muted
+// Volume settings (now using config) - Start unmuted
 export let volumeSettings = {
-    background: 0,  // Start muted
-    effects: 0      // Start muted
+    background: gameConfig.audio.volumes.background,  // Start with configured volume
+    effects: gameConfig.audio.volumes.effects         // Start with configured volume
 };
 
-// Audio state management - Start muted by default
+// Audio state management - Start unmuted by default
 export let audioState = {
-    isMuted: true,  // Start muted
+    isMuted: false,  // Start unmuted
+    enabled: true,   // Start enabled
     previousVolumes: {
         background: gameConfig.audio.volumes.background,
         effects: gameConfig.audio.volumes.effects
     }
 };
 
-// Initialize audio - now tries immediately and falls back to user interaction
-export function initializeAudio() {
+// Initialize audio - now uses AssetManager
+export async function initializeAudio() {
     if (audioInitialized || audioInitAttempted) return;
     audioInitAttempted = true;
     
-    console.log('Initializing audio...');
+    console.log('Initializing audio system with AssetManager...');
     
     // Ensure button state matches audio state
     const audioBtn = document.getElementById('audioToggleBtn');
-    if (audioBtn && audioState.isMuted) {
-        audioBtn.textContent = '🔇';
-        audioBtn.classList.add('muted');
-        audioBtn.title = 'Unmute Audio';
+    if (audioBtn) {
+        if (audioState.isMuted) {
+            audioBtn.textContent = '🔇';
+            audioBtn.classList.add('muted');
+            audioBtn.title = 'Unmute Audio';
+        } else {
+            audioBtn.textContent = '🔊';
+            audioBtn.classList.remove('muted');
+            audioBtn.title = 'Mute Audio';
+        }
     }
     
-    // Create a promise chain to initialize all sounds
-    const soundPromises = Object.keys(sounds).map(key => {
-        return new Promise((resolve) => {
-            const audio = sounds[key];
-            audio.load(); // Preload audio
-            
-            // Set initial volumes
-            if (key === 'background') {
-                audio.volume = volumeSettings.background;
-            } else if (key === 'fireballimpact') {
-                audio.volume = gameConfig.audio.volumes.fireballImpact;
-            } else {
-                audio.volume = volumeSettings.effects;
-            }
-            
-            // For browsers that support audio without user interaction, test play
-            // For others, just resolve (they'll work when user first interacts)
-            const testPlay = audio.play();
-            if (testPlay && testPlay.then) {
-                testPlay.then(() => {
-                    audio.pause();
-                    audio.currentTime = 0;
-                    console.log(`✓ ${key} audio ready`);
-                    resolve();
-                }).catch(e => {
-                    console.log(`✗ ${key} audio requires user interaction:`, e.message);
-                    resolve(); // Continue even if one sound fails
-                });
-            } else {
-                // Older browser or immediate success
-                audio.pause();
-                audio.currentTime = 0;
-                console.log(`✓ ${key} audio loaded`);
-                resolve();
-            }
-        });
-    });
+    // Update audio status message if the function exists
+    if (typeof window.updateAudioStatusMessage === 'function') {
+        window.updateAudioStatusMessage();
+    }
     
-    // Wait for all sounds to be tested
-    Promise.all(soundPromises).then(() => {
-        audioInitialized = true;
-        console.log('🔊 Audio initialization complete!');
-    });
+    try {
+        // Use AssetManager's audio initialization
+        const success = await assetManager.initializeAudioSystem();
+        
+        if (success) {
+            // Set initial volumes for loaded audio and start background music
+            const backgroundAudio = sounds.background;
+            if (backgroundAudio) {
+                backgroundAudio.volume = volumeSettings.background;
+                backgroundAudio.loop = true;
+                
+                // Start background music immediately if not muted
+                if (!audioState.isMuted && volumeSettings.background > 0) {
+                    console.log('Starting background music immediately...');
+                    backgroundAudio.play().catch(e => {
+                        console.log('Background music autoplay blocked, will start on user interaction:', e.message);
+                    });
+                }
+            }
+            
+            // Test play essential sounds to verify they work
+            const testSounds = ['voice', 'uff', 'total', 'fireballimpact'];
+            for (const soundKey of testSounds) {
+                const audio = sounds[soundKey];
+                if (audio && audio.readyState >= 3) { // HAVE_FUTURE_DATA
+                    // Set volume
+                    if (soundKey === 'fireballimpact') {
+                        audio.volume = gameConfig.audio.volumes.fireballImpact;
+                    } else {
+                        audio.volume = volumeSettings.effects;
+                    }
+                    
+                    // Test play (may fail due to browser autoplay policy)
+                    const testPlay = audio.play();
+                    if (testPlay && testPlay.then) {
+                        testPlay.then(() => {
+                            audio.pause();
+                            audio.currentTime = 0;
+                            console.log(`✓ ${soundKey} audio ready`);
+                        }).catch(e => {
+                            console.log(`✗ ${soundKey} audio requires user interaction:`, e.message);
+                        });
+                    }
+                }
+            }
+            
+            audioInitialized = true;
+            console.log('🔊 Audio initialization complete with AssetManager!');
+        } else {
+            console.warn('Audio initialization failed, falling back to on-demand loading');
+            audioInitialized = false;
+        }
+    } catch (error) {
+        console.error('Audio initialization error:', error);
+        audioInitialized = false;
+    }
 }
 
 export function toggleAudio() {
@@ -106,6 +133,7 @@ export function toggleAudio() {
         volumeSettings.background = audioState.previousVolumes.background;
         volumeSettings.effects = audioState.previousVolumes.effects;
         audioState.isMuted = false;
+        audioState.enabled = true;
         
         // Force audio initialization if not already done
         if (!audioInitialized) {
@@ -134,6 +162,7 @@ export function toggleAudio() {
         volumeSettings.background = 0;
         volumeSettings.effects = 0;
         audioState.isMuted = true;
+        audioState.enabled = false;
         
         // Update button appearance
         if (audioBtn) {
@@ -146,6 +175,11 @@ export function toggleAudio() {
         sounds.background.volume = 0;
         
         console.log('🔇 Audio muted');
+    }
+    
+    // Update audio status message if the function exists
+    if (typeof window.updateAudioStatusMessage === 'function') {
+        window.updateAudioStatusMessage();
     }
 }
 
@@ -196,6 +230,14 @@ export function playDragonstalkerSound() {
     sounds.wegotit2.play().catch(e => console.log('Dragonstalker sound failed to play'));
 }
 
+export function playThunderSound() {
+    if (audioState.isMuted) return;
+    // Use the "total" sound as thunder effect (dramatic and fitting)
+    sounds.total.volume = volumeSettings.effects;
+    sounds.total.currentTime = 0;
+    sounds.total.play().catch(e => console.log('Thunder sound failed to play'));
+}
+
 export function startBackgroundMusic() {
     if (audioState.isMuted) return;
     sounds.background.volume = volumeSettings.background;
@@ -209,10 +251,13 @@ export function updateBackgroundVolume() {
 export function playItemSound(item) {
     if (audioState.isMuted) return;
     if (item.sound) {
-        // Create a new audio instance for the item sound
-        const itemAudio = new Audio(item.sound);
-        itemAudio.volume = volumeSettings.effects;
-        itemAudio.play().catch(e => console.log(`Item sound ${item.sound} not available`));
+        // Use AssetManager to get the audio asset
+        const itemAudio = assetManager.getAudio(item.sound);
+        if (itemAudio) {
+            itemAudio.volume = volumeSettings.effects;
+            itemAudio.currentTime = 0; // Reset to beginning
+            itemAudio.play().catch(e => console.log(`Item sound ${item.sound} not available`));
+        }
     }
 }
 
@@ -220,18 +265,42 @@ export function playItemSound(item) {
 export function tryAutoInitAudio() {
     // Small delay to ensure DOM is ready
     setTimeout(() => {
-        // Set initial button state to muted
+        // Set initial button state based on audio state
         const audioBtn = document.getElementById('audioToggleBtn');
         if (audioBtn) {
-            audioBtn.textContent = '🔇';
-            audioBtn.classList.add('muted');
-            audioBtn.title = 'Unmute Audio';
+            if (audioState.isMuted) {
+                audioBtn.textContent = '🔇';
+                audioBtn.classList.add('muted');
+                audioBtn.title = 'Unmute Audio';
+            } else {
+                audioBtn.textContent = '🔊';
+                audioBtn.classList.remove('muted');
+                audioBtn.title = 'Mute Audio';
+            }
             
             // Add click event listener for the audio toggle button
             audioBtn.addEventListener('click', toggleAudio);
             console.log('Audio toggle button event listener added');
         }
         initializeAudio();
+        
+        // Set up fallback to start background music on first user interaction
+        const startBackgroundOnInteraction = () => {
+            if (!audioState.isMuted && sounds.background.paused) {
+                console.log('Starting background music on user interaction...');
+                sounds.background.volume = volumeSettings.background;
+                sounds.background.play().catch(e => console.log('Background music still failed:', e.message));
+            }
+            // Remove listeners after first attempt
+            document.removeEventListener('click', startBackgroundOnInteraction);
+            document.removeEventListener('keydown', startBackgroundOnInteraction);
+            document.removeEventListener('touchstart', startBackgroundOnInteraction);
+        };
+        
+        // Listen for user interactions to start background music
+        document.addEventListener('click', startBackgroundOnInteraction);
+        document.addEventListener('keydown', startBackgroundOnInteraction);
+        document.addEventListener('touchstart', startBackgroundOnInteraction);
     }, 100);
 }
 

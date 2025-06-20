@@ -1,46 +1,60 @@
-// Player spells database
+// Player spells database with structured data
+import { assetRegistry } from './assetRegistry.js';
+
 export const playerSpells = [
     {
         id: "dragon_cry",
-        name: "Dragon Cry",
-        key: "Q",
-        description: "Allows movement across the entire canvas area",
-        cooldown: 60000, // 1 minute in milliseconds
-        duration: 10000, // 10 seconds in milliseconds
+        name: "Dragon Cry", 
+        type: "buff",
+        description: "Allows unrestricted movement across the entire screen",
+        duration: 600, // 10 seconds at 60fps
         effects: {
             unrestricted_movement: true
         },
-        color: "#FF4500", // Orange-red color
-        icon: "assets/onyxia-buff.png", // Onyxia buff icon
-        type: "movement"
+        icon: assetRegistry.buffs.onyxia, // Onyxia buff icon
+        color: "#FF4500",
+        rarity: "legendary",
+        cooldown: 3600, // 1 minute (60 seconds) at 60fps
+        manaCost: 0,
+        castTime: 0,
+        category: "movement",
+        key: "Q"
     },
     {
         id: "zandalari",
         name: "Zandalari",
-        key: "W",
-        description: "20% more points and slows damage projectiles",
-        cooldown: 45000, // 45 seconds in milliseconds
-        duration: 15000, // 15 seconds in milliseconds
+        type: "buff", 
+        description: "Slows down projectiles and increases point multiplier",
+        duration: 600, // 10 seconds at 60fps
         effects: {
-            point_multiplier: 1.2, // 20% more points
-            slow_projectiles: 0.3 // Slow projectiles to 30% speed
+            slow_projectiles: 0.5, // 50% speed
+            point_multiplier: 2.0
         },
-        color: "#FFD700", // Gold color
-        icon: "assets/zg-buff.png", // Zandalari buff icon
-        type: "buff"
+        icon: assetRegistry.buffs.zgBuff1, // Zandalari buff icon
+        color: "#FFD700",
+        rarity: "epic",
+        cooldown: 2700, // 45 seconds at 60fps
+        manaCost: 0,
+        castTime: 0,
+        category: "enhancement",
+        key: "W"
     },
     {
         id: "songflower",
         name: "Songflower",
-        key: "E",
-        description: "Removes one missed dragonstalker item counter",
-        cooldown: 120000, // 2 minutes in milliseconds
+        type: "instant",
+        description: "Removes one missed dragonstalker item, potentially making victory possible again", 
         duration: 0, // Instant effect
         effects: {
-            remove_missed_item: true
+            restore_missed_item: true
         },
-        color: "#FF69B4", // Pink color
-        icon: "assets/songflower-buff.png", // Songflower buff icon
-        type: "utility"
+        icon: assetRegistry.buffs.songflower, // Songflower buff icon
+        color: "#FF69B4",
+        rarity: "rare",
+        cooldown: 180, // 3 seconds
+        manaCost: 25,
+        castTime: 60, // 1 second
+        category: "utility",
+        key: "E"
     }
 ]; 

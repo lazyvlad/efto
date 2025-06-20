@@ -1,5 +1,6 @@
 import { toggleAudio, fallbackAudioInit } from './audioSystem.js';
 import { spellSystem } from './spellSystem.js';
+import { responsiveScaler } from '../utils/gameUtils.js';
 
 // Input system state
 export let inputState = {
@@ -100,7 +101,14 @@ function handleMouseClick(mouseX, mouseY, gameState, restartGame, startGame, dis
             mouseY >= gameState.menuButtonBounds.y && 
             mouseY <= gameState.menuButtonBounds.y + gameState.menuButtonBounds.height) {
             gameState.showingSettings = false;
-            gameState.currentScreen = 'menu';
+            if (gameState.gameRunning) {
+                // Close settings and return to game
+            } else {
+                // Return to main menu - show name entry screen
+                gameState.currentScreen = 'menu';
+                const nameEntryElement = document.getElementById('nameEntry');
+                if (nameEntryElement) nameEntryElement.style.display = 'block';
+            }
             if (updateCanvasOverlay) updateCanvasOverlay();
         }
     } else if (gameState.showingPauseMenu) {
@@ -123,7 +131,19 @@ function handleMouseClick(mouseX, mouseY, gameState, restartGame, startGame, dis
                 mouseX <= bounds.restart.x + bounds.restart.width &&
                 mouseY >= bounds.restart.y && 
                 mouseY <= bounds.restart.y + bounds.restart.height) {
+                // Restart should go back to name entry screen, not immediately restart the game
+                gameState.showingPauseMenu = false;
+                gameState.gameRunning = false;
+                gameState.currentScreen = 'menu';
+                
+                // Reset game state
                 restartGame();
+                
+                // Show name entry screen
+                const nameEntryElement = document.getElementById('nameEntry');
+                if (nameEntryElement) nameEntryElement.style.display = 'block';
+                
+                if (updateCanvasOverlay) updateCanvasOverlay();
             }
         }
     } else if (gameState.currentScreen === 'menu') {
@@ -144,31 +164,62 @@ function handleMouseClick(mouseX, mouseY, gameState, restartGame, startGame, dis
 // Handle keyboard input
 function handleKeyDown(e, gameState, restartGame, showInGameSettings, showPauseMenu, displayHighScores, updateCanvasOverlay) {
     // Settings toggle (TAB or I key) - only during gameplay
-    if ((e.key === 'Tab' || e.key.toLowerCase() === 'i') && gameState.gameRunning) {
+    if ((e.key === 'Tab' || e.key.toLowerCase() === 'i') && gameState.gameRunning && !gameState.showingPauseMenu) {
         e.preventDefault();
         showInGameSettings();
+        return;
+    }
+    
+    // Speed monitor toggle (Ctrl+Shift+S) - during gameplay
+    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 's' && gameState.gameRunning) {
+        e.preventDefault();
+        gameState.showSpeedMonitor = !gameState.showSpeedMonitor;
+        console.log(`🔍 Speed Monitor ${gameState.showSpeedMonitor ? 'ENABLED' : 'DISABLED'}`);
+        return;
+    }
+    
+    // Testing: Increase Base Speed (Ctrl+A) - during gameplay
+    if (e.ctrlKey && e.key.toLowerCase() === 'a' && gameState.gameRunning) {
+        e.preventDefault();
+        gameState.baseDropSpeed += 0.5; // Increase by 0.5 each press
+        console.log(`🚀 TESTING: Base Drop Speed increased to ${gameState.baseDropSpeed.toFixed(1)} (Ctrl+A to increase, was ${(gameState.baseDropSpeed - 0.5).toFixed(1)})`);
         return;
     }
     
     // ESC key handling
     if (e.key === 'Escape') {
         e.preventDefault();
+
         if (gameState.showingSettings) {
+            // Close settings and return to previous state
             gameState.showingSettings = false;
             if (gameState.gameRunning) {
-                // Return to game
+                // Return to game - no need to change currentScreen
             } else {
                 gameState.currentScreen = 'menu';
             }
             if (updateCanvasOverlay) updateCanvasOverlay();
         } else if (gameState.showingPauseMenu) {
+            // Close pause menu and resume game
             gameState.showingPauseMenu = false;
             gameState.gameRunning = true;
             if (updateCanvasOverlay) updateCanvasOverlay();
         } else if (gameState.gameRunning) {
+            // During gameplay, ESC should show pause menu, not settings
             showPauseMenu();
         } else if (gameState.currentScreen === 'highScores') {
             gameState.currentScreen = 'menu';
+            if (updateCanvasOverlay) updateCanvasOverlay();
+        } else if (gameState.currentScreen === 'gameOver' || gameState.currentScreen === 'victory') {
+            gameState.currentScreen = 'menu';
+            if (updateCanvasOverlay) updateCanvasOverlay();
+        } else if (gameState.currentScreen === 'menu' && !gameState.gameRunning) {
+            // If we're on menu screen and not in game, ESC should close any overlays and return to name entry
+            gameState.currentScreen = 'menu';
+            gameState.showingSettings = false;
+            // Show name entry screen
+            const nameEntryElement = document.getElementById('nameEntry');
+            if (nameEntryElement) nameEntryElement.style.display = 'block';
             if (updateCanvasOverlay) updateCanvasOverlay();
         }
         return;
@@ -220,6 +271,24 @@ function handleKeyDown(e, gameState, restartGame, showInGameSettings, showPauseM
         return;
     }
     
+    // Audio toggle (A key) - works in any screen, but not when typing in input fields
+    if (e.key.toLowerCase() === 'a') {
+        // Don't trigger audio toggle if user is typing in an input field
+        const activeElement = document.activeElement;
+        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+            return; // Let the input field handle the 'a' key
+        }
+        
+        e.preventDefault();
+        fallbackAudioInit(); // Try to initialize audio on user interaction
+        toggleAudio();
+        // Update audio status message if the function exists
+        if (typeof window.updateAudioStatusMessage === 'function') {
+            window.updateAudioStatusMessage();
+        }
+        return;
+    }
+    
     // Spell casting keys (Q, W, E, R) - only during gameplay
     if (gameState.gameRunning && ['q', 'w', 'e', 'r'].includes(e.key.toLowerCase())) {
         e.preventDefault();
@@ -230,32 +299,21 @@ function handleKeyDown(e, gameState, restartGame, showInGameSettings, showPauseM
 
 // Update player position based on input
 export function updatePlayerPosition(player, canvas, deltaTimeMultiplier, gameConfig) {
-    // Import gameConfig if not passed (for backward compatibility)
-    if (!gameConfig) {
-        // Fallback to default movable area settings
-        gameConfig = {
-            player: {
-                movableArea: {
-                    enabled: true,
-                    heightPercent: 0.3
-                }
-            }
-        };
-    }
+    // Get responsive movable area configuration
+    const movableAreaConfig = responsiveScaler.getMovableAreaConfig();
     
     // Calculate movable area bounds
-    const movableArea = gameConfig.player.movableArea;
     let minX = 0;
     let maxX = canvas.width - player.width;
     let minY = 0;
     let maxY = canvas.height - player.height;
     
-    // Check if player has unrestricted movement from spells
+    // Check if player has unrestricted movement from spells (NOT cached - needs to be real-time)
     const hasUnrestrictedMovement = spellSystem.hasUnrestrictedMovement();
     
-    if (movableArea.enabled && !hasUnrestrictedMovement) {
+    if (movableAreaConfig.enabled && !hasUnrestrictedMovement) {
         // Constrain to bottom portion of canvas (unless spell allows unrestricted movement)
-        const movableHeight = canvas.height * movableArea.heightPercent;
+        const movableHeight = canvas.height * movableAreaConfig.heightPercent;
         minY = canvas.height - movableHeight;
         maxY = canvas.height - player.height;
     }
@@ -269,12 +327,14 @@ export function updatePlayerPosition(player, canvas, deltaTimeMultiplier, gameCo
         targetX = Math.max(minX, Math.min(maxX, targetX));
         targetY = Math.max(minY, Math.min(maxY, targetY));
         
-        // Smooth movement towards constrained target position
+        // Optimized movement calculation - avoid sqrt when possible
         const dx = targetX - player.x;
         const dy = targetY - player.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
+        const distanceSquared = dx * dx + dy * dy;
         
-        if (distance > 5) {
+        // Use squared distance comparison to avoid expensive sqrt
+        if (distanceSquared > 25) { // 5 * 5 = 25
+            const distance = Math.sqrt(distanceSquared);
             const moveSpeed = player.speed * deltaTimeMultiplier;
             player.x += (dx / distance) * moveSpeed;
             player.y += (dy / distance) * moveSpeed;
@@ -288,6 +348,9 @@ export function updatePlayerPosition(player, canvas, deltaTimeMultiplier, gameCo
     // Keep player within movable area bounds
     player.x = Math.max(minX, Math.min(maxX, player.x));
     player.y = Math.max(minY, Math.min(maxY, player.y));
+    
+    // Update player timers (celebration, impact, etc.)
+    player.updateTimers(deltaTimeMultiplier);
 }
 
 // Helper functions for menu clicks

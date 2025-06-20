@@ -3,22 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DMTribut - Falling Item Collection Game</title>
+    <title>DMTribut Item Collection Game</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <style>
         body {
             margin: 0;
             padding: 0;
+            background: #000;
+            font-family: Arial, sans-serif;
             overflow: hidden;
-            background-color: #222;
-            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
-        
+
         #gameCanvas {
             display: block;
-            cursor: none;
+            border: 2px solid #333;
             background: url('assets/background.jpg') center center / cover no-repeat;
         }
-        
+
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 24px;
+            z-index: 100;
+            border: 2px solid #ff6b6b;
+        }
+
+        #restartBtn {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+
+        #restartBtn:hover {
+            background: #ee5a24;
+        }
+
+        #audioToggleBtn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        #audioToggleBtn:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: scale(1.1);
+        }
+
+        #audioToggleBtn.muted {
+            background: rgba(255, 107, 107, 0.8);
+        }
+
+        #audioToggleBtn.muted:hover {
+            background: rgba(255, 107, 107, 0.9);
+        }
+
         /* Name Entry Screen */
         #nameEntry {
             position: absolute;
@@ -30,8 +102,9 @@
             padding: 40px;
             border-radius: 20px;
             text-align: center;
-            z-index: 100;
+            z-index: 200;
             border: 2px solid #4ECDC4;
+            min-width: 400px;
         }
 
         #nameEntry h2 {
@@ -194,163 +267,10 @@
             background: #555;
         }
 
-        /* Game Over Screen */
-        #gameOver {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
-            color: white;
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            z-index: 150;
-            border: 2px solid #FF6B6B;
-        }
-
-        #gameOver h2 {
-            color: #FF6B6B;
-            margin-bottom: 30px;
-            font-size: 32px;
-        }
-
-        #finalScore {
-            font-size: 20px;
-            margin: 20px 0;
-            color: #4ECDC4;
-        }
-
-        #newHighScore {
-            color: #FFD700;
-            font-weight: bold;
-            margin: 10px 0;
-            font-size: 18px;
-        }
-
-        #restartBtn {
-            background: #4ECDC4;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 18px;
-            border-radius: 10px;
-            cursor: pointer;
-            margin: 10px;
-            font-weight: bold;
-        }
-
-        #restartBtn:hover {
-            background: #26d0ce;
-        }
-
-        #viewScoresBtn2 {
-            background: #FFD700;
-            color: #000;
-            border: none;
-            padding: 15px 30px;
-            font-size: 18px;
-            border-radius: 10px;
-            cursor: pointer;
-            margin: 10px;
-            font-weight: bold;
-        }
-
-        #viewScoresBtn2:hover {
-            background: #FFC700;
-        }
-        
-        #audioToggleBtn {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: none;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-        
-        #audioToggleBtn:hover {
-            background: rgba(0, 0, 0, 0.9);
-            transform: scale(1.1);
-        }
-        
-        #audioToggleBtn.muted {
-            background: rgba(255, 107, 107, 0.8);
-        }
-        
-        #audioToggleBtn.muted:hover {
-            background: rgba(255, 107, 107, 0.9);
-        }
-        
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            #nameEntry, #highScores, #gameOver {
-                width: 90%;
-                max-width: 400px;
-                padding: 20px;
-            }
-            
-            #playerNameInput {
-                width: 90%;
-                max-width: 250px;
-            }
-            
-            .score-entry {
-                font-size: 14px;
-                padding: 8px 15px;
-            }
-            
-            .score-date {
-                display: none;
-            }
-        }
-        
-        /* Focus styles for keyboard navigation */
-        #playerNameInput:focus,
-        button:focus {
-            outline: 3px solid #4ECDC4;
-            outline-offset: 2px;
-        }
-        
-        #audioToggleBtn:focus {
-            outline: 3px solid #4ECDC4;
-            outline-offset: 2px;
-        }
-        
-        /* Canvas Overlay - prevents mouse interaction when game is not active */
-        #canvasOverlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 50;
-            pointer-events: auto;
-            background: transparent;
-        }
-        
-        #canvasOverlay.hidden {
-            pointer-events: none;
-            display: none;
-        }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
-    
-    <!-- Canvas Overlay - prevents mouse interaction when game is not active -->
-    <div id="canvasOverlay"></div>
+    <canvas id="gameCanvas" width="1000" height="600"></canvas>
     
     <!-- Name Entry Screen -->
     <div id="nameEntry">
@@ -358,16 +278,16 @@
         <p style="margin-bottom: 20px; color: #ccc;">Enter your name to start playing</p>
         <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" />
         <br>
-        <button id="startGameBtn">Start Game</button>
-        <button id="viewScoresBtn">High Scores</button>
-        <button id="viewItemsBtn">View Items</button>
+        <button id="startGameBtn" onclick="startGame()">Start Game</button>
+        <button id="viewScoresBtn" onclick="showHighScores()">High Scores</button>
+        <button id="viewItemsBtn" onclick="showItemsFromMenu()">View Items</button>
     </div>
 
     <!-- High Scores Screen -->
     <div id="highScores" style="display: none;">
         <h2>🏆 High Scores 🏆</h2>
         <div id="scoresList"></div>
-        <button id="backToMenuBtn">Back to Menu</button>
+        <button id="backToMenuBtn" onclick="showNameEntry()">Back to Menu</button>
     </div>
 
     <!-- Game Over Screen -->
@@ -375,14 +295,13 @@
         <h2>Game Over!</h2>
         <p id="finalScore">Final Score: 0</p>
         <p id="newHighScore" style="display: none; color: #FFD700; font-weight: bold; margin: 10px 0;">🎉 NEW HIGH SCORE! 🎉</p>
-        <button id="restartBtn">Play Again</button>
-        <button id="viewScoresBtn2">View High Scores</button>
+        <button id="restartBtn" onclick="restartGame()">Play Again</button>
+        <button id="viewScoresBtn2" onclick="showHighScores()">View High Scores</button>
     </div>
 
     <!-- Audio Toggle Button -->
-    <button id="audioToggleBtn" title="Toggle Audio">🔊</button>
+    <button id="audioToggleBtn" onclick="toggleAudio()" title="Toggle Audio">🔊</button>
 
-    <!-- Game Script -->
-    <script type="module" src="game-modular.js"></script>
+    <script src="game.js"></script>
 </body>
 </html> 

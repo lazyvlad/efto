@@ -1,5 +1,6 @@
 import { gameConfig } from '../config/gameConfig.js';
-import { addNotification } from '../utils/gameUtils.js';
+import { addNotification, checkBoundaryCollision, applyAdvancedBouncePhysics, calculateSpinEffect, applyAirResistance } from '../utils/gameUtils.js';
+import { assetManager } from '../utils/AssetManager.js';
 
 export class PowerUpItem {
     constructor(powerUpData, isValidYPosition, recentDropYPositions, gameState) {
@@ -26,19 +27,54 @@ export class PowerUpItem {
         const effectiveLevelMultiplier = Math.max(0.2, gameState.speedMultiplier - gameState.permanentSpeedReduction);
         this.speed = gameState.baseDropSpeed * effectiveLevelMultiplier * gameState.speedIncreaseMultiplier * speedVariation;
         
+        // Add angle variation for more natural falling (up to 45 degrees)
+        const angleVariation = (Math.random() - 0.5) * 90; // -45 to +45 degrees
+        this.fallAngle = angleVariation * (Math.PI / 180); // Convert to radians
+        this.horizontalSpeed = Math.sin(this.fallAngle) * this.speed * 0.3; // Horizontal component (reduced for subtlety)
+        
         // Visual effects
         this.rotation = 0;
-        this.rotationSpeed = 0.08;
+        this.rotationSpeed = 0.04; // Reduced from 0.08 to 0.04
         this.glowAnimation = 0;
         this.pulseAnimation = 0;
         
-        // Create image object for this power-up
-        this.powerUpImage = new Image();
-        this.powerUpImage.src = powerUpData.image;
+        // Get image from AssetManager
+        this.powerUpImage = assetManager.getImage(powerUpData.image);
     }
 
     update(gameState, deltaTimeMultiplier, canvas) {
-        this.y += this.speed * gameState.timeSlowMultiplier * deltaTimeMultiplier; // Affected by time slow and frame rate
+        const effectiveDelta = gameState.timeSlowMultiplier * deltaTimeMultiplier;
+        
+        // Performance optimization: Skip expensive physics for items far from edges
+        const needsPhysics = this.x < 100 || this.x > canvas.width - 100 || Math.abs(this.horizontalSpeed) > 1;
+        
+        if (needsPhysics) {
+            // Apply physics effects only when needed
+            if (Math.abs(this.rotationSpeed) > 0.001) {
+                calculateSpinEffect(this, effectiveDelta);
+            }
+            // Only apply air resistance if item has significant horizontal movement or high speed
+            if (Math.abs(this.horizontalSpeed) > 0.5 || this.speed > 5) {
+                applyAirResistance(this, effectiveDelta);
+            }
+            
+            // Check for boundary collisions - detect when item is actually at or past boundaries
+            const collisions = checkBoundaryCollision(this, canvas);
+            if (collisions.left || collisions.right || collisions.top) {
+                applyAdvancedBouncePhysics(this, collisions, canvas, {
+                    restitution: 0.8,        // Power-ups retain more energy
+                    friction: 0.95,          // Less friction for power-ups
+                    spinTransfer: 0.03,      // Much less spin from collisions (was 0.15)
+                    spinDamping: 0.85,       // More aggressive spin loss (was 0.97)
+                    angularRestitution: 0.4, // Less spin retention (was 0.8)
+                    minBounceSpeed: 0.8      // Lower threshold for bouncing
+                });
+            }
+        }
+        
+        // Update position (always needed)
+        this.y += this.speed * effectiveDelta;
+        this.x += this.horizontalSpeed * effectiveDelta;
         this.rotation += this.rotationSpeed * deltaTimeMultiplier;
         this.glowAnimation += 0.15 * deltaTimeMultiplier;
         this.pulseAnimation += 0.1 * deltaTimeMultiplier;
@@ -83,9 +119,18 @@ export class PowerUpItem {
             
             // Add plus symbol for healing items
             if (this.data.type === "heal") {
-                ctx.fillStyle = 'white';
-                ctx.fillRect(-drawWidth/6, -drawWidth/3, drawWidth/3, drawWidth*2/3);
-                ctx.fillRect(-drawWidth/3, -drawWidth/6, drawWidth*2/3, drawWidth/3);
+                if (this.data.id === "chicken_food") {
+                    // Special chicken symbol for chicken food
+                    ctx.fillStyle = 'white';
+                    ctx.font = `${drawWidth/2}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🐔', 0, drawWidth/6);
+                } else {
+                    // Regular plus symbol for other healing items
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(-drawWidth/6, -drawWidth/3, drawWidth/3, drawWidth*2/3);
+                    ctx.fillRect(-drawWidth/3, -drawWidth/6, drawWidth*2/3, drawWidth/3);
+                }
             } else if (this.data.type === "utility") {
                 // Add clock symbol for utility items
                 ctx.strokeStyle = 'white';
@@ -153,6 +198,26 @@ export class PowerUpItem {
                 addNotification(gameState, `💚 Healed +${actualHeal} HP`, 120, '#FF69B4');
                 break;
                 
+            case "heal_over_time":
+                // Add a new chicken food HOT effect (10 seconds = 600 frames at 60fps)
+                if (!gameState.chickenFoodHots) {
+                    gameState.chickenFoodHots = [];
+                }
+                gameState.chickenFoodHots.push({
+                    remainingDuration: this.data.duration, // 600 frames = 10 seconds
+                    healPerTick: this.data.value // 1 HP per second
+                });
+                
+                // Reset timer to start healing immediately if this is the first HOT
+                if (gameState.chickenFoodHots.length === 1) {
+                    gameState.chickenFoodTimer = gameState.chickenFoodTickRate;
+                }
+                
+                // Add notification for chicken food
+                const hotSeconds = Math.round(this.data.duration / 60);
+                addNotification(gameState, `🐔 Chicken Food Applied! (${gameState.chickenFoodHots.length} stacks)`, 120, '#FFD700');
+                break;
+                
             case "freeze_time":
                 // Freeze all projectiles for the configured duration
                 gameState.freezeTimeActive = true;
@@ -160,7 +225,7 @@ export class PowerUpItem {
                 
                 // Add notification for freeze
                 const freezeSeconds = Math.round(gameConfig.powerUps.freezeTime.duration / 60);
-                addNotification(gameState, `❄️ Time Frozen ${freezeSeconds}s`, 120, '#87CEEB');
+                addNotification(gameState, `❄️ Projectiles Frozen ${freezeSeconds}s`, 120, '#87CEEB');
                 break;
                 
             case "cut_time":

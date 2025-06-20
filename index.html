@@ -3,90 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DMTribut Item Collection Game</title>
+    <title>DMTribut - Falling Item Collection Game</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    
+    <!-- Preload critical background image with high priority -->
+    <link rel="preload" href="assets/background.jpg" as="image" fetchpriority="high">
     <style>
+        /* Critical styles loaded immediately to prevent FOUC */
         body {
             margin: 0;
             padding: 0;
-            background: #000;
-            font-family: Arial, sans-serif;
             overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            background: #1a1a1a url('assets/background.jpg') center center / cover no-repeat fixed;
+            font-family: 'Arial', sans-serif;
         }
-
+        
         #gameCanvas {
             display: block;
-            border: 2px solid #333;
-            background: url('assets/background.jpg') center center / cover no-repeat;
-        }
-
-        #gameOver {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
-            color: white;
-            padding: 40px;
-            border-radius: 20px;
-            text-align: center;
-            font-size: 24px;
-            z-index: 100;
-            border: 2px solid #ff6b6b;
-        }
-
-        #restartBtn {
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            font-size: 18px;
-            border-radius: 10px;
-            cursor: pointer;
-            margin-top: 20px;
-            font-weight: bold;
-        }
-
-        #restartBtn:hover {
-            background: #ee5a24;
-        }
-
-        #audioToggleBtn {
+            cursor: none;
+            background: #1a1a1a url('assets/background.jpg') center center / cover no-repeat;
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: none;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
         }
-
-        #audioToggleBtn:hover {
-            background: rgba(0, 0, 0, 0.9);
-            transform: scale(1.1);
+        
+        #gameCanvas.show-cursor {
+            cursor: default;
         }
-
-        #audioToggleBtn.muted {
-            background: rgba(255, 107, 107, 0.8);
-        }
-
-        #audioToggleBtn.muted:hover {
-            background: rgba(255, 107, 107, 0.9);
-        }
-
+        
         /* Name Entry Screen */
         #nameEntry {
             position: absolute;
@@ -98,9 +47,8 @@
             padding: 40px;
             border-radius: 20px;
             text-align: center;
-            z-index: 200;
+            z-index: 100;
             border: 2px solid #4ECDC4;
-            min-width: 400px;
         }
 
         #nameEntry h2 {
@@ -166,8 +114,8 @@
             background: #FFC700;
         }
 
-        #viewItemsBtn {
-            background: #9932CC;
+        #howToPlayBtn {
+            background: #4ECDC4;
             color: white;
             border: none;
             padding: 15px 30px;
@@ -179,9 +127,11 @@
             min-width: 120px;
         }
 
-        #viewItemsBtn:hover {
-            background: #8A2BE2;
+        #howToPlayBtn:hover {
+            background: #26d0ce;
         }
+
+
 
         /* High Scores Screen */
         #highScores {
@@ -263,27 +213,805 @@
             background: #555;
         }
 
+        /* How to Play Screen */
+        #howToPlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: left;
+            z-index: 200;
+            border: 2px solid #4ECDC4;
+            min-width: 600px;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        #howToPlay h2 {
+            color: #4ECDC4;
+            margin-bottom: 30px;
+            font-size: 32px;
+            text-align: center;
+        }
+
+        #howToPlay h3 {
+            color: #FFD700;
+            margin: 25px 0 15px 0;
+            font-size: 20px;
+            border-bottom: 2px solid #FFD700;
+            padding-bottom: 5px;
+        }
+
+        .guide-section {
+            margin-bottom: 25px;
+        }
+
+        .guide-section p {
+            margin: 8px 0;
+            line-height: 1.4;
+        }
+
+        .spell-grid, .item-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin: 15px 0;
+        }
+
+        .spell-item, .item-type {
+            padding: 10px 15px;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+
+        .spell-item.beneficial {
+            background: rgba(76, 175, 80, 0.2);
+            border-left-color: #4CAF50;
+        }
+
+        .spell-item.dangerous {
+            background: rgba(244, 67, 54, 0.2);
+            border-left-color: #F44336;
+        }
+
+        .spell-item.player-spell {
+            background: rgba(255, 215, 0, 0.2);
+            border-left-color: #FFD700;
+        }
+
+        .item-type {
+            background: rgba(78, 205, 196, 0.2);
+            border-left-color: #4ECDC4;
+        }
+
+        #backToMenuBtn2 {
+            background: #666;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-weight: bold;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #backToMenuBtn2:hover {
+            background: #555;
+        }
+
+        /* Game Over Screen */
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 150;
+            border: 2px solid #FF6B6B;
+        }
+
+        #gameOver h2 {
+            color: #FF6B6B;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+
+        #finalScore {
+            font-size: 20px;
+            margin: 20px 0;
+            color: #4ECDC4;
+        }
+
+        #newHighScore {
+            color: #FFD700;
+            font-weight: bold;
+            margin: 10px 0;
+            font-size: 18px;
+        }
+
+        #restartBtn {
+            background: #4ECDC4;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            font-weight: bold;
+        }
+
+        #restartBtn:hover {
+            background: #26d0ce;
+        }
+
+        #viewScoresBtn2 {
+            background: #FFD700;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            font-weight: bold;
+        }
+
+        #viewScoresBtn2:hover {
+            background: #FFC700;
+        }
+        
+        #audioToggleBtn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+        
+        #audioToggleBtn:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: scale(1.1);
+        }
+        
+        #audioToggleBtn.muted {
+            background: rgba(255, 107, 107, 0.8);
+        }
+        
+        #audioToggleBtn.muted:hover {
+            background: rgba(255, 107, 107, 0.9);
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            #nameEntry, #highScores, #gameOver {
+                width: 90%;
+                max-width: 400px;
+                padding: 20px;
+            }
+            
+            #playerNameInput {
+                width: 90%;
+                max-width: 250px;
+            }
+            
+            .score-entry {
+                font-size: 14px;
+                padding: 8px 15px;
+            }
+            
+            .score-date {
+                display: none;
+            }
+        }
+        
+        /* Focus styles for keyboard navigation */
+        #playerNameInput:focus,
+        button:focus {
+            outline: 3px solid #4ECDC4;
+            outline-offset: 2px;
+        }
+        
+        #audioToggleBtn:focus {
+            outline: 3px solid #4ECDC4;
+            outline-offset: 2px;
+        }
+        
+        /* Audio Status Message */
+        #audioStatus {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: Arial, sans-serif;
+            z-index: 999;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            user-select: none;
+        }
+        
+        #audioStatus.muted {
+            background: rgba(255, 107, 107, 0.9);
+            border-color: rgba(255, 107, 107, 0.5);
+        }
+        
+        #audioStatus.enabled {
+            background: rgba(76, 175, 80, 0.9);
+            border-color: rgba(76, 175, 80, 0.5);
+        }
+        
+        /* DOM-based Items Collection Panel */
+        #itemsCollectionPanel {
+            position: fixed;
+            top: 0px;
+            left: 0px;
+            width: 340px;
+            max-height: calc(100vh - 20px);
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            color: white;
+            font-family: Arial, sans-serif;
+            z-index: 100;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(6px);
+            pointer-events: none;
+            user-select: none;
+        }
+        
+        #itemsCollectionPanel.interactive {
+            pointer-events: auto;
+            user-select: auto;
+            z-index: 200;
+        }
+        
+        #itemsCollectionPanel.hidden {
+            display: none;
+        }
+        
+        .panel-header {
+            background: rgba(0, 0, 0, 0.95);
+            border-bottom: 2px solid #4ECDC4;
+            padding: 16px;
+            text-align: left;
+        }
+        
+        .player-name {
+            color: #4ECDC4;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 0 0 8px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .player-score {
+            color: white;
+            font-size: 32px;
+            font-weight: bold;
+            margin: 0 0 4px 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .player-level {
+            color: #FFD700;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 0 0 8px 0;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        .collection-summary {
+            color: #CCCCCC;
+            font-size: 12px;
+            margin-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            padding-top: 8px;
+        }
+        
+        /* Player Stats Section */
+        .player-stats {
+            background: rgba(255, 215, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+            padding: 10px 16px;
+        }
+        
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        
+        .stat-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .stat-label {
+            color: #CCCCCC;
+            font-size: 12px;
+            font-weight: normal;
+        }
+        
+        .stat-value {
+            color: #FFD700;
+            font-size: 13px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        /* Dragonstalker Section */
+        #dragonstalkerSection {
+            background: rgba(0, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            padding: 10px 16px;
+        }
+        
+        .dragonstalker-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        
+        .tier-icon {
+            font-size: 16px;
+        }
+        
+        .tier-title {
+            color: #00FFFF;
+            font-size: 13px;
+            font-weight: bold;
+            flex: 1;
+        }
+        
+        .tier-progress {
+            color: #FFD700;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .tier-status {
+            color: #CCCCCC;
+            font-size: 11px;
+            text-align: center;
+        }
+        
+        .tier-status.victory {
+            color: #00FF00;
+            font-weight: bold;
+        }
+        
+        .tier-status.impossible {
+            color: #FF0000;
+            font-weight: bold;
+        }
+        
+        /* Items List */
+        .items-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 8px 0;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.1);
+        }
+        
+        .items-list::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .items-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        .items-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 3px;
+        }
+        
+        .items-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
+        .item-entry {
+            display: flex;
+            align-items: center;
+            padding: 4px 16px;
+            font-size: 12px;
+            line-height: 1.4;
+            transition: background-color 0.2s ease;
+        }
+        
+        .item-entry:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        
+        .item-icon {
+            margin-right: 8px;
+            font-size: 14px;
+            width: 16px;
+            text-align: center;
+        }
+        
+        .item-name {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        .item-count {
+            color: #CCCCCC;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+        
+        .item-points {
+            color: #FFD700;
+            font-size: 11px;
+            margin-left: 4px;
+        }
+        
+        /* Item type colors */
+        .item-entry.regular .item-name { color: #00FF00; }
+        .item-entry.epic .item-name { color: #9932CC; }
+        .item-entry.special .item-name { color: #FF69B4; }
+        .item-entry.legendary .item-name { color: #FFD700; }
+        .item-entry.zee_zgnan .item-name { color: #FF0080; }
+        .item-entry.tier_set .item-name { color: #00FFFF; }
+        
+        /* Overflow Indicator */
+        .overflow-indicator {
+            padding: 8px 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.3);
+            text-align: center;
+            font-size: 11px;
+            color: #CCCCCC;
+        }
+        
+        .overflow-indicator.hidden {
+            display: none;
+        }
+        
+        /* Canvas Overlay - prevents mouse interaction when game is not active */
+        #canvasOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 50;
+            pointer-events: auto;
+            background: transparent;
+        }
+        
+        #canvasOverlay.hidden {
+            pointer-events: none;
+            display: none;
+        }
+        
+        #canvasOverlay.allow-menu-clicks {
+            pointer-events: none;
+        }
+        
+        /* Dedicated Dragonstalker Progress Panel */
+        #dragonstalkerProgressPanel {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            width: 380px;
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid #00FFFF;
+            border-radius: 12px;
+            color: white;
+            font-family: Arial, sans-serif;
+            z-index: 100;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+            backdrop-filter: blur(8px);
+            pointer-events: none;
+            user-select: none;
+        }
+        
+        #dragonstalkerProgressPanel.interactive {
+            pointer-events: auto;
+            user-select: auto;
+            z-index: 200;
+        }
+        
+        #dragonstalkerProgressPanel.hidden {
+            display: none;
+        }
+        
+        #dragonstalkerProgressPanel.victory {
+            border-color: #FFD700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+        }
+        
+        #dragonstalkerProgressPanel.impossible {
+            border-color: #FF0000;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+        }
+        
+        .dragonstalker-panel-header {
+            padding: 16px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .dragonstalker-title {
+            color: #00FFFF;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        .dragonstalker-progress-bar {
+            position: relative;
+            margin-bottom: 10px;
+        }
+        
+        .progress-background {
+            width: 100%;
+            height: 20px;
+            background: rgba(50, 50, 50, 0.8);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: #00FFFF;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+        
+        .progress-fill.victory {
+            background: #FFD700;
+        }
+        
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+        }
+        
+        .dragonstalker-status {
+            color: #CCCCCC;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .dragonstalker-status.victory {
+            color: #FFD700;
+        }
+        
+        .dragonstalker-status.impossible {
+            color: #FF0000;
+        }
+        
+        .dragonstalker-items-list {
+            padding: 12px 16px;
+        }
+        
+        .dragonstalker-item {
+            display: flex;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 12px;
+        }
+        
+        .dragonstalker-item-status {
+            width: 16px;
+            margin-right: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .dragonstalker-item-status.collected {
+            color: #00FF00;
+        }
+        
+        .dragonstalker-item-status.missed {
+            color: #FF0000;
+        }
+        
+        .dragonstalker-item-status.pending {
+            color: #666666;
+        }
+        
+        .dragonstalker-item-name {
+            flex: 1;
+        }
+        
+        .dragonstalker-item-name.collected {
+            color: #00FF00;
+        }
+        
+        .dragonstalker-item-name.missed {
+            color: #FF0000;
+        }
+        
+        .dragonstalker-item-name.pending {
+            color: #AAAAAA;
+        }
+        
+        .dragonstalker-bottom-message {
+            padding: 8px 16px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .dragonstalker-bottom-message.victory {
+            color: #FFD700;
+        }
+        
+        .dragonstalker-bottom-message.impossible {
+            color: #FF0000;
+        }
+        
+        .dragonstalker-bottom-message.almost-there {
+            color: #FFD700;
+        }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="1000" height="600"></canvas>
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- Canvas Overlay - prevents mouse interaction when game is not active -->
+    <div id="canvasOverlay"></div>
     
     <!-- Name Entry Screen -->
-    <div id="nameEntry">
+    <div id="nameEntry" style="display: none;">
                     <h2>Welcome to DMTribut!</h2>
         <p style="margin-bottom: 20px; color: #ccc;">Enter your name to start playing</p>
         <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" />
         <br>
-        <button id="startGameBtn" onclick="startGame()">Start Game</button>
-        <button id="viewScoresBtn" onclick="showHighScores()">High Scores</button>
-        <button id="viewItemsBtn" onclick="showItemsFromMenu()">View Items</button>
+        <button id="startGameBtn">Start Game</button>
+        <button id="viewScoresBtn">High Scores</button>
+        <button id="howToPlayBtn">How to Play</button>
     </div>
 
     <!-- High Scores Screen -->
     <div id="highScores" style="display: none;">
         <h2>🏆 High Scores 🏆</h2>
         <div id="scoresList"></div>
-        <button id="backToMenuBtn" onclick="showNameEntry()">Back to Menu</button>
+        <button id="backToMenuBtn">Back to Menu</button>
+    </div>
+
+    <!-- How to Play Screen -->
+    <div id="howToPlay" style="display: none;">
+        <h2>📖 How to Play 📖</h2>
+        <div id="howToPlayContent">
+            <div class="guide-section">
+                <h3>🎯 Objective</h3>
+                <p>Collect all 10 Dragonstalker tier set pieces to win! Missing any piece means game over.</p>
+            </div>
+
+            <div class="guide-section">
+                <h3>🎮 Controls</h3>
+                <p><strong>Mouse:</strong> Move your character</p>
+                <p><strong>ESC:</strong> Pause game</p>
+                <p><strong>TAB/I:</strong> View items guide during gameplay</p>
+            </div>
+
+            <div class="guide-section">
+                <h3>✨ Beneficial Spells (Collect These!)</h3>
+                <div class="spell-grid">
+                    <div class="spell-item beneficial">
+                        <strong>Power Word Shield</strong> - Grants temporary shield protection
+                    </div>
+                    <div class="spell-item beneficial">
+                        <strong>Frost Nova</strong> - Freezes all projectiles (2 HP damage)
+                    </div>
+                    <div class="spell-item beneficial">
+                        <strong>Speed Boost</strong> - Increases game speed for more points
+                    </div>
+                </div>
+            </div>
+
+            <div class="guide-section">
+                <h3>⚔️ Player Spells</h3>
+                <div class="spell-grid">
+                    <div class="spell-item player-spell">
+                        <strong>Q - Dragon Cry:</strong> Move anywhere on screen (1 min cooldown)
+                    </div>
+                    <div class="spell-item player-spell">
+                        <strong>W - Zandalari:</strong> +20% points, slow projectiles (45s cooldown)
+                    </div>
+                    <div class="spell-item player-spell">
+                        <strong>E - Songflower:</strong> Remove one missed Dragonstalker (2 min cooldown)
+                    </div>
+                </div>
+            </div>
+
+            <div class="guide-section">
+                <h3>💀 Dangerous Projectiles (Avoid These!)</h3>
+                <div class="spell-grid">
+                    <div class="spell-item dangerous">
+                        <strong>Fireball</strong> - 8 HP damage
+                    </div>
+                    <div class="spell-item dangerous">
+                        <strong>Frostbolt</strong> - 15 HP damage
+                    </div>
+                    <div class="spell-item dangerous">
+                        <strong>Shadowbolt</strong> - 10 HP damage over 5 seconds
+                    </div>
+                </div>
+            </div>
+
+            <div class="guide-section">
+                <h3>💎 Item Types & Points</h3>
+                <div class="item-grid">
+                    <div class="item-type">
+                        <strong>👑 Zee Zgnan:</strong> 15 points (Ultra Rare)
+                    </div>
+                    <div class="item-type">
+                        <strong>⚡ Legendary:</strong> Thunder Fury - 5 points + Auto-collect all items
+                    </div>
+                    <div class="item-type">
+                        <strong>🛡️ Tier Set:</strong> Dragonstalker pieces - 6 points each (Must collect all 10!)
+                    </div>
+                    <div class="item-type">
+                        <strong>★ Special:</strong> 4-7 points (Rare items)
+                    </div>
+                    <div class="item-type">
+                        <strong>◆ Epic:</strong> 5-10 points (Uncommon items)
+                    </div>
+                    <div class="item-type">
+                        <strong>○ Regular:</strong> 1-4 points (Common items)
+                    </div>
+                </div>
+            </div>
+
+            <div class="guide-section">
+                <h3>🏆 Scoring Tips</h3>
+                <p>• Use Zandalari spell for +20% points</p>
+                <p>• Collect Speed Boost projectiles to increase game speed and scoring</p>
+                <p>• Thunder Fury automatically collects all items on screen</p>
+                <p>• Higher game speeds = more items = higher scores</p>
+            </div>
+        </div>
+        <button id="backToMenuBtn2">Back to Menu</button>
     </div>
 
     <!-- Game Over Screen -->
@@ -291,13 +1019,77 @@
         <h2>Game Over!</h2>
         <p id="finalScore">Final Score: 0</p>
         <p id="newHighScore" style="display: none; color: #FFD700; font-weight: bold; margin: 10px 0;">🎉 NEW HIGH SCORE! 🎉</p>
-        <button id="restartBtn" onclick="restartGame()">Play Again</button>
-        <button id="viewScoresBtn2" onclick="showHighScores()">View High Scores</button>
+        <button id="restartBtn">Play Again</button>
+        <button id="viewScoresBtn2">View High Scores</button>
     </div>
 
     <!-- Audio Toggle Button -->
-    <button id="audioToggleBtn" onclick="toggleAudio()" title="Toggle Audio">🔊</button>
+    <button id="audioToggleBtn" title="Toggle Audio">🔊</button>
+    
+    <!-- Audio Status Message -->
+    <div id="audioStatus">Press A to toggle audio</div>
+    
+    <!-- DOM-based Items Collection Panel -->
+    <div id="itemsCollectionPanel" class="hidden">
+        <div class="panel-header">
+            <div class="player-name" id="playerNameDisplay">Player: aaaa</div>
+            <div class="player-score" id="playerScoreDisplay">0</div>
+            <div class="player-level" id="playerLevelDisplay">Level 1</div>
+            <div class="collection-summary">
+                <span id="collectionCount">0 types, 0 total</span>
+            </div>
+        </div>
+        
+        <!-- Player Stats Section -->
+        <div class="player-stats">
+            <div class="stat-row">
+                <span class="stat-label">Speed:</span>
+                <span class="stat-value" id="gameSpeed">1.0x</span>
+            </div>
+        </div>
+        
+        <!-- Dragonstalker Progress Section -->
+        <div id="dragonstalkerSection" class="hidden">
+            <div class="dragonstalker-header">
+                <span class="tier-icon">🐉</span>
+                <span class="tier-title">DRAGONSTALKER SET</span>
+                <span class="tier-progress" id="tierProgress">0/8</span>
+            </div>
+            <div class="tier-status" id="tierStatus"></div>
+        </div>
+        
+        <!-- Items List -->
+        <div class="items-list" id="itemsList">
+            <!-- Items will be dynamically populated here -->
+        </div>
+        
+        <!-- Overflow indicator -->
+        <div class="overflow-indicator hidden" id="overflowIndicator">
+            <span id="overflowText">... +0 more items (0 pts)</span>
+        </div>
+    </div>
+    
+    <!-- Dedicated Dragonstalker Progress Panel -->
+    <div id="dragonstalkerProgressPanel" class="hidden">
+        <div class="dragonstalker-panel-header">
+            <div class="dragonstalker-title">🐉 DRAGONSTALKER SET 🐉</div>
+            <div class="dragonstalker-progress-bar">
+                <div class="progress-background">
+                    <div class="progress-fill" id="dragonstalkerProgressFill"></div>
+                </div>
+                <div class="progress-text" id="dragonstalkerProgressText">0/10 PIECES</div>
+            </div>
+            <div class="dragonstalker-status" id="dragonstalkerStatus"></div>
+        </div>
+        
+        <div class="dragonstalker-items-list" id="dragonstalkerItemsList">
+            <!-- Dragonstalker items will be populated here -->
+        </div>
+        
+        <div class="dragonstalker-bottom-message" id="dragonstalkerBottomMessage"></div>
+    </div>
 
-    <script src="game.js"></script>
+    <!-- Game Script -->
+    <script type="module" src="game-modular.js"></script>
 </body>
 </html> 

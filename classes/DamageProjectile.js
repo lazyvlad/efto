@@ -1,5 +1,6 @@
 import { gameConfig } from '../config/gameConfig.js';
 import { audioState, volumeSettings } from '../systems/audioSystem.js';
+import { assetManager } from '../utils/AssetManager.js';
 
 // Gaussian random number generator (Box-Muller transform)
 function gaussianRandom(mean = 0, stdDev = 1) {
@@ -68,9 +69,8 @@ export class DamageProjectile {
             this.shieldDuration = options[Math.floor(Math.random() * options.length)];
         }
         
-        // Create image object for this projectile
-        this.projectileImage = new Image();
-        this.projectileImage.src = projectileData.image;
+        // Get image from AssetManager
+        this.projectileImage = assetManager.getImage(projectileData.image);
     }
 
     update(deltaTimeMultiplier, canvas) {
@@ -91,6 +91,10 @@ export class DamageProjectile {
             const glow = Math.sin(this.glowAnimation) * 0.4 + 0.6;
             ctx.shadowColor = this.data.color;
             ctx.shadowBlur = 25 * glow;
+        } else if (this.data.id === "shadowbolt") {
+            const glow = Math.sin(this.glowAnimation) * 0.5 + 0.5;
+            ctx.shadowColor = this.data.color;
+            ctx.shadowBlur = 30 * glow;
         }
         
         // Force consistent size regardless of source image dimensions
@@ -98,8 +102,8 @@ export class DamageProjectile {
         const drawHeight = this.height;
         const borderPadding = 8; // Padding for border around projectiles with variable values
         
-        // Draw scary red borders for damage-dealing projectiles (fireball and frostbolt)
-        if (this.data.id === "fireball" || this.data.id === "frostbolt") {
+        // Draw scary borders for damage-dealing projectiles (fireball, frostbolt, and shadowbolt)
+        if (this.data.id === "fireball" || this.data.id === "frostbolt" || this.data.id === "shadowbolt") {
             // Animated pulsing effect for scary border
             const pulseIntensity = Math.sin(this.glowAnimation * 2) * 0.3 + 0.7;
             const borderSize = 2 + Math.sin(this.glowAnimation * 1.5) * 1; // Animated border thickness (thinner)
@@ -110,22 +114,42 @@ export class DamageProjectile {
             const outerRadius = Math.max(drawWidth, drawHeight) / 2 + borderPadding;
             const innerRadius = outerRadius - 4;
             
-            // Outer red glow circle
-            ctx.strokeStyle = `rgba(255, 0, 0, ${pulseIntensity})`;
-            ctx.lineWidth = borderSize;
-            ctx.shadowColor = '#FF0000';
-            ctx.shadowBlur = 15 * pulseIntensity;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
-            ctx.stroke();
-            
-            // Inner darker red border circle for more definition
-            ctx.strokeStyle = `rgba(139, 0, 0, ${pulseIntensity + 0.2})`;
-            ctx.lineWidth = Math.max(1, borderSize - 1); // Thinner inner border
-            ctx.shadowBlur = 6 * pulseIntensity;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
-            ctx.stroke();
+            // Different border colors based on projectile type
+            if (this.data.id === "shadowbolt") {
+                // Dark purple glow for shadowbolt
+                ctx.strokeStyle = `rgba(75, 0, 130, ${pulseIntensity})`;
+                ctx.lineWidth = borderSize;
+                ctx.shadowColor = '#4B0082';
+                ctx.shadowBlur = 15 * pulseIntensity;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Inner darker purple border circle for more definition
+                ctx.strokeStyle = `rgba(47, 0, 79, ${pulseIntensity + 0.2})`;
+                ctx.lineWidth = Math.max(1, borderSize - 1); // Thinner inner border
+                ctx.shadowBlur = 6 * pulseIntensity;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
+                ctx.stroke();
+            } else {
+                // Red glow for fireball and frostbolt
+                ctx.strokeStyle = `rgba(255, 0, 0, ${pulseIntensity})`;
+                ctx.lineWidth = borderSize;
+                ctx.shadowColor = '#FF0000';
+                ctx.shadowBlur = 15 * pulseIntensity;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Inner darker red border circle for more definition
+                ctx.strokeStyle = `rgba(139, 0, 0, ${pulseIntensity + 0.2})`;
+                ctx.lineWidth = Math.max(1, borderSize - 1); // Thinner inner border
+                ctx.shadowBlur = 6 * pulseIntensity;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
             
             ctx.shadowBlur = 0; // Reset shadow
         }
@@ -257,6 +281,50 @@ export class DamageProjectile {
                 ctx.lineTo(endX, endY);
                 ctx.stroke();
             }
+        } else if (this.data.id === "shadowbolt") {
+            // Shadowbolt placeholder - dark purple/indigo with wispy shadow effect
+            const centerX = this.x + drawWidth/2;
+            const centerY = this.y + drawHeight/2;
+            const pulseEffect = Math.sin(this.glowAnimation) * 0.3 + 0.7;
+            
+            // Outer dark aura
+            ctx.fillStyle = '#1A0033';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, (drawWidth/2) * 1.2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Main shadow body
+            ctx.fillStyle = '#4B0082';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, drawWidth/2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Inner darker core
+            ctx.fillStyle = '#2F004F';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, (drawWidth/2) * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Pulsing inner glow
+            ctx.fillStyle = `rgba(138, 43, 226, ${pulseEffect})`;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, (drawWidth/2) * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add wispy shadow tendrils
+            ctx.strokeStyle = `rgba(75, 0, 130, ${pulseEffect})`;
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 6; i++) {
+                const angle = (i * Math.PI) / 3 + this.glowAnimation * 0.1;
+                const startX = centerX + Math.cos(angle) * (drawWidth/4);
+                const startY = centerY + Math.sin(angle) * (drawHeight/4);
+                const endX = centerX + Math.cos(angle) * (drawWidth/2.2);
+                const endY = centerY + Math.sin(angle) * (drawHeight/2.2);
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+            }
         }
     }
 
@@ -337,10 +405,13 @@ export class DamageProjectile {
     playImpactSound() {
         if (audioState.isMuted) return;
         if (this.data.sound) {
-            // Create a new audio instance for the projectile sound
-            const projectileAudio = new Audio(this.data.sound);
-            projectileAudio.volume = this.data.id === "fireball" ? gameConfig.audio.volumes.fireballImpact : volumeSettings.effects;
-            projectileAudio.play().catch(e => console.log(`Projectile sound ${this.data.sound} not available`));
+            // Use AssetManager to get the audio asset
+            const projectileAudio = assetManager.getAudio(this.data.sound);
+            if (projectileAudio) {
+                projectileAudio.volume = this.data.id === "fireball" ? gameConfig.audio.volumes.fireballImpact : volumeSettings.effects;
+                projectileAudio.currentTime = 0; // Reset to beginning
+                projectileAudio.play().catch(e => console.log(`Projectile sound ${this.data.sound} not available`));
+            }
         }
     }
 }

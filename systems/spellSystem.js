@@ -61,8 +61,9 @@ class SpellSystem {
 
     // Activate a spell
     activateSpell(spell, currentTime) {
-        // Set cooldown
-        this.cooldowns.set(spell.id, currentTime + spell.cooldown);
+        // Set cooldown (convert frame-based cooldown to milliseconds)
+        const cooldownMs = spell.cooldown * (1000 / 60);
+        this.cooldowns.set(spell.id, currentTime + cooldownMs);
         
         // Handle special spell effects
         if (spell.id === 'songflower') {
@@ -72,9 +73,11 @@ class SpellSystem {
         
         // Add to active spells (only for spells with duration)
         if (spell.duration > 0) {
+            // Convert frame-based duration to milliseconds (60fps = 16.67ms per frame)
+            const durationMs = spell.duration * (1000 / 60);
             this.activeSpells.set(spell.id, {
                 spell: spell,
-                endTime: currentTime + spell.duration,
+                endTime: currentTime + durationMs,
                 startTime: currentTime
             });
         }
@@ -104,15 +107,22 @@ class SpellSystem {
 
     // Update spell system (remove expired spells)
     update(currentTime, player = null, canvas = null, gameConfig = null) {
-        // Check for expired spells
+        // Collect expired spells first to avoid modifying Map while iterating
+        const expiredSpells = [];
         for (const [spellId, activeSpell] of this.activeSpells.entries()) {
             if (currentTime >= activeSpell.endTime) {
-                // Handle spell expiration effects
-                this.handleSpellExpiration(spellId, activeSpell.spell, player, canvas, gameConfig);
-                
-                this.activeSpells.delete(spellId);
-                this.addNotification(`${activeSpell.spell.name} expired`);
+                expiredSpells.push({ spellId, activeSpell });
             }
+        }
+        
+        // Process expired spells
+        for (const { spellId, activeSpell } of expiredSpells) {
+            // Handle spell expiration effects
+            this.handleSpellExpiration(spellId, activeSpell.spell, player, canvas, gameConfig);
+            
+            // Remove from active spells
+            this.activeSpells.delete(spellId);
+            this.addNotification(`${activeSpell.spell.name} expired`);
         }
     }
 

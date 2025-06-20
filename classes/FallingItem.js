@@ -1,4 +1,6 @@
 import { gameConfig } from '../config/gameConfig.js';
+import { assetManager } from '../utils/AssetManager.js';
+import { checkBoundaryCollision, applyAdvancedBouncePhysics, calculateSpinEffect, applyAirResistance } from '../utils/gameUtils.js';
 
 export class FallingItem {
     constructor(selectRandomItem, isValidYPosition, recentDropYPositions, gameState, images, canvas) {
@@ -15,7 +17,7 @@ export class FallingItem {
         recentDropYPositions.push(this.y);
         
         // Select item based on probability weights FIRST
-        this.itemData = selectRandomItem();
+        this.itemData = selectRandomItem(gameState);
         
         // Mark zee_zgnan items as spawned (one-time only items)
         if (this.itemData.type === "zee_zgnan") {
@@ -27,34 +29,91 @@ export class FallingItem {
         this.width = gameConfig.visuals.itemSize * sizeMultiplier;
         this.height = gameConfig.visuals.itemSize * sizeMultiplier;
         
-        // Random speed variation: 0.5x to 2.0x of base speed for dynamic gameplay
-        const speedVariation = 0.5 + Math.random() * 1.5; // Random between 0.5 and 2.0
+        // Random speed variation: 0.8x to 1.3x of base speed for dynamic gameplay
+        const speedVariation = 0.8 + Math.random() * 0.5; // Random between 0.8 and 1.3
         
         // Apply cut_time reduction as a subtraction from level multiplier, not final speed
-        const effectiveLevelMultiplier = Math.max(0.2, gameState.speedMultiplier - gameState.permanentSpeedReduction);
+        const effectiveLevelMultiplier = Math.max(0.2, gameState.levelSpeedMultiplier - gameState.permanentSpeedReduction);
         this.speed = gameState.baseDropSpeed * effectiveLevelMultiplier * gameState.speedIncreaseMultiplier * speedVariation;
         
-        // Create image object for this specific item
-        this.itemImage = new Image();
-        this.itemImage.src = this.itemData.image;
+        // Store speed components for the visual monitor
+        this.speedBreakdown = {
+            baseSpeed: gameState.baseDropSpeed,
+            levelMultiplier: gameState.levelSpeedMultiplier,
+            permanentReduction: gameState.permanentSpeedReduction,
+            effectiveMultiplier: effectiveLevelMultiplier,
+            speedBoost: gameState.speedIncreaseMultiplier,
+            variation: speedVariation,
+            finalSpeed: this.speed
+        };
+        
+        // Get image from AssetManager (will return cached or placeholder)
+        this.itemImage = assetManager.getImage(this.itemData.image);
+        
+        // Add angle variation for more natural falling (up to 45 degrees)
+        const angleVariation = (Math.random() - 0.5) * 90; // -45 to +45 degrees
+        this.fallAngle = angleVariation * (Math.PI / 180); // Convert to radians
+        this.horizontalSpeed = Math.sin(this.fallAngle) * this.speed * 0.3; // Horizontal component (reduced for subtlety)
         
         this.rotation = 0;
-        this.rotationSpeed = (Math.random() - 0.5) * 0.05;
+        this.rotationSpeed = (Math.random() - 0.5) * 0.02; // Reduced from 0.05 to 0.02
         
-        // Animation properties for borders
+        // Animation properties for borders and glow
         this.borderAnimation = 0;
         this.borderPulseSpeed = 0.15;
+        this.glowAnimation = 0; // For green glow on regular items
         
         // Store references for drawing
         this.images = images;
+        
+        // Performance tracking
+        this.physicsCalculations = 0;
     }
 
-    update(deltaTimeMultiplier, canvas) {
-        this.y += this.speed * deltaTimeMultiplier;
+    update(deltaTimeMultiplier, canvas, gameState) {
+        // Apply time slow multiplier (but not freeze effects - those are for projectiles only)
+        const timeSlowMultiplier = gameState.timeSlowMultiplier || 1.0;
+        const effectiveDelta = timeSlowMultiplier * deltaTimeMultiplier;
+        
+        // Performance optimization: Skip expensive physics for items far from edges
+        const needsPhysics = this.x < 100 || this.x > canvas.width - 100 || Math.abs(this.horizontalSpeed) > 1;
+        
+        if (needsPhysics) {
+            // Apply physics effects only when needed
+            if (Math.abs(this.rotationSpeed) > 0.001) {
+                calculateSpinEffect(this, effectiveDelta);
+                this.physicsCalculations++;
+            }
+            // Only apply air resistance if item has significant horizontal movement or high speed
+            if (Math.abs(this.horizontalSpeed) > 0.5 || this.speed > 5) {
+                applyAirResistance(this, effectiveDelta);
+                this.physicsCalculations++;
+            }
+            
+            // Check for boundary collisions - detect when item is actually at or past boundaries
+            const collisions = checkBoundaryCollision(this, canvas);
+            if (collisions.left || collisions.right || collisions.top) {
+                this.physicsCalculations++;
+                applyAdvancedBouncePhysics(this, collisions, canvas, {
+                    restitution: 0.6,        // Items lose some energy when bouncing
+                    friction: 0.9,           // Some friction on surfaces
+                    spinTransfer: 0.05,      // Much less spin from collisions (was 0.2)
+                    spinDamping: 0.9,        // More aggressive spin loss (was 0.95)
+                    angularRestitution: 0.5, // Less spin retention (was 0.7)
+                    minBounceSpeed: 1.0      // Minimum speed for bouncing
+                });
+                this.physicsCalculations++;
+            }
+        }
+        
+        // Update position (always needed)
+        this.y += this.speed * effectiveDelta;
+        this.x += this.horizontalSpeed * effectiveDelta;
         this.rotation += this.rotationSpeed * deltaTimeMultiplier;
         this.borderAnimation += this.borderPulseSpeed * deltaTimeMultiplier;
+        this.glowAnimation += 0.15 * deltaTimeMultiplier; // Animate glow for regular items
         
-        // Check if item fell off screen
+        // Check if item fell off screen (bottom boundary)
         if (this.y > canvas.height + 180) {
             this.missed = true;
             return false;
@@ -71,15 +130,15 @@ export class FallingItem {
         const drawWidth = this.width;
         const drawHeight = gameConfig.visuals.forceItemAspectRatio ? this.width : this.height;
         
-        // Apply shadow for regular items
+        // Apply animated glow for regular items (similar to power-ups)
         if (this.itemData.type === 'regular') {
+            const glow = Math.sin(this.glowAnimation) * 0.4 + 0.6; // 0.2 to 1.0
             ctx.shadowColor = '#00FF00';
-            ctx.shadowBlur = 8;
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 2;
+            ctx.shadowBlur = 25 * glow; // Stronger glow than before, animated
+            // No shadow offset for clean glow effect
         }
         
-        // Use the specific item image if loaded, otherwise use fallback
+        // Use the specific item image from AssetManager (always available, placeholder if not loaded)
         if (this.itemImage && this.itemImage.complete && this.itemImage.naturalWidth > 0) {
             // Force the image to exact size, ignoring source dimensions
             ctx.drawImage(this.itemImage, -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
@@ -121,8 +180,6 @@ export class FallingItem {
         if (this.itemData.type === 'regular') {
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
         }
         
         // Draw custom borders based on item type
@@ -137,23 +194,7 @@ export class FallingItem {
         
         switch(this.itemData.type) {
             case 'regular':
-                // Greenish shadow for regular items
-                ctx.shadowColor = '#00FF00';
-                ctx.shadowBlur = 8;
-                ctx.shadowOffsetX = 2;
-                ctx.shadowOffsetY = 2;
-                
-                // Draw a subtle green glow around the item
-                ctx.strokeStyle = 'rgba(0, 255, 0, 0.3)';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.arc(0, 0, borderRadius + basePadding + 2, 0, Math.PI * 2);
-                ctx.stroke();
-                
-                // Reset shadow
-                ctx.shadowBlur = 0;
-                ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = 0;
+                // Regular items now use the main glow effect, no additional border needed
                 break;
                 
             case 'epic':
