@@ -1,7 +1,9 @@
-import { HIGH_SCORES_KEY, MAX_HIGH_SCORES } from '../config/gameConfig.js';
+import { HIGH_SCORES_KEY, MAX_HIGH_SCORES, gameConfig } from '../config/gameConfig.js';
 
-// Server API endpoints
-const API_BASE = '/api/highscores.php';
+// Server API endpoints using configuration
+const API_BASE = gameConfig.api.basePath ? 
+    `${gameConfig.api.basePath}/${gameConfig.api.endpoints.highscores}` : 
+    `/${gameConfig.api.endpoints.highscores}`;
 
 // Load high scores from server (with localStorage fallback)
 export async function loadHighScores() {

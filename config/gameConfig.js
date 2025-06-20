@@ -1,3 +1,5 @@
+import { serverConfig } from './serverConfig.js';
+
 // ===== GAME CONFIGURATION OBJECT =====
 // 🎮 Modify these values to customize your game experience!
 // 
@@ -7,6 +9,14 @@
 // - Set spawnChance to 0.5 for 50% chance of power-up spawning
 // - Disable power-ups entirely with enabled: false
 export const gameConfig = {
+    // === API SETTINGS ===
+    // NOTE: API settings are now loaded from serverConfig.js
+    // This allows easy modification on production servers without changing this file
+    api: {
+        basePath: serverConfig.basePath,
+        endpoints: serverConfig.endpoints
+    },
+    
     // === POWER-UP SETTINGS ===
     powerUps: {
         enabled: true,
