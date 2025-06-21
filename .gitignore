@@ -1,0 +1,22 @@
+# Configuration files with sensitive data
+config/serverConfig.js
+
+# Python cache files
+__pycache__/
+*.pyc
+*.pyo
+
+# Node modules (if any)
+node_modules/
+
+# Environment files
+.env
+.env.local
+
+# IDE files
+.vscode/settings.json
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db 
