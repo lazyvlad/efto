@@ -2658,6 +2658,46 @@
     </div>
 
     <!-- Game Script -->
-    <script type="module" src="game-modular.js"></script>
+    <script type="module" src="game-modular.js?v=1.2.3&t=1734457800000"></script>
+    
+    <!-- Temporary Cache Debugging Script -->
+    <script>
+        // Add cache debugging utilities to window for console access
+        window.clearGameCacheNow = function() {
+            console.log('🧹 Manually clearing all caches...');
+            
+            // Clear localStorage (keep high scores)
+            const keysToKeep = ['dmtribut_high_scores'];
+            Object.keys(localStorage).forEach(key => {
+                if (!keysToKeep.includes(key)) {
+                    localStorage.removeItem(key);
+                    console.log('Cleared:', key);
+                }
+            });
+            
+            // Clear all caches
+            if ('caches' in window) {
+                caches.keys().then(cacheNames => {
+                    return Promise.all(
+                        cacheNames.map(cacheName => {
+                            console.log('Clearing cache:', cacheName);
+                            return caches.delete(cacheName);
+                        })
+                    );
+                }).then(() => {
+                    console.log('✅ All caches cleared');
+                    alert('Cache cleared! Please refresh the page (Ctrl+F5).');
+                });
+            } else {
+                alert('Cache cleared! Please refresh the page (Ctrl+F5).');
+            }
+        };
+        
+        // Display version info
+        console.log('🎮 Game Version: 1.2.3');
+        console.log('🕒 Build Timestamp: 1734457800000');
+        console.log('🧹 To clear cache manually, run: clearGameCacheNow()');
+        console.log('📱 Chrome Force Refresh: Ctrl+Shift+R or Ctrl+F5');
+    </script>
 </body>
 </html> 

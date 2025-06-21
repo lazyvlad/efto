@@ -1194,8 +1194,8 @@ function showMobileUpdatePrompt() {
 export function clearGameCache() {
     console.log('🧹 Clearing game cache...');
     
-    // Clear localStorage game data (keep high scores)
-    const keysToKeep = [HIGH_SCORES_KEY, 'efto_settings', 'efto_audio_settings'];
+    // Clear localStorage game data (keep high scores and settings)
+    const keysToKeep = ['dmtribut_high_scores', 'efto_settings', 'efto_audio_settings'];
     const allKeys = Object.keys(localStorage);
     
     allKeys.forEach(key => {
