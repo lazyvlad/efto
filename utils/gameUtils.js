@@ -1,4 +1,5 @@
-import { gameConfig } from '../config/gameConfig.js';
+import { gameItems } from '../data/gameItems.js';
+import { gameConfig, GAME_VERSION, cacheConfig } from '../config/gameConfig.js';
 
 // Calculate level-specific speed multiplier using hybrid progression
 export function calculateLevelSpeedMultiplier(gameState) {
@@ -333,15 +334,47 @@ export function cleanupRecentDropPositions(recentDropYPositions) {
 // Calculate delta time multiplier for frame rate normalization
 export function calculateDeltaTimeMultiplier(targetFPS = 60) {
     const currentTime = performance.now();
-    const deltaTime = currentTime - (calculateDeltaTimeMultiplier.lastTime || currentTime);
+    let deltaTime = currentTime - (calculateDeltaTimeMultiplier.lastTime || currentTime);
     calculateDeltaTimeMultiplier.lastTime = currentTime;
+    
+    // Import mobile config if available
+    const mobileConfig = (typeof gameConfig !== 'undefined' && gameConfig.gameplay?.mobile) ? 
+                        gameConfig.gameplay.mobile : 
+                        { minDeltaTime: 8, maxDeltaTime: 33, refreshRateSmoothing: 0.8, maxRefreshRateMultiplier: 1.2 };
+    
+    // Clamp delta time to prevent extreme values on mobile
+    deltaTime = Math.max(mobileConfig.minDeltaTime, Math.min(mobileConfig.maxDeltaTime, deltaTime));
     
     // Calculate multiplier to normalize to target FPS
     const targetFrameTime = 1000 / targetFPS; // 16.67ms for 60fps
-    const multiplier = deltaTime / targetFrameTime;
+    let multiplier = deltaTime / targetFrameTime;
     
-    // Clamp to prevent extreme values
-    return Math.min(Math.max(multiplier, 0.1), 3.0);
+    // Improved clamping for high refresh rate devices (like iPhone 15 Pro Max at 120Hz)
+    // More aggressive smoothing for mobile devices to prevent speed spikes
+    const isHighRefreshRate = multiplier < 0.6; // Likely running at 120Hz or higher
+    
+    if (isHighRefreshRate) {
+        // For high refresh rate devices, use mobile config limits
+        multiplier = Math.min(Math.max(multiplier, 0.3), mobileConfig.maxRefreshRateMultiplier);
+        
+        // Apply additional smoothing for high refresh rate devices
+        if (!calculateDeltaTimeMultiplier.smoothedMultiplier) {
+            calculateDeltaTimeMultiplier.smoothedMultiplier = multiplier;
+        }
+        
+        // Smooth the multiplier over time to prevent jerky movement
+        const smoothingFactor = mobileConfig.refreshRateSmoothing; // Use config value
+        calculateDeltaTimeMultiplier.smoothedMultiplier = 
+            calculateDeltaTimeMultiplier.smoothedMultiplier * smoothingFactor + 
+            multiplier * (1 - smoothingFactor);
+        
+        multiplier = calculateDeltaTimeMultiplier.smoothedMultiplier;
+    } else {
+        // Standard clamping for normal refresh rates
+        multiplier = Math.min(Math.max(multiplier, 0.1), 3.0);
+    }
+    
+    return multiplier;
 }
 
 // Update game state timers
@@ -625,8 +658,6 @@ export function updateNotifications(gameState, deltaTimeMultiplier) {
     // This function is kept for backward compatibility but does nothing
 }
 
-
-
 // ===== FALL ANGLE CALCULATION SYSTEM =====
 // Dynamic fall angle calculation based on game state
 
@@ -760,10 +791,11 @@ export class ResponsiveScaler {
     }
     
     calculateElementSizes() {
-        const basePlayerWidth = this.deviceType === 'mobile' ? 60 : 80;  // Base width for player
-        const baseItemSize = this.deviceType === 'mobile' ? 60 : 80;
-        const basePowerUpSize = this.deviceType === 'mobile' ? 70 : 90;
-        const baseProjectileSize = this.deviceType === 'mobile' ? 50 : 70; // Smaller than items for mobile
+        // Enhanced base sizes for better mobile experience
+        const basePlayerWidth = this.deviceType === 'mobile' ? 70 : 80;  // Slightly larger for mobile
+        const baseItemSize = this.deviceType === 'mobile' ? 70 : 80;     // Larger items on mobile
+        const basePowerUpSize = this.deviceType === 'mobile' ? 80 : 90;  // Larger power-ups
+        const baseProjectileSize = this.deviceType === 'mobile' ? 60 : 70; // Appropriate projectile size
         
         // Player aspect ratio is 1:2 (width:height) based on 250x500 original image
         const playerAspectRatio = 0.5; // width/height = 250/500 = 0.5
@@ -800,19 +832,28 @@ export class ResponsiveScaler {
             }
         };
         
-        // Adjust for mobile-specific considerations
+        // Enhanced mobile-specific adjustments
         if (this.deviceType === 'mobile') {
-            // Make touch targets larger on mobile (maintain aspect ratio)
-            const mobileScale = 1.2;
-            this.sizes.player.width *= mobileScale;
-            this.sizes.player.height *= mobileScale;
-            this.sizes.item.base *= 1.1;
-            this.sizes.item.powerUp *= 1.1;
-            this.sizes.item.projectile *= 1.0; // Keep projectiles smaller on mobile for better gameplay
-            this.sizes.ui.spellIconSize *= 1.3;
+            // Make touch targets appropriately sized (maintain aspect ratio)
+            const mobileScale = 1.3; // Increased from 1.2 to 1.3 for better visibility
+            this.sizes.player.width = Math.round(this.sizes.player.width * mobileScale);
+            this.sizes.player.height = Math.round(this.sizes.player.height * mobileScale);
+            this.sizes.item.base = Math.round(this.sizes.item.base * 1.2); // Increased scaling
+            this.sizes.item.powerUp = Math.round(this.sizes.item.powerUp * 1.2);
+            this.sizes.item.projectile = Math.round(this.sizes.item.projectile * 1.1); // Keep projectiles reasonable
+            this.sizes.ui.spellIconSize = Math.round(this.sizes.ui.spellIconSize * 1.4); // Larger touch targets
             
             // Increase spacing on mobile for easier gameplay
-            this.sizes.spacing.minYSpacing *= 1.3;
+            this.sizes.spacing.minYSpacing = Math.round(this.sizes.spacing.minYSpacing * 1.4); // More spacing
+            
+            // Ensure minimum sizes for high-DPI displays
+            const minItemSize = 60; // Minimum item size in pixels
+            if (this.sizes.item.base < minItemSize) {
+                const scaleFactor = minItemSize / this.sizes.item.base;
+                this.sizes.item.base = minItemSize;
+                this.sizes.item.powerUp = Math.round(this.sizes.item.powerUp * scaleFactor);
+                this.sizes.item.projectile = Math.round(this.sizes.item.projectile * scaleFactor);
+            }
         }
     }
     
@@ -1009,4 +1050,178 @@ export function applyAirResistance(item, deltaTime, airDensity = 0.001) {
     // Much lower minimum speed thresholds
     if (Math.abs(item.horizontalSpeed) < 0.01) item.horizontalSpeed = 0;
     if (Math.abs(item.rotationSpeed) < 0.001) item.rotationSpeed = 0;
+}
+
+// ===== CACHE BUSTING UTILITIES =====
+
+// Generate cache-busted URL for any resource
+export function getCacheBustedUrl(url, forceTimestamp = false) {
+    if (!cacheConfig.enableCacheBusting) return url;
+    
+    const separator = url.includes('?') ? '&' : '?';
+    
+    if (forceTimestamp || cacheConfig.useTimestampUrls) {
+        // Use timestamp for immediate cache busting (development)
+        return `${url}${separator}t=${Date.now()}`;
+    } else if (cacheConfig.useVersionedUrls) {
+        // Use version for controlled cache busting (production)
+        return `${url}${separator}v=${GAME_VERSION}`;
+    }
+    
+    return url;
+}
+
+// Force reload of critical game resources
+export function reloadGameResources() {
+    console.log('🔄 Forcing reload of game resources...');
+    
+    // List of critical resources to reload
+    const criticalResources = [
+        'game-modular.js',
+        'config/gameConfig.js',
+        'data/gameItems.js',
+        'data/playerSpells.js',
+        'systems/spellSystem.js'
+    ];
+    
+    // Force reload each resource
+    criticalResources.forEach(resource => {
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.src = getCacheBustedUrl(resource, true); // Force timestamp
+        document.head.appendChild(script);
+        
+        // Remove after loading to clean up DOM
+        script.onload = () => {
+            setTimeout(() => document.head.removeChild(script), 1000);
+        };
+    });
+}
+
+// Check if game version has changed and prompt for refresh
+export function checkGameVersion() {
+    const STORAGE_KEY = 'efto_game_version';
+    const storedVersion = localStorage.getItem(STORAGE_KEY);
+    
+    if (storedVersion && storedVersion !== GAME_VERSION) {
+        console.log(`🎮 Game updated: ${storedVersion} → ${GAME_VERSION}`);
+        
+        // Show update notification
+        if (typeof addNotification !== 'undefined' && window.gameState) {
+            addNotification(window.gameState, `🎮 Game Updated to v${GAME_VERSION}! Refresh recommended.`, 300, '#00FF00');
+        }
+        
+        // For mobile devices, show more prominent update notice
+        if (responsiveScaler.deviceType === 'mobile') {
+            showMobileUpdatePrompt();
+        }
+    }
+    
+    // Store current version
+    localStorage.setItem(STORAGE_KEY, GAME_VERSION);
+}
+
+// Show mobile-specific update prompt
+function showMobileUpdatePrompt() {
+    // Create update prompt overlay
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: Arial, sans-serif;
+    `;
+    
+    const prompt = document.createElement('div');
+    prompt.style.cssText = `
+        background: #1a1a1a;
+        border: 3px solid #4ECDC4;
+        border-radius: 15px;
+        padding: 30px;
+        text-align: center;
+        max-width: 90%;
+        color: white;
+    `;
+    
+    prompt.innerHTML = `
+        <h2 style="color: #4ECDC4; margin: 0 0 20px 0;">🎮 Game Updated!</h2>
+        <p style="margin: 0 0 20px 0;">New version ${GAME_VERSION} is available!</p>
+        <p style="margin: 0 0 30px 0; color: #ccc;">Refresh to get the latest features and fixes.</p>
+        <button id="refreshBtn" style="
+            background: #4ECDC4;
+            color: #1a1a1a;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-right: 10px;
+        ">🔄 Refresh Now</button>
+        <button id="laterBtn" style="
+            background: transparent;
+            color: #ccc;
+            border: 2px solid #666;
+            padding: 13px 25px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        ">Later</button>
+    `;
+    
+    overlay.appendChild(prompt);
+    document.body.appendChild(overlay);
+    
+    // Handle button clicks
+    document.getElementById('refreshBtn').onclick = () => {
+        clearGameCache();
+        window.location.reload(true);
+    };
+    
+    document.getElementById('laterBtn').onclick = () => {
+        document.body.removeChild(overlay);
+    };
+}
+
+// Clear all game-related cache
+export function clearGameCache() {
+    console.log('🧹 Clearing game cache...');
+    
+    // Clear localStorage game data (keep high scores)
+    const keysToKeep = [HIGH_SCORES_KEY, 'efto_settings', 'efto_audio_settings'];
+    const allKeys = Object.keys(localStorage);
+    
+    allKeys.forEach(key => {
+        if (key.startsWith('efto_') && !keysToKeep.includes(key)) {
+            localStorage.removeItem(key);
+        }
+    });
+    
+    // Clear any cached assets if using Cache API
+    if ('caches' in window) {
+        caches.keys().then(cacheNames => {
+            cacheNames.forEach(cacheName => {
+                if (cacheName.includes('efto') || cacheName.includes('game')) {
+                    caches.delete(cacheName);
+                    console.log(`🗑️ Cleared cache: ${cacheName}`);
+                }
+            });
+        });
+    }
+    
+    // Force browser to not use cached resources on next load
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+            registrations.forEach(registration => {
+                registration.update(); // Force service worker update
+            });
+        });
+    }
 } 

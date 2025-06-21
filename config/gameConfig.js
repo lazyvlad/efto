@@ -1,5 +1,34 @@
 import { serverConfig } from './serverConfig.js';
 
+// ===== GAME VERSION & CACHE BUSTING =====
+// Update this version number whenever you deploy changes to force cache refresh
+export const GAME_VERSION = "1.2.3";
+export const BUILD_TIMESTAMP = Date.now(); // Will be set during build/deployment
+
+// Cache busting configuration
+export const cacheConfig = {
+    // Enable aggressive cache busting for mobile devices
+    enableCacheBusting: true,
+    
+    // Version-based cache busting (increment version to force refresh)
+    useVersionedUrls: true,
+    
+    // Timestamp-based cache busting (always forces refresh)
+    useTimestampUrls: false, // Set to true for development, false for production
+    
+    // Cache control settings
+    cacheControl: {
+        // How long browsers should cache assets (in seconds)
+        maxAge: 300, // 5 minutes for production
+        
+        // Force revalidation with server
+        mustRevalidate: true,
+        
+        // Disable caching entirely for HTML files
+        noCache: ['html', 'json']
+    }
+};
+
 // ===== GAME CONFIGURATION OBJECT =====
 // 🎮 Modify these values to customize your game experience!
 // 
@@ -75,6 +104,14 @@ export const gameConfig = {
         particleCount: 15,          // Number of particles per collection
         impactParticleCount: 30,    // Number of particles per fireball impact
         targetFPS: 60,              // Target FPS for speed calculations (normalizes speed across different frame rates)
+        
+        // Mobile-specific optimizations for high refresh rate devices
+        mobile: {
+            maxRefreshRateMultiplier: 1.2,  // Maximum speed boost allowed from high refresh rates
+            refreshRateSmoothing: 0.8,      // How much to smooth delta time (0-1, higher = more smoothing)
+            minDeltaTime: 8,                // Minimum delta time in ms (prevents too-fast updates)
+            maxDeltaTime: 33                // Maximum delta time in ms (prevents stutter)
+        },
         
         // === FALL ANGLE SETTINGS ===
         fallAngles: {

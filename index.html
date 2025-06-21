@@ -3,7 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DMTribut - Falling Item Collection Game</title>
+    
+    <!-- Cache Control Meta Tags for Mobile Cache Busting -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- Additional Mobile-Specific Cache Control -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <!-- Force refresh on mobile browsers -->
+    <meta name="format-detection" content="telephone=no">
+    <meta name="msapplication-tap-highlight" content="no">
+    
+    <title>DMTribut - EFTO Game</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -30,6 +45,13 @@
             left: 0;
             width: 100vw;
             height: 100vh;
+            /* Improve rendering quality on mobile devices */
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
+            /* Prevent blurry scaling on high-DPI displays */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         
         #gameCanvas.show-cursor {
@@ -1282,6 +1304,11 @@
                 margin-bottom: 4px;
             }
             
+            /* Hide "Player:" prefix on mobile to save space */
+            #itemsCollectionPanel .player-name::before {
+                content: none;
+            }
+            
             #itemsCollectionPanel .player-score {
                 font-size: 24px;
                 margin-bottom: 2px;
@@ -1315,6 +1342,12 @@
                 font-size: 10px;
             }
             
+            /* Hide technical stats on mobile - keep only essential info */
+            #itemsCollectionPanel .stat-row:nth-child(3),  /* Actual Item Speed */
+            #itemsCollectionPanel .stat-row:nth-child(4) { /* Actual Projectile Speed */
+                display: none;
+            }
+            
             /* Compact dragonstalker section on mobile */
             #itemsCollectionPanel #dragonstalkerSection {
                 padding: 6px 8px;
@@ -1330,6 +1363,11 @@
             
             #itemsCollectionPanel .tier-status {
                 font-size: 8px;
+            }
+            
+            /* Simplify dragonstalker status text on mobile */
+            #itemsCollectionPanel .tier-status {
+                display: none; /* Hide verbose status text on mobile */
             }
         }
         
@@ -1595,30 +1633,46 @@
                 right: 5px;
                 border-width: 2px;
                 border-radius: 8px;
+                background: rgba(0, 0, 0, 0.7); /* More transparent */
+                backdrop-filter: blur(4px); /* Reduced blur for better performance */
             }
             
-            /* Mini version - compact header */
+            /* Mini version - compact header with inline progress */
             #dragonstalkerProgressPanel .dragonstalker-panel-header {
-                padding: 8px;
+                padding: 6px 8px; /* Reduced padding */
             }
             
             #dragonstalkerProgressPanel .dragonstalker-title {
-                font-size: 12px;
-                margin-bottom: 6px;
+                font-size: 8px; /* Much smaller title */
+                margin-bottom: 2px;
+                display: inline-block; /* Make title inline */
+                margin-right: 4px;
             }
             
-            #dragonstalkerProgressPanel .progress-background {
-                height: 16px;
-            }
-            
+            /* Put progress text inline with title */
             #dragonstalkerProgressText {
-                font-size: 10px;
+                font-size: 8px;
+                display: inline-block;
+                color: #00FFFF;
+                margin: 0;
+            }
+            
+            /* Hide the progress bar on mobile to save space */
+            #dragonstalkerProgressPanel .progress-background {
+                display: none;
+            }
+            
+            /* Make the progress bar container inline */
+            #dragonstalkerProgressPanel .dragonstalker-progress-bar {
+                display: inline-block;
+                margin: 0;
             }
             
             #dragonstalkerProgressPanel .dragonstalker-status {
                 font-size: 10px;
             }
             
+            /* Simplify dragonstalker status text on mobile - hide verbose messages */
             /* Mini version - show only icons, not full names */
             #dragonstalkerProgressPanel .dragonstalker-items-list {
                 padding: 6px 8px;
@@ -1660,6 +1714,11 @@
             #dragonstalkerProgressPanel .dragonstalker-bottom-message {
                 padding: 4px 8px;
                 font-size: 10px;
+            }
+            
+            /* Hide verbose status text on mobile for cleaner look */
+            #dragonstalkerProgressPanel .dragonstalker-status {
+                display: none;
             }
         }
         
@@ -2050,43 +2109,49 @@
             display: block;
         }
         
-        /* Health Bar Container */
-        #healthBar {
-            position: absolute;
-            bottom: 140px; /* Position above spell bar with more space */
-            left: 20px; /* Move to left side */
-            transform: none; /* Remove center transform */
+        /* Compact Health Bar Section in Player Panel */
+        .player-health-section {
+            background: rgba(255, 20, 20, 0.1);
+            border-bottom: 1px solid rgba(255, 20, 20, 0.3);
+            padding: 8px 12px;
+        }
+        
+        #healthBar.compact-health-bar {
+            position: static; /* Remove absolute positioning */
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
             pointer-events: none;
-            z-index: 100; /* Ensure health bar appears above canvas */
         }
         
         /* Mobile responsive health bar */
         @media (max-width: 768px) {
-            #healthBar {
+            .player-health-section {
+                padding: 6px 8px;
+            }
+            
+            #healthBar.compact-health-bar {
                 gap: 6px; /* Smaller gap */
             }
         }
         
-        /* Player Portrait */
-        .player-portrait {
-            width: 34px;
-            height: 34px;
+        /* Player Portrait - Compact Version */
+        .compact-health-bar .player-portrait {
+            width: 24px; /* Much smaller for panel */
+            height: 24px;
             border-radius: 50%;
-            border: 2px solid #4ECDC4;
+            border: 1px solid #4ECDC4;
             background: rgba(0, 0, 0, 0.7);
             overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
             pointer-events: none;
         }
         
-        /* Mobile responsive player portrait */
+        /* Mobile responsive player portrait - even smaller in panel */
         @media (max-width: 768px) {
-            .player-portrait {
-                width: 28px; /* Smaller portrait */
-                height: 28px;
+            .compact-health-bar .player-portrait {
+                width: 20px; /* Very small for mobile */
+                height: 20px;
                 border-width: 1px;
             }
         }
@@ -2098,48 +2163,56 @@
             pointer-events: none;
         }
         
-        /* Health Bar Actual Bar */
-        .health-bar-container {
-            width: 250px;
-            height: 30px;
+        /* Ensure compact health bar portrait overrides any other styling */
+        .compact-health-bar .player-portrait img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+        
+        /* Health Bar Actual Bar - Compact Version */
+        .compact-health-bar .health-bar-container {
+            width: 140px; /* Much smaller for panel */
+            height: 18px; /* Compact height */
             background: rgba(0, 0, 0, 0.7);
-            border: 2px solid #4ECDC4;
-            border-radius: 15px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            border: 1px solid #4ECDC4;
+            border-radius: 9px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
             overflow: hidden;
             pointer-events: none;
         }
         
-        /* Mobile responsive health bar container */
+        /* Mobile responsive health bar container - extra compact */
         @media (max-width: 768px) {
-            .health-bar-container {
-                width: 180px; /* Narrower health bar */
-                height: 24px; /* Shorter height */
+            .compact-health-bar .health-bar-container {
+                width: 100px; /* Very narrow for mobile */
+                height: 16px; /* Very short height */
                 border-width: 1px;
-                border-radius: 12px;
+                border-radius: 8px;
             }
         }
         
-        .health-background {
+        .compact-health-bar .health-background {
             width: 100%;
             height: 100%;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 13px;
+            border-radius: 8px;
             overflow: hidden;
             pointer-events: none;
         }
         
         /* Mobile responsive health background */
         @media (max-width: 768px) {
-            .health-background {
-                border-radius: 11px; /* Adjust for smaller container */
+            .compact-health-bar .health-background {
+                border-radius: 7px; /* Adjust for smaller container */
             }
         }
         
-        .health-fill {
+        .compact-health-bar .health-fill {
             height: 100%;
             background: linear-gradient(90deg, #FF0000 0%, #FFFF00 50%, #00FF00 100%);
-            border-radius: 13px;
+            border-radius: 8px;
             transition: width 0.3s ease;
             width: 100%;
             pointer-events: none;
@@ -2147,8 +2220,8 @@
         
         /* Mobile responsive health fill */
         @media (max-width: 768px) {
-            .health-fill {
-                border-radius: 11px; /* Adjust for smaller container */
+            .compact-health-bar .health-fill {
+                border-radius: 7px; /* Adjust for smaller container */
             }
         }
         
@@ -2165,22 +2238,22 @@
             background: linear-gradient(90deg, #FFFF00 0%, #00FF00 100%);
         }
         
-        .health-text {
+        .compact-health-bar .health-text {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             color: white;
-            font-size: 14px;
+            font-size: 10px;
             font-weight: bold;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
             pointer-events: none;
         }
         
-        /* Mobile responsive health text */
+        /* Mobile responsive health text - very small */
         @media (max-width: 768px) {
-            .health-text {
-                font-size: 11px; /* Smaller health text */
+            .compact-health-bar .health-text {
+                font-size: 8px; /* Very small health text for mobile */
             }
         }
         
@@ -2279,19 +2352,7 @@
                 <div class="spell-cooldown-overlay" id="spell-flask-of-titans-cooldown"></div>
             </div>
         </div>
-        
-        <!-- Health Bar -->
-        <div id="healthBar">
-            <div class="player-portrait">
-                <img src="assets/efto.png" alt="Player Portrait">
-            </div>
-            <div class="health-bar-container">
-                <div class="health-background">
-                    <div class="health-fill" id="healthFill"></div>
-                </div>
-                <div class="health-text" id="healthText">100%</div>
-            </div>
-        </div>
+
     </div>
     
     <!-- Name Entry Screen -->
@@ -2513,6 +2574,21 @@
             <div class="player-level" id="playerLevelDisplay">Level 1</div>
             <div class="collection-summary">
                 <span id="collectionCount">0 types, 0 total</span>
+            </div>
+        </div>
+        
+        <!-- Compact Health Bar Section -->
+        <div class="player-health-section">
+            <div id="healthBar" class="compact-health-bar">
+                <div class="player-portrait">
+                    <img src="assets/efto.png" alt="Player Portrait">
+                </div>
+                <div class="health-bar-container">
+                    <div class="health-background">
+                        <div class="health-fill" id="healthFill"></div>
+                    </div>
+                    <div class="health-text" id="healthText">100%</div>
+                </div>
             </div>
         </div>
         

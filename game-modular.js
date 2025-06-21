@@ -17,7 +17,7 @@ import { loadHighScores, addHighScore, isHighScore, displayHighScores, displayHi
 import { initializeInputSystem, updatePlayerPosition, resetInputState } from './systems/inputSystem.js';
 // drawSettings removed - now using HTML+CSS guide
 
-import { calculateLevelSpeedMultiplier, isValidYPosition, cleanupRecentDropPositions, calculateDeltaTimeMultiplier, updateGameStateTimers, addNotification, updateNotifications, responsiveScaler, trackActivity, getLevelProgress, checkDragonstalkerCompletion } from './utils/gameUtils.js';
+import { calculateLevelSpeedMultiplier, isValidYPosition, cleanupRecentDropPositions, calculateDeltaTimeMultiplier, updateGameStateTimers, addNotification, updateNotifications, responsiveScaler, trackActivity, getLevelProgress, checkDragonstalkerCompletion, checkGameVersion, clearGameCache } from './utils/gameUtils.js';
 import { selectRandomItem, selectRandomProjectile, selectRandomPowerUp, shouldSpawnPowerUp, createCollectionParticles, createImpactParticles, createShadowParticles, calculateProjectileProbability } from './utils/spawning.js';
 import { spellSystem } from './systems/spellSystem.js';
 import { notificationSystem } from './systems/notificationSystem.js';
@@ -151,9 +151,8 @@ const canvasOverlay = document.getElementById('canvasOverlay');
 
 // Initialize the game
 async function init() {
-    // Set canvas size
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Set canvas size with device pixel ratio support for high-DPI displays
+    setupHighDPICanvas();
     
     // Hide all UI elements initially - nothing should be visible during loading
     hideAllUIElements();
@@ -187,7 +186,7 @@ async function init() {
     console.log('Critical assets loaded, initializing game systems...');
     updateLoadingProgress(0.75);
     
-    // Initialize player
+    // Initialize player with canvas dimensions
     player = new Player(canvas.width, canvas.height);
     gameState.player = player;
     updateLoadingProgress(0.8);
@@ -276,6 +275,9 @@ async function init() {
     // Start game loop
     gameLoop();
     
+    // Check for game version updates and prompt refresh if needed
+    checkGameVersion();
+    
     // Enable performance monitoring for development (toggle with Ctrl+Shift+P)
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         console.log('Development mode: Press Ctrl+Shift+P to toggle asset performance monitor');
@@ -303,13 +305,13 @@ function hideAllUIElements() {
 
 // Handle window resize to maintain fullscreen and reposition all game objects
 window.addEventListener('resize', () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Use high-DPI canvas setup instead of simple width/height assignment
+    setupHighDPICanvas();
     
     // Update responsive scaling
     responsiveScaler.updateScaling();
     
-    // Reposition player if needed
+    // Reposition player if needed - use canvas dimensions
     if (player && player.repositionOnResize) {
         player.repositionOnResize(canvas.width, canvas.height);
     }
@@ -448,19 +450,16 @@ function update(deltaTimeMultiplier) {
 
 // Render everything
 function render() {
-    // Clear canvas (background is handled by CSS)
+    // Simple canvas clear - no complex DPI handling for now
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    if (gameState.currentScreen === 'menu') {
-        // Menu screen (no canvas-based overlays needed)
-    } else if (gameState.currentScreen === 'game' || gameState.gameRunning) {
+    if (gameState.gameRunning) {
         renderGame();
-        // Note: Pause menu is now HTML-based, not canvas-based
-    } else if (gameState.currentScreen === 'gameOver') {
-        renderGameOver();
-    } else if (gameState.currentScreen === 'victory') {
+    } else if (gameState.gameWon) {
         renderVictory();
-    } else if (gameState.currentScreen === 'highScores') {
+    } else if (gameState.health <= 0) {
+        renderGameOver();
+    } else {
         renderHighScores();
     }
 }
@@ -2210,7 +2209,12 @@ function updatePlayerStats(gameState) {
     
     // Update player name
     if (playerNameDisplay) {
-        playerNameDisplay.textContent = `Player: ${gameState.playerName || 'Unknown'}`;
+        // Check if device is mobile using ResponsiveScaler
+        const isMobile = responsiveScaler.deviceType === 'mobile';
+        const nameText = isMobile ? 
+            gameState.playerName || 'Unknown' : 
+            `Player: ${gameState.playerName || 'Unknown'}`;
+        playerNameDisplay.textContent = nameText;
     }
     
     // Update score with formatting (large and prominent)
@@ -2519,10 +2523,24 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
         const progressPercent = (uniquePiecesCollected / 10) * 100;
         progressFill.style.width = `${progressPercent}%`;
         
-        let progressString = `${uniquePiecesCollected}/10 PIECES`;
-        if (gameState.dragonstalkerCompletions > 0) {
-            progressString += ` | ${gameState.dragonstalkerCompletions} SET${gameState.dragonstalkerCompletions > 1 ? 'S' : ''} COMPLETE`;
+        // Check if mobile for compact formatting
+        const isMobile = responsiveScaler.deviceType === 'mobile';
+        
+        let progressString;
+        if (isMobile) {
+            // Compact format for mobile: "3/10" or "3/10 (2 SETS)"
+            progressString = `${uniquePiecesCollected}/10`;
+            if (gameState.dragonstalkerCompletions > 0) {
+                progressString += ` (${gameState.dragonstalkerCompletions})`;
+            }
+        } else {
+            // Full format for desktop
+            progressString = `${uniquePiecesCollected}/10 PIECES`;
+            if (gameState.dragonstalkerCompletions > 0) {
+                progressString += ` | ${gameState.dragonstalkerCompletions} SET${gameState.dragonstalkerCompletions > 1 ? 'S' : ''} COMPLETE`;
+            }
         }
+        
         progressText.textContent = progressString;
         
         // DEBUG: Log progress string
@@ -2814,4 +2832,25 @@ function updateHealthBarHTML() {
 window.showSettings = showSettings;
 window.closeSettings = closeSettings;
 window.showMainMenu = showMainMenu;
-window.resetSettings = resetSettingsUI; 
+window.resetSettings = resetSettingsUI;
+
+// High-DPI canvas setup function
+function setupHighDPICanvas() {
+    const displayWidth = window.innerWidth;
+    const displayHeight = window.innerHeight;
+    
+    // For now, simplify to basic canvas setup to ensure player visibility
+    canvas.width = displayWidth;
+    canvas.height = displayHeight;
+    canvas.style.width = displayWidth + 'px';
+    canvas.style.height = displayHeight + 'px';
+    
+    // Improve image rendering quality
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    
+    // Store the DPI ratio for potential future use
+    canvas.dpr = window.devicePixelRatio || 1;
+    
+    console.log(`Simplified Canvas setup: ${displayWidth}x${displayHeight}, DPR: ${canvas.dpr}`);
+} 

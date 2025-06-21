@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Test - EFTO</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+        }
+        .test-info {
+            background: rgba(0,0,0,0.8);
+            border: 2px solid #4ECDC4;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px 0;
+        }
+        .status {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .good { background-color: rgba(0,255,0,0.2); }
+        .warning { background-color: rgba(255,165,0,0.2); }
+        .error { background-color: rgba(255,0,0,0.2); }
+        #testCanvas {
+            border: 2px solid #4ECDC4;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Mobile Optimization Test</h1>
+    
+    <div class="test-info">
+        <h2>Device Information</h2>
+        <div id="deviceInfo"></div>
+    </div>
+    
+    <div class="test-info">
+        <h2>Canvas Test</h2>
+        <canvas id="testCanvas" width="200" height="200"></canvas>
+        <div id="canvasInfo"></div>
+    </div>
+    
+    <div class="test-info">
+        <h2>Performance Test</h2>
+        <div id="performanceInfo"></div>
+        <button onclick="runPerformanceTest()">Run Performance Test</button>
+    </div>
+
+    <script>
+        // Test device information
+        function displayDeviceInfo() {
+            const deviceInfo = document.getElementById('deviceInfo');
+            const dpr = window.devicePixelRatio || 1;
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            deviceInfo.innerHTML = `
+                <div class="status ${dpr > 1 ? 'good' : 'warning'}">
+                    Device Pixel Ratio: ${dpr} ${dpr > 1 ? '(High-DPI ✓)' : '(Standard DPI)'}
+                </div>
+                <div class="status good">Screen Size: ${width}x${height}</div>
+                <div class="status good">User Agent: ${navigator.userAgent.includes('Mobile') ? 'Mobile Device ✓' : 'Desktop'}</div>
+                <div class="status good">Touch Support: ${'ontouchstart' in window ? 'Yes ✓' : 'No'}</div>
+            `;
+        }
+        
+        // Test canvas setup
+        function testCanvas() {
+            const canvas = document.getElementById('testCanvas');
+            const ctx = canvas.getContext('2d');
+            const canvasInfo = document.getElementById('canvasInfo');
+            
+            const dpr = window.devicePixelRatio || 1;
+            const displayWidth = 200;
+            const displayHeight = 200;
+            
+            // Set up canvas like the game does
+            canvas.width = displayWidth * dpr;
+            canvas.height = displayHeight * dpr;
+            canvas.style.width = displayWidth + 'px';
+            canvas.style.height = displayHeight + 'px';
+            ctx.scale(dpr, dpr);
+            
+            // Set image smoothing
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            // Draw test pattern
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(10, 10, 50, 50);
+            ctx.fillStyle = '#00FF00';
+            ctx.fillRect(70, 10, 50, 50);
+            ctx.fillStyle = '#0000FF';
+            ctx.fillRect(130, 10, 50, 50);
+            
+            // Draw text
+            ctx.fillStyle = 'white';
+            ctx.font = '16px Arial';
+            ctx.fillText('High-DPI Test', 10, 100);
+            
+            // Draw circles to test smoothing
+            ctx.strokeStyle = 'yellow';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(50, 150, 30, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            canvasInfo.innerHTML = `
+                <div class="status good">Canvas Resolution: ${canvas.width}x${canvas.height}</div>
+                <div class="status good">Display Size: ${displayWidth}x${displayHeight}</div>
+                <div class="status good">Scaling Factor: ${dpr}x</div>
+                <div class="status ${ctx.imageSmoothingEnabled ? 'good' : 'warning'}">
+                    Image Smoothing: ${ctx.imageSmoothingEnabled ? 'Enabled ✓' : 'Disabled'}
+                </div>
+                <div class="status good">Smoothing Quality: ${ctx.imageSmoothingQuality}</div>
+            `;
+        }
+        
+        // Performance test
+        function runPerformanceTest() {
+            const performanceInfo = document.getElementById('performanceInfo');
+            performanceInfo.innerHTML = '<div class="status warning">Running performance test...</div>';
+            
+            let frameCount = 0;
+            let startTime = performance.now();
+            let lastTime = startTime;
+            const deltaTimess = [];
+            
+            function testFrame() {
+                const currentTime = performance.now();
+                const deltaTime = currentTime - lastTime;
+                deltaTimess.push(deltaTime);
+                lastTime = currentTime;
+                frameCount++;
+                
+                if (frameCount < 120) { // Test for 2 seconds at 60fps
+                    requestAnimationFrame(testFrame);
+                } else {
+                    // Calculate results
+                    const totalTime = currentTime - startTime;
+                    const avgFPS = Math.round((frameCount / totalTime) * 1000);
+                    const avgDeltaTime = deltaTimess.reduce((a, b) => a + b, 0) / deltaTimess.length;
+                    const maxDeltaTime = Math.max(...deltaTimess);
+                    const minDeltaTime = Math.min(...deltaTimess);
+                    
+                    const isHighRefreshRate = avgFPS > 80;
+                    const isStable = (maxDeltaTime - minDeltaTime) < 10;
+                    
+                    performanceInfo.innerHTML = `
+                        <div class="status ${avgFPS >= 60 ? 'good' : 'warning'}">
+                            Average FPS: ${avgFPS} ${isHighRefreshRate ? '(High Refresh Rate ✓)' : ''}
+                        </div>
+                        <div class="status ${isStable ? 'good' : 'warning'}">
+                            Frame Stability: ${isStable ? 'Stable ✓' : 'Unstable'} (${(maxDeltaTime - minDeltaTime).toFixed(2)}ms variance)
+                        </div>
+                        <div class="status good">Average Frame Time: ${avgDeltaTime.toFixed(2)}ms</div>
+                        <div class="status good">Min/Max Frame Time: ${minDeltaTime.toFixed(2)}ms / ${maxDeltaTime.toFixed(2)}ms</div>
+                    `;
+                }
+            }
+            
+            requestAnimationFrame(testFrame);
+        }
+        
+        // Initialize tests
+        displayDeviceInfo();
+        testCanvas();
+        
+        // Update on orientation change
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                displayDeviceInfo();
+                testCanvas();
+            }, 100);
+        });
+    </script>
+</body>
+</html> 
