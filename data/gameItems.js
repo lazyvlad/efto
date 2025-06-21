@@ -23,12 +23,16 @@ export const gameItems = [
     { id: "hard-cheese", name: "Hard Cheese", image: assetRegistry.items.hardCheese, value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
     { id: "bread", name: "Bread", image: assetRegistry.items.food09, value: 1, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
     { id: "fish", name: "Fresh Fish", image: assetRegistry.items.fish31, value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.9 },
-    { id: "swiss-army", name: "Swiss Army Knife", image: assetRegistry.items.swissArmy, value: 3, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.7 },
-    { id: "gizmos", name: "Engineering Gizmos", image: assetRegistry.items.gizmos29, value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
-    { id: "copper-coin", name: "Copper Coin", image: assetRegistry.items.coin04, value: 1, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.5 },
-    { id: "gold-coin", name: "Gold Coin", image: assetRegistry.items.coin10, value: 3, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.5 },
-    { id: "silver-coin", name: "Silver Coin", image: assetRegistry.items.coin02, value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.5 },
-    { id: "bronze-coin", name: "Bronze Coin", image: assetRegistry.items.coin01, value: 1, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.5 },
+    
+    
+    { id: "swiss-army", name: "Swiss Army Knife", image: assetRegistry.items.swissArmy, value: 3, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "", size_multiplier: 1 },
+    { id: "gizmos", name: "Engineering Gizmos", image: assetRegistry.items.gizmos29, value: 2, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "", size_multiplier: 1 },
+    
+    
+    { id: "copper-coin", name: "Copper Coin", image: assetRegistry.items.coin04, value: 1, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "", size_multiplier: 0.8 },
+    { id: "gold-coin", name: "Gold Coin", image: assetRegistry.items.coin10, value: 3, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "", size_multiplier: 0.8 },
+    { id: "silver-coin", name: "Silver Coin", image: assetRegistry.items.coin02, value: 2, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "", size_multiplier: 0.8 },
+    { id: "bronze-coin", name: "Bronze Coin", image: assetRegistry.items.coin01, value: 1, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "", size_multiplier: 0.8 },
     
     // Tier set items
     { id: "ashjrethul", name: "Ashjre'thul, Crossbow of Smiting", image: assetRegistry.items.item4, value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: assetRegistry.audio.disenchant, setPosition: 9, size_multiplier: 2 },

@@ -13,9 +13,9 @@ import { Particle } from './classes/Particle.js';
 import { tryAutoInitAudio, startBackgroundMusic, playVoiceSound, playUffSound, playScreamSound, playTotalSound, playFireballImpactSound, playDragonstalkerSound, playThunderSound, playItemSound, toggleAudio, audioInitialized, audioState, volumeSettings } from './systems/audioSystem.js';
 import { loadHighScores, addHighScore, isHighScore, displayHighScores, displayHighScoresSync } from './systems/highScoreSystem.js';
 import { initializeInputSystem, updatePlayerPosition } from './systems/inputSystem.js';
-import { drawSettings, drawPauseMenu } from './systems/renderSystem.js';
+// drawSettings removed - now using HTML+CSS guide
 
-import { calculateLevelSpeedMultiplier, isValidYPosition, cleanupRecentDropPositions, calculateDeltaTimeMultiplier, updateGameStateTimers, addNotification, updateNotifications, drawNotifications, responsiveScaler } from './utils/gameUtils.js';
+import { calculateLevelSpeedMultiplier, isValidYPosition, cleanupRecentDropPositions, calculateDeltaTimeMultiplier, updateGameStateTimers, addNotification, updateNotifications, drawNotifications, responsiveScaler, trackActivity, getLevelProgress, checkDragonstalkerCompletion } from './utils/gameUtils.js';
 import { selectRandomItem, selectRandomProjectile, selectRandomPowerUp, shouldSpawnPowerUp, createCollectionParticles, createImpactParticles, createShadowParticles, calculateProjectileProbability } from './utils/spawning.js';
 import { spellSystem } from './systems/spellSystem.js';
 import { assetManager } from './utils/AssetManager.js';
@@ -36,8 +36,25 @@ let gameState = {
     currentLevel: 0, // 0-based internal level (displays as Level 1 to user)
     levelSpeedMultiplier: 1.0,
     baseDropSpeed: gameConfig.gameplay.baseDropSpeed,
-    speedMultiplier: 1.0,
     permanentSpeedReduction: 0.0,
+    
+    // Hybrid progression tracking
+    levelStartTime: 0,              // When current level started (in seconds)
+    timeRequiredForNextLevel: 45,   // Time needed for next level (adjusted by activity)
+    levelActivity: {                // Activity counters for current level
+        collections: 0,
+        misses: 0,
+        powerUpsCollected: 0,
+        damageReceived: 0
+    },
+    horizontalSpeedReduction: 0.15, // Dynamic parameter for horizontal speed reduction (0.0 to 1.0) - can be modified by power-ups
+    
+    // Fall angle configuration - can be modified by power-ups
+    fallAngleMin: gameConfig.gameplay.fallAngles.minAngle,     // Minimum fall angle in degrees
+    fallAngleMax: gameConfig.gameplay.fallAngles.maxAngle,     // Maximum fall angle in degrees
+    allowUpwardMovement: gameConfig.gameplay.fallAngles.allowUpwardMovement, // Allow upward movement
+    upwardAngleMin: gameConfig.gameplay.fallAngles.upwardAngleMin, // Min upward angle
+    upwardAngleMax: gameConfig.gameplay.fallAngles.upwardAngleMax, // Max upward angle
     
     // Power-up effects
     timeSlowActive: false,
@@ -52,6 +69,18 @@ let gameState = {
     shieldActive: false,
     shieldTimer: 0,
     
+    // Horizontal speed modification effects
+    horizontalSpeedModActive: false,
+    horizontalSpeedModTimer: 0,
+    originalHorizontalSpeedReduction: 0.15, // Store original value for restoration
+    
+    // Fall angle modification effects
+    fallAngleModActive: false,
+    fallAngleModTimer: 0,
+    originalFallAngleMin: gameConfig.gameplay.fallAngles.minAngle,
+    originalFallAngleMax: gameConfig.gameplay.fallAngles.maxAngle,
+    originalAllowUpwardMovement: gameConfig.gameplay.fallAngles.allowUpwardMovement,
+    
     // Damage-over-time effects
     shadowboltDots: [],         // Array of active shadowbolt DOT effects
     shadowboltTimer: 0,         // Timer until next damage tick
@@ -64,21 +93,27 @@ let gameState = {
     chickenFoodTickRate: 60,    // Frames between heal ticks (1 second at 60fps)
     chickenFoodHealPerTick: 1,  // Heal per tick per stack
     
+    // Reverse Gravity state
+    reverseGravityActive: false, // Whether reverse gravity is active
+    reverseGravityTimer: 0,      // Duration timer for reverse gravity effect
+    
     // Counters
     perfectCollections: 0,
     missedItems: 0,
     tierSetCollected: 0,
     tierSetMissed: 0,
-    gameUnwinnable: false,
+    dragonstalkerCompletions: 0,     // Number of complete sets collected
+    permanentSpeedReductionFromSets: 0,  // Accumulated permanent speed reduction from sets
+
     powerUpsSpawned: 0,
     cutTimeSpawned: 0,
     lastPowerUpScore: 0,
     
     // UI state
-    showingSettings: false,
     showingPauseMenu: false,
     menuButtonBounds: null,
     pauseMenuBounds: null,
+    howToPlaySource: 'menu', // Track where howToPlay was accessed from
     
     // Notifications
     notifications: [],
@@ -154,7 +189,7 @@ async function init() {
     updateLoadingProgress(0.85);
     
     // Initialize input system
-    initializeInputSystem(canvas, gameState, player, restartGame, startGame, showInGameSettings, showPauseMenu, () => {
+    initializeInputSystem(canvas, gameState, player, restartGame, startGame, null, showPauseMenu, () => {
         gameState.currentScreen = 'highScores';
         safeDisplayHighScores();
     }, updateCanvasOverlay);
@@ -246,29 +281,21 @@ window.addEventListener('resize', () => {
 
 // Update canvas overlay visibility based on game state
 function updateCanvasOverlay() {
-    if (!canvasOverlay) return;
+    const overlay = document.getElementById('canvasOverlay');
+    const gameUI = document.getElementById('gameUI');
     
-    // Allow canvas interaction in these cases:
-    // 1. Game is running and not paused/showing menus (normal gameplay)
-    // 2. On menu screen with Game Guide open (settings from menu)
-    const allowCanvasInteraction = (gameState.gameRunning && !gameState.showingSettings && !gameState.showingPauseMenu) ||
-                                   (gameState.currentScreen === 'menu' && gameState.showingSettings);
-    
-    // Allow menu clicks when pause menu or in-game settings are showing
-    const allowMenuClicks = gameState.showingPauseMenu || (gameState.gameRunning && gameState.showingSettings);
-    
-    if (allowCanvasInteraction) {
-        canvasOverlay.classList.add('hidden');
-        canvasOverlay.classList.remove('allow-menu-clicks');
-        canvas.classList.remove('show-cursor');
-    } else if (allowMenuClicks) {
-        canvasOverlay.classList.remove('hidden');
-        canvasOverlay.classList.add('allow-menu-clicks');
-        canvas.classList.add('show-cursor');
+    if (gameState.gameRunning && !gameState.showingPauseMenu) {
+        // Game is running - hide overlay, show game UI
+        overlay.style.display = 'none';
+        if (gameUI) gameUI.style.display = 'block';
+        
+        // Update spell bar and health bar
+        updateSpellBarHTML();
+        updateHealthBarHTML();
     } else {
-        canvasOverlay.classList.remove('hidden');
-        canvasOverlay.classList.remove('allow-menu-clicks');
-        canvas.classList.add('show-cursor');
+        // Game is paused or not running - show overlay, hide game UI
+        overlay.style.display = 'block';
+        if (gameUI) gameUI.style.display = 'none';
     }
 }
 
@@ -277,7 +304,7 @@ function gameLoop() {
     const deltaTimeMultiplier = calculateDeltaTimeMultiplier();
     
     // Update
-    if (gameState.gameRunning && !gameState.showingSettings && !gameState.showingPauseMenu) {
+    if (gameState.gameRunning && !gameState.showingPauseMenu) {
         update(deltaTimeMultiplier);
     } else if (gameState.gameRunning) {
         // Update player position even when paused/in settings
@@ -321,7 +348,7 @@ function update(deltaTimeMultiplier) {
     
     // Debug: Log current score and level every 60 frames (1 second) for testing
     if (typeof gameState.debugFrameCounter === 'undefined') gameState.debugFrameCounter = 0;
-    if (typeof gameState.showSpeedMonitor === 'undefined') gameState.showSpeedMonitor = false; // Hidden by default (Ctrl+Shift+S to show)
+    // Speed monitor removed - no longer needed
     gameState.debugFrameCounter++;
     // Reduce debug logging frequency to every 10 seconds for better performance
     if (gameState.debugFrameCounter % 600 === 0) { // Every 10 seconds instead of 5
@@ -358,18 +385,10 @@ function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     if (gameState.currentScreen === 'menu') {
-        // Show settings overlay if requested from menu
-        if (gameState.showingSettings) {
-            drawSettings(ctx, canvas, gameState);
-        }
+        // Menu screen (no canvas-based overlays needed)
     } else if (gameState.currentScreen === 'game' || gameState.gameRunning) {
         renderGame();
-        
-        if (gameState.showingSettings) {
-            drawSettings(ctx, canvas, gameState);
-        } else if (gameState.showingPauseMenu) {
-            drawPauseMenu(ctx, canvas, gameState);
-        }
+        // Note: Pause menu is now HTML-based, not canvas-based
     } else if (gameState.currentScreen === 'gameOver') {
         renderGameOver();
     } else if (gameState.currentScreen === 'victory') {
@@ -410,12 +429,15 @@ function renderGame() {
         ctx.restore();
     }
     
-    // Render all game objects
-    fallingItems.forEach(item => item.draw(ctx, gameConfig));
-    fireballs.forEach(fireball => fireball.draw(ctx));
-    powerUps.forEach(powerUp => powerUp.draw(ctx));
+    // Render game elements
     particles.forEach(particle => particle.draw(ctx));
+    fallingItems.forEach(item => item.draw(ctx, gameConfig));
+    fireballs.forEach(projectile => projectile.draw(ctx));
+    powerUps.forEach(powerUp => powerUp.draw(ctx));
     player.draw(ctx, gameState.shieldActive);
+    
+    // Render power-up status indicators
+    renderPowerUpStatus();
     
     // Update DOM-based items panel (throttled for performance)
     // Only update every 10 frames to reduce DOM manipulation overhead
@@ -428,58 +450,11 @@ function renderGame() {
     // Draw notifications (top center)
     drawNotifications(ctx, canvas, gameState);
     
-    // Health bar - top right (now responsive)
-    const uiSizes = responsiveScaler.getSize('ui');
-    const healthBarWidth = uiSizes.healthBarWidth;
-    const healthBarHeight = uiSizes.healthBarHeight;
-    const healthBarX = canvas.width - healthBarWidth - responsiveScaler.scale(20);
-    const healthBarY = responsiveScaler.scale(60);
-    
-    // Health bar background
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-    ctx.fillRect(healthBarX - 5, healthBarY - 5, healthBarWidth + 10, healthBarHeight + 10);
-    
-    // Health bar border
-    ctx.strokeStyle = '#FFF';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(healthBarX, healthBarY, healthBarWidth, healthBarHeight);
-    
-    // Health bar fill
-    const healthPercentage = gameState.health / gameState.maxHealth;
-    const healthFillWidth = healthBarWidth * healthPercentage;
-    
-    // Color based on health level
-    if (healthPercentage > 0.6) {
-        ctx.fillStyle = '#00FF00'; // Green for high health
-    } else if (healthPercentage > 0.3) {
-        ctx.fillStyle = '#FFFF00'; // Yellow for medium health
-    } else {
-        ctx.fillStyle = '#FF0000'; // Red for low health
-    }
-    
-    ctx.fillRect(healthBarX, healthBarY, healthFillWidth, healthBarHeight);
-    
-    // Health text (responsive font size)
-    ctx.fillStyle = 'white';
-    ctx.font = `bold ${uiSizes.fontSize}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.fillText(`${Math.ceil(gameState.health)}%`, healthBarX + healthBarWidth/2, healthBarY + healthBarHeight/2 + uiSizes.fontSize/3);
-    ctx.textAlign = 'left';
+    // Health bar now rendered via HTML/CSS
     
     // Old speed panel removed - replaced by superior Speed Analysis Monitor
     
-    // Render power-up status indicators
-    renderPowerUpStatus();
-    
-    // Render spell UI
-    renderSpellUI();
-    
-    // Render speed analysis monitor (throttled for performance)
-    if (!gameState.speedMonitorCounter) gameState.speedMonitorCounter = 0;
-    gameState.speedMonitorCounter++;
-    if (gameState.speedMonitorCounter % 5 === 0) { // Update every 5 frames
-        renderSpeedAnalysisMonitor();
-    }
+    // Spell UI now rendered via HTML/CSS
 }
 
 function renderGameOver() {
@@ -574,458 +549,15 @@ function renderPowerUpStatus() {
     }
 }
 
-function renderSpellUI() {
-    const currentTime = Date.now();
-    const spellPadding = 15;
-    const spellWidth = 80;
-    const spellHeight = 60;
-    
-    // Position spells in the center, just above the movement constraint line
-    const totalSpellsWidth = (spellWidth * 3) + (spellPadding * 2); // 3 spells with 2 paddings between
-    const startX = (canvas.width - totalSpellsWidth) / 2; // Center horizontally
-    
-    // Calculate position just above the movement constraint line
-    let startY = canvas.height - 100; // Default position
-    if (gameConfig.player.movableArea.enabled) {
-        const movableHeight = canvas.height * gameConfig.player.movableArea.heightPercent;
-        const borderY = canvas.height - movableHeight;
-        startY = borderY - spellHeight - 20; // 20px above the border line
-    }
-    
-    // Spell data with icons
-    const spells = [
-        { 
-            id: 'dragon_cry', 
-            key: 'Q', 
-            name: 'Dragon Cry', 
-            color: '#FF4500',
-            icon: 'assets/onyxia-buff.png'
-        },
-        { 
-            id: 'zandalari', 
-            key: 'W', 
-            name: 'Zandalari', 
-            color: '#FFD700',
-            icon: 'assets/zg-buff.png'
-        },
-        { 
-            id: 'songflower', 
-            key: 'E', 
-            name: 'Songflower', 
-            color: '#FF69B4',
-            icon: 'assets/songflower-buff.png'
-        }
-    ];
-    
-    spells.forEach((spell, index) => {
-        const x = startX + (spellWidth + spellPadding) * index;
-        const y = startY;
-        
-        // Get spell status
-        const cooldownRemaining = spellSystem.getCooldownRemaining(spell.id, currentTime);
-        const durationRemaining = spellSystem.getDurationRemaining(spell.id, currentTime);
-        const isActive = spellSystem.isSpellActive(spell.id);
-        const isOnCooldown = cooldownRemaining > 0;
-        
-        // Draw spell background
-        ctx.fillStyle = isActive ? 'rgba(0, 255, 0, 0.3)' : 
-                       isOnCooldown ? 'rgba(255, 0, 0, 0.3)' : 
-                       'rgba(255, 255, 255, 0.2)';
-        ctx.fillRect(x, y, spellWidth, spellHeight);
-        
-        // Draw spell border
-        ctx.strokeStyle = isActive ? '#00FF00' : 
-                         isOnCooldown ? '#FF0000' : 
-                         spell.color;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, spellWidth, spellHeight);
-        
-        // Draw spell icon if available
-        if (spell.icon && images.spells && images.spells[spell.id]) {
-            const iconSize = 32;
-            const iconX = x + (spellWidth - iconSize) / 2;
-            const iconY = y + 5;
-            
-            // Apply opacity if on cooldown
-            if (isOnCooldown) {
-                ctx.globalAlpha = 0.5;
-            }
-            
-            ctx.drawImage(images.spells[spell.id], iconX, iconY, iconSize, iconSize);
-            
-            // Reset opacity
-            ctx.globalAlpha = 1.0;
-        } else {
-            // Fallback to key letter if no icon
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 20px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(spell.key, x + spellWidth/2, y + 25);
-        }
-        
-        // Draw key binding in bottom corner
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 12px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(spell.key, x + spellWidth/2, y + spellHeight - 20);
-        
-        // Draw spell name
-        ctx.font = '8px Arial';
-        ctx.fillText(spell.name, x + spellWidth/2, y + spellHeight - 8);
-        
-        // Draw cooldown/duration timer
-        if (isActive && durationRemaining > 0) {
-            ctx.fillStyle = '#00FF00';
-            ctx.font = 'bold 14px Arial';
-            ctx.fillText(`${durationRemaining}s`, x + spellWidth/2, y + spellHeight - 35);
-        } else if (isOnCooldown) {
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 14px Arial';
-            ctx.fillText(`${cooldownRemaining}s`, x + spellWidth/2, y + spellHeight - 35);
-        }
-    });
-    
-    // Reset text alignment
-    ctx.textAlign = 'left';
-}
+// renderSpellUI function removed - spells now rendered via HTML/CSS
 
-function renderSpeedAnalysisMonitor() {
-    // Speed monitor is now handled by HTML/CSS for better readability
-    if (!gameState.showSpeedMonitor) {
-        hideSpeedMonitor();
-        return;
-    }
-    
-    updateSpeedMonitor();
-}
+// renderSpeedAnalysisMonitor function removed - no longer needed
 
-// Create HTML/CSS Speed Monitor
-function createSpeedMonitor() {
-    if (document.getElementById('speedMonitor')) return; // Already exists
-    
-    const monitor = document.createElement('div');
-    monitor.id = 'speedMonitor';
-    monitor.innerHTML = `
-        <div class="speed-monitor-header">
-            🔍 SPEED ANALYSIS MONITOR
-        </div>
-        <div class="speed-monitor-content">
-            <div class="level-info">
-                <span id="speedLevel">Level: 1</span>
-                <span id="speedScore">Score: 0</span>
-            </div>
-            <div class="speed-breakdown">
-                <div class="speed-row">
-                    <span class="label">Base Drop Speed:</span>
-                    <span id="baseSpeed" class="value">2.0 px/frame</span>
-                </div>
-                <div class="speed-row">
-                    <span class="label">Level Speed Multiplier:</span>
-                    <span id="levelMultiplier" class="value">1.00x</span>
-                </div>
-                <div class="speed-row permanent-reduction" style="display: none;">
-                    <span class="label">Permanent Reduction:</span>
-                    <span id="permanentReduction" class="value">-0.00x</span>
-                </div>
-                <div class="speed-row">
-                    <span class="label">Effective Multiplier:</span>
-                    <span id="effectiveMultiplier" class="value">1.00x</span>
-                </div>
-                <div class="speed-row speed-boost" style="display: none;">
-                    <span class="label">Speed Boost:</span>
-                    <span id="speedBoost" class="value">1.00x</span>
-                </div>
-                <div class="speed-row time-slow" style="display: none;">
-                    <span class="label">Time Slow:</span>
-                    <span id="timeSlow" class="value">1.00x</span>
-                </div>
-            </div>
-            <div class="speed-results">
-                <div class="speed-row final">
-                    <span class="label">Expected Item Speed:</span>
-                    <span id="expectedSpeed" class="value">2.00 px/frame</span>
-                </div>
-                <div class="speed-row">
-                    <span class="label">Speed Range:</span>
-                    <span id="speedRange" class="value">1.6 - 2.6 px/frame</span>
-                </div>
-                <div class="speed-row">
-                    <span class="label">Visual Speed:</span>
-                    <span id="visualSpeed" class="value">120 px/second</span>
-                </div>
-            </div>
-            <div class="active-items">
-                <div class="speed-row">
-                    <span class="label">Active Items:</span>
-                    <span id="activeItemCount" class="value">0</span>
-                </div>
-                <div id="itemSpeedList" class="item-list"></div>
-            </div>
-            <div class="monitor-footer">
-                Press Ctrl+Shift+S to toggle • Ctrl+A to boost speed
-            </div>
-        </div>
-    `;
-    
-    // Add CSS styles
-    const style = document.createElement('style');
-    style.textContent = `
-                 #speedMonitor {
-             position: fixed;
-             bottom: 10px;
-             left: 10px;
-             width: 420px;
-             background: rgba(0, 0, 0, 0.9);
-             border: 2px solid #00FFFF;
-             border-radius: 8px;
-             font-family: 'Courier New', monospace;
-             font-size: 12px;
-             color: white;
-             z-index: 1000;
-             box-shadow: 0 4px 20px rgba(0, 255, 255, 0.3);
-             backdrop-filter: blur(5px);
-             display: none;
-             pointer-events: none;
-         }
-        
-        .speed-monitor-header {
-            background: linear-gradient(90deg, #00FFFF, #0080FF);
-            color: black;
-            font-weight: bold;
-            font-size: 14px;
-            padding: 8px 12px;
-            border-radius: 5px 5px 0 0;
-            text-align: center;
-        }
-        
-        .speed-monitor-content {
-            padding: 12px;
-        }
-        
-        .level-info {
-            display: flex;
-            justify-content: space-between;
-            color: #FFD700;
-            font-weight: bold;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #333;
-        }
-        
-        .speed-breakdown, .speed-results, .active-items {
-            margin-bottom: 12px;
-        }
-        
-        .speed-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 2px 0;
-            line-height: 1.4;
-        }
-        
-        .speed-row.final {
-            color: #00FF00;
-            font-weight: bold;
-            border-top: 1px solid #333;
-            padding-top: 6px;
-            margin-top: 6px;
-        }
-        
-        .speed-row.permanent-reduction {
-            color: #8A2BE2;
-        }
-        
-        .speed-row.speed-boost {
-            color: #FF4444;
-        }
-        
-        .speed-row.time-slow {
-            color: #4169E1;
-        }
-        
-        .label {
-            color: #CCCCCC;
-            flex: 1;
-        }
-        
-        .value {
-            color: white;
-            font-weight: bold;
-            text-align: right;
-            min-width: 100px;
-        }
-        
-        .item-list {
-            max-height: 80px;
-            overflow-y: auto;
-            margin-top: 6px;
-        }
-        
-        .item-speed {
-            font-size: 11px;
-            color: #CCCCCC;
-            padding: 1px 0;
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        .item-name {
-            color: #FF69B4;
-            max-width: 200px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        
-        .item-variation {
-            font-size: 10px;
-            color: #999;
-            margin-left: 20px;
-        }
-        
-        .monitor-footer {
-            font-size: 10px;
-            color: #888;
-            text-align: center;
-            border-top: 1px solid #333;
-            padding-top: 6px;
-            margin-top: 8px;
-        }
-        
-        /* Scrollbar styling */
-        .item-list::-webkit-scrollbar {
-            width: 4px;
-        }
-        
-        .item-list::-webkit-scrollbar-track {
-            background: #333;
-        }
-        
-        .item-list::-webkit-scrollbar-thumb {
-            background: #00FFFF;
-            border-radius: 2px;
-        }
-    `;
-    
-    document.head.appendChild(style);
-    document.body.appendChild(monitor);
-}
+// createSpeedMonitor function removed - no longer needed
 
-// Update HTML Speed Monitor
-function updateSpeedMonitor() {
-    if (!gameState.gameRunning || gameState.showingSettings || gameState.showingPauseMenu) {
-        hideSpeedMonitor();
-        return;
-    }
-    
-    createSpeedMonitor();
-    const monitor = document.getElementById('speedMonitor');
-    if (!monitor) return;
-    
-    monitor.style.display = 'block';
-    
-    // Calculate speed values
-    const baseSpeed = gameState.baseDropSpeed || 2;
-    const levelMultiplier = gameState.levelSpeedMultiplier || 1.0;
-    const speedBoost = gameState.speedIncreaseMultiplier || 1.0;
-    const timeSlow = gameState.timeSlowMultiplier || 1.0;
-    const permanentReduction = gameState.permanentSpeedReduction || 0;
-    const effectiveMultiplier = Math.max(0.2, levelMultiplier - permanentReduction);
-    
-    const expectedSpeed = baseSpeed * effectiveMultiplier * speedBoost * timeSlow;
-    const speedRangeMin = expectedSpeed * 0.8;
-    const speedRangeMax = expectedSpeed * 1.3;
-    
-    // Update level info
-    document.getElementById('speedLevel').textContent = `Level: ${gameState.currentLevel + 1}`;
-    document.getElementById('speedScore').textContent = `Score: ${gameState.score}`;
-    
-    // Update speed breakdown
-    document.getElementById('baseSpeed').textContent = `${baseSpeed.toFixed(1)} px/frame`;
-    document.getElementById('levelMultiplier').textContent = `${levelMultiplier.toFixed(2)}x`;
-    document.getElementById('effectiveMultiplier').textContent = `${effectiveMultiplier.toFixed(2)}x`;
-    
-    // Show/hide optional rows
-    const permanentRow = document.querySelector('.permanent-reduction');
-    if (permanentReduction > 0) {
-        permanentRow.style.display = 'flex';
-        document.getElementById('permanentReduction').textContent = `-${permanentReduction.toFixed(2)}x`;
-    } else {
-        permanentRow.style.display = 'none';
-    }
-    
-    const speedBoostRow = document.querySelector('.speed-boost');
-    if (speedBoost !== 1.0) {
-        speedBoostRow.style.display = 'flex';
-        document.getElementById('speedBoost').textContent = `${speedBoost.toFixed(2)}x`;
-    } else {
-        speedBoostRow.style.display = 'none';
-    }
-    
-    const timeSlowRow = document.querySelector('.time-slow');
-    if (timeSlow !== 1.0) {
-        timeSlowRow.style.display = 'flex';
-        document.getElementById('timeSlow').textContent = `${timeSlow.toFixed(2)}x`;
-    } else {
-        timeSlowRow.style.display = 'none';
-    }
-    
-    // Update results
-    document.getElementById('expectedSpeed').textContent = `${expectedSpeed.toFixed(2)} px/frame`;
-    document.getElementById('speedRange').textContent = `${speedRangeMin.toFixed(1)} - ${speedRangeMax.toFixed(1)} px/frame`;
-    document.getElementById('visualSpeed').textContent = `${(expectedSpeed * 60).toFixed(0)} px/second`;
-    
-    // Update active items
-    document.getElementById('activeItemCount').textContent = fallingItems.length.toString();
-    
-    const itemList = document.getElementById('itemSpeedList');
-    if (fallingItems.length > 0) {
-        const itemsToShow = Math.min(4, fallingItems.length);
-        let itemsHTML = '';
-        
-        for (let i = 0; i < itemsToShow; i++) {
-            const item = fallingItems[i];
-            const shortName = item.itemData.name.length > 25 ? 
-                item.itemData.name.substring(0, 25) + '...' : 
-                item.itemData.name;
-            
-            itemsHTML += `
-                <div class="item-speed">
-                    <span class="item-name">${shortName}</span>
-                    <span>${item.speed.toFixed(2)} px/frame</span>
-                </div>
-            `;
-            
-            if (item.speedBreakdown) {
-                itemsHTML += `
-                    <div class="item-variation">
-                        Variation: ${item.speedBreakdown.variation.toFixed(2)}x
-                    </div>
-                `;
-            }
-        }
-        
-        if (fallingItems.length > 4) {
-            itemsHTML += `<div class="item-speed" style="color: #666;">... and ${fallingItems.length - 4} more items</div>`;
-        }
-        
-        itemList.innerHTML = itemsHTML;
-        
-        // Auto-scroll to bottom to show newest items
-        itemList.scrollTop = itemList.scrollHeight;
-    } else {
-        itemList.innerHTML = '<div class="item-speed" style="color: #666;">No active items</div>';
-    }
-}
+// updateSpeedMonitor function removed - no longer needed
 
-// Hide HTML Speed Monitor
-function hideSpeedMonitor() {
-    const monitor = document.getElementById('speedMonitor');
-    if (monitor) {
-        monitor.style.display = 'none';
-    }
-}
+// hideSpeedMonitor function removed - no longer needed
 
 // Load spell icons
 function loadSpellIcons() {
@@ -1062,13 +594,24 @@ function startGame() {
     gameState.currentLevel = 0; // Reset to Level 0 (displays as Level 1)
     gameState.levelSpeedMultiplier = 1.0;
     gameState.baseDropSpeed = gameConfig.gameplay.baseDropSpeed;
-    gameState.speedMultiplier = 1.0;
     gameState.permanentSpeedReduction = 0.0;
+    
+    // Reset hybrid progression tracking
+    gameState.levelStartTime = Date.now() / 1000;
+    gameState.timeRequiredForNextLevel = gameConfig.levels.baseTimePerLevel;
+    gameState.levelActivity = {
+        collections: 0,
+        misses: 0,
+        powerUpsCollected: 0,
+        damageReceived: 0
+    };
+    gameState.horizontalSpeedReduction = 0.15; // Reset to default horizontal speed reduction
     gameState.perfectCollections = 0;
     gameState.missedItems = 0;
     gameState.tierSetCollected = 0;
     gameState.tierSetMissed = 0;
-    gameState.gameUnwinnable = false;
+    gameState.dragonstalkerCompletions = 0;
+    gameState.permanentSpeedReductionFromSets = 0;
     gameState.powerUpsSpawned = 0;
     gameState.cutTimeSpawned = 0;
     gameState.lastPowerUpScore = 0;
@@ -1085,6 +628,23 @@ function startGame() {
     gameState.currentSpeedIncreasePercent = 0;
     gameState.shieldActive = false;
     gameState.shieldTimer = 0;
+    
+    // Clear horizontal speed modification effects
+    gameState.horizontalSpeedModActive = false;
+    gameState.horizontalSpeedModTimer = 0;
+    gameState.originalHorizontalSpeedReduction = 0.15;
+    
+    // Clear fall angle modification effects
+    gameState.fallAngleModActive = false;
+    gameState.fallAngleModTimer = 0;
+    gameState.originalFallAngleMin = gameConfig.gameplay.fallAngles.minAngle;
+    gameState.originalFallAngleMax = gameConfig.gameplay.fallAngles.maxAngle;
+    gameState.originalAllowUpwardMovement = gameConfig.gameplay.fallAngles.allowUpwardMovement;
+    gameState.fallAngleMin = gameConfig.gameplay.fallAngles.minAngle;
+    gameState.fallAngleMax = gameConfig.gameplay.fallAngles.maxAngle;
+    gameState.allowUpwardMovement = gameConfig.gameplay.fallAngles.allowUpwardMovement;
+    gameState.upwardAngleMin = gameConfig.gameplay.fallAngles.upwardAngleMin;
+    gameState.upwardAngleMax = gameConfig.gameplay.fallAngles.upwardAngleMax;
     
     // Clear shadowbolt effects
     gameState.shadowboltDots = [];
@@ -1105,6 +665,13 @@ function startGame() {
     
     // Reset player state
     player.reset();
+    
+    // Reset items collected count for new game
+    gameItems.forEach(item => {
+        item.collected = 0;
+        item.missed = 0;
+        item.spawned = 0;
+    });
     
     // Reset canvas overlay
     updateCanvasOverlay();
@@ -1127,11 +694,22 @@ function restartGame() {
     gameState.perfectCollections = 0;
     gameState.tierSetCollected = 0;
     gameState.tierSetMissed = 0;
-    gameState.gameUnwinnable = false;
+    gameState.dragonstalkerCompletions = 0;
+    gameState.permanentSpeedReductionFromSets = 0;
     gameState.gameWon = false;
     gameState.levelSpeedMultiplier = 1.0;
-    gameState.speedMultiplier = 1.0;
     gameState.permanentSpeedReduction = 0;
+    
+    // Reset hybrid progression tracking
+    gameState.levelStartTime = Date.now() / 1000;
+    gameState.timeRequiredForNextLevel = gameConfig.levels.baseTimePerLevel;
+    gameState.levelActivity = {
+        collections: 0,
+        misses: 0,
+        powerUpsCollected: 0,
+        damageReceived: 0
+    };
+    gameState.horizontalSpeedReduction = 0.15; // Reset to default horizontal speed reduction
     gameState.speedIncreaseActive = false;
     gameState.speedIncreaseTimer = 0;
     gameState.speedIncreaseMultiplier = 1.0;
@@ -1143,9 +721,26 @@ function restartGame() {
     gameState.freezeTimeTimer = 0;
     gameState.shieldActive = false;
     gameState.shieldTimer = 0;
+    gameState.horizontalSpeedModActive = false;
+    gameState.horizontalSpeedModTimer = 0;
+    gameState.originalHorizontalSpeedReduction = 0.15;
+    gameState.fallAngleModActive = false;
+    gameState.fallAngleModTimer = 0;
+    gameState.originalFallAngleMin = gameConfig.gameplay.fallAngles.minAngle;
+    gameState.originalFallAngleMax = gameConfig.gameplay.fallAngles.maxAngle;
+    gameState.originalAllowUpwardMovement = gameConfig.gameplay.fallAngles.allowUpwardMovement;
+    gameState.fallAngleMin = gameConfig.gameplay.fallAngles.minAngle;
+    gameState.fallAngleMax = gameConfig.gameplay.fallAngles.maxAngle;
+    gameState.allowUpwardMovement = gameConfig.gameplay.fallAngles.allowUpwardMovement;
+    gameState.upwardAngleMin = gameConfig.gameplay.fallAngles.upwardAngleMin;
+    gameState.upwardAngleMax = gameConfig.gameplay.fallAngles.upwardAngleMax;
     gameState.cutTimeSpawned = 0;
     gameState.lastPowerUpScore = 0;
     gameState.notifications = []; // Reset notifications
+    
+    // Reset UI state
+    gameState.showingPauseMenu = false;
+    gameState.howToPlaySource = 'menu';
     
     // Reset damage-over-time effects
     gameState.shadowboltDots = [];
@@ -1174,23 +769,34 @@ function restartGame() {
         item.spawned = 0;
     });
     
-    // Don't automatically start the game - let the caller decide
-    gameState.gameRunning = false;
-    gameState.showingPauseMenu = false;
-    gameState.showingSettings = false;
-    
-    // Update canvas overlay
+    // Reset canvas overlay
     updateCanvasOverlay();
 }
 
-function showInGameSettings() {
-    gameState.showingSettings = !gameState.showingSettings;
-    updateCanvasOverlay();
-}
+// showInGameSettings function removed - canvas-based guide replaced with HTML+CSS
 
 function showPauseMenu() {
     gameState.showingPauseMenu = true;
     gameState.gameRunning = false;
+    
+    // Show HTML pause menu instead of canvas-based one
+    document.getElementById('pauseMenu').style.display = 'flex';
+    
+    // Enable cursor interaction with pause menu
+    canvas.classList.add('show-cursor');
+    
+    updateCanvasOverlay();
+}
+
+function hidePauseMenu() {
+    gameState.showingPauseMenu = false;
+    
+    // Hide HTML pause menu
+    document.getElementById('pauseMenu').style.display = 'none';
+    
+    // Disable cursor when returning to game
+    canvas.classList.remove('show-cursor');
+    
     updateCanvasOverlay();
 }
 
@@ -1224,6 +830,7 @@ function spawnProjectiles(deltaTimeMultiplier) {
 
 function spawnPowerUps(deltaTimeMultiplier) {
     if (shouldSpawnPowerUp(gameState)) {
+        // Get all available power-ups
         let availablePowerUps = [...powerUpItems];
         
         // Handle cut_time power-up special logic (matching original)
@@ -1261,18 +868,24 @@ function spawnPowerUps(deltaTimeMultiplier) {
 
 function updateFallingItems(deltaTimeMultiplier) {
     fallingItems = fallingItems.filter(item => {
+        // Apply spell speed effects to falling items
+        const spellSpeedMultiplier = spellSystem.getItemSpeedMultiplier();
+        const adjustedDeltaTime = deltaTimeMultiplier * spellSpeedMultiplier;
+        
         // Falling items should continue to fall even when freeze is active
         // Only projectiles should be frozen, not beneficial items
-        const stillActive = item.update(deltaTimeMultiplier, canvas, gameState);
+        const stillActive = item.update(adjustedDeltaTime, canvas, gameState);
         
         if (!stillActive && item.missed) {
             gameState.missedItems++;
+            
+            // Track activity for hybrid progression
+            trackActivity(gameState, 'miss', 1);
             
             // Handle tier set items being missed
             if (item.itemData && item.itemData.type === "tier_set") {
                 item.itemData.missed++;
                 gameState.tierSetMissed++;
-                gameState.gameUnwinnable = true;
                 playScreamSound();
             } else {
                 // Check if shield is active - if so, block missed item damage
@@ -1280,6 +893,9 @@ function updateFallingItems(deltaTimeMultiplier) {
                     // Shield blocks the damage from missed items
                     addNotification(gameState, `🛡️ Shield Protected!`, 120, '#FFD700');
                 } else {
+                    // Track damage for hybrid progression
+                    trackActivity(gameState, 'damage', gameConfig.gameplay.healthLossOnMiss);
+                    
                     gameState.health = Math.max(0, gameState.health - gameConfig.gameplay.healthLossOnMiss);
                     playUffSound();
                 }
@@ -1403,6 +1019,9 @@ function checkCollisions() {
                 
                 gameState.perfectCollections++;
                 
+                // Track activity for hybrid progression
+                trackActivity(gameState, 'collection', 1);
+                
                 // Create particles
                 createCollectionParticles(item.x + item.width/2, item.y + item.height/2, particles);
                 
@@ -1424,10 +1043,19 @@ function checkCollisions() {
                         gameState.tierSetCollected++;
                     }
                     
-                    // Trigger player celebration for tier set collection
-                    if (player.onTierSetCollected) {
-                        console.log(`Triggering celebration for: ${item.itemData.name}`);
-                        player.onTierSetCollected();
+                    // Check if this is an Ashkandi item for special celebration
+                    if (item.itemData.id === "ashjrethul" || item.itemData.id === "ashkandi2") {
+                        // Trigger special sando celebration for Ashkandi items
+                        if (player.onAshkandiCollected) {
+                            console.log(`Triggering sando celebration for: ${item.itemData.name}`);
+                            player.onAshkandiCollected();
+                        }
+                    } else {
+                        // Trigger regular player celebration for other tier set items
+                        if (player.onTierSetCollected) {
+                            console.log(`Triggering celebration for: ${item.itemData.name}`);
+                            player.onTierSetCollected();
+                        }
                     }
                     
                     // Add notification for tier set collection
@@ -1435,6 +1063,9 @@ function checkCollisions() {
                     const dragonstalkerItems = gameItems.filter(item => item.type === "tier_set");
                     const uniquePiecesCollected = dragonstalkerItems.filter(item => item.collected > 0).length;
                     addNotification(gameState, `🏆 ${item.itemData.name} (${uniquePiecesCollected}/10)`, 240, '#FFD700');
+                    
+                    // Check if Dragonstalker set is complete
+                    checkDragonstalkerCompletion(gameState, gameItems);
                 } else {
                     playItemSound(item.itemData);
                 }
@@ -1477,6 +1108,41 @@ function checkCollisions() {
                         gameState.speedIncreaseMultiplier = 2.0;
                     }
                     
+                    // UPDATE EXISTING ITEMS' SPEED - Apply speed boost to all items currently on screen
+                    fallingItems.forEach(item => {
+                        if (item.speed && item.baseSpeed) {
+                            // If item has stored base speed, recalculate from base
+                            item.speed = item.baseSpeed * gameState.speedIncreaseMultiplier;
+                        } else {
+                            // Otherwise, multiply current speed by the boost ratio
+                            const previousMultiplier = 1 + ((gameState.currentSpeedIncreasePercent - increasePercent) / 100);
+                            const boostRatio = gameState.speedIncreaseMultiplier / Math.max(previousMultiplier, 1);
+                            item.speed *= boostRatio;
+                        }
+                    });
+                    
+                    // Update power-up items too
+                    powerUps.forEach(powerUp => {
+                        if (powerUp.speed && powerUp.baseSpeed) {
+                            powerUp.speed = powerUp.baseSpeed * gameState.speedIncreaseMultiplier;
+                        } else {
+                            const previousMultiplier = 1 + ((gameState.currentSpeedIncreasePercent - increasePercent) / 100);
+                            const boostRatio = gameState.speedIncreaseMultiplier / Math.max(previousMultiplier, 1);
+                            powerUp.speed *= boostRatio;
+                        }
+                    });
+                    
+                    // Update projectiles too (they should also be affected by speed boost)
+                    fireballs.forEach(projectile => {
+                        if (projectile.speed && projectile.baseSpeed) {
+                            projectile.speed = projectile.baseSpeed * gameState.speedIncreaseMultiplier;
+                        } else {
+                            const previousMultiplier = 1 + ((gameState.currentSpeedIncreasePercent - increasePercent) / 100);
+                            const boostRatio = gameState.speedIncreaseMultiplier / Math.max(previousMultiplier, 1);
+                            projectile.speed *= boostRatio;
+                        }
+                    });
+                    
                     // Add notification for speed boost
                     const totalSpeedPercent = Math.round(gameState.currentSpeedIncreasePercent);
                     addNotification(gameState, `⚡ Speed Boost +${increasePercent}% (Total: ${totalSpeedPercent}%)`, 180, '#FF0000');
@@ -1495,6 +1161,9 @@ function checkCollisions() {
                         if (gameState.shieldActive) {
                             addNotification(gameState, `🛡️ Damage Blocked!`, 120, '#FFD700');
                         } else {
+                            // Track damage for hybrid progression
+                            trackActivity(gameState, 'damage', projectile.data.damage);
+                            
                             gameState.health = Math.max(0, gameState.health - projectile.data.damage);
                             addNotification(gameState, `❄️ Frost Nova -${projectile.data.damage} HP`, 120, '#00BFFF');
                             
@@ -1565,6 +1234,10 @@ function checkCollisions() {
                         } else {
                             // Apply immediate damage for harmful projectiles
                             const damage = projectile.data.damage || 5;
+                            
+                            // Track damage for hybrid progression
+                            trackActivity(gameState, 'damage', damage);
+                            
                             gameState.health = Math.max(0, gameState.health - damage);
                             
                             // Add damage notification
@@ -1607,9 +1280,16 @@ function checkCollisions() {
     // Check power-up collisions
     powerUps.forEach((powerUp, powerUpIndex) => {
         if (powerUp.checkCollision && powerUp.checkCollision(player)) {
+            // Track activity for hybrid progression
+            trackActivity(gameState, 'powerUp', 1);
+            
             // Apply power-up effect
             if (powerUp.applyEffect) {
-                powerUp.applyEffect(audioInitialized, audioState, volumeSettings, gameState);
+                powerUp.applyEffect(audioInitialized, audioState, volumeSettings, gameState, {
+                    fallingItems: fallingItems,
+                    powerUps: powerUps,
+                    fireballs: fireballs
+                });
             }
             
             createCollectionParticles(powerUp.x + powerUp.width/2, powerUp.y + powerUp.height/2, particles);
@@ -1620,15 +1300,14 @@ function checkCollisions() {
 
 function checkGameEndConditions() {
     // Check win conditions
-    // 1. All 10 unique Dragonstalker pieces are collected
-    const dragonstalkerItems = gameItems.filter(item => item.type === "tier_set");
-    const uniquePiecesCollected = dragonstalkerItems.filter(item => item.collected > 0).length;
-    
-    // 2. Zee Zgnan Tigar is collected
+    // 1. Zee Zgnan Tigar is collected (ultimate victory)
     const zeeZgnanItem = gameItems.find(item => item.type === "zee_zgnan");
     const zeeZgnanCollected = zeeZgnanItem && zeeZgnanItem.collected > 0;
     
-    if ((uniquePiecesCollected >= 10 || zeeZgnanCollected) && !gameState.gameWon) {
+    // 2. Multiple Dragonstalker completions (milestone victories)
+    const hasCompletions = gameState.dragonstalkerCompletions > 0;
+    
+    if ((zeeZgnanCollected || hasCompletions) && !gameState.gameWon) {
         // Mark victory achieved but don't end the game
         gameState.gameWon = true;
         
@@ -1636,7 +1315,7 @@ function checkGameEndConditions() {
         if (zeeZgnanCollected) {
             addNotification(gameState, `🎯 ZEE ZGNAN TIGAR! ULTIMATE VICTORY! Game continues... 🎯`, 360, '#FF69B4');
         } else {
-            addNotification(gameState, `🏆 VICTORY! Complete Dragonstalker Set! Game continues... 🏆`, 360, '#FFD700');
+            addNotification(gameState, `🏆 VICTORY! ${gameState.dragonstalkerCompletions} Dragonstalker Set${gameState.dragonstalkerCompletions > 1 ? 's' : ''} Complete! Game continues... 🏆`, 360, '#FFD700');
         }
         
         // Play victory sound (reuse total sound)
@@ -1766,8 +1445,11 @@ function showNameEntry() {
     document.getElementById('highScores').style.display = 'none';
     document.getElementById('howToPlay').style.display = 'none';
     document.getElementById('gameOver').style.display = 'none';
+    document.getElementById('pauseMenu').style.display = 'none';
     gameState.currentScreen = 'menu';
-    gameState.showingSettings = false;
+    
+    // Update button visibility based on game state
+    updateMenuButtons();
     
     // Focus on name input
     const nameInput = document.getElementById('playerNameInput');
@@ -1780,6 +1462,29 @@ function showNameEntry() {
     updateCanvasOverlay();
 }
 
+// Update menu button visibility based on game state
+function updateMenuButtons() {
+    const startBtn = document.getElementById('startGameBtn');
+    const continueBtn = document.getElementById('continueGameBtn');
+    const restartGameBtn = document.getElementById('restartGameBtn');
+    
+    // Check if there's a game in progress (paused or running)
+    const gameInProgress = gameState.gameRunning || gameState.showingPauseMenu || 
+                          (gameState.currentScreen === 'game' && gameState.health > 0);
+    
+    if (gameInProgress) {
+        // Game is in progress - show continue/restart, hide start
+        if (startBtn) startBtn.style.display = 'none';
+        if (continueBtn) continueBtn.style.display = 'inline-block';
+        if (restartGameBtn) restartGameBtn.style.display = 'inline-block';
+    } else {
+        // No game in progress - show start, hide continue/restart
+        if (startBtn) startBtn.style.display = 'inline-block';
+        if (continueBtn) continueBtn.style.display = 'none';
+        if (restartGameBtn) restartGameBtn.style.display = 'none';
+    }
+}
+
 // Show high scores screen
 function showHighScores() {
     console.log('Showing high scores screen');
@@ -1788,7 +1493,6 @@ function showHighScores() {
     document.getElementById('howToPlay').style.display = 'none';
     document.getElementById('gameOver').style.display = 'none';
     gameState.currentScreen = 'highScores';
-    gameState.showingSettings = false;
     
     safeDisplayHighScores();
     
@@ -1797,14 +1501,17 @@ function showHighScores() {
 }
 
 // Show how to play screen
-function showHowToPlay() {
+function showHowToPlay(fromPause = false) {
     console.log('Showing how to play screen');
     document.getElementById('nameEntry').style.display = 'none';
     document.getElementById('highScores').style.display = 'none';
     document.getElementById('howToPlay').style.display = 'block';
     document.getElementById('gameOver').style.display = 'none';
+    document.getElementById('pauseMenu').style.display = 'none';
     gameState.currentScreen = 'howToPlay';
-    gameState.showingSettings = false;
+    
+    // Store where we came from for the back button
+    gameState.howToPlaySource = fromPause ? 'pause' : 'menu';
     
     // Update canvas overlay
     updateCanvasOverlay();
@@ -1818,9 +1525,8 @@ function showItemsFromMenu() {
     document.getElementById('howToPlay').style.display = 'none';
     document.getElementById('gameOver').style.display = 'none';
     
-    // Ensure we're on the menu screen and show settings overlay
+    // Ensure we're on the menu screen
     gameState.currentScreen = 'menu';
-    gameState.showingSettings = true;
     
     // Update canvas overlay
     updateCanvasOverlay();
@@ -1898,6 +1604,8 @@ function setupUIEventHandlers() {
 
     // Click handlers for UI buttons - using correct IDs from HTML
     const startBtn = document.getElementById('startGameBtn');
+    const continueBtn = document.getElementById('continueGameBtn');
+    const restartGameBtn = document.getElementById('restartGameBtn');
     const viewScoresBtn = document.getElementById('viewScoresBtn');
     const howToPlayBtn = document.getElementById('howToPlayBtn');
     const backToMenuBtn = document.getElementById('backToMenuBtn');
@@ -1908,6 +1616,24 @@ function setupUIEventHandlers() {
     
     if (startBtn) {
         startBtn.addEventListener('click', startGameFromUI);
+    }
+    
+    if (continueBtn) {
+        continueBtn.addEventListener('click', function() {
+            // Hide menu and continue the paused game
+            document.getElementById('nameEntry').style.display = 'none';
+            gameState.gameRunning = true;
+            gameState.currentScreen = 'game';
+            updateCanvasOverlay();
+        });
+    }
+    
+    if (restartGameBtn) {
+        restartGameBtn.addEventListener('click', function() {
+            // Restart the current game
+            restartGame();
+            startGameFromUI();
+        });
     }
     
     if (viewScoresBtn) {
@@ -1932,7 +1658,15 @@ function setupUIEventHandlers() {
     
     if (backToMenuBtn2) {
         backToMenuBtn2.addEventListener('click', function() {
-            showNameEntry();
+            // Check if we came from pause menu
+            if (gameState.howToPlaySource === 'pause') {
+                // Return to pause menu
+                document.getElementById('howToPlay').style.display = 'none';
+                showPauseMenu();
+            } else {
+                // Return to main menu
+                showNameEntry();
+            }
         });
     }
     
@@ -1946,6 +1680,41 @@ function setupUIEventHandlers() {
     
     if (audioBtn) {
         audioBtn.addEventListener('click', toggleAudioButton);
+    }
+    
+    // Pause menu button handlers
+    const continuePauseBtn = document.getElementById('continuePauseBtn');
+    const gameInfoPauseBtn = document.getElementById('gameInfoPauseBtn');
+    const restartPauseBtn = document.getElementById('restartPauseBtn');
+    
+    if (continuePauseBtn) {
+        continuePauseBtn.addEventListener('click', function() {
+            hidePauseMenu();
+            gameState.gameRunning = true;
+        });
+    }
+    
+    if (gameInfoPauseBtn) {
+        gameInfoPauseBtn.addEventListener('click', function() {
+            // Hide pause menu and show game info (how to play screen)
+            hidePauseMenu();
+            showHowToPlay(true); // Pass true to indicate it came from pause
+        });
+    }
+    
+    if (restartPauseBtn) {
+        restartPauseBtn.addEventListener('click', function() {
+            // Hide pause menu and restart to main menu
+            hidePauseMenu();
+            gameState.gameRunning = false;
+            gameState.currentScreen = 'menu';
+            
+            // Reset game state
+            restartGame();
+            
+            // Show name entry screen
+            showNameEntry();
+        });
     }
 }
 
@@ -2057,6 +1826,10 @@ function updatePlayerStats(gameState) {
     const playerScoreDisplay = document.getElementById('playerScoreDisplay');
     const playerLevelDisplay = document.getElementById('playerLevelDisplay');
     const gameSpeed = document.getElementById('gameSpeed');
+    const speedBoostRow = document.getElementById('speedBoostRow');
+    const speedBoostValue = document.getElementById('speedBoostValue');
+    const actualItemSpeed = document.getElementById('actualItemSpeed');
+    const actualProjectileSpeed = document.getElementById('actualProjectileSpeed');
     
     // Update player name
     if (playerNameDisplay) {
@@ -2075,8 +1848,71 @@ function updatePlayerStats(gameState) {
     
     // Calculate and update effective game speed (in stats section)
     if (gameSpeed) {
-        const effectiveSpeed = Math.max(0.2, gameState.levelSpeedMultiplier - gameState.permanentSpeedReduction);
-        gameSpeed.textContent = `${effectiveSpeed.toFixed(1)}x`;
+        const baseSpeed = Math.max(0.2, gameState.levelSpeedMultiplier - gameState.permanentSpeedReduction);
+        let speedText = `${baseSpeed.toFixed(1)}x`;
+        
+        // Show Dragonstalker completion reduction if any
+        if (gameState.permanentSpeedReductionFromSets > 0) {
+            speedText += ` (-${gameState.permanentSpeedReductionFromSets.toFixed(1)}x DS)`;
+        }
+        
+        gameSpeed.textContent = speedText;
+        
+        // Add level progress info for hybrid progression
+        if (gameConfig.levels.progressionType === "hybrid" || gameConfig.levels.progressionType === "time") {
+            const progress = getLevelProgress(gameState);
+            const timeRemaining = Math.ceil(progress.timeRemaining);
+            const minutes = Math.floor(timeRemaining / 60);
+            const seconds = timeRemaining % 60;
+            const timeStr = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds}s`;
+            
+            // Show activity bonuses/penalties
+            const activity = progress.activity || {};
+            let activityStr = '';
+            if (activity.collections > 0 || activity.misses > 0 || activity.powerUpsCollected > 0 || activity.damageReceived > 0) {
+                const bonuses = [];
+                if (activity.collections > 0) bonuses.push(`📦${activity.collections}`);
+                if (activity.powerUpsCollected > 0) bonuses.push(`⚡${activity.powerUpsCollected}`);
+                if (activity.misses > 0) bonuses.push(`❌${activity.misses}`);
+                if (activity.damageReceived > 0) bonuses.push(`💔${Math.round(activity.damageReceived)}`);
+                activityStr = ` (${bonuses.join(' ')})`;
+            }
+            
+            speedText += ` | Next: ${timeStr}${activityStr}`;
+            gameSpeed.textContent = speedText;
+        }
+    }
+    
+    // Update speed boost display
+    if (speedBoostRow && speedBoostValue) {
+        if (gameState.speedIncreaseActive && gameState.currentSpeedIncreasePercent > 0) {
+            speedBoostRow.style.display = 'flex';
+            speedBoostValue.textContent = `+${gameState.currentSpeedIncreasePercent}%`;
+            speedBoostValue.style.color = '#FF0000'; // Red color for speed boost
+        } else {
+            speedBoostRow.style.display = 'none';
+        }
+    }
+    
+    // Calculate actual speeds from items on screen (minimal performance impact)
+    if (actualItemSpeed) {
+        if (fallingItems.length > 0) {
+            const totalItemSpeed = fallingItems.reduce((sum, item) => sum + (item.speed || 0), 0);
+            const avgItemSpeed = totalItemSpeed / fallingItems.length;
+            actualItemSpeed.textContent = `${avgItemSpeed.toFixed(1)} px/frame`;
+        } else {
+            actualItemSpeed.textContent = '-- px/frame';
+        }
+    }
+    
+    if (actualProjectileSpeed) {
+        if (fireballs.length > 0) {
+            const totalProjectileSpeed = fireballs.reduce((sum, projectile) => sum + (projectile.speed || 0), 0);
+            const avgProjectileSpeed = totalProjectileSpeed / fireballs.length;
+            actualProjectileSpeed.textContent = `${avgProjectileSpeed.toFixed(1)} px/frame`;
+        } else {
+            actualProjectileSpeed.textContent = '-- px/frame';
+        }
     }
 }
 
@@ -2095,12 +1931,16 @@ function updateDragonstalkerSection(gameState, gameItems) {
     const zeeZgnanItem = gameItems.find(item => item.type === "zee_zgnan");
     const zeeZgnanCollected = zeeZgnanItem && zeeZgnanItem.collected > 0;
     
-    // Show/hide section based on progress
-    if (uniquePiecesCollected > 0 || gameState.tierSetMissed > 0 || zeeZgnanCollected) {
+    // Show section during gameplay or if there's progress/completions
+    if (gameState.gameRunning && (uniquePiecesCollected > 0 || gameState.tierSetMissed > 0 || gameState.dragonstalkerCompletions > 0 || zeeZgnanCollected)) {
         section.classList.remove('hidden');
         
-        // Update progress
-        tierProgress.textContent = `${uniquePiecesCollected}/10`;
+        // Update progress - show current set progress and completions
+        let progressText = `${uniquePiecesCollected}/10`;
+        if (gameState.dragonstalkerCompletions > 0) {
+            progressText += ` (${gameState.dragonstalkerCompletions} SET${gameState.dragonstalkerCompletions > 1 ? 'S' : ''})`;
+        }
+        tierProgress.textContent = progressText;
         
         // Update status
         tierStatus.className = 'tier-status';
@@ -2112,11 +1952,11 @@ function updateDragonstalkerSection(gameState, gameItems) {
                 tierStatus.textContent = '🏆 VICTORY ACHIEVED! 🏆';
                 tierStatus.classList.add('victory');
             }
-        } else if (gameState.gameUnwinnable) {
-            tierStatus.textContent = '❌ VICTORY IMPOSSIBLE ❌';
-            tierStatus.classList.add('impossible');
         } else if (uniquePiecesCollected >= 8) {
             tierStatus.textContent = '🏆 ALMOST THERE! 🏆';
+        } else if (gameState.dragonstalkerCompletions > 0) {
+            // Show that they're working on another set
+            tierStatus.textContent = `Next set: ${10 - uniquePiecesCollected} more pieces`;
         } else {
             tierStatus.textContent = `Collect all 10 pieces to win!`;
         }
@@ -2147,6 +1987,7 @@ function updateItemsList(sortedItems) {
         // Get icon based on type
         let icon = '';
         if (item.type === 'regular') icon = '○';
+        else if (item.type === 'green') icon = '●';
         else if (item.type === 'epic') icon = '◆';
         else if (item.type === 'special') icon = '★';
         else if (item.type === 'legendary') icon = '⚡';
@@ -2186,6 +2027,16 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
     const dragonstalkerItems = gameItems.filter(item => item.type === "tier_set");
     const uniquePiecesCollected = dragonstalkerItems.filter(item => item.collected > 0).length;
     
+    // DEBUG: Log current state
+    console.log('🔍 Dragonstalker Panel Debug:', {
+        uniquePiecesCollected,
+        dragonstalkerCompletions: gameState.dragonstalkerCompletions,
+        permanentSpeedReductionFromSets: gameState.permanentSpeedReductionFromSets,
+        gameWon: gameState.gameWon,
+
+        totalDragonstalkerItems: dragonstalkerItems.length
+    });
+    
     // Check for Zee Zgnan victory
     const zeeZgnanItem = gameItems.find(item => item.type === "zee_zgnan");
     const zeeZgnanCollected = zeeZgnanItem && zeeZgnanItem.collected > 0;
@@ -2210,8 +2061,6 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
     panel.className = '';
     if (gameState.gameWon) {
         panel.classList.add('victory');
-    } else if (gameState.gameUnwinnable) {
-        panel.classList.add('impossible');
     }
     
     // Update progress bar
@@ -2220,7 +2069,15 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
     if (progressFill && progressText) {
         const progressPercent = (uniquePiecesCollected / 10) * 100;
         progressFill.style.width = `${progressPercent}%`;
-        progressText.textContent = `${uniquePiecesCollected}/10 PIECES`;
+        
+        let progressString = `${uniquePiecesCollected}/10 PIECES`;
+        if (gameState.dragonstalkerCompletions > 0) {
+            progressString += ` | ${gameState.dragonstalkerCompletions} SET${gameState.dragonstalkerCompletions > 1 ? 'S' : ''} COMPLETE`;
+        }
+        progressText.textContent = progressString;
+        
+        // DEBUG: Log progress string
+        console.log('🔍 Progress String:', progressString);
         
         if (gameState.gameWon) {
             progressFill.classList.add('victory');
@@ -2239,14 +2096,19 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
                 statusElement.textContent = '🏆 SET COMPLETE! 🏆';
                 statusElement.classList.add('victory');
             }
-        } else if (gameState.gameUnwinnable) {
-            statusElement.textContent = '❌ VICTORY IMPOSSIBLE ❌';
-            statusElement.classList.add('impossible');
         } else if (uniquePiecesCollected >= 8) {
             statusElement.textContent = '🏆 ALMOST THERE! 🏆';
         } else {
             statusElement.textContent = `Need ${10 - uniquePiecesCollected} more pieces`;
         }
+        
+        // Add speed reduction info if any completions
+        if (gameState.permanentSpeedReductionFromSets > 0) {
+            statusElement.textContent += ` | Speed Reduction: -${gameState.permanentSpeedReductionFromSets.toFixed(1)}x`;
+        }
+        
+        // DEBUG: Log status message
+        console.log('🔍 Status Message:', statusElement.textContent);
     }
     
     // Update items list
@@ -2260,6 +2122,13 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
             const bPos = b.setPosition || 999;
             return aPos - bPos;
         });
+        
+        // DEBUG: Log item statuses
+        console.log('🔍 Item Statuses:', sortedDragonstalkerItems.map(item => ({
+            name: item.name,
+            collected: item.collected,
+            missed: item.missed
+        })));
         
         // Items are sorted by setPosition for display
         
@@ -2303,15 +2172,15 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
                 bottomMessage.textContent = 'Dragonstalker Set Complete!';
                 bottomMessage.classList.add('victory');
             }
-        } else if (gameState.gameUnwinnable) {
-            bottomMessage.textContent = `Missed ${gameState.tierSetMissed} pieces - Game Over`;
-            bottomMessage.classList.add('impossible');
         } else if (uniquePiecesCollected >= 8) {
             bottomMessage.textContent = 'So close to victory!';
             bottomMessage.classList.add('almost-there');
         } else {
             bottomMessage.textContent = 'Collect all pieces to win the game!';
         }
+        
+        // DEBUG: Log bottom message
+        console.log('🔍 Bottom Message:', bottomMessage.textContent);
     }
 }
 
@@ -2351,6 +2220,9 @@ function endGame() {
     
     document.getElementById('gameOver').style.display = 'block';
     
+    // Update menu buttons since game is now over
+    updateMenuButtons();
+    
     // Update canvas overlay
     updateCanvasOverlay();
 }
@@ -2387,6 +2259,9 @@ function winGame() {
     
     document.getElementById('gameOver').style.display = 'block';
     
+    // Update menu buttons since game is now over
+    updateMenuButtons();
+    
     // Update canvas overlay
     updateCanvasOverlay();
 }
@@ -2402,4 +2277,82 @@ function preloadLevelAssets(level) {
         // Warmup cache for current level
         assetManager.warmupCache(level);
     }
+}
+
+// Update HTML-based spell bar
+function updateSpellBarHTML() {
+    const currentTime = Date.now();
+    
+    const spells = [
+        { id: 'dragon_cry', elementId: 'spell-dragon-cry' },
+        { id: 'zandalari', elementId: 'spell-zandalari' },
+        { id: 'songflower', elementId: 'spell-songflower' }
+    ];
+    
+    spells.forEach(spell => {
+        const element = document.getElementById(spell.elementId);
+        const timerElement = document.getElementById(`${spell.elementId}-timer`);
+        const cooldownOverlay = document.getElementById(`${spell.elementId}-cooldown`);
+        
+        if (!element || !timerElement || !cooldownOverlay) return;
+        
+        const cooldownRemaining = spellSystem.getCooldownRemaining(spell.id, currentTime);
+        const durationRemaining = spellSystem.getDurationRemaining(spell.id, currentTime);
+        const isActive = spellSystem.isSpellActive(spell.id);
+        const isOnCooldown = cooldownRemaining > 0;
+        
+        // Update spell slot classes
+        element.className = 'spell-slot';
+        if (isActive) {
+            element.classList.add('active');
+        } else if (isOnCooldown) {
+            element.classList.add('cooldown');
+        }
+        
+        // Update timer display
+        if (isActive && durationRemaining > 0) {
+            timerElement.textContent = `${durationRemaining}s`;
+            timerElement.className = 'spell-timer active';
+        } else if (isOnCooldown) {
+            timerElement.textContent = `${cooldownRemaining}s`;
+            timerElement.className = 'spell-timer cooldown';
+        } else {
+            timerElement.textContent = '';
+            timerElement.className = 'spell-timer';
+        }
+        
+        // Update cooldown overlay
+        if (isOnCooldown) {
+            cooldownOverlay.classList.add('active');
+        } else {
+            cooldownOverlay.classList.remove('active');
+        }
+    });
+}
+
+// Update HTML-based health bar
+function updateHealthBarHTML() {
+    const healthFill = document.getElementById('healthFill');
+    const healthText = document.getElementById('healthText');
+    
+    if (!healthFill || !healthText) return;
+    
+    const healthPercentage = Math.max(0, gameState.health / gameState.maxHealth);
+    const healthPercent = Math.ceil(healthPercentage * 100);
+    
+    // Update health fill width
+    healthFill.style.width = `${healthPercentage * 100}%`;
+    
+    // Update health fill color based on health level
+    healthFill.className = 'health-fill';
+    if (healthPercentage <= 0.25) {
+        healthFill.classList.add('low');
+    } else if (healthPercentage <= 0.6) {
+        healthFill.classList.add('medium');
+    } else {
+        healthFill.classList.add('high');
+    }
+    
+    // Update health text
+    healthText.textContent = `${healthPercent}%`;
 } 

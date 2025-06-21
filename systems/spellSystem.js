@@ -209,6 +209,17 @@ class SpellSystem {
         return multiplier;
     }
 
+    // Get item speed multiplier from active spells
+    getItemSpeedMultiplier() {
+        let multiplier = 1.0;
+        for (const [spellId, activeSpell] of this.activeSpells.entries()) {
+            if (activeSpell.spell.effects.slow_items) {
+                multiplier = Math.min(multiplier, activeSpell.spell.effects.slow_items);
+            }
+        }
+        return multiplier;
+    }
+
     // Handle songflower effect - remove one missed dragonstalker item
     handleSongflowerEffect() {
         // Access the global gameItems array directly
@@ -238,12 +249,11 @@ class SpellSystem {
                     item.type === 'tier_set' && item.missed > 0
                 );
                 
-                if (stillMissedItems.length === 0) {
-                    gameState.gameUnwinnable = false;
-                    this.addNotification(`Songflower restored ${itemToFix.name}! Victory is possible again! 🏆`, 240, '#00FF00');
-                } else {
-                    this.addNotification(`Songflower restored ${itemToFix.name}!`, 180, '#FF69B4');
-                }
+                        if (stillMissedItems.length === 0) {
+            this.addNotification(`Songflower restored ${itemToFix.name}! Victory is possible again! 🏆`, 240, '#00FF00');
+        } else {
+            this.addNotification(`Songflower restored ${itemToFix.name}!`, 180, '#FF69B4');
+        }
             } else {
                 this.addNotification(`Songflower restored ${itemToFix.name}!`, 180, '#FF69B4');
             }
@@ -298,7 +308,6 @@ class SpellSystem {
         );
         
         if (stillMissedItems.length === 0) {
-            gameState.gameUnwinnable = false;
             this.addNotification(`Songflower restored ${itemToFix.name}! Victory is possible again! 🏆`, 240, '#00FF00');
         } else {
             this.addNotification(`Songflower restored ${itemToFix.name}!`, 180, '#FF69B4');

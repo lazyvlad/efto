@@ -173,11 +173,15 @@ function renderHighScoresList(scores) {
             }
         }
         
+        // Format level display
+        const levelDisplay = score.level ? `Lv.${score.level}` : 'Lv.?';
+        
         html += `
             <div class="score-entry ${isTop3 ? 'top3' : ''}">
                 <span class="score-rank">${rankEmoji} #${index + 1}</span>
                 <span class="score-name">${score.name || 'Anonymous'}</span>
                 <span class="score-points">${score.score || 0} pts</span>
+                <span class="score-level">${levelDisplay}</span>
                 <span class="score-date">${displayDate}</span>
             </div>
         `;

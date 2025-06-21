@@ -20,10 +20,10 @@ export const gameConfig = {
     // === POWER-UP SETTINGS ===
     powerUps: {
         enabled: true,
-        startingScore: 20,          // First power-up spawns at this score
+        startingScore: 5,           // First power-up spawns at this score (lowered for testing)
         spawnChance: 1.0,          // Probability of spawning when conditions are met (0.0 to 1.0)
         // Examples:
-        spawnInterval: 10,       // Power-ups every 10 points
+        spawnInterval: 5,        // Power-ups every 5 points (increased frequency for testing)
         customSpawnPoints: [50, 100, 200 ,300], // Extra power-ups at these specific scores
         
         // Cut Time Power-up Settings
@@ -76,6 +76,16 @@ export const gameConfig = {
         particleCount: 15,          // Number of particles per collection
         impactParticleCount: 30,    // Number of particles per fireball impact
         targetFPS: 60,              // Target FPS for speed calculations (normalizes speed across different frame rates)
+        
+        // === FALL ANGLE SETTINGS ===
+        fallAngles: {
+            maxAngleVariation: 90,  // Maximum angle variation in degrees (-45 to +45 degrees)
+            minAngle: -45,          // Minimum fall angle in degrees (negative = left)
+            maxAngle: 45,           // Maximum fall angle in degrees (positive = right)
+            allowUpwardMovement: true, // Allow angles > 90 degrees for upward movement
+            upwardAngleMin: 135,    // Minimum upward angle (135° = up-left)
+            upwardAngleMax: 225,    // Maximum upward angle (225° = up-right)
+        },
     },
     
     // === PLAYER SETTINGS ===
@@ -99,11 +109,23 @@ export const gameConfig = {
     
     // === LEVEL PROGRESSION ===
     levels: {
-        // Point thresholds for each level - now supports unlimited progression!
-        thresholds: [0, 40, 100, 140, 200, 260, 350, 500, 700, 1000, 1400, 2000], // Level 0-11 thresholds
-        // Mathematical formula for speed progression (replaces hardcoded arrays)
-        formulaBase: 1.2,           // Starting speed at level 0 (restored from testing)
-        maxSpeedMultiplier: 9.0,    // Legacy cap (now only used for safety fallback)
+        // === HYBRID TIME + ACTIVITY PROGRESSION ===
+        progressionType: "hybrid",          // "hybrid", "time", "points", or "events"
+        baseTimePerLevel: 45,               // Base time requirement per level (seconds)
+        
+        // Activity bonuses/penalties
+        activityBonus: {
+            collectionsReduce: 2,           // Each collection reduces time by 2 seconds
+            missesIncrease: 1,              // Each miss increases time by 1 second
+            maxReduction: 15,               // Max time reduction per level (33% faster)
+            maxIncrease: 10,                // Max time increase per level (22% slower)
+            powerUpCollectedReduce: 3,      // Power-up collection reduces time by 3 seconds
+            damageReceivedIncrease: 0.5     // Each damage point increases time by 0.5 seconds
+        },
+        
+        // Mathematical formula for speed progression (same as before)
+        formulaBase: 1.2,           // Starting speed at level 0
+        maxLevelSpeedMultiplier: 50.0,    // Maximum level speed multiplier (safety fallback)
         
         // === UNLIMITED PROGRESSION SETTINGS ===
         enableSafetyCap: true,      // Enable safety cap to prevent extreme performance issues
@@ -116,18 +138,27 @@ export const gameConfig = {
             exponential: 0.5,       // Exponential component weight (rapid late-game growth)
             exponentialBase: 1.25   // Base for exponential component (higher = faster growth)
         },
-        // Legacy settings removed - using formula-based system only
-        // speedMultipliers and levelBeyond5Increment removed - redundant with formula system
+        
+        // Legacy point-based thresholds (kept for fallback compatibility)
+        thresholds: [0, 40, 100, 140, 200, 260, 350, 500, 700, 1000, 1400, 2000],
+    },
+    
+    // === DRAGONSTALKER SET COMPLETION ===
+    dragonstalker: {
+        speedReductionPercent: 0.3,     // 40% speed reduction per completion (0.0 to 1.0)
+        minSpeedAfterReduction: 0.2,    // Minimum speed multiplier after all reductions
+        enableMultipleCompletions: true // Allow collecting sets multiple times
     },
     
     // === ITEM DROP PROBABILITIES ===
     itemProbabilities: {
         regular: 0.4,               // Regular items base probability (40%)
-        epic: 0.05,                 // Epic items base probability (5%)
-        special: 0.02,              // Special items base probability (2%)
-        legendary: 0.01,            // Legendary items base probability (1%)
-        zee_zgnan: 0.002,           // Zee Zgnan items base probability (0.2%) - Ultra rare, one-time only
-        tier_set: 0.005,            // Tier set items base probability (0.5%) - Win condition items
+        green: 0.2,                // Green items base probability (20%)    
+        epic: 0.1,                 // Epic items base probability (10%)
+        tier_set: 0.055,            // Tier set items base probability (5.5%) - Win condition items
+        special: 0.032,              // Special items base probability (3.2%)
+        legendary: 0.02,            // Legendary items base probability (2%)
+        zee_zgnan: 0.01,           // Zee Zgnan items base probability (1%) - Ultra rare, one-time only
     },
     
     // === VISUAL SETTINGS ===

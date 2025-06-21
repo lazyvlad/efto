@@ -43,10 +43,14 @@ export class DamageProjectile {
         
         // Apply cut_time reduction as a subtraction from level multiplier, not final speed
         const effectiveProjectileMultiplier = Math.max(0.3, projectileSpeedMultiplier - gameState.permanentSpeedReduction);
-        this.speed = gameState.baseDropSpeed * effectiveProjectileMultiplier * projectileSpeedIncrease * speedVariation;
+        const baseSpeed = gameState.baseDropSpeed * effectiveProjectileMultiplier * speedVariation;
+        this.baseSpeed = baseSpeed; // Store base speed for recalculation when speed boosts are applied
+        this.speed = baseSpeed * projectileSpeedIncrease;
         
         // Visual effects
         this.glowAnimation = 0;
+        this.pulseAnimation = 0;
+        this.flickerAnimation = 0;
         
         // Speed boost specific properties
         if (this.data.effects === "speed_increase") {
@@ -76,6 +80,8 @@ export class DamageProjectile {
     update(deltaTimeMultiplier, canvas) {
         this.y += this.speed * deltaTimeMultiplier;
         this.glowAnimation += 0.2 * deltaTimeMultiplier;
+        this.pulseAnimation += 0.12 * deltaTimeMultiplier;
+        this.flickerAnimation += 0.25 * deltaTimeMultiplier;
         
         if (this.y > canvas.height + this.height) {
             return false;
@@ -86,27 +92,54 @@ export class DamageProjectile {
     draw(ctx) {
         ctx.save();
         
-        // Glow effect based on projectile type
-        if (this.data.id === "frostbolt") {
-            const glow = Math.sin(this.glowAnimation) * 0.4 + 0.6;
-            ctx.shadowColor = this.data.color;
-            ctx.shadowBlur = 25 * glow;
-        } else if (this.data.id === "shadowbolt") {
-            const glow = Math.sin(this.glowAnimation) * 0.5 + 0.5;
-            ctx.shadowColor = this.data.color;
-            ctx.shadowBlur = 30 * glow;
-        }
+        // Calculate pulsating effects based on projectile type
+        let drawWidth = this.width;
+        let drawHeight = this.height;
+        let glowIntensity = 1.0;
         
-        // Force consistent size regardless of source image dimensions
-        const drawWidth = this.width;
-        const drawHeight = this.height;
+        if (this.data.id === "fireball") {
+            // Fireball: Subtle flickering like real fire with size variation (matched to frostbolt)
+            const flicker = Math.sin(this.flickerAnimation * 3) * 0.04 + Math.sin(this.flickerAnimation * 7) * 0.02; // Multi-frequency flicker (subtle)
+            const sizePulse = Math.sin(this.pulseAnimation * 2) * 0.04 + 1.0; // Size pulsing (matched to frostbolt)
+            drawWidth *= (1.0 + flicker) * sizePulse;
+            drawHeight *= (1.0 + flicker) * sizePulse;
+            glowIntensity = Math.sin(this.glowAnimation * 4) * 0.6 + 0.8; // Intense glow variation
+            
+            ctx.shadowColor = '#FF4500';
+            ctx.shadowBlur = 35 * glowIntensity;
+        } else if (this.data.id === "frostbolt") {
+            // Frostbolt: Crystalline shimmer with subtle pulsing
+            const shimmer = Math.sin(this.pulseAnimation * 1.5) * 0.08 + 1.0; // Subtle shimmer
+            const crystalPulse = Math.sin(this.glowAnimation * 2.5) * 0.3 + 0.7; // Crystal-like pulsing
+            drawWidth *= shimmer;
+            drawHeight *= shimmer;
+            glowIntensity = crystalPulse;
+            
+            ctx.shadowColor = this.data.color;
+            ctx.shadowBlur = 25 * glowIntensity;
+        } else if (this.data.id === "shadowbolt") {
+            // Shadowbolt: Dark corruption with wispy tendrils
+            const corruption = Math.sin(this.pulseAnimation * 0.8) * 0.1 + Math.sin(this.flickerAnimation * 2) * 0.05; // Slow corruption pulse
+            const darkPulse = Math.sin(this.glowAnimation * 1.2) * 0.4 + 0.6; // Dark energy pulsing
+            drawWidth *= (1.0 + corruption);
+            drawHeight *= (1.0 + corruption);
+            glowIntensity = darkPulse;
+            
+            ctx.shadowColor = this.data.color;
+            ctx.shadowBlur = 30 * glowIntensity;
+        } else {
+            // Default glow for other projectiles
+            const glow = Math.sin(this.glowAnimation) * 0.4 + 0.6;
+            ctx.shadowColor = this.data.color || '#FFFFFF';
+            ctx.shadowBlur = 20 * glow;
+        }
         const borderPadding = 8; // Padding for border around projectiles with variable values
         
-        // Draw scary borders for damage-dealing projectiles (fireball, frostbolt, and shadowbolt)
-        if (this.data.id === "fireball" || this.data.id === "frostbolt" || this.data.id === "shadowbolt") {
+        // Draw scary borders for shadowbolt and fireball (but not frostbolt)
+        if (this.data.id === "fireball" || this.data.id === "shadowbolt") {
             // Animated pulsing effect for scary border
             const pulseIntensity = Math.sin(this.glowAnimation * 2) * 0.3 + 0.7;
-            const borderSize = 2 + Math.sin(this.glowAnimation * 1.5) * 1; // Animated border thickness (thinner)
+            const borderSize = 2 + Math.sin(this.glowAnimation * 1.5) * 1; // Animated border thickness
             
             // Calculate center and radius for circular border
             const centerX = this.x + drawWidth / 2;
@@ -132,18 +165,18 @@ export class DamageProjectile {
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
                 ctx.stroke();
-            } else {
-                // Red glow for fireball and frostbolt
-                ctx.strokeStyle = `rgba(255, 0, 0, ${pulseIntensity})`;
+            } else if (this.data.id === "fireball") {
+                // Orange/red glow for fireball
+                ctx.strokeStyle = `rgba(255, 69, 0, ${pulseIntensity})`;
                 ctx.lineWidth = borderSize;
-                ctx.shadowColor = '#FF0000';
+                ctx.shadowColor = '#FF4500';
                 ctx.shadowBlur = 15 * pulseIntensity;
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
                 ctx.stroke();
                 
-                // Inner darker red border circle for more definition
-                ctx.strokeStyle = `rgba(139, 0, 0, ${pulseIntensity + 0.2})`;
+                // Inner darker orange border circle for more definition
+                ctx.strokeStyle = `rgba(255, 140, 0, ${pulseIntensity + 0.2})`;
                 ctx.lineWidth = Math.max(1, borderSize - 1); // Thinner inner border
                 ctx.shadowBlur = 6 * pulseIntensity;
                 ctx.beginPath();
@@ -180,11 +213,13 @@ export class DamageProjectile {
         
         // Check if projectile image is loaded, otherwise draw a placeholder
         if (this.projectileImage && this.projectileImage.complete && this.projectileImage.naturalWidth > 0) {
-            // Force the image to exact size, ignoring source dimensions
-            ctx.drawImage(this.projectileImage, this.x, this.y, drawWidth, drawHeight);
+            // Center the pulsating image
+            const offsetX = (drawWidth - this.width) / 2;
+            const offsetY = (drawHeight - this.height) / 2;
+            ctx.drawImage(this.projectileImage, this.x - offsetX, this.y - offsetY, drawWidth, drawHeight);
         } else {
-            // Draw placeholder based on projectile type with consistent size
-            this.drawPlaceholder(ctx, drawWidth, drawHeight);
+            // Draw placeholder based on projectile type with pulsating size
+            this.drawPlaceholder(ctx, drawWidth, drawHeight, glowIntensity);
         }
         
         // Draw variable value text underneath for projectiles with special effects
@@ -193,17 +228,41 @@ export class DamageProjectile {
         ctx.restore();
     }
 
-    drawPlaceholder(ctx, drawWidth, drawHeight) {
+    drawPlaceholder(ctx, drawWidth, drawHeight, glowIntensity = 1.0) {
+        const offsetX = (drawWidth - this.width) / 2;
+        const offsetY = (drawHeight - this.height) / 2;
+        const centerX = this.x + this.width/2;
+        const centerY = this.y + this.height/2;
+        
         if (this.data.id === "fireball") {
-            // Fireball placeholder
-            ctx.fillStyle = '#FF4500';
+            // Fireball placeholder with flickering intensity
+            const flickerIntensity = glowIntensity * 0.8 + 0.2; // Never fully dim
+            ctx.fillStyle = `rgba(255, 69, 0, ${flickerIntensity})`;
             ctx.beginPath();
-            ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/2, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY, drawWidth/2, 0, Math.PI * 2);
             ctx.fill();
-            ctx.fillStyle = '#FFD700';
+            
+            // Inner core with more intense flicker
+            ctx.fillStyle = `rgba(255, 215, 0, ${Math.min(1.0, flickerIntensity * 1.3)})`;
             ctx.beginPath();
-            ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/3, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY, drawWidth/3, 0, Math.PI * 2);
             ctx.fill();
+            
+            // Add flame-like spikes around the edge
+            ctx.strokeStyle = `rgba(255, 140, 0, ${flickerIntensity})`;
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 8; i++) {
+                const angle = (i * Math.PI) / 4 + this.flickerAnimation * 0.1;
+                const spikeLength = (drawWidth/2) * (0.8 + Math.sin(this.flickerAnimation * 5 + i) * 0.3);
+                const startX = centerX + Math.cos(angle) * (drawWidth/2.5);
+                const startY = centerY + Math.sin(angle) * (drawHeight/2.5);
+                const endX = centerX + Math.cos(angle) * spikeLength;
+                const endY = centerY + Math.sin(angle) * spikeLength;
+                ctx.beginPath();
+                ctx.moveTo(startX, startY);
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+            }
         } else if (this.data.id === "speedboost") {
             // Speed boost placeholder - red circle with percentage
             ctx.fillStyle = '#FF0000';
@@ -215,27 +274,44 @@ export class DamageProjectile {
             ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/2.5, 0, Math.PI * 2);
             ctx.fill();
         } else if (this.data.id === "frostbolt") {
-            // Frostbolt placeholder
-            ctx.fillStyle = '#00BFFF';
+            // Frostbolt placeholder with crystalline shimmer
+            const shimmerIntensity = glowIntensity;
+            ctx.fillStyle = `rgba(0, 191, 255, ${shimmerIntensity})`;
             ctx.beginPath();
-            ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/2, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY, drawWidth/2, 0, Math.PI * 2);
             ctx.fill();
-            ctx.fillStyle = '#87CEEB';
+            
+            // Inner crystalline core
+            ctx.fillStyle = `rgba(135, 206, 235, ${Math.min(1.0, shimmerIntensity * 1.2)})`;
             ctx.beginPath();
-            ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/3, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY, drawWidth/3, 0, Math.PI * 2);
             ctx.fill();
-            // Add frost effect lines
-            ctx.strokeStyle = '#FFFFFF';
+            
+            // Add animated crystalline spikes
+            ctx.strokeStyle = `rgba(255, 255, 255, ${shimmerIntensity})`;
             ctx.lineWidth = 2;
             for (let i = 0; i < 6; i++) {
-                const angle = (i * Math.PI) / 3;
-                const startX = this.x + drawWidth/2 + Math.cos(angle) * (drawWidth/4);
-                const startY = this.y + drawHeight/2 + Math.sin(angle) * (drawHeight/4);
-                const endX = this.x + drawWidth/2 + Math.cos(angle) * (drawWidth/2.5);
-                const endY = this.y + drawHeight/2 + Math.sin(angle) * (drawHeight/2.5);
+                const angle = (i * Math.PI) / 3 + this.pulseAnimation * 0.05; // Slow rotation
+                const spikeLength = (drawWidth/2.5) * (0.9 + Math.sin(this.pulseAnimation * 2 + i) * 0.1); // Subtle length variation
+                const startX = centerX + Math.cos(angle) * (drawWidth/4);
+                const startY = centerY + Math.sin(angle) * (drawHeight/4);
+                const endX = centerX + Math.cos(angle) * spikeLength;
+                const endY = centerY + Math.sin(angle) * spikeLength;
                 ctx.beginPath();
                 ctx.moveTo(startX, startY);
                 ctx.lineTo(endX, endY);
+                ctx.stroke();
+            }
+            
+            // Add inner shimmer lines
+            ctx.strokeStyle = `rgba(173, 216, 230, ${shimmerIntensity * 0.7})`;
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 3; i++) {
+                const angle = (i * Math.PI) / 1.5 + this.pulseAnimation * 0.1;
+                const length = drawWidth/4;
+                ctx.beginPath();
+                ctx.moveTo(centerX - Math.cos(angle) * length, centerY - Math.sin(angle) * length);
+                ctx.lineTo(centerX + Math.cos(angle) * length, centerY + Math.sin(angle) * length);
                 ctx.stroke();
             }
         } else if (this.data.id === "power_word_shield_projectile") {
@@ -282,48 +358,62 @@ export class DamageProjectile {
                 ctx.stroke();
             }
         } else if (this.data.id === "shadowbolt") {
-            // Shadowbolt placeholder - dark purple/indigo with wispy shadow effect
-            const centerX = this.x + drawWidth/2;
-            const centerY = this.y + drawHeight/2;
-            const pulseEffect = Math.sin(this.glowAnimation) * 0.3 + 0.7;
+            // Shadowbolt placeholder with dark corruption pulsing
+            const corruptionIntensity = glowIntensity;
             
-            // Outer dark aura
-            ctx.fillStyle = '#1A0033';
+            // Outer dark aura that expands and contracts
+            const auraSize = (drawWidth/2) * (1.1 + Math.sin(this.pulseAnimation * 0.8) * 0.15);
+            ctx.fillStyle = `rgba(26, 0, 51, ${corruptionIntensity * 0.6})`;
             ctx.beginPath();
-            ctx.arc(centerX, centerY, (drawWidth/2) * 1.2, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY, auraSize, 0, Math.PI * 2);
             ctx.fill();
             
-            // Main shadow body
-            ctx.fillStyle = '#4B0082';
+            // Main shadow body with corruption pulsing
+            ctx.fillStyle = `rgba(75, 0, 130, ${corruptionIntensity})`;
             ctx.beginPath();
             ctx.arc(centerX, centerY, drawWidth/2, 0, Math.PI * 2);
             ctx.fill();
             
             // Inner darker core
-            ctx.fillStyle = '#2F004F';
+            ctx.fillStyle = `rgba(47, 0, 79, ${Math.min(1.0, corruptionIntensity * 1.2)})`;
             ctx.beginPath();
             ctx.arc(centerX, centerY, (drawWidth/2) * 0.6, 0, Math.PI * 2);
             ctx.fill();
             
-            // Pulsing inner glow
-            ctx.fillStyle = `rgba(138, 43, 226, ${pulseEffect})`;
+            // Pulsing inner corruption glow
+            const innerGlowSize = (drawWidth/2) * (0.25 + Math.sin(this.flickerAnimation * 1.5) * 0.08);
+            ctx.fillStyle = `rgba(138, 43, 226, ${corruptionIntensity * 0.8})`;
             ctx.beginPath();
-            ctx.arc(centerX, centerY, (drawWidth/2) * 0.3, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY, innerGlowSize, 0, Math.PI * 2);
             ctx.fill();
             
-            // Add wispy shadow tendrils
-            ctx.strokeStyle = `rgba(75, 0, 130, ${pulseEffect})`;
+            // Add wispy shadow tendrils that writhe
+            ctx.strokeStyle = `rgba(75, 0, 130, ${corruptionIntensity * 0.8})`;
             ctx.lineWidth = 2;
             for (let i = 0; i < 6; i++) {
-                const angle = (i * Math.PI) / 3 + this.glowAnimation * 0.1;
+                const angle = (i * Math.PI) / 3 + this.glowAnimation * 0.08 + Math.sin(this.flickerAnimation + i) * 0.2;
+                const tendrilLength = (drawWidth/2.2) * (0.8 + Math.sin(this.pulseAnimation * 1.5 + i * 0.5) * 0.3);
                 const startX = centerX + Math.cos(angle) * (drawWidth/4);
                 const startY = centerY + Math.sin(angle) * (drawHeight/4);
-                const endX = centerX + Math.cos(angle) * (drawWidth/2.2);
-                const endY = centerY + Math.sin(angle) * (drawHeight/2.2);
+                const endX = centerX + Math.cos(angle) * tendrilLength;
+                const endY = centerY + Math.sin(angle) * tendrilLength;
                 ctx.beginPath();
                 ctx.moveTo(startX, startY);
                 ctx.lineTo(endX, endY);
                 ctx.stroke();
+            }
+            
+            // Add corruption particles/wisps
+            ctx.fillStyle = `rgba(138, 43, 226, ${corruptionIntensity * 0.4})`;
+            for (let i = 0; i < 4; i++) {
+                const angle = (i * Math.PI) / 2 + this.flickerAnimation * 0.5;
+                const distance = (drawWidth/3) * (0.7 + Math.sin(this.pulseAnimation * 2 + i) * 0.3);
+                const wispX = centerX + Math.cos(angle) * distance;
+                const wispY = centerY + Math.sin(angle) * distance;
+                const wispSize = 3 + Math.sin(this.flickerAnimation * 3 + i) * 2;
+                ctx.beginPath();
+                ctx.arc(wispX, wispY, wispSize, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
     }

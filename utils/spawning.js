@@ -63,20 +63,20 @@ export function calculatePowerUpProbability(powerUp, gameState) {
     
     // Apply speed scaling if enabled
     if (powerUp.speedScaling) {
-        // Ensure speedMultiplier is defined and valid
-        const speedMultiplier = gameState.speedMultiplier || gameState.levelSpeedMultiplier || 1.0;
-        probability *= (1 + (speedMultiplier - 1) * 0.5);
+        // Use levelSpeedMultiplier for speed scaling
+        const levelSpeedMultiplier = gameState.levelSpeedMultiplier || 1.0;
+        probability *= (1 + (levelSpeedMultiplier - 1) * 0.5);
     }
     
     // Apply health scaling for healing items
     if (powerUp.healthScaling && gameState.health !== undefined) {
         const healthPercent = gameState.health / gameState.maxHealth;
-        if (healthPercent <= 0.3) {
-            probability *= 1.5; // 50% bonus at ≤30% health
-        } else if (healthPercent <= 0.5) {
-            probability *= 1.3; // 30% bonus at ≤50% health
-        } else if (healthPercent <= 0.7) {
-            probability *= 1.15; // 15% bonus at ≤70% health
+        if (healthPercent < 0.3) {
+            probability *= 1.3; // 30% bonus at <30% health
+        } else if (healthPercent < 0.5) {
+            probability *= 1.2; // 20% bonus at <50% health
+        } else if (healthPercent < 0.7) {
+            probability *= 1.1; // 10% bonus at <70% health
         }
     }
     

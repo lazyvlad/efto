@@ -1,6 +1,6 @@
 import { gameConfig } from '../config/gameConfig.js';
 import { assetManager } from '../utils/AssetManager.js';
-import { checkBoundaryCollision, applyAdvancedBouncePhysics, calculateSpinEffect, applyAirResistance } from '../utils/gameUtils.js';
+import { checkBoundaryCollision, applyAdvancedBouncePhysics, calculateSpinEffect, applyAirResistance, calculateFallAngle } from '../utils/gameUtils.js';
 
 export class FallingItem {
     constructor(selectRandomItem, isValidYPosition, recentDropYPositions, gameState, images, canvas) {
@@ -34,9 +34,11 @@ export class FallingItem {
         
         // Apply cut_time reduction as a subtraction from level multiplier, not final speed
         const effectiveLevelMultiplier = Math.max(0.2, gameState.levelSpeedMultiplier - gameState.permanentSpeedReduction);
-        this.speed = gameState.baseDropSpeed * effectiveLevelMultiplier * gameState.speedIncreaseMultiplier * speedVariation;
+        const baseSpeed = gameState.baseDropSpeed * effectiveLevelMultiplier * speedVariation;
+        this.baseSpeed = baseSpeed; // Store base speed for recalculation when speed boosts are applied
+        this.speed = baseSpeed * gameState.speedIncreaseMultiplier;
         
-        // Store speed components for the visual monitor
+        // Store speed components for debugging
         this.speedBreakdown = {
             baseSpeed: gameState.baseDropSpeed,
             levelMultiplier: gameState.levelSpeedMultiplier,
@@ -50,10 +52,9 @@ export class FallingItem {
         // Get image from AssetManager (will return cached or placeholder)
         this.itemImage = assetManager.getImage(this.itemData.image);
         
-        // Add angle variation for more natural falling (up to 45 degrees)
-        const angleVariation = (Math.random() - 0.5) * 90; // -45 to +45 degrees
-        this.fallAngle = angleVariation * (Math.PI / 180); // Convert to radians
-        this.horizontalSpeed = Math.sin(this.fallAngle) * this.speed * 0.3; // Horizontal component (reduced for subtlety)
+        // Add angle variation using dynamic fall angle system
+        this.fallAngle = calculateFallAngle(gameState); // Use dynamic fall angle calculation
+        this.horizontalSpeed = Math.sin(this.fallAngle) * this.speed * gameState.horizontalSpeedReduction; // Horizontal component (dynamic reduction)
         
         this.rotation = 0;
         this.rotationSpeed = (Math.random() - 0.5) * 0.02; // Reduced from 0.05 to 0.02
@@ -93,31 +94,108 @@ export class FallingItem {
             // Check for boundary collisions - detect when item is actually at or past boundaries
             const collisions = checkBoundaryCollision(this, canvas);
             if (collisions.left || collisions.right || collisions.top) {
-                this.physicsCalculations++;
-                applyAdvancedBouncePhysics(this, collisions, canvas, {
-                    restitution: 0.6,        // Items lose some energy when bouncing
-                    friction: 0.9,           // Some friction on surfaces
-                    spinTransfer: 0.05,      // Much less spin from collisions (was 0.2)
-                    spinDamping: 0.9,        // More aggressive spin loss (was 0.95)
-                    angularRestitution: 0.5, // Less spin retention (was 0.7)
-                    minBounceSpeed: 1.0      // Minimum speed for bouncing
-                });
-                this.physicsCalculations++;
+                // Handle top bouncing during reverse gravity specially
+                if (collisions.top && gameState.reverseGravityActive) {
+                    // When hitting top during reverse gravity, remove reverse gravity effect from this item
+                    // and apply normal bounce physics
+                    this.wasReversed = false; // Remove reverse gravity effect from this item
+                    this.bouncedOffTopDuringReverse = false; // Clear any bounce flags
+                    
+                    // Reset to normal downward movement
+                    this.fallAngle = Math.random() * (gameState.fallAngleMax - gameState.fallAngleMin) + gameState.fallAngleMin;
+                    this.horizontalSpeed = Math.sin(this.fallAngle * Math.PI / 180) * this.speed * (gameState.horizontalSpeedReduction || 0.3);
+                    
+                    // Ensure positive (downward) speed
+                    if (this.speed < 0) {
+                        this.speed = Math.abs(this.speed);
+                    }
+                    
+                    // Apply normal bounce physics for top collision
+                    this.physicsCalculations++;
+                    applyAdvancedBouncePhysics(this, collisions, canvas, {
+                        restitution: 0.6,        // Items lose some energy when bouncing
+                        friction: 0.9,           // Some friction on surfaces
+                        spinTransfer: 0.05,      // Much less spin from collisions
+                        spinDamping: 0.9,        // More aggressive spin loss
+                        angularRestitution: 0.5, // Less spin retention
+                        minBounceSpeed: 1.0      // Minimum speed for bouncing
+                    });
+                    this.physicsCalculations++;
+                } else {
+                    this.physicsCalculations++;
+                    applyAdvancedBouncePhysics(this, collisions, canvas, {
+                        restitution: 0.6,        // Items lose some energy when bouncing
+                        friction: 0.9,           // Some friction on surfaces
+                        spinTransfer: 0.05,      // Much less spin from collisions (was 0.2)
+                        spinDamping: 0.9,        // More aggressive spin loss (was 0.95)
+                        angularRestitution: 0.5, // Less spin retention (was 0.7)
+                        minBounceSpeed: 1.0      // Minimum speed for bouncing
+                    });
+                    this.physicsCalculations++;
+                }
             }
         }
         
         // Update position (always needed)
-        this.y += this.speed * effectiveDelta;
+        // Apply reverse gravity effect if active 
+        if (gameState.reverseGravityActive) {
+            // Items that haven't been individually exempted get reverse gravity
+            if (this.wasReversed !== false) {
+                this.y -= this.speed * effectiveDelta; // Move upward instead of downward
+                this.wasReversed = true; // Mark as affected by reverse gravity
+                
+                // MANUAL BOUNDARY CHECK: Prevent items from going past top boundary during reverse gravity
+                if (this.y <= 0) {
+                    console.log(`FallingItem manually detected past top boundary: y=${this.y}, forcing bounce...`);
+                    this.y = 0; // Clamp to top boundary
+                    
+                    // Force bounce behavior - item should immediately start falling
+                    this.wasReversed = false; // Remove reverse gravity effect from this item
+                    this.fallAngle = Math.random() * (gameState.fallAngleMax - gameState.fallAngleMin) + gameState.fallAngleMin;
+                    this.horizontalSpeed = Math.sin(this.fallAngle * Math.PI / 180) * this.speed * (gameState.horizontalSpeedReduction || 0.3);
+                    this.speed = Math.abs(this.speed) * 1.2; // bounce with some energy added
+                    
+                    console.log(`FallingItem manual bounce complete: y=${this.y}, speed=${this.speed}, wasReversed=${this.wasReversed}`);
+                }
+            } else {
+                // Item has bounced off top during this reverse gravity session - make it fall normally
+                this.y += this.speed * effectiveDelta; // Normal downward movement
+            }
+        } else {
+            // When reverse gravity is not active, reset all items to be eligible for future reverse gravity
+            if (this.wasReversed === false) {
+                // Reset previously bounced items to be eligible again
+                this.wasReversed = undefined;
+            }
+            
+            // If reverse gravity just ended and this item was reversed, reset its movement
+            if (this.wasReversed) {
+                this.wasReversed = false;
+                this.bouncedOffTopDuringReverse = false; // Reset bounce flag
+                // Reset to normal downward movement - ensure angles are downward
+                this.fallAngle = Math.random() * (gameState.fallAngleMax - gameState.fallAngleMin) + gameState.fallAngleMin;
+                this.horizontalSpeed = Math.sin(this.fallAngle * Math.PI / 180) * this.speed * (gameState.horizontalSpeedReduction || 0.3);
+                
+                // Ensure the item is moving downward by forcing positive vertical speed
+                // This fixes items that might have upward momentum from bouncing during reverse gravity
+                if (this.speed < 0) {
+                    this.speed = Math.abs(this.speed);
+                }
+            }
+            this.y += this.speed * effectiveDelta; // Normal downward movement
+        }
         this.x += this.horizontalSpeed * effectiveDelta;
         this.rotation += this.rotationSpeed * deltaTimeMultiplier;
         this.borderAnimation += this.borderPulseSpeed * deltaTimeMultiplier;
         this.glowAnimation += 0.15 * deltaTimeMultiplier; // Animate glow for regular items
         
-        // Check if item fell off screen (bottom boundary)
-        if (this.y > canvas.height + 180) {
+        // Only remove items that go off the bottom during normal gravity
+        if (!gameState.reverseGravityActive && this.y > canvas.height + this.height) {
             this.missed = true;
             return false;
         }
+        
+        // During reverse gravity, items should NEVER disappear off the top - they should bounce back!
         return true;
     }
 
@@ -130,10 +208,15 @@ export class FallingItem {
         const drawWidth = this.width;
         const drawHeight = gameConfig.visuals.forceItemAspectRatio ? this.width : this.height;
         
-        // Apply animated glow for regular items (similar to power-ups)
+        // Apply animated glow for regular and green items (similar to power-ups)
         if (this.itemData.type === 'regular') {
             const glow = Math.sin(this.glowAnimation) * 0.4 + 0.6; // 0.2 to 1.0
-            ctx.shadowColor = '#00FF00';
+            ctx.shadowColor = '#FFFFFF'; // White glow for regular items
+            ctx.shadowBlur = 25 * glow; // Stronger glow than before, animated
+            // No shadow offset for clean glow effect
+        } else if (this.itemData.type === 'green') {
+            const glow = Math.sin(this.glowAnimation) * 0.4 + 0.6; // 0.2 to 1.0
+            ctx.shadowColor = '#00FF00'; // Green glow for green items
             ctx.shadowBlur = 25 * glow; // Stronger glow than before, animated
             // No shadow offset for clean glow effect
         }
@@ -160,7 +243,8 @@ export class FallingItem {
                 ctx.drawImage(this.images.items[fallbackIndex], -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
             } else {
                 // Final fallback: draw a colored rectangle with consistent size
-                ctx.fillStyle = this.itemData.type === 'regular' ? '#00FF00' : 
+                ctx.fillStyle = this.itemData.type === 'regular' ? '#CCCCCC' : 
+                               this.itemData.type === 'green' ? '#00FF00' : 
                                this.itemData.type === 'epic' ? '#9932CC' : 
                                this.itemData.type === 'special' ? '#FF69B4' : 
                                this.itemData.type === 'legendary' ? '#FFD700' :
@@ -177,7 +261,7 @@ export class FallingItem {
         }
         
         // Reset shadow after drawing the item
-        if (this.itemData.type === 'regular') {
+        if (this.itemData.type === 'regular' || this.itemData.type === 'green') {
             ctx.shadowColor = 'transparent';
             ctx.shadowBlur = 0;
         }
@@ -194,7 +278,8 @@ export class FallingItem {
         
         switch(this.itemData.type) {
             case 'regular':
-                // Regular items now use the main glow effect, no additional border needed
+            case 'green':
+                // Regular and green items use the main glow effect, no additional border needed
                 break;
                 
             case 'epic':

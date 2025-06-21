@@ -131,6 +131,40 @@
             background: #26d0ce;
         }
 
+        #continueGameBtn {
+            background: #4ECDC4;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            font-weight: bold;
+            min-width: 120px;
+        }
+
+        #continueGameBtn:hover {
+            background: #26d0ce;
+        }
+
+        #restartGameBtn {
+            background: #FF6B6B;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            font-weight: bold;
+            min-width: 120px;
+        }
+
+        #restartGameBtn:hover {
+            background: #ff5252;
+        }
+
 
 
         /* High Scores Screen */
@@ -146,7 +180,7 @@
             text-align: center;
             z-index: 200;
             border: 2px solid #FFD700;
-            min-width: 500px;
+            min-width: 600px;
             max-height: 80vh;
             overflow-y: auto;
         }
@@ -176,7 +210,7 @@
         .score-rank {
             font-weight: bold;
             color: #FFD700;
-            min-width: 40px;
+            min-width: 60px;
         }
 
         .score-name {
@@ -188,6 +222,14 @@
         .score-points {
             font-weight: bold;
             color: #4ECDC4;
+            min-width: 80px;
+        }
+
+        .score-level {
+            font-weight: bold;
+            color: #FF69B4;
+            margin-left: 15px;
+            min-width: 50px;
         }
 
         .score-date {
@@ -372,6 +414,105 @@
 
         #viewScoresBtn2:hover {
             background: #FFC700;
+        }
+
+        /* Pause Menu Screen */
+        #pauseMenu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .pause-content {
+            background: rgba(20, 20, 20, 0.95);
+            border: 3px solid #FFD700;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            min-width: 400px;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+        }
+
+        .pause-content h2 {
+            color: #FFD700;
+            font-size: 36px;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+        }
+
+        .pause-subtitle {
+            color: #CCC;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .pause-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .pause-btn {
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 200px;
+        }
+
+        .continue-btn {
+            background: #4ECDC4;
+            color: white;
+            border: 2px solid #26d0ce;
+        }
+
+        .continue-btn:hover {
+            background: #26d0ce;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(78, 205, 196, 0.3);
+        }
+
+        .info-btn {
+            background: #FFD700;
+            color: #000;
+            border: 2px solid #FFC700;
+        }
+
+        .info-btn:hover {
+            background: #FFC700;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(255, 215, 0, 0.3);
+        }
+
+        .restart-btn {
+            background: #FF6B6B;
+            color: white;
+            border: 2px solid #ff5252;
+        }
+
+        .restart-btn:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(255, 107, 107, 0.3);
+        }
+
+        .pause-hint {
+            color: #999;
+            font-size: 14px;
+            margin-top: 10px;
+            font-style: italic;
         }
         
         #audioToggleBtn {
@@ -681,7 +822,8 @@
         }
         
         /* Item type colors */
-        .item-entry.regular .item-name { color: #00FF00; }
+        .item-entry.regular .item-name { color: #CCCCCC; }
+        .item-entry.green .item-name { color: #00FF00; }
         .item-entry.epic .item-name { color: #9932CC; }
         .item-entry.special .item-name { color: #FF69B4; }
         .item-entry.legendary .item-name { color: #FFD700; }
@@ -892,6 +1034,228 @@
         .dragonstalker-bottom-message.almost-there {
             color: #FFD700;
         }
+        
+        /* Game UI Elements */
+        #gameUI {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            pointer-events: none;
+            z-index: 50;
+        }
+        
+        /* Spell Bar */
+        #spellBar {
+            position: absolute;
+            bottom: calc(30vh + 80px); /* Position above player boundary line (30% from bottom) + 80px margin */
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            pointer-events: none;
+        }
+        
+        .spell-slot {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #4ECDC4;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .spell-slot.active {
+            border-color: #00FF00;
+            background: rgba(0, 255, 0, 0.2);
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+        }
+        
+        .spell-slot.cooldown {
+            border-color: #FF0000;
+            background: rgba(255, 0, 0, 0.2);
+        }
+        
+        .spell-icon {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 4px;
+            position: relative;
+            pointer-events: none;
+        }
+        
+        .spell-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+        
+        .spell-key {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 4px;
+            border-radius: 3px;
+            min-width: 12px;
+            text-align: center;
+            pointer-events: none;
+        }
+        
+        .spell-name {
+            font-size: 8px;
+            color: white;
+            text-align: center;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+        }
+        
+        .spell-timer {
+            position: absolute;
+            bottom: 2px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 2px 6px;
+            border-radius: 3px;
+            min-width: 20px;
+            text-align: center;
+            display: none;
+            pointer-events: none;
+        }
+        
+        .spell-timer.active {
+            display: block;
+            color: #00FF00;
+        }
+        
+        .spell-timer.cooldown {
+            display: block;
+            color: #FF0000;
+        }
+        
+        .spell-cooldown-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 8px;
+            display: none;
+            pointer-events: none;
+        }
+        
+        .spell-cooldown-overlay.active {
+            display: block;
+        }
+        
+        /* Health Bar Container */
+        #healthBar {
+            position: absolute;
+            bottom: calc(30vh + 10px); /* Position just above player boundary line (30% from bottom) + 10px margin */
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            pointer-events: none;
+        }
+        
+        /* Player Portrait */
+        .player-portrait {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 2px solid #4ECDC4;
+            background: rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            pointer-events: none;
+        }
+        
+        .player-portrait img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+        
+        /* Health Bar Actual Bar */
+        .health-bar-container {
+            width: 250px;
+            height: 30px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid #4ECDC4;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            pointer-events: none;
+        }
+        
+        .health-background {
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 13px;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FF0000 0%, #FFFF00 50%, #00FF00 100%);
+            border-radius: 13px;
+            transition: width 0.3s ease;
+            width: 100%;
+            pointer-events: none;
+        }
+        
+        .health-fill.low {
+            background: #FF0000;
+            animation: pulse-red 1s infinite;
+        }
+        
+        .health-fill.medium {
+            background: linear-gradient(90deg, #FF0000 0%, #FFFF00 100%);
+        }
+        
+        .health-fill.high {
+            background: linear-gradient(90deg, #FFFF00 0%, #00FF00 100%);
+        }
+        
+        .health-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+        }
+        
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
     </style>
 </head>
 <body>
@@ -900,6 +1264,55 @@
     <!-- Canvas Overlay - prevents mouse interaction when game is not active -->
     <div id="canvasOverlay"></div>
     
+    <!-- Game UI Elements -->
+    <div id="gameUI" style="display: none;">
+        <!-- Spell Bar -->
+        <div id="spellBar">
+            <div class="spell-slot" id="spell-dragon-cry">
+                <div class="spell-icon">
+                    <img src="assets/onyxia-buff.png" alt="Dragon Cry" class="spell-image">
+                </div>
+                <div class="spell-key">Q</div>
+                <div class="spell-name">Dragon Cry</div>
+                <div class="spell-timer" id="spell-dragon-cry-timer"></div>
+                <div class="spell-cooldown-overlay" id="spell-dragon-cry-cooldown"></div>
+            </div>
+            
+            <div class="spell-slot" id="spell-zandalari">
+                <div class="spell-icon">
+                    <img src="assets/zg-buff.png" alt="Zandalari" class="spell-image">
+                </div>
+                <div class="spell-key">W</div>
+                <div class="spell-name">Zandalari</div>
+                <div class="spell-timer" id="spell-zandalari-timer"></div>
+                <div class="spell-cooldown-overlay" id="spell-zandalari-cooldown"></div>
+            </div>
+            
+            <div class="spell-slot" id="spell-songflower">
+                <div class="spell-icon">
+                    <img src="assets/songflower-buff.png" alt="Songflower" class="spell-image">
+                </div>
+                <div class="spell-key">E</div>
+                <div class="spell-name">Songflower</div>
+                <div class="spell-timer" id="spell-songflower-timer"></div>
+                <div class="spell-cooldown-overlay" id="spell-songflower-cooldown"></div>
+            </div>
+        </div>
+        
+        <!-- Health Bar -->
+        <div id="healthBar">
+            <div class="player-portrait">
+                <img src="assets/efto.png" alt="Player Portrait">
+            </div>
+            <div class="health-bar-container">
+                <div class="health-background">
+                    <div class="health-fill" id="healthFill"></div>
+                </div>
+                <div class="health-text" id="healthText">100%</div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Name Entry Screen -->
     <div id="nameEntry" style="display: none;">
                     <h2>Welcome to DMTribut!</h2>
@@ -907,6 +1320,8 @@
         <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" />
         <br>
         <button id="startGameBtn">Start Game</button>
+        <button id="continueGameBtn" style="display: none;">Continue Game</button>
+        <button id="restartGameBtn" style="display: none;">Restart Game</button>
         <button id="viewScoresBtn">High Scores</button>
         <button id="howToPlayBtn">How to Play</button>
     </div>
@@ -931,7 +1346,6 @@
                 <h3>🎮 Controls</h3>
                 <p><strong>Mouse:</strong> Move your character</p>
                 <p><strong>ESC:</strong> Pause game</p>
-                <p><strong>TAB/I:</strong> View items guide during gameplay</p>
             </div>
 
             <div class="guide-section">
@@ -956,7 +1370,7 @@
                         <strong>Q - Dragon Cry:</strong> Move anywhere on screen (1 min cooldown)
                     </div>
                     <div class="spell-item player-spell">
-                        <strong>W - Zandalari:</strong> +20% points, slow projectiles (45s cooldown)
+                        <strong>W - Zandalari:</strong> +20% points, slow projectiles and items (45s cooldown)
                     </div>
                     <div class="spell-item player-spell">
                         <strong>E - Songflower:</strong> Remove one missed Dragonstalker (2 min cooldown)
@@ -1005,13 +1419,33 @@
 
             <div class="guide-section">
                 <h3>🏆 Scoring Tips</h3>
-                <p>• Use Zandalari spell for +20% points</p>
+                <p>• Use Zandalari spell for +20% points and to slow down all falling objects</p>
                 <p>• Collect Speed Boost projectiles to increase game speed and scoring</p>
                 <p>• Thunder Fury automatically collects all items on screen</p>
                 <p>• Higher game speeds = more items = higher scores</p>
             </div>
         </div>
         <button id="backToMenuBtn2">Back to Menu</button>
+    </div>
+
+    <!-- Pause Menu Screen -->
+    <div id="pauseMenu" style="display: none;">
+        <div class="pause-content">
+            <h2>⏸️ GAME PAUSED</h2>
+            <p class="pause-subtitle">Game is temporarily paused</p>
+            <div class="pause-buttons">
+                <button id="continuePauseBtn" class="pause-btn continue-btn">
+                    ▶️ Continue
+                </button>
+                <button id="gameInfoPauseBtn" class="pause-btn info-btn">
+                    📖 Game Info
+                </button>
+                <button id="restartPauseBtn" class="pause-btn restart-btn">
+                    🔄 Restart
+                </button>
+            </div>
+            <p class="pause-hint">Press ESC to continue</p>
+        </div>
     </div>
 
     <!-- Game Over Screen -->
@@ -1045,6 +1479,18 @@
             <div class="stat-row">
                 <span class="stat-label">Speed:</span>
                 <span class="stat-value" id="gameSpeed">1.0x</span>
+            </div>
+            <div class="stat-row" id="speedBoostRow" style="display: none;">
+                <span class="stat-label">Speed Boost:</span>
+                <span class="stat-value" id="speedBoostValue">+0%</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Actual Item Speed:</span>
+                <span class="stat-value" id="actualItemSpeed">-- px/frame</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Actual Projectile Speed:</span>
+                <span class="stat-value" id="actualProjectileSpeed">-- px/frame</span>
             </div>
         </div>
         

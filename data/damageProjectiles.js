@@ -21,7 +21,7 @@ export const damageProjectiles = [
     { 
         id: "speedboost", 
         name: "Speed Boost", 
-        image: assetRegistry.powerups.speedBoost, 
+        image: assetRegistry.powerups.sprint, 
         damage: 0, // 3% HP damage (less than fireball)
         type: "common", 
         baseProbability: 0.015, // Same spawn rate as power_word_shield

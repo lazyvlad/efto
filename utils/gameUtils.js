@@ -1,8 +1,82 @@
 import { gameConfig } from '../config/gameConfig.js';
 
-// Calculate level-specific speed multiplier using mathematical formula
+// Calculate level-specific speed multiplier using hybrid progression
 export function calculateLevelSpeedMultiplier(gameState) {
-    let currentLevel = 0; // Start from level 0
+    const progressionType = gameConfig.levels.progressionType || "points";
+    let currentLevel = 0;
+    
+    if (progressionType === "hybrid" || progressionType === "time") {
+        // Time-based or hybrid progression
+        currentLevel = calculateTimeBasedLevel(gameState);
+    } else {
+        // Legacy points-based progression (fallback)
+        currentLevel = calculatePointsBasedLevel(gameState);
+    }
+    
+    let multiplier;
+    
+    // Use mathematical formula for speed progression
+    multiplier = calculateSpeedFormula(currentLevel);
+    
+    // Apply permanent speed reduction from Dragonstalker completions
+    if (gameState.permanentSpeedReductionFromSets > 0) {
+        multiplier -= gameState.permanentSpeedReductionFromSets;
+        // Ensure speed doesn't go below configured minimum
+        const minSpeed = gameConfig.dragonstalker.minSpeedAfterReduction;
+        multiplier = Math.max(minSpeed, multiplier);
+    }
+    
+    // Cap at configured maximum
+    multiplier = Math.min(multiplier, gameConfig.levels.maxLevelSpeedMultiplier);
+    
+    gameState.currentLevel = currentLevel;
+    gameState.levelSpeedMultiplier = multiplier;
+    return multiplier;
+}
+
+// Calculate level based on time + activity (hybrid system)
+function calculateTimeBasedLevel(gameState) {
+    // Initialize level tracking if not present
+    if (typeof gameState.levelStartTime === 'undefined') {
+        gameState.levelStartTime = Date.now() / 1000; // Convert to seconds
+        gameState.timeRequiredForNextLevel = gameConfig.levels.baseTimePerLevel;
+        gameState.levelActivity = {
+            collections: 0,
+            misses: 0,
+            powerUpsCollected: 0,
+            damageReceived: 0
+        };
+    }
+    
+    const currentTime = Date.now() / 1000;
+    const timeInCurrentLevel = currentTime - gameState.levelStartTime;
+    
+    // Check if enough time has passed for next level
+    if (timeInCurrentLevel >= gameState.timeRequiredForNextLevel) {
+        // Level up!
+        const oldLevel = gameState.currentLevel;
+        gameState.currentLevel++;
+        
+        // Reset for next level
+        gameState.levelStartTime = currentTime;
+        gameState.timeRequiredForNextLevel = calculateNextLevelTime(gameState);
+        gameState.levelActivity = {
+            collections: 0,
+            misses: 0,
+            powerUpsCollected: 0,
+            damageReceived: 0
+        };
+        
+        console.log(`🕐 TIME-BASED LEVEL UP! Now level ${gameState.currentLevel + 1} (was ${oldLevel + 1})`);
+        addNotification(gameState, `🕐 Level ${gameState.currentLevel + 1}! (Time-based)`, 180, '#FFD700');
+    }
+    
+    return gameState.currentLevel;
+}
+
+// Calculate points-based level (legacy system)
+function calculatePointsBasedLevel(gameState) {
+    let currentLevel = 0;
     
     // Determine current level based on score thresholds
     for (let i = gameConfig.levels.thresholds.length - 1; i >= 0; i--) {
@@ -16,21 +90,46 @@ export function calculateLevelSpeedMultiplier(gameState) {
     if (currentLevel >= gameConfig.levels.thresholds.length) {
         const lastThreshold = gameConfig.levels.thresholds[gameConfig.levels.thresholds.length - 1];
         const pointsBeyondLastThreshold = gameState.score - lastThreshold;
-        const additionalLevels = Math.floor(pointsBeyondLastThreshold / 100); // Every 100 points = new level
+        const additionalLevels = Math.floor(pointsBeyondLastThreshold / 100);
         currentLevel = gameConfig.levels.thresholds.length - 1 + additionalLevels;
     }
     
-    let multiplier;
+    return currentLevel;
+}
+
+// Calculate time required for next level based on activity
+function calculateNextLevelTime(gameState) {
+    const config = gameConfig.levels;
+    let baseTime = config.baseTimePerLevel;
     
-    // Use mathematical formula for speed progression (legacy array system removed)
-    multiplier = calculateSpeedFormula(currentLevel);
+    if (config.progressionType !== "hybrid") {
+        return baseTime; // Pure time-based, no activity adjustments
+    }
     
-    // Cap at configured maximum
-    multiplier = Math.min(multiplier, gameConfig.levels.maxSpeedMultiplier);
+    // Apply activity bonuses/penalties
+    const activity = gameState.levelActivity;
+    const bonus = config.activityBonus;
     
-    gameState.currentLevel = currentLevel;
-    gameState.levelSpeedMultiplier = multiplier;
-    return multiplier;
+    let timeReduction = 0;
+    let timeIncrease = 0;
+    
+    // Calculate reductions
+    timeReduction += activity.collections * bonus.collectionsReduce;
+    timeReduction += activity.powerUpsCollected * bonus.powerUpCollectedReduce;
+    
+    // Calculate increases
+    timeIncrease += activity.misses * bonus.missesIncrease;
+    timeIncrease += activity.damageReceived * bonus.damageReceivedIncrease;
+    
+    // Apply caps
+    timeReduction = Math.min(timeReduction, bonus.maxReduction);
+    timeIncrease = Math.min(timeIncrease, bonus.maxIncrease);
+    
+    // Calculate final time
+    const finalTime = Math.max(10, baseTime - timeReduction + timeIncrease); // Minimum 10 seconds
+    
+    console.log(`⏱️ Next level time: ${finalTime}s (base: ${baseTime}s, -${timeReduction}s, +${timeIncrease}s)`);
+    return finalTime;
 }
 
 // Mathematical formula for speed progression
@@ -42,7 +141,7 @@ function calculateSpeedFormula(level) {
     
     if (enableSafetyCap && level >= 20) {
         // At level 20+, cap at safety limit to prevent performance issues
-        return Math.min(safetyCap, gameConfig.levels.maxSpeedMultiplier);
+        return Math.min(safetyCap, gameConfig.levels.maxLevelSpeedMultiplier);
     }
     
     // Get configurable parameters
@@ -78,6 +177,127 @@ function calculateSpeedFormula(level) {
     
     // Round to one decimal place for clean display
     return Math.round(speed * 10) / 10;
+}
+
+// Check if Dragonstalker set is complete and handle completion
+export function checkDragonstalkerCompletion(gameState, gameItems) {
+    // Check if multiple completions are enabled
+    if (!gameConfig.dragonstalker.enableMultipleCompletions && gameState.dragonstalkerCompletions > 0) {
+        console.log(`🚫 Multiple completions disabled, already have ${gameState.dragonstalkerCompletions} completions`);
+        return false; // Only allow one completion if disabled
+    }
+    
+    const dragonstalkerItems = gameItems.filter(item => item.type === "tier_set");
+    const uniquePiecesCollected = dragonstalkerItems.filter(item => item.collected > 0).length;
+    
+    // Check if all 10 pieces are collected
+    if (uniquePiecesCollected >= 10) {
+        // Complete the set!
+        gameState.dragonstalkerCompletions++;
+        
+        // Calculate permanent speed reduction (configurable % of current level speed)
+        const currentLevelSpeed = gameState.levelSpeedMultiplier;
+        const reductionPercent = gameConfig.dragonstalker.speedReductionPercent;
+        const speedReduction = currentLevelSpeed * reductionPercent;
+        gameState.permanentSpeedReductionFromSets += speedReduction;
+        
+        // Reset all Dragonstalker items for next collection cycle
+        console.log('🔄 Resetting Dragonstalker items for next cycle...');
+        dragonstalkerItems.forEach(item => {
+            console.log(`  Resetting ${item.name}: collected ${item.collected} → 0, missed ${item.missed} → 0`);
+            item.collected = 0;
+            item.missed = 0;
+        });
+        
+        // Reset tier set counters
+        console.log(`🔄 Resetting tier set counters: tierSetCollected ${gameState.tierSetCollected} → 0, tierSetMissed ${gameState.tierSetMissed} → 0`);
+        gameState.tierSetCollected = 0;
+        gameState.tierSetMissed = 0;
+    
+        
+        // Add completion notification
+        const reductionPercentDisplay = Math.round(reductionPercent * 100);
+        addNotification(gameState, 
+            `🏆 DRAGONSTALKER SET #${gameState.dragonstalkerCompletions} COMPLETE! -${speedReduction.toFixed(1)}x (${reductionPercentDisplay}%) Permanent Speed Reduction!`, 
+            480, '#FFD700');
+        
+        console.log(`🏆 Dragonstalker set ${gameState.dragonstalkerCompletions} completed! Speed reduction: -${speedReduction.toFixed(1)}x (Total: -${gameState.permanentSpeedReductionFromSets.toFixed(1)}x)`);
+        
+        return true; // Set was completed
+    }
+    
+    return false; // Set not complete yet
+}
+
+// Track activity for hybrid progression
+export function trackActivity(gameState, activityType, amount = 1) {
+    if (!gameState.levelActivity) {
+        gameState.levelActivity = {
+            collections: 0,
+            misses: 0,
+            powerUpsCollected: 0,
+            damageReceived: 0
+        };
+    }
+    
+    switch (activityType) {
+        case 'collection':
+            gameState.levelActivity.collections += amount;
+            break;
+        case 'miss':
+            gameState.levelActivity.misses += amount;
+            break;
+        case 'powerUp':
+            gameState.levelActivity.powerUpsCollected += amount;
+            break;
+        case 'damage':
+            gameState.levelActivity.damageReceived += amount;
+            break;
+    }
+    
+    // Recalculate time required for next level if using hybrid progression
+    if (gameConfig.levels.progressionType === "hybrid") {
+        gameState.timeRequiredForNextLevel = calculateNextLevelTime(gameState);
+    }
+}
+
+// Get progress towards next level (for UI display)
+export function getLevelProgress(gameState) {
+    const progressionType = gameConfig.levels.progressionType || "points";
+    
+    if (progressionType === "hybrid" || progressionType === "time") {
+        if (!gameState.levelStartTime) return { progress: 0, timeRemaining: 45 };
+        
+        const currentTime = Date.now() / 1000;
+        const timeInLevel = currentTime - gameState.levelStartTime;
+        const timeRequired = gameState.timeRequiredForNextLevel;
+        const progress = Math.min(timeInLevel / timeRequired, 1.0);
+        const timeRemaining = Math.max(0, timeRequired - timeInLevel);
+        
+        return { 
+            progress: progress, 
+            timeRemaining: timeRemaining,
+            timeRequired: timeRequired,
+            activity: gameState.levelActivity 
+        };
+    } else {
+        // Points-based progress
+        const currentLevel = gameState.currentLevel;
+        const thresholds = gameConfig.levels.thresholds;
+        
+        if (currentLevel >= thresholds.length - 1) {
+            // Beyond defined thresholds
+            const lastThreshold = thresholds[thresholds.length - 1];
+            const pointsInCurrentLevel = (gameState.score - lastThreshold) % 100;
+            return { progress: pointsInCurrentLevel / 100, pointsRemaining: 100 - pointsInCurrentLevel };
+        } else {
+            const currentThreshold = thresholds[currentLevel];
+            const nextThreshold = thresholds[currentLevel + 1];
+            const pointsInLevel = gameState.score - currentThreshold;
+            const pointsRequired = nextThreshold - currentThreshold;
+            return { progress: pointsInLevel / pointsRequired, pointsRemaining: pointsRequired - pointsInLevel };
+        }
+    }
 }
 
 // Check if Y position is valid (has enough spacing from recent drops)
@@ -147,6 +367,32 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
         if (gameState.shieldTimer <= 0) {
             gameState.shieldActive = false;
             gameState.shieldTimer = 0;
+        }
+    }
+    
+    // Update horizontal speed modification timer
+    if (gameState.horizontalSpeedModActive && gameState.horizontalSpeedModTimer > 0) {
+        gameState.horizontalSpeedModTimer -= deltaTimeMultiplier;
+        if (gameState.horizontalSpeedModTimer <= 0) {
+            gameState.horizontalSpeedModActive = false;
+            gameState.horizontalSpeedModTimer = 0;
+            // Restore original horizontal speed reduction
+            gameState.horizontalSpeedReduction = gameState.originalHorizontalSpeedReduction;
+            addNotification(gameState, `🎯 Trajectory Effect Expired`, 120, '#00FFFF');
+        }
+    }
+    
+    // Update fall angle modification timer
+    if (gameState.fallAngleModActive && gameState.fallAngleModTimer > 0) {
+        gameState.fallAngleModTimer -= deltaTimeMultiplier;
+        if (gameState.fallAngleModTimer <= 0) {
+            gameState.fallAngleModActive = false;
+            gameState.fallAngleModTimer = 0;
+            // Restore original fall angle settings
+            gameState.fallAngleMin = gameState.originalFallAngleMin;
+            gameState.fallAngleMax = gameState.originalFallAngleMax;
+            gameState.allowUpwardMovement = gameState.originalAllowUpwardMovement;
+            addNotification(gameState, `📐 Angle Effect Expired`, 120, '#FF6B35');
         }
     }
     
@@ -220,6 +466,16 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
             if (gameState.chickenFoodHots.length > 0) {
                 gameState.chickenFoodTimer = gameState.chickenFoodTickRate;
             }
+        }
+    }
+    
+    // Update reverse gravity timer
+    if (gameState.reverseGravityActive && gameState.reverseGravityTimer > 0) {
+        gameState.reverseGravityTimer -= deltaTimeMultiplier;
+        if (gameState.reverseGravityTimer <= 0) {
+            gameState.reverseGravityActive = false;
+            gameState.reverseGravityTimer = 0;
+            addNotification(gameState, `🔄 Reverse Gravity Expired`, 120, '#8B00FF');
         }
     }
 }
@@ -301,6 +557,24 @@ export function drawNotifications(ctx, canvas, gameState) {
     });
     
     ctx.restore();
+}
+
+// ===== FALL ANGLE CALCULATION SYSTEM =====
+// Dynamic fall angle calculation based on game state
+
+export function calculateFallAngle(gameState) {
+    // Check if upward movement is allowed and randomly decide
+    if (gameState.allowUpwardMovement && Math.random() < 0.1) { // 10% chance for upward movement
+        // Calculate upward angle (135° to 225°)
+        const upwardRange = gameState.upwardAngleMax - gameState.upwardAngleMin;
+        const upwardAngle = gameState.upwardAngleMin + (Math.random() * upwardRange);
+        return upwardAngle * (Math.PI / 180); // Convert to radians
+    } else {
+        // Calculate normal downward angle
+        const angleRange = gameState.fallAngleMax - gameState.fallAngleMin;
+        const angle = gameState.fallAngleMin + (Math.random() * angleRange);
+        return angle * (Math.PI / 180); // Convert to radians
+    }
 }
 
 // ===== RESPONSIVE SCALING SYSTEM =====

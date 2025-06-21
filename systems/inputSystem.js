@@ -14,7 +14,7 @@ export let inputState = {
 };
 
 // Initialize input event listeners
-export function initializeInputSystem(canvas, gameState, player, restartGame, startGame, showInGameSettings, showPauseMenu, displayHighScores, updateCanvasOverlay) {
+export function initializeInputSystem(canvas, gameState, player, restartGame, startGame, deprecatedParam, showPauseMenu, displayHighScores, updateCanvasOverlay) {
     // Mouse movement tracking
     canvas.addEventListener('mousemove', (e) => {
         const rect = canvas.getBoundingClientRect();
@@ -73,7 +73,7 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
         fallbackAudioInit(); // Try to initialize audio on user interaction
         inputState.keys.add(e.key.toLowerCase());
         
-        handleKeyDown(e, gameState, restartGame, showInGameSettings, showPauseMenu, displayHighScores, updateCanvasOverlay);
+        handleKeyDown(e, gameState, restartGame, deprecatedParam, showPauseMenu, displayHighScores, updateCanvasOverlay);
     });
 
     document.addEventListener('keyup', (e) => {
@@ -93,60 +93,7 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
 
 // Handle mouse/touch clicks
 function handleMouseClick(mouseX, mouseY, gameState, restartGame, startGame, displayHighScores, updateCanvasOverlay) {
-    if (gameState.showingSettings) {
-        // Handle settings menu clicks
-        if (gameState.menuButtonBounds && 
-            mouseX >= gameState.menuButtonBounds.x && 
-            mouseX <= gameState.menuButtonBounds.x + gameState.menuButtonBounds.width &&
-            mouseY >= gameState.menuButtonBounds.y && 
-            mouseY <= gameState.menuButtonBounds.y + gameState.menuButtonBounds.height) {
-            gameState.showingSettings = false;
-            if (gameState.gameRunning) {
-                // Close settings and return to game
-            } else {
-                // Return to main menu - show name entry screen
-                gameState.currentScreen = 'menu';
-                const nameEntryElement = document.getElementById('nameEntry');
-                if (nameEntryElement) nameEntryElement.style.display = 'block';
-            }
-            if (updateCanvasOverlay) updateCanvasOverlay();
-        }
-    } else if (gameState.showingPauseMenu) {
-        // Handle pause menu clicks
-        if (gameState.pauseMenuBounds) {
-            const bounds = gameState.pauseMenuBounds;
-            
-            // Continue button
-            if (mouseX >= bounds.continue.x && 
-                mouseX <= bounds.continue.x + bounds.continue.width &&
-                mouseY >= bounds.continue.y && 
-                mouseY <= bounds.continue.y + bounds.continue.height) {
-                gameState.showingPauseMenu = false;
-                gameState.gameRunning = true;
-                if (updateCanvasOverlay) updateCanvasOverlay();
-            }
-            
-            // Restart button
-            if (mouseX >= bounds.restart.x && 
-                mouseX <= bounds.restart.x + bounds.restart.width &&
-                mouseY >= bounds.restart.y && 
-                mouseY <= bounds.restart.y + bounds.restart.height) {
-                // Restart should go back to name entry screen, not immediately restart the game
-                gameState.showingPauseMenu = false;
-                gameState.gameRunning = false;
-                gameState.currentScreen = 'menu';
-                
-                // Reset game state
-                restartGame();
-                
-                // Show name entry screen
-                const nameEntryElement = document.getElementById('nameEntry');
-                if (nameEntryElement) nameEntryElement.style.display = 'block';
-                
-                if (updateCanvasOverlay) updateCanvasOverlay();
-            }
-        }
-    } else if (gameState.currentScreen === 'menu') {
+    if (gameState.currentScreen === 'menu') {
         // Handle main menu clicks
         handleMenuClick(mouseX, mouseY, gameState, startGame, displayHighScores);
     } else if (gameState.currentScreen === 'gameOver') {
@@ -162,21 +109,10 @@ function handleMouseClick(mouseX, mouseY, gameState, restartGame, startGame, dis
 }
 
 // Handle keyboard input
-function handleKeyDown(e, gameState, restartGame, showInGameSettings, showPauseMenu, displayHighScores, updateCanvasOverlay) {
-    // Settings toggle (TAB or I key) - only during gameplay
-    if ((e.key === 'Tab' || e.key.toLowerCase() === 'i') && gameState.gameRunning && !gameState.showingPauseMenu) {
-        e.preventDefault();
-        showInGameSettings();
-        return;
-    }
+function handleKeyDown(e, gameState, restartGame, deprecatedParam, showPauseMenu, displayHighScores, updateCanvasOverlay) {
+    // TAB/I key handling removed - canvas-based guide replaced with HTML+CSS
     
-    // Speed monitor toggle (Ctrl+Shift+S) - during gameplay
-    if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 's' && gameState.gameRunning) {
-        e.preventDefault();
-        gameState.showSpeedMonitor = !gameState.showSpeedMonitor;
-        console.log(`🔍 Speed Monitor ${gameState.showSpeedMonitor ? 'ENABLED' : 'DISABLED'}`);
-        return;
-    }
+    // Speed monitor removed - no longer needed
     
     // Testing: Increase Base Speed (Ctrl+A) - during gameplay
     if (e.ctrlKey && e.key.toLowerCase() === 'a' && gameState.gameRunning) {
@@ -190,17 +126,10 @@ function handleKeyDown(e, gameState, restartGame, showInGameSettings, showPauseM
     if (e.key === 'Escape') {
         e.preventDefault();
 
-        if (gameState.showingSettings) {
-            // Close settings and return to previous state
-            gameState.showingSettings = false;
-            if (gameState.gameRunning) {
-                // Return to game - no need to change currentScreen
-            } else {
-                gameState.currentScreen = 'menu';
-            }
-            if (updateCanvasOverlay) updateCanvasOverlay();
-        } else if (gameState.showingPauseMenu) {
-            // Close pause menu and resume game
+        if (gameState.showingPauseMenu) {
+            // Close HTML pause menu and resume game
+            document.getElementById('pauseMenu').style.display = 'none';
+            canvas.classList.remove('show-cursor');
             gameState.showingPauseMenu = false;
             gameState.gameRunning = true;
             if (updateCanvasOverlay) updateCanvasOverlay();
@@ -214,9 +143,8 @@ function handleKeyDown(e, gameState, restartGame, showInGameSettings, showPauseM
             gameState.currentScreen = 'menu';
             if (updateCanvasOverlay) updateCanvasOverlay();
         } else if (gameState.currentScreen === 'menu' && !gameState.gameRunning) {
-            // If we're on menu screen and not in game, ESC should close any overlays and return to name entry
+            // If we're on menu screen and not in game, ESC should return to name entry
             gameState.currentScreen = 'menu';
-            gameState.showingSettings = false;
             // Show name entry screen
             const nameEntryElement = document.getElementById('nameEntry');
             if (nameEntryElement) nameEntryElement.style.display = 'block';

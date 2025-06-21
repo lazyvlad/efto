@@ -94,6 +94,6 @@ def get_player_scores(player_name):
 
 if __name__ == '__main__':
     print("Starting DMTribut game server...")
-    print("Game will be available at: http://localhost:5000")
+    print("Game will be available at: http://localhost:8080")
     print("High scores will be stored in: highscores.json")
-    app.run(host='0.0.0.0', port=5000, debug=True) 
+    app.run(host='0.0.0.0', port=8080, debug=True) 

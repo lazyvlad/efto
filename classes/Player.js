@@ -37,6 +37,7 @@ export class Player {
         this.normalImage = assetManager.getImage(assetRegistry.player.normal);
         this.impactImage = assetManager.getImage(assetRegistry.player.impact);
         this.celebrationImage = assetManager.getImage(assetRegistry.player.celebration);
+        this.sandoImage = assetManager.getImage(assetRegistry.player.sando);
         
         // Current image state
         this.currentImage = this.normalImage;
@@ -44,6 +45,8 @@ export class Player {
         // State
         this.isReacting = false;
         this.isCelebrating = false;
+        this.isSandoCelebrating = false;
+        this.sandoTimer = 0;
         this.lastImageState = null; // For debugging image state changes
     }
     
@@ -60,6 +63,17 @@ export class Player {
         // Don't show impact during celebration
         this.isReacting = false;
         this.impactTimer = 0;
+    }
+    
+    // Handle collecting Ashkandi items (special celebration)
+    onAshkandiCollected() {
+        this.sandoTimer = this.celebrationDuration;
+        this.isSandoCelebrating = true;
+        // Don't show other states during sando celebration
+        this.isReacting = false;
+        this.isCelebrating = false;
+        this.impactTimer = 0;
+        this.celebrationTimer = 0;
     }
     
     // Update player state
@@ -86,8 +100,17 @@ export class Player {
         // Convert deltaTimeMultiplier to milliseconds (assuming 60fps = 16.67ms per frame)
         const deltaTimeMs = deltaTimeMultiplier * (1000 / 60);
         
-        // Update celebration timer first (has priority)
-        if (this.celebrationTimer > 0) {
+        // Update sando timer first (has highest priority)
+        if (this.sandoTimer > 0) {
+            this.sandoTimer -= deltaTimeMs;
+            if (this.sandoTimer <= 0) {
+                this.sandoTimer = 0;
+                this.isSandoCelebrating = false;
+            }
+        }
+        
+        // Update celebration timer (second priority, only if not sando celebrating)
+        if (!this.isSandoCelebrating && this.celebrationTimer > 0) {
             this.celebrationTimer -= deltaTimeMs;
             if (this.celebrationTimer <= 0) {
                 this.celebrationTimer = 0; // Ensure it's exactly 0
@@ -96,7 +119,7 @@ export class Player {
         }
         
         // Update impact timer (only if not celebrating)
-        if (!this.isCelebrating && this.impactTimer > 0) {
+        if (!this.isCelebrating && !this.isSandoCelebrating && this.impactTimer > 0) {
             this.impactTimer -= deltaTimeMs;
             if (this.impactTimer <= 0) {
                 this.impactTimer = 0; // Ensure it's exactly 0
@@ -109,13 +132,15 @@ export class Player {
     draw(ctx, shieldActive = false) {
         let imageToUse = this.normalImage; // Default to normal image (efto.png)
         
-        // Priority: celebration > impact > normal
-        if (this.isCelebrating) {
+        // Priority: sando celebration > celebration > impact > normal
+        if (this.isSandoCelebrating) {
+            imageToUse = this.sandoImage; // sando.png
+        } else if (this.isCelebrating) {
             imageToUse = this.celebrationImage; // efto-win.png
         } else if (this.isReacting) {
             imageToUse = this.impactImage; // vano.png
         }
-        // If neither celebrating nor reacting, imageToUse remains this.normalImage (efto.png)
+        // If none of the above, imageToUse remains this.normalImage (efto.png)
         
         ctx.save();
         
@@ -157,7 +182,9 @@ export class Player {
         } else {
             // Fallback: draw a simple rectangle with different colors for states
             let fillColor = '#4ECDC4'; // Normal (efto.png equivalent)
-            if (this.isCelebrating) {
+            if (this.isSandoCelebrating) {
+                fillColor = '#FF69B4'; // Pink for sando celebration (sando.png equivalent)
+            } else if (this.isCelebrating) {
                 fillColor = '#FFD700'; // Gold for celebration (efto-win.png equivalent)
             } else if (this.isReacting) {
                 fillColor = '#FF6B6B'; // Red for impact (vano.png equivalent)
@@ -211,14 +238,17 @@ export class Player {
     reset() {
         this.impactTimer = 0;
         this.celebrationTimer = 0;
+        this.sandoTimer = 0;
         this.isReacting = false;
         this.isCelebrating = false;
+        this.isSandoCelebrating = false;
     }
     
     // Check if images are loaded
     areImagesLoaded() {
         return this.normalImage.complete && this.normalImage.naturalWidth > 0 &&
                this.impactImage.complete && this.impactImage.naturalWidth > 0 &&
-               this.celebrationImage.complete && this.celebrationImage.naturalWidth > 0;
+               this.celebrationImage.complete && this.celebrationImage.naturalWidth > 0 &&
+               this.sandoImage.complete && this.sandoImage.naturalWidth > 0;
     }
 } 

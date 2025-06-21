@@ -23,10 +23,10 @@ export const serverConfig = {
     // API Endpoints (usually don't need to change these)
     endpoints: {
         // For PHP servers
-        highscores: 'api/highscores.php',
+        // highscores: 'api/highscores.php',
         
         // For Python servers, use this instead:
-        // highscores: 'api/highscores',
+        highscores: 'api/highscores',
     },
 
     // Development vs Production settings

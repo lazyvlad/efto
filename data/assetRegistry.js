@@ -6,7 +6,8 @@ export const assetRegistry = {
     player: {
         normal: 'assets/efto.png',
         impact: 'assets/vano.png',
-        celebration: 'assets/efto-win.png'
+        celebration: 'assets/efto-win.png',
+        sando: 'assets/sando.png'  // Special celebration image for Ashkandi items
     },
     
     // Projectile assets
@@ -23,9 +24,11 @@ export const assetRegistry = {
         manaPotion: 'assets/mana_potion.png',
         alchemy: 'assets/alchemy.png',
         speedBoost: 'assets/speed-boost.png',
+        sprint: 'assets/sprint.webp',
         frostNova: 'assets/frost-nova.jpg',
         powerWordShield: 'assets/powerwordshield.jpg',
-        chickenFood: 'assets/kokoska.png'
+        chickenFood: 'assets/kokoska.png',
+        reverseGravity: 'assets/reverse_gravity.webp'
     },
     
     // Buff and effect assets
@@ -145,6 +148,7 @@ export const assetCategories = {
         assetRegistry.player.normal,
         assetRegistry.player.impact,
         assetRegistry.player.celebration,
+        assetRegistry.player.sando,
         assetRegistry.projectiles.fireball,
         assetRegistry.projectiles.frostbolt,
         
@@ -200,11 +204,12 @@ export const assetCategories = {
         
         // Power-ups and effects
         assetRegistry.powerups.frostNova,
-        assetRegistry.powerups.speedBoost,
+        assetRegistry.powerups.sprint,
         assetRegistry.powerups.healthPotion,
         assetRegistry.powerups.manaPotion,
         assetRegistry.powerups.alchemy,
-        assetRegistry.powerups.chickenFood
+        assetRegistry.powerups.chickenFood,
+        assetRegistry.powerups.reverseGravity
     ],
     
     // Optional assets - load on demand or in background
@@ -302,7 +307,8 @@ export const commonAssets = {
     player: [
         assetRegistry.player.normal,
         assetRegistry.player.impact,
-        assetRegistry.player.celebration
+        assetRegistry.player.celebration,
+        assetRegistry.player.sando
     ],
     
     // Dragonstalker set (win condition items)

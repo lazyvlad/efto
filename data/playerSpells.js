@@ -24,10 +24,11 @@ export const playerSpells = [
         id: "zandalari",
         name: "Zandalari",
         type: "buff", 
-        description: "Slows down projectiles and increases point multiplier",
+        description: "Slows down projectiles and items, increases point multiplier",
         duration: 600, // 10 seconds at 60fps
         effects: {
             slow_projectiles: 0.5, // 50% speed
+            slow_items: 0.5, // 50% speed for items too
             point_multiplier: 2.0
         },
         icon: assetRegistry.buffs.zgBuff1, // Zandalari buff icon
@@ -51,7 +52,7 @@ export const playerSpells = [
         icon: assetRegistry.buffs.songflower, // Songflower buff icon
         color: "#FF69B4",
         rarity: "rare",
-        cooldown: 180, // 3 seconds
+        cooldown: 7200, // 2 minutes (120 seconds) at 60fps
         manaCost: 25,
         castTime: 60, // 1 second
         category: "utility",
