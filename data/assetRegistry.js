@@ -37,7 +37,8 @@ export const assetRegistry = {
         onyxia: 'assets/onyxia-buff.png',
         zgBuff1: 'assets/zg-buff.png',
         zgBuff2: 'assets/zg-buff2.png',
-        blackLotuses: 'assets/black-lotuses.png'
+        blackLotuses: 'assets/black-lotuses.png',
+        flaskOfTitans: 'assets/flask_of_titans.webp'
     },
     
     // Audio assets
@@ -67,9 +68,10 @@ export const assetRegistry = {
         timeCut: 'assets/time_cut.mp3',
         speedboost: 'assets/speedboost.mp3',
         shieldCast: 'assets/shield_cast.mp3',
-        frostimpact: 'assets/frostimpact.mp3',
+        frostbolt: 'assets/frostbolt.mp3',
         shadowImpact: 'assets/shadow_impact.mp3',
-        chickenEat: 'assets/neka_krka_peto.mp3'
+        chickenEat: 'assets/neka_krka_peto.mp3',
+        reverseGravity: 'assets/reverse_gravity.mp3'
     },
 
     // Regular items
@@ -209,7 +211,10 @@ export const assetCategories = {
         assetRegistry.powerups.manaPotion,
         assetRegistry.powerups.alchemy,
         assetRegistry.powerups.chickenFood,
-        assetRegistry.powerups.reverseGravity
+        assetRegistry.powerups.reverseGravity,
+        
+        // Important special buffs
+        assetRegistry.buffs.flaskOfTitans
     ],
     
     // Optional assets - load on demand or in background

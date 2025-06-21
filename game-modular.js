@@ -9,15 +9,18 @@ import { FallingItem } from './classes/FallingItem.js';
 import { DamageProjectile, Fireball } from './classes/DamageProjectile.js';
 import { PowerUpItem } from './classes/PowerUpItem.js';
 import { Particle } from './classes/Particle.js';
+import { CombatText } from './classes/CombatText.js';
 
-import { tryAutoInitAudio, startBackgroundMusic, playVoiceSound, playUffSound, playScreamSound, playTotalSound, playFireballImpactSound, playDragonstalkerSound, playThunderSound, playItemSound, toggleAudio, audioInitialized, audioState, volumeSettings } from './systems/audioSystem.js';
+import { tryAutoInitAudio, startBackgroundMusic, playUffSound, playScreamSound, playTotalSound, playFireballImpactSound, playDragonstalkerSound, playThunderSound, playItemSound, toggleAudio, audioInitialized, audioState, volumeSettings, sounds } from './systems/audioSystem.js';
+import { initializeSettings, loadSettings, saveSettings, resetSettings, getSettings, updateSetting, areSoundEffectsEnabled, isBackgroundMusicEnabled, getVolume, getVolumeDecimal } from './systems/settingsSystem.js';
 import { loadHighScores, addHighScore, isHighScore, displayHighScores, displayHighScoresSync } from './systems/highScoreSystem.js';
-import { initializeInputSystem, updatePlayerPosition } from './systems/inputSystem.js';
+import { initializeInputSystem, updatePlayerPosition, resetInputState } from './systems/inputSystem.js';
 // drawSettings removed - now using HTML+CSS guide
 
-import { calculateLevelSpeedMultiplier, isValidYPosition, cleanupRecentDropPositions, calculateDeltaTimeMultiplier, updateGameStateTimers, addNotification, updateNotifications, drawNotifications, responsiveScaler, trackActivity, getLevelProgress, checkDragonstalkerCompletion } from './utils/gameUtils.js';
+import { calculateLevelSpeedMultiplier, isValidYPosition, cleanupRecentDropPositions, calculateDeltaTimeMultiplier, updateGameStateTimers, addNotification, updateNotifications, responsiveScaler, trackActivity, getLevelProgress, checkDragonstalkerCompletion } from './utils/gameUtils.js';
 import { selectRandomItem, selectRandomProjectile, selectRandomPowerUp, shouldSpawnPowerUp, createCollectionParticles, createImpactParticles, createShadowParticles, calculateProjectileProbability } from './utils/spawning.js';
 import { spellSystem } from './systems/spellSystem.js';
+import { notificationSystem } from './systems/notificationSystem.js';
 import { assetManager } from './utils/AssetManager.js';
 import { getAssetsByLevel, assetRegistry } from './data/assetRegistry.js';
 
@@ -31,6 +34,12 @@ let gameState = {
     gamePaused: false,
     currentScreen: 'menu', // 'menu', 'game', 'gameOver', 'victory', 'highScores'
     playerName: '',
+    
+    // Crit system
+    critRating: 0.10, // 10% base crit chance
+    baseCritRating: 0.10, // Store base crit rating for resets
+    critMultiplier: 2.0, // Double points on crit
+    critRatingCap: 0.25, // 25% maximum crit chance
     
     // Level and speed
     currentLevel: 0, // 0-based internal level (displays as Level 1 to user)
@@ -107,7 +116,7 @@ let gameState = {
 
     powerUpsSpawned: 0,
     cutTimeSpawned: 0,
-    lastPowerUpScore: 0,
+
     
     // UI state
     showingPauseMenu: false,
@@ -115,8 +124,7 @@ let gameState = {
     pauseMenuBounds: null,
     howToPlaySource: 'menu', // Track where howToPlay was accessed from
     
-    // Notifications
-    notifications: [],
+    // Notifications now handled by HTML+CSS notification system
     
     // Player reference
     player: null
@@ -128,6 +136,7 @@ let fallingItems = [];
 let fireballs = [];
 let powerUps = [];
 let particles = [];
+let combatTexts = []; // For crit damage numbers and other combat feedback
 let images = { items: [], spells: {} };
 let recentDropYPositions = [];
 
@@ -183,6 +192,23 @@ async function init() {
     gameState.player = player;
     updateLoadingProgress(0.8);
     
+    // Initialize settings system
+    const settings = initializeSettings();
+    
+    // Make settings globally available
+    window.gameSettings = {
+        areSoundEffectsEnabled,
+        isBackgroundMusicEnabled,
+        getVolume,
+        getVolumeDecimal,
+        updateSetting,
+        resetSettings,
+        getSettings
+    };
+    
+    // Make sounds globally available for settings system
+    window.sounds = sounds;
+    
     // Audio initialization is now handled by AssetManager during Tier 2 loading
     // Just set up the UI button
     tryAutoInitAudio();
@@ -194,6 +220,14 @@ async function init() {
         safeDisplayHighScores();
     }, updateCanvasOverlay);
     updateLoadingProgress(0.9);
+    
+    // Initialize notification system
+    if (!notificationSystem.initialize()) {
+        console.warn('Failed to initialize notification system');
+    }
+    
+    // Expose notification system globally for use by other systems
+    window.notificationSystem = notificationSystem;
     
     // Set up spell system notification callback
     spellSystem.setNotificationCallback((message, duration, color) => {
@@ -252,7 +286,9 @@ async function init() {
 function hideAllUIElements() {
     const elements = [
         'nameEntry',
-        'highScores', 
+        'highScores',
+        'highScoresScreen',
+        'settingsScreen',
         'howToPlay',
         'gameOver'
     ];
@@ -265,7 +301,7 @@ function hideAllUIElements() {
     });
 }
 
-// Handle window resize to maintain fullscreen and reposition player
+// Handle window resize to maintain fullscreen and reposition all game objects
 window.addEventListener('resize', () => {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -276,6 +312,31 @@ window.addEventListener('resize', () => {
     // Reposition player if needed
     if (player && player.repositionOnResize) {
         player.repositionOnResize(canvas.width, canvas.height);
+    }
+    
+    // Update sizes for all game objects
+    if (fallingItems) {
+        fallingItems.forEach(item => {
+            if (item.repositionOnResize) {
+                item.repositionOnResize();
+            }
+        });
+    }
+    
+    if (fireballs) {
+        fireballs.forEach(projectile => {
+            if (projectile.repositionOnResize) {
+                projectile.repositionOnResize();
+            }
+        });
+    }
+    
+    if (powerUps) {
+        powerUps.forEach(powerUp => {
+            if (powerUp.repositionOnResize) {
+                powerUp.repositionOnResize();
+            }
+        });
     }
 });
 
@@ -330,6 +391,11 @@ function update(deltaTimeMultiplier) {
     // Update game state timers
     updateGameStateTimers(gameState, deltaTimeMultiplier);
     
+    // Update notification system with current game state
+    if (window.notificationSystem) {
+        window.notificationSystem.updatePersistentNotifications(gameState);
+    }
+    
     // Update level progression and speed using threshold-based system
     const oldLevel = gameState.currentLevel;
     const oldSpeedMultiplier = gameState.levelSpeedMultiplier;
@@ -368,6 +434,7 @@ function update(deltaTimeMultiplier) {
     updateProjectiles(deltaTimeMultiplier);
     updatePowerUps(deltaTimeMultiplier);
     updateParticles(deltaTimeMultiplier);
+    updateCombatTexts(deltaTimeMultiplier);
     
     // Check collisions
     checkCollisions();
@@ -434,10 +501,10 @@ function renderGame() {
     fallingItems.forEach(item => item.draw(ctx, gameConfig));
     fireballs.forEach(projectile => projectile.draw(ctx));
     powerUps.forEach(powerUp => powerUp.draw(ctx));
+    combatTexts.forEach(text => text.draw(ctx));
     player.draw(ctx, gameState.shieldActive);
     
-    // Render power-up status indicators
-    renderPowerUpStatus();
+    // Power-up status now handled by HTML+CSS persistent notifications
     
     // Update DOM-based items panel (throttled for performance)
     // Only update every 10 frames to reduce DOM manipulation overhead
@@ -447,8 +514,7 @@ function renderGame() {
         updateDOMItemsPanel(gameState, gameItems);
     }
     
-    // Draw notifications (top center)
-    drawNotifications(ctx, canvas, gameState);
+    // Notifications now handled by HTML+CSS notification system
     
     // Health bar now rendered via HTML/CSS
     
@@ -489,65 +555,7 @@ function renderHighScores() {
     ctx.fillText('Press ESC to return', canvas.width/2, canvas.height - 50);
 }
 
-function renderPowerUpStatus() {
-    let yOffset = canvas.height - 100;
-    
-    if (gameState.timeSlowActive) {
-        ctx.fillStyle = 'rgba(0, 0, 255, 0.8)';
-        ctx.fillRect(10, yOffset, 200, 30);
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 16px Arial';
-        ctx.fillText('TIME SLOW ACTIVE', 15, yOffset + 20);
-        yOffset -= 35;
-    }
-    
-    if (gameState.freezeTimeActive) {
-        ctx.fillStyle = 'rgba(135, 206, 235, 0.8)';
-        ctx.fillRect(10, yOffset, 200, 30);
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 16px Arial';
-        ctx.fillText('PROJECTILES FROZEN', 15, yOffset + 20);
-        yOffset -= 35;
-    }
-    
-    if (gameState.speedIncreaseActive) {
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.8)';
-        ctx.fillRect(10, yOffset, 250, 30);
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 16px Arial';
-        ctx.fillText(`SPEED BOOST: +${gameState.currentSpeedIncreasePercent}%`, 15, yOffset + 20);
-        yOffset -= 35;
-    }
-    
-    if (gameState.shieldActive) {
-        ctx.fillStyle = 'rgba(255, 215, 0, 0.8)';
-        ctx.fillRect(10, yOffset, 250, 30);
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 16px Arial';
-        const shieldSecondsLeft = Math.ceil(gameState.shieldTimer / 60);
-        ctx.fillText(`🛡️ SHIELD ACTIVE: ${shieldSecondsLeft}s`, 15, yOffset + 20);
-        yOffset -= 35;
-    }
-    
-    if (gameState.shadowboltDots && gameState.shadowboltDots.length > 0) {
-        ctx.fillStyle = 'rgba(75, 0, 130, 0.8)'; // Dark purple background
-        ctx.fillRect(10, yOffset, 280, 30);
-        ctx.fillStyle = '#8A2BE2'; // Brighter purple text
-        ctx.font = 'bold 16px Arial';
-        const nextTickIn = Math.ceil(gameState.shadowboltTimer / 60);
-        ctx.fillText(`🌑 SHADOW DOT: ${gameState.shadowboltDots.length} stacks (${nextTickIn}s)`, 15, yOffset + 20);
-        yOffset -= 35;
-    }
-    
-    if (gameState.chickenFoodHots && gameState.chickenFoodHots.length > 0) {
-        ctx.fillStyle = 'rgba(255, 215, 0, 0.8)'; // Golden background
-        ctx.fillRect(10, yOffset, 280, 30);
-        ctx.fillStyle = '#FFD700'; // Golden text
-        ctx.font = 'bold 16px Arial';
-        const nextHealIn = Math.ceil(gameState.chickenFoodTimer / 60);
-        ctx.fillText(`🐔 CHICKEN FOOD: ${gameState.chickenFoodHots.length} stacks (${nextHealIn}s)`, 15, yOffset + 20);
-    }
-}
+
 
 // renderSpellUI function removed - spells now rendered via HTML/CSS
 
@@ -575,12 +583,12 @@ function loadSpellIcons() {
     };
             zandalariIcon.src = assetRegistry.buffs.zgBuff1;
     
-    // Songflower spell icon
-    const songflowerIcon = new Image();
-    songflowerIcon.onload = () => {
-        images.spells.songflower = songflowerIcon;
+        // Flask of Titans spell icon
+    const flaskOfTitansIcon = new Image();
+    flaskOfTitansIcon.onload = () => {
+        images.spells.flask_of_titans = flaskOfTitansIcon;
     };
-            songflowerIcon.src = assetRegistry.buffs.songflower;
+    flaskOfTitansIcon.src = assetRegistry.buffs.flaskOfTitans;
 }
 
 // Game functions (simplified - these would contain the full logic)
@@ -614,7 +622,6 @@ function startGame() {
     gameState.permanentSpeedReductionFromSets = 0;
     gameState.powerUpsSpawned = 0;
     gameState.cutTimeSpawned = 0;
-    gameState.lastPowerUpScore = 0;
     
     // Clear power-up effects
     gameState.timeSlowActive = false;
@@ -654,17 +661,24 @@ function startGame() {
     gameState.chickenFoodHots = [];
     gameState.chickenFoodTimer = 0;
     
+    // Reset crit rating to base value
+    gameState.critRating = gameState.baseCritRating;
+    
     // Clear arrays
     fallingItems = [];
     fireballs = [];
     powerUps = [];
     particles = [];
+    combatTexts = [];
     
     // Reset recent drop positions
     recentDropYPositions = [];
     
     // Reset player state
     player.reset();
+    
+    // Reset input state for new game (mobile touch position handling)
+    resetInputState();
     
     // Reset items collected count for new game
     gameItems.forEach(item => {
@@ -735,8 +749,9 @@ function restartGame() {
     gameState.upwardAngleMin = gameConfig.gameplay.fallAngles.upwardAngleMin;
     gameState.upwardAngleMax = gameConfig.gameplay.fallAngles.upwardAngleMax;
     gameState.cutTimeSpawned = 0;
-    gameState.lastPowerUpScore = 0;
-    gameState.notifications = []; // Reset notifications
+    gameState.elapsedTime = 0;
+    gameState.nextPowerUpTime = undefined; // Reset power-up timer
+    // Notifications now handled by HTML+CSS notification system
     
     // Reset UI state
     gameState.showingPauseMenu = false;
@@ -750,17 +765,24 @@ function restartGame() {
     gameState.chickenFoodHots = [];
     gameState.chickenFoodTimer = 0;
     
+    // Reset crit rating to base value
+    gameState.critRating = gameState.baseCritRating;
+    
     // Clear all game objects
     fallingItems = [];
     fireballs = [];
     powerUps = [];
     particles = [];
+    combatTexts = [];
     recentDropYPositions = [];
     
     // Reset player
     if (player && player.reset) {
         player.reset();
     }
+    
+    // Reset input state for new game (mobile touch position handling)
+    resetInputState();
     
     // Reset items collected count for new game
     gameItems.forEach(item => {
@@ -829,6 +851,11 @@ function spawnProjectiles(deltaTimeMultiplier) {
 }
 
 function spawnPowerUps(deltaTimeMultiplier) {
+    // Check if we're at the power-up limit
+    if (powerUps.length >= gameConfig.powerUps.maxPowerUps) {
+        return; // Don't spawn if at limit
+    }
+    
     if (shouldSpawnPowerUp(gameState)) {
         // Get all available power-ups
         let availablePowerUps = [...powerUpItems];
@@ -857,10 +884,7 @@ function spawnPowerUps(deltaTimeMultiplier) {
                     gameState.cutTimeSpawned++;
                 }
                 
-                // Update lastPowerUpScore to prevent multiple spawns at same score
-                const interval = gameConfig.powerUps.spawnInterval;
-                const currentMilestone = Math.floor(gameState.score / interval) * interval;
-                gameState.lastPowerUpScore = Math.max(currentMilestone, gameState.score);
+                // Frame-based spawning doesn't need score tracking
             }
         }
     }
@@ -934,6 +958,10 @@ function updateParticles(deltaTimeMultiplier) {
     particles = particles.filter(particle => particle.update(deltaTimeMultiplier));
 }
 
+function updateCombatTexts(deltaTimeMultiplier) {
+    combatTexts = combatTexts.filter(text => text.update(deltaTimeMultiplier));
+}
+
 // Special effect for Thunderfury: Auto-collect all falling items on screen
 function triggerThunderfuryEffect(thunderfuryX, thunderfuryY) {
     let itemsCollected = 0;
@@ -956,7 +984,38 @@ function triggerThunderfuryEffect(thunderfuryX, thunderfuryY) {
             // Apply spell point multipliers
             const pointMultiplier = spellSystem.getPointMultiplier();
             const basePoints = otherItem.itemData.value;
-            const finalPoints = Math.round(basePoints * pointMultiplier);
+            let finalPoints = Math.round(basePoints * pointMultiplier);
+            
+            // Check for critical hit (include spell crit rating bonus)
+            const critRoll = Math.random();
+            const spellCritBonus = spellSystem.getCritRatingBonus();
+            const totalCritRating = Math.min(gameState.critRating + spellCritBonus, gameState.critRatingCap);
+            const isCrit = critRoll < totalCritRating;
+            
+            if (isCrit) {
+                finalPoints = Math.round(finalPoints * gameState.critMultiplier);
+                
+                // Create crit combat text for Thunderfury auto-collection
+                const critText = new CombatText(
+                    otherItem.x + otherItem.width/2, 
+                    otherItem.y + otherItem.height/2,
+                    `+${finalPoints} CRIT!`,
+                    '#FF6B00', // Orange crit color
+                    true // is crit
+                );
+                combatTexts.push(critText);
+            } else {
+                // Create normal combat text for non-crit
+                const normalText = new CombatText(
+                    otherItem.x + otherItem.width/2, 
+                    otherItem.y + otherItem.height/2,
+                    `+${finalPoints}`,
+                    '#FFD700', // Gold normal color
+                    false // not crit
+                );
+                combatTexts.push(normalText);
+            }
+            
             gameState.score += finalPoints;
             totalPoints += finalPoints;
             
@@ -1008,11 +1067,45 @@ function checkCollisions() {
                 // Apply spell point multipliers
                 const pointMultiplier = spellSystem.getPointMultiplier();
                 const basePoints = item.itemData.value;
-                const finalPoints = Math.round(basePoints * pointMultiplier);
+                let finalPoints = Math.round(basePoints * pointMultiplier);
+                
+                // Check for critical hit (include spell crit rating bonus)
+                const critRoll = Math.random();
+                const spellCritBonus = spellSystem.getCritRatingBonus();
+                const totalCritRating = Math.min(gameState.critRating + spellCritBonus, gameState.critRatingCap);
+                const isCrit = critRoll < totalCritRating;
+                
+                if (isCrit) {
+                    finalPoints = Math.round(finalPoints * gameState.critMultiplier);
+                    
+                    // Create crit combat text
+                    const critText = new CombatText(
+                        item.x + item.width/2, 
+                        item.y + item.height/2,
+                        `+${finalPoints} CRIT!`,
+                        '#FF6B00', // Orange crit color
+                        true // is crit
+                    );
+                    combatTexts.push(critText);
+                    
+                    // Add crit notification
+                    addNotification(gameState, `💥 CRITICAL HIT! +${finalPoints} points`, 120, '#FF6B00');
+                } else {
+                    // Create normal combat text for non-crit
+                    const normalText = new CombatText(
+                        item.x + item.width/2, 
+                        item.y + item.height/2,
+                        `+${finalPoints}`,
+                        '#FFD700', // Gold normal color
+                        false // not crit
+                    );
+                    combatTexts.push(normalText);
+                }
+                
                 gameState.score += finalPoints;
                 
-                // Show bonus points notification if multiplier is active
-                if (pointMultiplier > 1.0) {
+                // Show bonus points notification if spell multiplier is active (but not for crits to avoid spam)
+                if (pointMultiplier > 1.0 && !isCrit) {
                     const bonusPercent = Math.round((pointMultiplier - 1.0) * 100);
                     addNotification(gameState, `💰 +${bonusPercent}% Points (${finalPoints})`, 120, '#FFD700');
                 }
@@ -1028,6 +1121,23 @@ function checkCollisions() {
                 // Special effect for Thunderfury: Auto-collect all falling items
                 if (item.itemData.id === "ThunderFury") {
                     triggerThunderfuryEffect(item.x + item.width/2, item.y + item.height/2);
+                    
+                    // Increase crit rating by 1% for collecting Thunderfury
+                    const critIncrease = 0.01; // 1%
+                    const oldCritRating = gameState.critRating;
+                    gameState.critRating = Math.min(gameState.critRating + critIncrease, gameState.critRatingCap);
+                    const actualIncrease = gameState.critRating - oldCritRating;
+                    
+                    if (actualIncrease > 0) {
+                        const critPercent = Math.round(actualIncrease * 100);
+                        const newCritPercent = Math.round(gameState.critRating * 100);
+                        addNotification(gameState, `⚡ THUNDERFURY POWER! Crit +${critPercent}% (Now: ${newCritPercent}%)`, 240, '#FF6B00');
+                        console.log(`⚡ Thunderfury increased crit rating by ${critPercent}% to ${newCritPercent}% (${gameState.critRating.toFixed(3)})`);
+                    } else {
+                        const maxCritPercent = Math.round(gameState.critRatingCap * 100);
+                        addNotification(gameState, `⚡ THUNDERFURY! Crit already maxed (${maxCritPercent}%)`, 180, '#FF6B00');
+                        console.log(`⚡ Thunderfury collected but crit rating already at maximum: ${maxCritPercent}%`);
+                    }
                 }
                 
                 // Play sounds and handle tier set collection
@@ -1065,18 +1175,17 @@ function checkCollisions() {
                     addNotification(gameState, `🏆 ${item.itemData.name} (${uniquePiecesCollected}/10)`, 240, '#FFD700');
                     
                     // Check if Dragonstalker set is complete
-                    checkDragonstalkerCompletion(gameState, gameItems);
+                    const setCompleted = checkDragonstalkerCompletion(gameState, gameItems);
+                    if (setCompleted) {
+                        playTotalSound(); // Play total sound for Dragonstalker completion
+                    }
                 } else {
                     playItemSound(item.itemData);
                 }
                 
-                // Play voice sound periodically
-                playVoiceSound(gameState);
+                // Voice sound now played for specific items only
                 
-                // Special sounds at milestones
-                if (gameState.perfectCollections === gameConfig.audio.totalSoundTrigger) {
-                    playTotalSound();
-                }
+                // Total sound now played when Dragonstalker set is completed
                 
                 // Start background music
                 if (gameState.perfectCollections === gameConfig.audio.backgroundMusicStart) {
@@ -1442,10 +1551,26 @@ function hideLoadingScreen() {
 function showNameEntry() {
     console.log('Showing name entry screen - game is ready for player interaction');
     document.getElementById('nameEntry').style.display = 'block';
-    document.getElementById('highScores').style.display = 'none';
-    document.getElementById('howToPlay').style.display = 'none';
-    document.getElementById('gameOver').style.display = 'none';
-    document.getElementById('pauseMenu').style.display = 'none';
+    
+    // Hide all other screens (using safe access)
+    const highScores = document.getElementById('highScores');
+    if (highScores) highScores.style.display = 'none';
+    
+    const highScoresScreen = document.getElementById('highScoresScreen');
+    if (highScoresScreen) highScoresScreen.style.display = 'none';
+    
+    const settingsScreen = document.getElementById('settingsScreen');
+    if (settingsScreen) settingsScreen.style.display = 'none';
+    
+    const howToPlay = document.getElementById('howToPlay');
+    if (howToPlay) howToPlay.style.display = 'none';
+    
+    const gameOver = document.getElementById('gameOver');
+    if (gameOver) gameOver.style.display = 'none';
+    
+    const pauseMenu = document.getElementById('pauseMenu');
+    if (pauseMenu) pauseMenu.style.display = 'none';
+    
     gameState.currentScreen = 'menu';
     
     // Update button visibility based on game state
@@ -1488,10 +1613,18 @@ function updateMenuButtons() {
 // Show high scores screen
 function showHighScores() {
     console.log('Showing high scores screen');
-    document.getElementById('nameEntry').style.display = 'none';
-    document.getElementById('highScores').style.display = 'block';
-    document.getElementById('howToPlay').style.display = 'none';
-    document.getElementById('gameOver').style.display = 'none';
+    hideAllUIElements();
+    
+    // Show the new high scores screen
+    const highScoresScreen = document.getElementById('highScoresScreen');
+    if (highScoresScreen) {
+        highScoresScreen.style.display = 'block';
+    } else {
+        // Fallback to old element if it exists
+        const oldHighScores = document.getElementById('highScores');
+        if (oldHighScores) oldHighScores.style.display = 'block';
+    }
+    
     gameState.currentScreen = 'highScores';
     
     safeDisplayHighScores();
@@ -1503,11 +1636,20 @@ function showHighScores() {
 // Show how to play screen
 function showHowToPlay(fromPause = false) {
     console.log('Showing how to play screen');
-    document.getElementById('nameEntry').style.display = 'none';
-    document.getElementById('highScores').style.display = 'none';
-    document.getElementById('howToPlay').style.display = 'block';
-    document.getElementById('gameOver').style.display = 'none';
-    document.getElementById('pauseMenu').style.display = 'none';
+    
+    // Safe element access to prevent null errors
+    const nameEntry = document.getElementById('nameEntry');
+    const highScores = document.getElementById('highScores');
+    const howToPlay = document.getElementById('howToPlay');
+    const gameOver = document.getElementById('gameOver');
+    const pauseMenu = document.getElementById('pauseMenu');
+    
+    if (nameEntry) nameEntry.style.display = 'none';
+    if (highScores) highScores.style.display = 'none';
+    if (howToPlay) howToPlay.style.display = 'block';
+    if (gameOver) gameOver.style.display = 'none';
+    if (pauseMenu) pauseMenu.style.display = 'none';
+    
     gameState.currentScreen = 'howToPlay';
     
     // Store where we came from for the back button
@@ -1519,17 +1661,204 @@ function showHowToPlay(fromPause = false) {
 
 // Show items/settings screen from menu
 function showItemsFromMenu() {
-    // Hide all UI screens
-    document.getElementById('nameEntry').style.display = 'none';
-    document.getElementById('highScores').style.display = 'none';
-    document.getElementById('howToPlay').style.display = 'none';
-    document.getElementById('gameOver').style.display = 'none';
+    // Hide all UI screens using safe access
+    hideAllUIElements();
     
     // Ensure we're on the menu screen
     gameState.currentScreen = 'menu';
     
     // Update canvas overlay
     updateCanvasOverlay();
+}
+
+function showSettings(source = null) {
+    console.log('showSettings() called with source:', source);
+    // Store where we came from for the back button
+    if (source) {
+        gameState.settingsSource = source;
+    } else {
+        gameState.settingsSource = gameState.gameRunning ? 'game' : 'menu';
+    }
+    
+    // If coming from game, pause it
+    if (gameState.gameRunning) {
+        gameState.gamePaused = true;
+    }
+    
+    hideAllUIElements();
+    document.getElementById('settingsScreen').style.display = 'block';
+    gameState.currentScreen = 'settings';
+    
+    console.log('Settings screen displayed');
+    
+    // Update back button text based on source
+    const backBtn = document.getElementById('settingsBackBtn');
+    if (backBtn) {
+        if (gameState.settingsSource === 'game') {
+            backBtn.textContent = 'Continue Game';
+        } else if (gameState.settingsSource === 'pause') {
+            backBtn.textContent = 'Back to Pause Menu';
+        } else {
+            backBtn.textContent = 'Back to Menu';
+        }
+    }
+    
+    // Update UI elements with current settings
+    console.log('Updating settings UI...');
+    updateSettingsUI();
+    
+    // Set up event handlers for settings controls (do this each time settings opens)
+    console.log('Setting up event handlers...');
+    setupSettingsEventHandlers();
+    console.log('showSettings() complete');
+}
+
+function closeSettings() {
+    document.getElementById('settingsScreen').style.display = 'none';
+    
+    if (gameState.settingsSource === 'game') {
+        // Return to game
+        gameState.gamePaused = false;
+        gameState.currentScreen = 'game';
+        updateCanvasOverlay();
+    } else if (gameState.settingsSource === 'pause') {
+        // Return to pause menu
+        showPauseMenu();
+    } else {
+        // Return to main menu
+        showNameEntry();
+    }
+}
+
+function showMainMenu() {
+    hideAllUIElements();
+    showNameEntry();
+}
+
+function updateSettingsUI() {
+    const settings = getSettings();
+    
+    // Update toggles
+    document.getElementById('soundEffectsToggle').checked = settings.audio.soundEffects;
+    document.getElementById('backgroundMusicToggle').checked = settings.audio.backgroundMusic;
+    
+    // Update volume slider
+    document.getElementById('volumeSlider').value = settings.audio.volume;
+    document.getElementById('volumeValue').textContent = settings.audio.volume + '%';
+}
+
+function resetSettingsUI() {
+    const defaultSettings = resetSettings();
+    updateSettingsUI();
+    
+    // Show confirmation
+    alert('Settings have been reset to defaults!');
+}
+
+function setupSettingsEventHandlers() {
+    console.log('Setting up settings event handlers...');
+    // Settings screen event handlers
+    const soundEffectsToggle = document.getElementById('soundEffectsToggle');
+    const backgroundMusicToggle = document.getElementById('backgroundMusicToggle');
+    const volumeSlider = document.getElementById('volumeSlider');
+    
+    console.log('Toggle elements found:', {
+        soundEffectsToggle: !!soundEffectsToggle,
+        backgroundMusicToggle: !!backgroundMusicToggle,
+        volumeSlider: !!volumeSlider
+    });
+    
+    if (soundEffectsToggle) {
+        console.log('Setting up sound effects toggle event handler');
+        // Remove existing listeners to avoid duplicates
+        soundEffectsToggle.replaceWith(soundEffectsToggle.cloneNode(true));
+        const newSoundEffectsToggle = document.getElementById('soundEffectsToggle');
+        
+        console.log('New sound effects toggle element:', newSoundEffectsToggle);
+        
+        // Get the toggle slider (the visible part)
+        const toggleSlider = newSoundEffectsToggle.parentElement.querySelector('.toggle-slider');
+        console.log('Toggle slider element:', toggleSlider);
+        
+        // Add click listener to the visible slider
+        if (toggleSlider) {
+            toggleSlider.addEventListener('click', function() {
+                console.log('Sound effects slider CLICKED!');
+                // Toggle the checkbox state
+                newSoundEffectsToggle.checked = !newSoundEffectsToggle.checked;
+                // Trigger change event manually
+                newSoundEffectsToggle.dispatchEvent(new Event('change'));
+            });
+        }
+        
+        // Add both click and change event listeners for debugging
+        newSoundEffectsToggle.addEventListener('click', function() {
+            console.log('Sound effects toggle CLICKED!');
+        });
+        
+        newSoundEffectsToggle.addEventListener('change', function() {
+            console.log('Sound effects toggle changed to:', this.checked);
+            console.log('Current settings before update:', getSettings());
+            updateSetting('audio', 'soundEffects', this.checked);
+            console.log('Current settings after update:', getSettings());
+        });
+        
+        console.log('Sound effects toggle event handler attached');
+    } else {
+        console.warn('Sound effects toggle element not found!');
+    }
+    
+    if (backgroundMusicToggle) {
+        console.log('Setting up background music toggle event handler');
+        // Remove existing listeners to avoid duplicates
+        backgroundMusicToggle.replaceWith(backgroundMusicToggle.cloneNode(true));
+        const newBackgroundMusicToggle = document.getElementById('backgroundMusicToggle');
+        
+        console.log('New background music toggle element:', newBackgroundMusicToggle);
+        
+        // Get the toggle slider (the visible part)
+        const toggleSlider = newBackgroundMusicToggle.parentElement.querySelector('.toggle-slider');
+        console.log('Background music toggle slider element:', toggleSlider);
+        
+        // Add click listener to the visible slider
+        if (toggleSlider) {
+            toggleSlider.addEventListener('click', function() {
+                console.log('Background music slider CLICKED!');
+                // Toggle the checkbox state
+                newBackgroundMusicToggle.checked = !newBackgroundMusicToggle.checked;
+                // Trigger change event manually
+                newBackgroundMusicToggle.dispatchEvent(new Event('change'));
+            });
+        }
+        
+        // Add both click and change event listeners for debugging
+        newBackgroundMusicToggle.addEventListener('click', function() {
+            console.log('Background music toggle CLICKED!');
+        });
+        
+        newBackgroundMusicToggle.addEventListener('change', function() {
+            console.log('Background music toggle changed to:', this.checked);
+            console.log('Current settings before update:', getSettings());
+            updateSetting('audio', 'backgroundMusic', this.checked);
+            console.log('Current settings after update:', getSettings());
+        });
+        
+        console.log('Background music toggle event handler attached');
+    } else {
+        console.warn('Background music toggle element not found!');
+    }
+    
+    if (volumeSlider) {
+        // Remove existing listeners to avoid duplicates
+        volumeSlider.replaceWith(volumeSlider.cloneNode(true));
+        const newVolumeSlider = document.getElementById('volumeSlider');
+        
+        newVolumeSlider.addEventListener('input', function() {
+            const volume = parseInt(this.value);
+            document.getElementById('volumeValue').textContent = volume + '%';
+            updateSetting('audio', 'volume', volume);
+        });
+    }
 }
 
 // Start the game with the entered name
@@ -1583,6 +1912,27 @@ function setupUIEventHandlers() {
     
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
+        // Settings shortcut (S key)
+        if (e.key === 's' || e.key === 'S') {
+            // Only if not typing in an input field
+            if (!e.target.matches('input, textarea')) {
+                e.preventDefault();
+                if (gameState.currentScreen === 'settings') {
+                    closeSettings();
+                } else if (gameState.gameRunning || gameState.currentScreen === 'menu') {
+                    showSettings();
+                } else if (gameState.showingPauseMenu) {
+                    showSettings('pause');
+                }
+            }
+        }
+        
+        // ESC key to close settings
+        if (e.key === 'Escape' && gameState.currentScreen === 'settings') {
+            e.preventDefault();
+            closeSettings();
+        }
+        
         // Development shortcuts
         if (e.ctrlKey && e.shiftKey && e.key === 'P') {
             e.preventDefault();
@@ -1682,9 +2032,24 @@ function setupUIEventHandlers() {
         audioBtn.addEventListener('click', toggleAudioButton);
     }
     
+    // Settings button (main menu)
+    const settingsBtn = document.getElementById('settingsBtn');
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', showSettings);
+    }
+    
+    // In-game settings button
+    const gameSettingsBtn = document.getElementById('gameSettingsBtn');
+    if (gameSettingsBtn) {
+        gameSettingsBtn.addEventListener('click', showSettings);
+    }
+    
+    // Settings screen event handlers are set up in showSettings() function
+    
     // Pause menu button handlers
     const continuePauseBtn = document.getElementById('continuePauseBtn');
     const gameInfoPauseBtn = document.getElementById('gameInfoPauseBtn');
+    const settingsPauseBtn = document.getElementById('settingsPauseBtn');
     const restartPauseBtn = document.getElementById('restartPauseBtn');
     
     if (continuePauseBtn) {
@@ -1699,6 +2064,14 @@ function setupUIEventHandlers() {
             // Hide pause menu and show game info (how to play screen)
             hidePauseMenu();
             showHowToPlay(true); // Pass true to indicate it came from pause
+        });
+    }
+    
+    if (settingsPauseBtn) {
+        settingsPauseBtn.addEventListener('click', function() {
+            // Hide pause menu and show settings
+            hidePauseMenu();
+            showSettings('pause'); // Pass 'pause' to indicate we came from pause menu
         });
     }
     
@@ -1779,12 +2152,15 @@ function updateDOMItemsPanel(gameState, gameItems) {
         // Enable interaction when paused, disable during gameplay
         if (gameState.showingPauseMenu) {
             panel.classList.add('interactive');
+            panel.classList.add('paused'); // Add paused class for mobile responsive behavior
         } else {
             panel.classList.remove('interactive');
+            panel.classList.remove('paused'); // Remove paused class during gameplay
         }
     } else {
         panel.classList.add('hidden');
         panel.classList.remove('interactive');
+        panel.classList.remove('paused');
         return;
     }
     
@@ -1830,6 +2206,7 @@ function updatePlayerStats(gameState) {
     const speedBoostValue = document.getElementById('speedBoostValue');
     const actualItemSpeed = document.getElementById('actualItemSpeed');
     const actualProjectileSpeed = document.getElementById('actualProjectileSpeed');
+    const critRating = document.getElementById('critRating');
     
     // Update player name
     if (playerNameDisplay) {
@@ -1912,6 +2289,60 @@ function updatePlayerStats(gameState) {
             actualProjectileSpeed.textContent = `${avgProjectileSpeed.toFixed(1)} px/frame`;
         } else {
             actualProjectileSpeed.textContent = '-- px/frame';
+        }
+    }
+    
+    // Update crit rating display
+    if (critRating) {
+        const baseCritPercent = Math.round(gameState.baseCritRating * 100);
+        const permanentCritPercent = Math.round(gameState.critRating * 100);
+        const spellCritBonus = spellSystem.getCritRatingBonus();
+        const spellCritBonusPercent = Math.round(spellCritBonus * 100);
+        const totalCritRating = Math.min(gameState.critRating + spellCritBonus, gameState.critRatingCap);
+        const totalCritPercent = Math.round(totalCritRating * 100);
+        const maxCritPercent = Math.round(gameState.critRatingCap * 100);
+        
+        // Determine display based on bonuses
+        const hasPermanentBonus = gameState.critRating > gameState.baseCritRating;
+        const hasSpellBonus = spellCritBonus > 0;
+        
+        if (hasSpellBonus) {
+            // Show total with spell bonus highlighted
+            if (hasPermanentBonus) {
+                const permanentBonusPercent = permanentCritPercent - baseCritPercent;
+                critRating.textContent = `${totalCritPercent}% (+${permanentBonusPercent}% +${spellCritBonusPercent}%🐲)`;
+            } else {
+                critRating.textContent = `${totalCritPercent}% (+${spellCritBonusPercent}%🐲)`;
+            }
+            critRating.style.color = '#FF4500'; // Dragon orange for spell bonus
+            critRating.style.fontWeight = 'bold';
+            critRating.style.textShadow = '0 0 6px #FF4500';
+            
+            // Add special glow if at max
+            if (totalCritRating >= gameState.critRatingCap) {
+                critRating.style.textShadow = '0 0 10px #FF4500';
+                critRating.textContent = critRating.textContent.replace(')', ' MAX!)');
+            }
+        } else if (hasPermanentBonus) {
+            // Show permanent bonus only
+            const bonusPercent = permanentCritPercent - baseCritPercent;
+            critRating.textContent = `${permanentCritPercent}% (+${bonusPercent}%)`;
+            critRating.style.color = '#FF6B00'; // Orange for enhanced
+            critRating.style.fontWeight = 'bold';
+            
+            // Add glow effect if at max
+            if (gameState.critRating >= gameState.critRatingCap) {
+                critRating.style.textShadow = '0 0 8px #FF6B00';
+                critRating.textContent = `${permanentCritPercent}% (MAX!)`;
+            } else {
+                critRating.style.textShadow = 'none';
+            }
+        } else {
+            // Base crit rating
+            critRating.textContent = `${baseCritPercent}%`;
+            critRating.style.color = '#FFD700'; // Gold for base
+            critRating.style.fontWeight = 'normal';
+            critRating.style.textShadow = 'none';
         }
     }
 }
@@ -2016,6 +2447,24 @@ function updateItemsList(sortedItems) {
     } else if (overflowIndicator) {
         overflowIndicator.classList.add('hidden');
     }
+}
+
+// Helper function to get Dragonstalker item icons for mobile display
+function getDragonstalkerItemIcon(itemId) {
+    const iconMap = {
+        'ds_helm': '⛑️',      // Helm
+        'ds_shoulders': '👔',  // Shoulders/Spaulders
+        'ds_chest': '🛡️',     // Chest/Breastplate
+        'ds_bracers': '🔗',   // Bracers
+        'ds_gloves': '🧤',    // Gloves/Gauntlets
+        'ds_belt': '🎀',      // Belt
+        'ds_legs': '👖',      // Legs/Legguards
+        'ds_boots': '👢',     // Boots/Greaves
+        'ashjrethul': '🏹',   // Crossbow
+        'ashkandi2': '⚔️'     // Sword
+    };
+    
+    return iconMap[itemId] || '🛡️'; // Default to shield icon
 }
 
 // Update dedicated Dragonstalker progress panel
@@ -2149,6 +2598,10 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
                 statusClass = 'missed';
                 nameClass = 'missed';
             }
+            
+            // Add data-icon attribute for mobile responsive CSS
+            const itemIcon = getDragonstalkerItemIcon(item.id);
+            itemDiv.setAttribute('data-icon', itemIcon);
             
             itemDiv.innerHTML = `
                 <div class="dragonstalker-item-status ${statusClass}">${status}</div>
@@ -2286,7 +2739,7 @@ function updateSpellBarHTML() {
     const spells = [
         { id: 'dragon_cry', elementId: 'spell-dragon-cry' },
         { id: 'zandalari', elementId: 'spell-zandalari' },
-        { id: 'songflower', elementId: 'spell-songflower' }
+        { id: 'flask_of_titans', elementId: 'spell-flask-of-titans' }
     ];
     
     spells.forEach(spell => {
@@ -2355,4 +2808,10 @@ function updateHealthBarHTML() {
     
     // Update health text
     healthText.textContent = `${healthPercent}%`;
-} 
+}
+
+// Make global functions available for HTML onclick handlers
+window.showSettings = showSettings;
+window.closeSettings = closeSettings;
+window.showMainMenu = showMainMenu;
+window.resetSettings = resetSettingsUI; 

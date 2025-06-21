@@ -10,16 +10,25 @@ export let inputState = {
     keys: new Set(),
     touchActive: false,
     lastTouchX: 0,
-    lastTouchY: 0
+    lastTouchY: 0,
+    hasMouseMoved: false, // Track if mouse has actually moved (not just initialized)
+    isTouchDevice: false, // Track if this is a touch device
+    playerInitialized: false // Track if player has been given an initial position
 };
 
 // Initialize input event listeners
 export function initializeInputSystem(canvas, gameState, player, restartGame, startGame, deprecatedParam, showPauseMenu, displayHighScores, updateCanvasOverlay) {
+    // Detect if this is a touch device on initialization
+    if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        inputState.isTouchDevice = true;
+        console.log('Touch device detected on initialization');
+    }
     // Mouse movement tracking
     canvas.addEventListener('mousemove', (e) => {
         const rect = canvas.getBoundingClientRect();
         inputState.mouseX = e.clientX - rect.left;
         inputState.mouseY = e.clientY - rect.top;
+        inputState.hasMouseMoved = true; // Mark that mouse has actually moved
     });
 
     // Mouse click events
@@ -51,6 +60,8 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
         inputState.touchActive = true;
         inputState.lastTouchX = touchX;
         inputState.lastTouchY = touchY;
+        inputState.isTouchDevice = true; // Mark as touch device
+        console.log('Touch device detected on touchstart');
         
         handleMouseClick(touchX, touchY, gameState, restartGame, startGame, displayHighScores, updateCanvasOverlay);
     });
@@ -66,6 +77,7 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
     canvas.addEventListener('touchend', (e) => {
         e.preventDefault();
         inputState.touchActive = false;
+        // Keep lastTouchX and lastTouchY - don't reset them so player stays at last position
     });
 
     // Keyboard events
@@ -73,7 +85,7 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
         fallbackAudioInit(); // Try to initialize audio on user interaction
         inputState.keys.add(e.key.toLowerCase());
         
-        handleKeyDown(e, gameState, restartGame, deprecatedParam, showPauseMenu, displayHighScores, updateCanvasOverlay);
+        handleKeyDown(e, gameState, restartGame, deprecatedParam, showPauseMenu, displayHighScores, updateCanvasOverlay, canvas);
     });
 
     document.addEventListener('keyup', (e) => {
@@ -89,6 +101,9 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
             toggleAudio();
         });
     }
+    
+    // Initialize spell touch/click handlers for mobile support
+    initializeSpellTouchHandlers(gameState);
 }
 
 // Handle mouse/touch clicks
@@ -109,7 +124,7 @@ function handleMouseClick(mouseX, mouseY, gameState, restartGame, startGame, dis
 }
 
 // Handle keyboard input
-function handleKeyDown(e, gameState, restartGame, deprecatedParam, showPauseMenu, displayHighScores, updateCanvasOverlay) {
+function handleKeyDown(e, gameState, restartGame, deprecatedParam, showPauseMenu, displayHighScores, updateCanvasOverlay, canvas) {
     // TAB/I key handling removed - canvas-based guide replaced with HTML+CSS
     
     // Speed monitor removed - no longer needed
@@ -225,6 +240,102 @@ function handleKeyDown(e, gameState, restartGame, deprecatedParam, showPauseMenu
     }
 }
 
+// Initialize spell touch/click handlers for mobile support
+function initializeSpellTouchHandlers(gameState) {
+    const spells = [
+        { id: 'dragon_cry', key: 'q', elementId: 'spell-dragon-cry' },
+        { id: 'zandalari', key: 'w', elementId: 'spell-zandalari' },
+        { id: 'flask_of_titans', key: 'e', elementId: 'spell-flask-of-titans' }
+    ];
+    
+    spells.forEach(spell => {
+        const element = document.getElementById(spell.elementId);
+        if (!element) return;
+        
+        // Add touch and click event handlers
+        const handleSpellActivation = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Only cast spells during gameplay
+            if (!gameState.gameRunning) return;
+            
+            // Try to initialize audio on user interaction
+            fallbackAudioInit();
+            
+            // Cast the spell
+            spellSystem.castSpellByKey(spell.key, Date.now());
+            
+            // Add visual feedback for touch
+            element.classList.add('spell-touched');
+            setTimeout(() => {
+                element.classList.remove('spell-touched');
+            }, 200);
+            
+            console.log(`Spell ${spell.id} cast via touch/click`);
+        };
+        
+        // Consolidated touch start handler (combines spell activation + visual feedback)
+        element.addEventListener('touchstart', (e) => {
+            console.log(`Touch detected on spell ${spell.id}!`);
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Add visual feedback
+            element.classList.add('spell-pressing');
+            
+            // Only cast spells during gameplay
+            if (!gameState.gameRunning) {
+                console.log(`Game not running, spell ${spell.id} not cast`);
+                return;
+            }
+            
+            // Try to initialize audio on user interaction
+            fallbackAudioInit();
+            
+            // Cast the spell
+            spellSystem.castSpellByKey(spell.key, Date.now());
+            
+            // Add touch feedback animation
+            element.classList.add('spell-touched');
+            setTimeout(() => {
+                element.classList.remove('spell-touched');
+            }, 200);
+            
+            console.log(`Spell ${spell.id} cast via touch - event prevented from bubbling`);
+        }, { passive: false });
+        
+        // Click handler for desktop/mouse support
+        element.addEventListener('click', (e) => {
+            console.log(`Click detected on spell ${spell.id}!`);
+            handleSpellActivation(e);
+        });
+        
+        // Touch end handlers for visual feedback cleanup
+        element.addEventListener('touchend', (e) => {
+            element.classList.remove('spell-pressing');
+        }, { passive: true });
+        
+        element.addEventListener('touchcancel', (e) => {
+            element.classList.remove('spell-pressing');
+        }, { passive: true });
+        
+        // Prevent context menu on long press
+        element.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+        });
+    });
+    
+    console.log('Spell touch handlers initialized for mobile support');
+}
+
+// Reset input state for new game
+export function resetInputState() {
+    inputState.playerInitialized = false;
+    // Don't reset isTouchDevice or hasMouseMoved as these are persistent device characteristics
+    console.log('Input state reset for new game');
+}
+
 // Update player position based on input
 export function updatePlayerPosition(player, canvas, deltaTimeMultiplier, gameConfig) {
     // Get responsive movable area configuration
@@ -246,34 +357,79 @@ export function updatePlayerPosition(player, canvas, deltaTimeMultiplier, gameCo
         maxY = canvas.height - player.height;
     }
     
-    if (inputState.touchActive) {
-        // Touch input - move towards touch position (but respect movable area)
-        let targetX = inputState.lastTouchX - player.width / 2;
-        let targetY = inputState.lastTouchY - player.height / 2;
+    // Initialize player position if not done yet
+    if (!inputState.playerInitialized) {
+        // Set default position in center of movable area
+        player.x = canvas.width / 2 - player.width / 2;
+        player.y = maxY; // Bottom of movable area
+        
+        // For touch devices, also set the last touch position to player's initial position
+        if (inputState.isTouchDevice) {
+            inputState.lastTouchX = player.x + player.width / 2;
+            inputState.lastTouchY = player.y + player.height / 2;
+        }
+        
+        inputState.playerInitialized = true;
+        console.log('Player initialized at position:', player.x, player.y, 'with speed:', player.speed);
+    }
+    
+    let targetX, targetY;
+    
+    if (inputState.isTouchDevice) {
+        // Touch device behavior: always use last touch position (even when not actively touching)
+        targetX = inputState.lastTouchX - player.width / 2;
+        targetY = inputState.lastTouchY - player.height / 2;
         
         // Constrain target position to movable area
         targetX = Math.max(minX, Math.min(maxX, targetX));
         targetY = Math.max(minY, Math.min(maxY, targetY));
         
-        // Optimized movement calculation - avoid sqrt when possible
-        const dx = targetX - player.x;
-        const dy = targetY - player.y;
-        const distanceSquared = dx * dx + dy * dy;
-        
-        // Use squared distance comparison to avoid expensive sqrt
-        if (distanceSquared > 25) { // 5 * 5 = 25
-            const distance = Math.sqrt(distanceSquared);
-            const moveSpeed = player.speed * deltaTimeMultiplier;
-            player.x += (dx / distance) * moveSpeed;
-            player.y += (dy / distance) * moveSpeed;
+        if (inputState.touchActive) {
+            // Actively touching - move smoothly towards touch position
+            const dx = targetX - player.x;
+            const dy = targetY - player.y;
+            const distanceSquared = dx * dx + dy * dy;
+            
+            // Use squared distance comparison to avoid expensive sqrt
+            if (distanceSquared > 9) { // 3 * 3 = 9 (smaller threshold for more responsive movement)
+                const distance = Math.sqrt(distanceSquared);
+                const moveSpeed = player.speed * deltaTimeMultiplier;
+                
+                // Use faster movement for touch - either full speed or direct movement for close distances
+                if (distance < moveSpeed * 2) {
+                    // If very close to target, move directly to avoid oscillation
+                    player.x = targetX;
+                    player.y = targetY;
+                } else {
+                    // Normal smooth movement but with higher speed multiplier for touch
+                    const touchSpeedMultiplier = 1.5; // 50% faster movement for touch
+                    const adjustedSpeed = moveSpeed * touchSpeedMultiplier;
+                    player.x += (dx / distance) * adjustedSpeed;
+                    player.y += (dy / distance) * adjustedSpeed;
+                }
+            }
+        } else {
+            // Not actively touching - stay at last touch position (no movement)
+            // Player remains at current position
         }
     } else {
-        // Mouse input - follow mouse position directly (but respect movable area)
-        player.x = inputState.mouseX - player.width / 2;
-        player.y = inputState.mouseY - player.height / 2;
+        // Desktop/mouse behavior: follow mouse only if mouse has actually moved
+        if (inputState.hasMouseMoved) {
+            targetX = inputState.mouseX - player.width / 2;
+            targetY = inputState.mouseY - player.height / 2;
+            
+            // Constrain target position to movable area
+            targetX = Math.max(minX, Math.min(maxX, targetX));
+            targetY = Math.max(minY, Math.min(maxY, targetY));
+            
+            // Follow mouse directly on desktop
+            player.x = targetX;
+            player.y = targetY;
+        }
+        // If mouse hasn't moved, player stays at initialized position
     }
     
-    // Keep player within movable area bounds
+    // Ensure player stays within bounds (safety check)
     player.x = Math.max(minX, Math.min(maxX, player.x));
     player.y = Math.max(minY, Math.min(maxY, player.y));
     

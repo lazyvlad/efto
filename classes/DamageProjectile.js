@@ -1,6 +1,7 @@
 import { gameConfig } from '../config/gameConfig.js';
 import { audioState, volumeSettings } from '../systems/audioSystem.js';
 import { assetManager } from '../utils/AssetManager.js';
+import { responsiveScaler } from '../utils/gameUtils.js';
 
 // Gaussian random number generator (Box-Muller transform)
 function gaussianRandom(mean = 0, stdDev = 1) {
@@ -14,8 +15,20 @@ function gaussianRandom(mean = 0, stdDev = 1) {
 export class DamageProjectile {
     constructor(projectileData, isValidYPosition, recentDropYPositions, gameState, canvas) {
         this.data = projectileData;
-        this.width = projectileData.size.width;
-        this.height = projectileData.size.height;
+        
+        // Use responsive scaling for projectiles, but maintain aspect ratio from data
+        const baseProjectileSize = responsiveScaler.getSize('item', 'projectile');
+        const aspectRatio = projectileData.size.width / projectileData.size.height;
+        
+        if (aspectRatio >= 1) {
+            // Wider than tall - scale based on width
+            this.width = baseProjectileSize;
+            this.height = baseProjectileSize / aspectRatio;
+        } else {
+            // Taller than wide - scale based on height
+            this.height = baseProjectileSize;
+            this.width = baseProjectileSize * aspectRatio;
+        }
         
         // Gaussian randomized horizontal position (centered with some spread)
         const centerX = canvas.width / 2;
@@ -37,7 +50,7 @@ export class DamageProjectile {
         
         // Use separate scaling for projectiles with higher base speed but maintained ratios
         const baseProjectileMultiplier = 1.5; // Start projectiles 50% faster than before
-        const projectileSpeedMultiplier = Math.min((gameState.levelSpeedMultiplier * 0.6 + baseProjectileMultiplier), 4.5); // Cap at 4.5x total, includes base boost
+        const projectileSpeedMultiplier = Math.min((gameState.levelSpeedMultiplier * 0.6 + baseProjectileMultiplier), 15.6); // Cap at 15.6x total (60% of 26x), includes base boost
         const projectileSpeedIncrease = gameState.speedIncreaseActive ? 
             Math.min(gameState.speedIncreaseMultiplier * 0.5, 1.15) : 1.0; // Reduce speed boost impact to max 15%
         
@@ -493,15 +506,47 @@ export class DamageProjectile {
     }
     
     playImpactSound() {
-        if (audioState.isMuted) return;
         if (this.data.sound) {
             // Use AssetManager to get the audio asset
             const projectileAudio = assetManager.getAudio(this.data.sound);
-            if (projectileAudio) {
-                projectileAudio.volume = this.data.id === "fireball" ? gameConfig.audio.volumes.fireballImpact : volumeSettings.effects;
-                projectileAudio.currentTime = 0; // Reset to beginning
-                projectileAudio.play().catch(e => console.log(`Projectile sound ${this.data.sound} not available`));
+            if (projectileAudio && window.playAudioOptimized) {
+                // Use optimized audio system
+                const soundKey = `projectile_${this.data.id || 'generic'}`;
+                const volume = this.data.id === "fireball" ? gameConfig.audio.volumes.fireballImpact : volumeSettings.effects;
+                window.playAudioOptimized(soundKey, projectileAudio, { 
+                    volume: volume,
+                    allowOverlap: true  // Allow multiple projectile impact sounds
+                });
+            } else if (projectileAudio) {
+                // Fallback to direct play if optimized function not available
+                // Check if sound effects are enabled before playing
+                const soundEffectsEnabled = window.gameSettings && typeof window.gameSettings.areSoundEffectsEnabled === 'function' ? window.gameSettings.areSoundEffectsEnabled() : true;
+                
+                if (soundEffectsEnabled) {
+                    projectileAudio.volume = this.data.id === "fireball" ? gameConfig.audio.volumes.fireballImpact : volumeSettings.effects;
+                    projectileAudio.currentTime = 0;
+                    projectileAudio.play().catch(e => console.log(`Projectile sound ${this.data.sound} not available`));
+                } else {
+                    console.log(`Projectile sound ${this.data.sound} blocked by settings (fallback)`);
+                }
             }
+        }
+    }
+    
+    // Handle window resize with responsive scaling
+    repositionOnResize() {
+        // Update size based on new scaling, maintaining aspect ratio
+        const baseProjectileSize = responsiveScaler.getSize('item', 'projectile');
+        const aspectRatio = this.data.size.width / this.data.size.height;
+        
+        if (aspectRatio >= 1) {
+            // Wider than tall - scale based on width
+            this.width = baseProjectileSize;
+            this.height = baseProjectileSize / aspectRatio;
+        } else {
+            // Taller than wide - scale based on height
+            this.height = baseProjectileSize;
+            this.width = baseProjectileSize * aspectRatio;
         }
     }
 }

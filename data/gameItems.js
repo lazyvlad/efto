@@ -6,7 +6,7 @@ export const gameItems = [
     // Regular items
     { id: "ring1", name: "Ring 1", image: assetRegistry.items.ring1, value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
     { id: "ring2", name: "Ring2", image: assetRegistry.items.ring2, value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
-    { id: "arcane-crystal", name: "Arcane Crystal", image: assetRegistry.items.ring3, value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
+    { id: "arcane-crystal", name: "Arcane Crystal", image: assetRegistry.items.ring3, value: 4, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: assetRegistry.audio.voice, size_multiplier: 0.8 },
     
     { id: "miners-cape", name: "Miners Cape", image: assetRegistry.items.minersCape, value: 1, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
     { id: "walking-stick", name: "Walking Stick", image: assetRegistry.items.walkingStick, value: 1, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
@@ -25,8 +25,8 @@ export const gameItems = [
     { id: "fish", name: "Fresh Fish", image: assetRegistry.items.fish31, value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.9 },
     
     
-    { id: "swiss-army", name: "Swiss Army Knife", image: assetRegistry.items.swissArmy, value: 3, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "", size_multiplier: 1 },
-    { id: "gizmos", name: "Engineering Gizmos", image: assetRegistry.items.gizmos29, value: 2, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "", size_multiplier: 1 },
+    { id: "swiss-army", name: "Swiss Army Knife", image: assetRegistry.items.swissArmy, value: 4, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "", size_multiplier: 1 },
+    { id: "gizmos", name: "Engineering Gizmos", image: assetRegistry.items.gizmos29, value: 3, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "", size_multiplier: 1 },
     
     
     { id: "copper-coin", name: "Copper Coin", image: assetRegistry.items.coin04, value: 1, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "", size_multiplier: 0.8 },
@@ -37,7 +37,7 @@ export const gameItems = [
     // Tier set items
     { id: "ashjrethul", name: "Ashjre'thul, Crossbow of Smiting", image: assetRegistry.items.item4, value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: assetRegistry.audio.disenchant, setPosition: 9, size_multiplier: 2 },
     
-    { id: "black-lotuses", name: "Stack of Black Lotus", image: assetRegistry.buffs.blackLotuses, value: 10, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1.5 },
+    { id: "black-lotuses", name: "Stack of Black Lotus", image: assetRegistry.buffs.blackLotuses, value: 10, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: assetRegistry.audio.voice, size_multiplier: 1.5 },
     
     { id: "maladath", name: "Maladath", image: assetRegistry.items.maladath, value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2.5 },
     { id: "ashkandi2", name: "Ashkandi, Greatsword of the Brotherhood", image: assetRegistry.items.ashkandi, value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: "", setPosition: 10, size_multiplier: 1 },

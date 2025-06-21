@@ -35,11 +35,11 @@ export function calculateItemProbability(item, gameState) {
         if (item.collected > 0) {
             probability = 0;
         }
-        // If missed and not restored by Songflower, can't spawn again
+        // If missed and not restored by Flask of Titans, can't spawn again
         else if (item.missed > 0) {
             probability = 0;
         }
-        // If missed but restored by Songflower (missed = 0), can spawn again
+        // If missed but restored by Flask of Titans (missed = 0), can spawn again
     }
     
     return probability;
@@ -170,30 +170,45 @@ export function selectRandomPowerUp(gameState, availablePowerUps = powerUpItems)
     return powerUps[powerUps.length - 1]; // Fallback
 }
 
-// Check if it's time to spawn a power-up
+// Check if it's time to spawn a power-up (timer-based system)
 export function shouldSpawnPowerUp(gameState) {
     if (!gameConfig.powerUps.enabled) return false;
     
-    // Check regular interval spawning
-    const interval = gameConfig.powerUps.spawnInterval;
-    const currentMilestone = Math.floor(gameState.score / interval) * interval;
-    
-    let shouldSpawn = false;
-    
-    // Regular interval spawning - check if we've crossed a milestone
-    if (gameState.score >= gameConfig.powerUps.startingScore && 
-        currentMilestone > gameState.lastPowerUpScore) {
-        shouldSpawn = true;
+    // Initialize timer if not set
+    if (gameState.nextPowerUpTime === undefined) {
+        gameState.nextPowerUpTime = gameState.elapsedTime + getRandomSpawnInterval(gameState);
     }
     
-    // Custom spawn points
-    if (gameConfig.powerUps.customSpawnPoints.includes(gameState.score) &&
-        gameState.lastPowerUpScore < gameState.score) {
-        shouldSpawn = true;
+    // Check if it's time to spawn
+    if (gameState.elapsedTime >= gameState.nextPowerUpTime) {
+        // Set next spawn time with current level scaling
+        gameState.nextPowerUpTime = gameState.elapsedTime + getRandomSpawnInterval(gameState);
+        return Math.random() < gameConfig.powerUps.spawnChance;
     }
     
-    // Only return true if conditions are met AND random chance succeeds
-    return shouldSpawn && Math.random() < gameConfig.powerUps.spawnChance;
+    return false;
+}
+
+// Get a random spawn interval between min and max, scaled by current level
+function getRandomSpawnInterval(gameState) {
+    const baseMin = gameConfig.powerUps.baseMinSpawnInterval;
+    const baseMax = gameConfig.powerUps.baseMaxSpawnInterval;
+    const levelScaling = gameConfig.powerUps.levelScaling;
+    const minAbsolute = gameConfig.powerUps.minAbsoluteInterval;
+    
+    // Calculate current level (default to 1 if not available)
+    const currentLevel = Math.max(1, (gameState.currentLevel || 0) + 1);
+    
+    // Apply level scaling (each level makes spawns faster)
+    const scalingFactor = Math.pow(levelScaling, currentLevel - 1);
+    const levelMin = Math.max(minAbsolute, baseMin * scalingFactor);
+    const levelMax = Math.max(minAbsolute, baseMax * scalingFactor);
+    
+    // Ensure min doesn't exceed max
+    const finalMin = Math.min(levelMin, levelMax);
+    const finalMax = Math.max(levelMin, levelMax);
+    
+    return finalMin + Math.random() * (finalMax - finalMin);
 }
 
 // Create collection particles effect

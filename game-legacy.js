@@ -2,8 +2,8 @@
 // 🎮 Modify these values to customize your game experience!
 // 
 // QUICK EXAMPLES:
-// - Change spawnInterval to 20 for power-ups every 20 points instead of 30
-// - Add customSpawnPoints: [15, 45, 87] for bonus power-ups at those exact scores
+// - Change frameSpawnChance to 0.01 for 1% trigger rate (half as frequent)
+
 // - Set spawnChance to 0.5 for 50% chance of power-up spawning
 // - Disable power-ups entirely with enabled: false
 const gameConfig = {
@@ -13,8 +13,8 @@ const gameConfig = {
         startingScore: 20,          // First power-up spawns at this score
         spawnChance: 1.0,          // Probability of spawning when conditions are met (0.0 to 1.0)
         // Examples:
-        spawnInterval: 10,       // Power-ups every 20 points
-        customSpawnPoints: [50, 100, 200 ,300], // Extra power-ups at these specific scores
+        frameSpawnChance: 0.02,  // 2% chance per frame to trigger spawn check
+        spawnChance: 0.3,        // 30% chance to actually spawn when triggered
         
         // Cut Time Power-up Settings
         cutTime: {
@@ -1685,8 +1685,11 @@ function spawnPowerUp() {
     if (!gameConfig.powerUps.enabled) return;
     
     // Check regular interval spawning
-    const interval = gameConfig.powerUps.spawnInterval;
-    const currentMilestone = Math.floor(gameState.score / interval) * interval;
+    // Frame-based spawning: first check if we should trigger spawn check
+    if (Math.random() >= gameConfig.powerUps.frameSpawnChance) {
+        return; // No spawn check this frame
+    }
+
     
     let shouldSpawn = false;
     
@@ -1697,11 +1700,7 @@ function spawnPowerUp() {
         shouldSpawn = true;
     }
     
-    // Custom spawn points
-    if (gameConfig.powerUps.customSpawnPoints.includes(gameState.score) &&
-        gameState.lastPowerUpScore < gameState.score) {
-        shouldSpawn = true;
-    }
+
     
     // Spawn if conditions are met and random chance succeeds
     if (shouldSpawn && Math.random() < gameConfig.powerUps.spawnChance) {

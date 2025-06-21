@@ -73,7 +73,7 @@ export const damageProjectiles = [
         damage: 15, // 15 HP damage
         type: "rare", 
         baseProbability: 0.025, 
-        sound: assetRegistry.audio.frostimpact,
+        sound: assetRegistry.audio.frostbolt,
         speed: { min: 0.8, max: 1.8 }, // Reduced from 1.0-3.0 for better balance
         size: { width: 100, height: 100 },
         color: "#00BFFF",

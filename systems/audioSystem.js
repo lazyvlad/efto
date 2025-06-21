@@ -6,6 +6,18 @@ import { assetRegistry } from '../data/assetRegistry.js';
 export let audioInitialized = false;
 export let audioInitAttempted = false;
 
+// Audio playback tracking to prevent overlapping sounds
+const activeSounds = new Map();
+const soundCooldowns = new Map();
+
+// Performance settings
+const audioSettings = {
+    maxConcurrentSounds: 3,      // Maximum concurrent effect sounds
+    soundCooldownMs: 100,        // Minimum time between same sound plays
+    prioritySounds: ['scream', 'total', 'wegotit2'], // High priority sounds that can interrupt others
+    backgroundSounds: ['voice'],  // Sounds that shouldn't interrupt gameplay
+};
+
 // Audio objects - now managed by AssetManager
 export const sounds = {
     get voice() { return assetManager.getAudio(assetRegistry.audio.voice); },
@@ -183,80 +195,199 @@ export function toggleAudio() {
     }
 }
 
-// Audio playback functions
-export function playVoiceSound(gameState) {
-    if (audioState.isMuted) return;
-    if (gameState.perfectCollections > 0 && gameState.perfectCollections % gameConfig.audio.voiceSoundInterval === 0) {
-        if (Math.random() < gameConfig.audio.voiceSoundChance) {
-            sounds.voice.volume = volumeSettings.effects;
-            sounds.voice.currentTime = 0;
-            sounds.voice.play().catch(e => console.log('Voice sound failed to play'));
+// Performance-optimized audio playback function
+function playAudioOptimized(soundKey, audioElement, options = {}) {
+    if (!audioElement) return false;
+    
+    // Check if sound effects are disabled in settings (primary control)
+    const soundEffectsEnabled = window.gameSettings && typeof window.gameSettings.areSoundEffectsEnabled === 'function' ? window.gameSettings.areSoundEffectsEnabled() : true;
+    
+    if (!soundEffectsEnabled) {
+        console.log(`Audio blocked by settings: Sound effects disabled for ${soundKey}`);
+        return false;
+    }
+    
+    // Legacy audio mute check (secondary control)
+    if (audioState.isMuted) {
+        console.log(`Audio blocked by legacy mute: ${soundKey}`);
+        return false;
+    }
+    
+    const now = Date.now();
+    const { 
+        priority = false, 
+        volume = volumeSettings.effects, 
+        forcePlay = false,
+        allowOverlap = false 
+    } = options;
+    
+    // Check cooldown for this specific sound
+    const lastPlayed = soundCooldowns.get(soundKey) || 0;
+    if (!forcePlay && (now - lastPlayed) < audioSettings.soundCooldownMs) {
+        console.log(`Audio cooldown active for ${soundKey}`);
+        return false;
+    }
+    
+    // Check if too many sounds are playing
+    const activeSoundCount = activeSounds.size;
+    if (!priority && !allowOverlap && activeSoundCount >= audioSettings.maxConcurrentSounds) {
+        console.log(`Too many sounds playing (${activeSoundCount}), skipping ${soundKey}`);
+        return false;
+    }
+    
+    // If this is a priority sound, stop non-priority sounds
+    if (priority && audioSettings.prioritySounds.includes(soundKey)) {
+        for (const [activeKey, activeAudio] of activeSounds.entries()) {
+            if (!audioSettings.prioritySounds.includes(activeKey)) {
+                try {
+                    activeAudio.pause();
+                    activeSounds.delete(activeKey);
+                } catch (e) {
+                    console.log(`Failed to pause ${activeKey}:`, e.message);
+                }
+            }
+        }
+    }
+    
+    // Play the sound asynchronously to avoid blocking
+    try {
+        audioElement.volume = Math.max(0, Math.min(1, volume));
+        audioElement.currentTime = 0;
+        
+        // Use async play to avoid blocking the main thread
+        const playPromise = audioElement.play();
+        
+        if (playPromise && playPromise.then) {
+            playPromise
+                .then(() => {
+                    activeSounds.set(soundKey, audioElement);
+                    soundCooldowns.set(soundKey, now);
+                    
+                    // Set up cleanup when sound ends
+                    const cleanup = () => {
+                        activeSounds.delete(soundKey);
+                        audioElement.removeEventListener('ended', cleanup);
+                        audioElement.removeEventListener('pause', cleanup);
+                    };
+                    
+                    audioElement.addEventListener('ended', cleanup);
+                    audioElement.addEventListener('pause', cleanup);
+                })
+                .catch(e => {
+                    console.log(`Audio play failed for ${soundKey}:`, e.message);
+                });
+        }
+        
+        return true;
+    } catch (e) {
+        console.log(`Audio error for ${soundKey}:`, e.message);
+        return false;
+    }
+}
+
+// Cleanup function to clear stuck audio references
+function cleanupAudioTracking() {
+    for (const [soundKey, audioElement] of activeSounds.entries()) {
+        if (audioElement.ended || audioElement.paused) {
+            activeSounds.delete(soundKey);
         }
     }
 }
 
+// Periodically cleanup audio tracking
+setInterval(cleanupAudioTracking, 5000);
+
+// Export optimized audio function globally for use by other classes
+window.playAudioOptimized = playAudioOptimized;
+
+// Audio playback functions
+export function playVoiceSound() {
+    // Voice sound now used for specific items (arcane crystal, black lotus)
+    playAudioOptimized('voice', sounds.voice, { 
+        allowOverlap: true,  // Allow overlap for multiple collections
+        volume: volumeSettings.effects 
+    });
+}
+
 export function playUffSound() {
-    if (audioState.isMuted) return;
-    sounds.uff.volume = volumeSettings.effects;
-    sounds.uff.currentTime = 0;
-    sounds.uff.play().catch(e => console.log('Uff sound failed to play'));
+    playAudioOptimized('uff', sounds.uff, { 
+        volume: volumeSettings.effects 
+    });
 }
 
 export function playScreamSound() {
-    if (audioState.isMuted) return;
-    sounds.scream.volume = volumeSettings.effects;
-    sounds.scream.currentTime = 0;
-    sounds.scream.play().catch(e => console.log('Scream sound failed to play'));
+    playAudioOptimized('scream', sounds.scream, { 
+        priority: true,  // High priority sound
+        volume: volumeSettings.effects 
+    });
 }
 
 export function playTotalSound() {
-    if (audioState.isMuted) return;
-    sounds.total.volume = volumeSettings.effects;
-    sounds.total.currentTime = 0;
-    sounds.total.play().catch(e => console.log('Total sound failed to play'));
+    playAudioOptimized('total', sounds.total, { 
+        priority: true,  // High priority sound
+        volume: volumeSettings.effects 
+    });
 }
 
 export function playFireballImpactSound() {
-    if (audioState.isMuted) return;
-    sounds.fireballimpact.volume = gameConfig.audio.volumes.fireballImpact;
-    sounds.fireballimpact.currentTime = 0;
-    sounds.fireballimpact.play().catch(e => console.log('Fireball impact sound failed to play'));
+    playAudioOptimized('fireballimpact', sounds.fireballimpact, { 
+        volume: gameConfig.audio.volumes.fireballImpact,
+        allowOverlap: true  // Allow multiple fireball sounds
+    });
 }
 
 export function playDragonstalkerSound() {
-    if (audioState.isMuted) return;
-    sounds.wegotit2.volume = volumeSettings.effects;
-    sounds.wegotit2.currentTime = 0;
-    sounds.wegotit2.play().catch(e => console.log('Dragonstalker sound failed to play'));
+    playAudioOptimized('wegotit2', sounds.wegotit2, { 
+        priority: true,  // High priority celebration sound
+        volume: volumeSettings.effects 
+    });
 }
 
 export function playThunderSound() {
-    if (audioState.isMuted) return;
     // Use the "total" sound as thunder effect (dramatic and fitting)
-    sounds.total.volume = volumeSettings.effects;
-    sounds.total.currentTime = 0;
-    sounds.total.play().catch(e => console.log('Thunder sound failed to play'));
+    playAudioOptimized('thunder', sounds.total, { 
+        priority: true,  // Thunder is important for spell feedback
+        volume: volumeSettings.effects 
+    });
 }
 
 export function startBackgroundMusic() {
+    // Check if background music is disabled in settings (primary control)
+    if (window.gameSettings && typeof window.gameSettings.isBackgroundMusicEnabled === 'function' && !window.gameSettings.isBackgroundMusicEnabled()) {
+        return;
+    }
+    
+    // Legacy audio mute check (secondary control)
     if (audioState.isMuted) return;
-    sounds.background.volume = volumeSettings.background;
+    
+    const volume = (window.gameSettings && typeof window.gameSettings.getVolumeDecimal === 'function') ? 
+        window.gameSettings.getVolumeDecimal() : 
+        volumeSettings.background;
+    sounds.background.volume = volume;
     sounds.background.play().catch(e => console.log('Background music failed to play'));
 }
 
 export function updateBackgroundVolume() {
-    sounds.background.volume = volumeSettings.background;
+    if (sounds.background) {
+        // Use settings volume if available, otherwise fall back to volumeSettings
+        const volume = (window.gameSettings && typeof window.gameSettings.getVolumeDecimal === 'function') ? 
+            window.gameSettings.getVolumeDecimal() : 
+            volumeSettings.background;
+        sounds.background.volume = volume;
+    }
 }
 
 export function playItemSound(item) {
-    if (audioState.isMuted) return;
     if (item.sound) {
         // Use AssetManager to get the audio asset
         const itemAudio = assetManager.getAudio(item.sound);
         if (itemAudio) {
-            itemAudio.volume = volumeSettings.effects;
-            itemAudio.currentTime = 0; // Reset to beginning
-            itemAudio.play().catch(e => console.log(`Item sound ${item.sound} not available`));
+            // Use unique key for each item sound to allow different item sounds to overlap
+            const soundKey = `item_${item.id || 'generic'}`;
+            playAudioOptimized(soundKey, itemAudio, { 
+                volume: volumeSettings.effects,
+                allowOverlap: true  // Allow multiple item collection sounds
+            });
         }
     }
 }
@@ -286,9 +417,21 @@ export function tryAutoInitAudio() {
         
         // Set up fallback to start background music on first user interaction
         const startBackgroundOnInteraction = () => {
+            // Check if background music is disabled in settings (primary control)
+            if (window.gameSettings && typeof window.gameSettings.isBackgroundMusicEnabled === 'function' && !window.gameSettings.isBackgroundMusicEnabled()) {
+                // Remove listeners and exit if background music is disabled
+                document.removeEventListener('click', startBackgroundOnInteraction);
+                document.removeEventListener('keydown', startBackgroundOnInteraction);
+                document.removeEventListener('touchstart', startBackgroundOnInteraction);
+                return;
+            }
+            
             if (!audioState.isMuted && sounds.background.paused) {
                 console.log('Starting background music on user interaction...');
-                sounds.background.volume = volumeSettings.background;
+                const volume = (window.gameSettings && typeof window.gameSettings.getVolumeDecimal === 'function') ? 
+                    window.gameSettings.getVolumeDecimal() : 
+                    volumeSettings.background;
+                sounds.background.volume = volume;
                 sounds.background.play().catch(e => console.log('Background music still failed:', e.message));
             }
             // Remove listeners after first attempt

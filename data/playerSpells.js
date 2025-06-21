@@ -6,10 +6,11 @@ export const playerSpells = [
         id: "dragon_cry",
         name: "Dragon Cry", 
         type: "buff",
-        description: "Allows unrestricted movement across the entire screen",
+        description: "Allows unrestricted movement across the entire screen and increases crit rating by 5%",
         duration: 600, // 10 seconds at 60fps
         effects: {
-            unrestricted_movement: true
+            unrestricted_movement: true,
+            crit_rating_bonus: 0.05 // +5% crit rating
         },
         icon: assetRegistry.buffs.onyxia, // Onyxia buff icon
         color: "#FF4500",
@@ -41,15 +42,15 @@ export const playerSpells = [
         key: "W"
     },
     {
-        id: "songflower",
-        name: "Songflower",
+        id: "flask_of_titans",
+        name: "Flask of Titans",
         type: "instant",
         description: "Removes one missed dragonstalker item, potentially making victory possible again", 
         duration: 0, // Instant effect
         effects: {
             restore_missed_item: true
         },
-        icon: assetRegistry.buffs.songflower, // Songflower buff icon
+        icon: assetRegistry.buffs.flaskOfTitans, // Flask of Titans buff icon
         color: "#FF69B4",
         rarity: "rare",
         cooldown: 7200, // 2 minutes (120 seconds) at 60fps

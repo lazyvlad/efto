@@ -1,5 +1,6 @@
 // Player spell system
 import { playerSpells } from '../data/playerSpells.js';
+import { notificationSystem } from './notificationSystem.js';
 
 class SpellSystem {
     constructor() {
@@ -27,9 +28,13 @@ class SpellSystem {
     }
 
     // Internal method to add notifications
-    addNotification(message, duration = 180, color = '#FFD700') {
+    addNotification(message, duration = 3000, type = null) {
+        // Use the new HTML notification system
+        notificationSystem.showSpellNotification(message, duration, type);
+        
+        // Keep the old callback for backward compatibility
         if (this.notificationCallback) {
-            this.notificationCallback(message, duration, color);
+            this.notificationCallback(message, duration);
         }
     }
 
@@ -41,7 +46,7 @@ class SpellSystem {
         // Check if spell is on cooldown
         if (this.isOnCooldown(spellId, currentTime)) {
             const remainingCooldown = Math.ceil((this.cooldowns.get(spellId) - currentTime) / 1000);
-            this.addNotification(`${spell.name} on cooldown (${remainingCooldown}s)`);
+            this.addNotification(`${spell.name} on cooldown (${remainingCooldown}s)`, 2000, 'cooldown');
             return false;
         }
 
@@ -66,9 +71,9 @@ class SpellSystem {
         this.cooldowns.set(spell.id, currentTime + cooldownMs);
         
         // Handle special spell effects
-        if (spell.id === 'songflower') {
-            this.handleSongflowerEffect();
-            return; // Songflower is instant, no duration tracking needed
+        if (spell.id === 'flask_of_titans') {
+            this.handleFlaskOfTitansEffect();
+            return; // Flask of Titans is instant, no duration tracking needed
         }
         
         // Add to active spells (only for spells with duration)
@@ -82,8 +87,7 @@ class SpellSystem {
             });
         }
 
-        // Show notification
-        this.addNotification(`${spell.name} activated!`);
+        // Don't show activation notification - persistent notification will handle this
     }
 
     // Check if spell is on cooldown
@@ -107,6 +111,9 @@ class SpellSystem {
 
     // Update spell system (remove expired spells)
     update(currentTime, player = null, canvas = null, gameConfig = null) {
+        // Update persistent notifications for active spells
+        this.updateSpellNotifications(currentTime);
+        
         // Collect expired spells first to avoid modifying Map while iterating
         const expiredSpells = [];
         for (const [spellId, activeSpell] of this.activeSpells.entries()) {
@@ -122,7 +129,43 @@ class SpellSystem {
             
             // Remove from active spells
             this.activeSpells.delete(spellId);
-            this.addNotification(`${activeSpell.spell.name} expired`);
+            
+            // Remove persistent notification
+            if (notificationSystem && notificationSystem.removePersistentNotification) {
+                notificationSystem.removePersistentNotification(`spell_${spellId}`);
+            }
+            
+            // Don't show expiration notification - persistent notification disappearing will indicate expiration
+        }
+    }
+
+    // Update persistent notifications for active spells
+    updateSpellNotifications(currentTime) {
+        if (!notificationSystem || !notificationSystem.showPersistentNotification) return;
+
+        for (const [spellId, activeSpell] of this.activeSpells.entries()) {
+            const remainingTime = Math.max(0, activeSpell.endTime - currentTime);
+            const seconds = Math.ceil(remainingTime / 1000);
+            
+            if (seconds > 0) {
+                let icon = '✨';
+                let type = 'activation';
+                
+                // Customize icon and type based on spell
+                if (spellId === 'dragon_cry') {
+                    icon = '🐲';
+                    type = 'teleport';
+                } else if (spellId === 'zandalari') {
+                    icon = '⚡';
+                    type = 'boost';
+                } else if (spellId === 'flask_of_titans') {
+                    icon = '🌸';
+                    type = 'flask_of_titans';
+                }
+                
+                const message = `${icon} ${activeSpell.spell.name} (${seconds}s)`;
+                notificationSystem.showPersistentNotification(`spell_${spellId}`, message, type, true);
+            }
         }
     }
 
@@ -149,7 +192,7 @@ class SpellSystem {
         if (player.y < minY) {
             // Player is above the constrained area, teleport them down
             player.y = minY;
-            this.addNotification('Teleported to safe area!');
+            this.addNotification('Teleported to safe area!', 3000, 'teleport');
         }
         
         // Ensure player is also within horizontal bounds (just in case)
@@ -220,8 +263,19 @@ class SpellSystem {
         return multiplier;
     }
 
-    // Handle songflower effect - remove one missed dragonstalker item
-    handleSongflowerEffect() {
+    // Get crit rating bonus from active spells
+    getCritRatingBonus() {
+        let bonus = 0.0;
+        for (const [spellId, activeSpell] of this.activeSpells.entries()) {
+            if (activeSpell.spell.effects.crit_rating_bonus) {
+                bonus += activeSpell.spell.effects.crit_rating_bonus;
+            }
+        }
+        return bonus;
+    }
+
+    // Handle flask of titans effect - remove one missed dragonstalker item
+    handleFlaskOfTitansEffect() {
         // Access the global gameItems array directly
         if (typeof window !== 'undefined' && window.gameItems) {
             // Find dragonstalker items that have been missed
@@ -230,7 +284,7 @@ class SpellSystem {
             );
 
             if (missedDragonstalkerItems.length === 0) {
-                this.addNotification('Songflower had no effect - no missed dragonstalker items');
+                this.addNotification('Flask of Titans had no effect - no missed dragonstalker items', 3000, 'warning');
                 return;
             }
 
@@ -250,25 +304,25 @@ class SpellSystem {
                 );
                 
                         if (stillMissedItems.length === 0) {
-            this.addNotification(`Songflower restored ${itemToFix.name}! Victory is possible again! 🏆`, 240, '#00FF00');
+            this.addNotification(`Flask of Titans restored ${itemToFix.name}! Victory is possible again! 🏆`, 4000, 'success');
         } else {
-            this.addNotification(`Songflower restored ${itemToFix.name}!`, 180, '#FF69B4');
+            this.addNotification(`Flask of Titans restored ${itemToFix.name}!`, 3000, 'flask_of_titans');
         }
             } else {
-                this.addNotification(`Songflower restored ${itemToFix.name}!`, 180, '#FF69B4');
+                this.addNotification(`Flask of Titans restored ${itemToFix.name}!`, 3000, 'flask_of_titans');
             }
             return;
         }
 
         // Fallback: try to get gameItems through the gameState callback
         if (!this.gameStateCallback) {
-            this.addNotification('Songflower failed - game state not available');
+            this.addNotification('Flask of Titans failed - game state not available', 3000, 'warning');
             return;
         }
 
         const gameState = this.gameStateCallback();
         if (!gameState) {
-            this.addNotification('Songflower failed - game state not available');
+            this.addNotification('Flask of Titans failed - game state not available', 3000, 'warning');
             return;
         }
 
@@ -281,7 +335,7 @@ class SpellSystem {
         }
 
         if (!gameItemsArray) {
-            this.addNotification('Songflower failed - items not available');
+            this.addNotification('Flask of Titans failed - items not available', 3000, 'warning');
             return;
         }
 
@@ -291,7 +345,7 @@ class SpellSystem {
         );
 
         if (missedDragonstalkerItems.length === 0) {
-            this.addNotification('Songflower had no effect - no missed dragonstalker items');
+            this.addNotification('Flask of Titans had no effect - no missed dragonstalker items', 3000, 'warning');
             return;
         }
 
@@ -308,9 +362,9 @@ class SpellSystem {
         );
         
         if (stillMissedItems.length === 0) {
-            this.addNotification(`Songflower restored ${itemToFix.name}! Victory is possible again! 🏆`, 240, '#00FF00');
+            this.addNotification(`Flask of Titans restored ${itemToFix.name}! Victory is possible again! 🏆`, 4000, 'success');
         } else {
-            this.addNotification(`Songflower restored ${itemToFix.name}!`, 180, '#FF69B4');
+            this.addNotification(`Flask of Titans restored ${itemToFix.name}!`, 3000, 'flask_of_titans');
         }
     }
 }

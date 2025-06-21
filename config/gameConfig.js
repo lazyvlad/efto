@@ -4,9 +4,10 @@ import { serverConfig } from './serverConfig.js';
 // 🎮 Modify these values to customize your game experience!
 // 
 // QUICK EXAMPLES:
-// - Change spawnInterval to 20 for power-ups every 20 points instead of 30
-// - Add customSpawnPoints: [15, 45, 87] for bonus power-ups at those exact scores
-// - Set spawnChance to 0.5 for 50% chance of power-up spawning
+// - Change baseMinSpawnInterval to 5 for more frequent base power-ups (every 5-15 seconds at level 1)
+// - Change levelScaling to 0.9 for slower scaling (10% faster per level instead of 15%)
+// - Change minAbsoluteInterval to 1 for faster high-level spawning (minimum 1 second)
+// - Increase maxPowerUps to 3 for more power-ups on screen
 // - Disable power-ups entirely with enabled: false
 export const gameConfig = {
     // === API SETTINGS ===
@@ -20,11 +21,12 @@ export const gameConfig = {
     // === POWER-UP SETTINGS ===
     powerUps: {
         enabled: true,
-        startingScore: 5,           // First power-up spawns at this score (lowered for testing)
-        spawnChance: 1.0,          // Probability of spawning when conditions are met (0.0 to 1.0)
-        // Examples:
-        spawnInterval: 5,        // Power-ups every 5 points (increased frequency for testing)
-        customSpawnPoints: [50, 100, 200 ,300], // Extra power-ups at these specific scores
+        maxPowerUps: 2,            // Maximum power-ups on screen at once
+        baseMinSpawnInterval: 8,   // Base minimum seconds between power-up spawns (level 1)
+        baseMaxSpawnInterval: 15,  // Base maximum seconds between power-up spawns (level 1)
+        levelScaling: 0.85,        // Multiplier per level (0.85 = 15% faster each level)
+        minAbsoluteInterval: 2,    // Absolute minimum spawn interval (prevents too frequent spawning)
+        spawnChance: 1.0,          // 100% chance when timer triggers (deterministic timing)
         
         // Cut Time Power-up Settings
         cutTime: {
@@ -55,9 +57,6 @@ export const gameConfig = {
     
     // === AUDIO SETTINGS ===
     audio: {
-        voiceSoundInterval: 10,     // Play voice sound every X collections
-        voiceSoundChance: 0.7,      // Chance to play voice sound (70%)
-        totalSoundTrigger: 20,      // Play total sound at exactly this many collections
         backgroundMusicStart: 30,   // Start background music at this many collections
         volumes: {
             background: 0.02,       // Background music volume (2%)
@@ -70,7 +69,7 @@ export const gameConfig = {
     gameplay: {
         maxFallingItems: 6,         // Maximum falling items on screen
         baseDropSpeed: 2,           // Base falling speed
-        itemSpawnChance: 0.02,      // Base chance per frame to spawn new item
+        itemSpawnChance: 0.01,      // Base chance per frame to spawn new item (reduced from 0.02)
         maxFireballs: 3,            // Maximum projectiles on screen
         healthLossOnMiss: 2,        // HP lost when missing an item (%)
         particleCount: 15,          // Number of particles per collection
@@ -111,25 +110,25 @@ export const gameConfig = {
     levels: {
         // === HYBRID TIME + ACTIVITY PROGRESSION ===
         progressionType: "hybrid",          // "hybrid", "time", "points", or "events"
-        baseTimePerLevel: 45,               // Base time requirement per level (seconds)
+        baseTimePerLevel: 35,               // Base time requirement per level (seconds)
         
         // Activity bonuses/penalties
         activityBonus: {
-            collectionsReduce: 2,           // Each collection reduces time by 2 seconds
+            collectionsReduce: 3,           // Each collection reduces time by 3 seconds (increased from 2)
             missesIncrease: 1,              // Each miss increases time by 1 second
-            maxReduction: 15,               // Max time reduction per level (33% faster)
-            maxIncrease: 10,                // Max time increase per level (22% slower)
-            powerUpCollectedReduce: 3,      // Power-up collection reduces time by 3 seconds
-            damageReceivedIncrease: 0.5     // Each damage point increases time by 0.5 seconds
+            maxReduction: 20,               // Max time reduction per level (67% faster, increased from 15)
+            maxIncrease: 8,                 // Max time increase per level (27% slower, reduced from 10)
+            powerUpCollectedReduce: 4,      // Power-up collection reduces time by 4 seconds (increased from 3)
+            damageReceivedIncrease: 0.3     // Each damage point increases time by 0.3 seconds (reduced from 0.5)
         },
         
         // Mathematical formula for speed progression (same as before)
         formulaBase: 1.2,           // Starting speed at level 0
-        maxLevelSpeedMultiplier: 50.0,    // Maximum level speed multiplier (safety fallback)
+        maxLevelSpeedMultiplier: 26.0,    // Maximum level speed multiplier (capped at 26X)
         
         // === UNLIMITED PROGRESSION SETTINGS ===
         enableSafetyCap: true,      // Enable safety cap to prevent extreme performance issues
-        safetyCap: 100.0,           // Maximum speed multiplier (100x) - prevents game from becoming unplayable
+        safetyCap: 26.0,            // Maximum speed multiplier (26x) - prevents game from becoming unplayable
         
         // Formula tuning parameters
         formulaWeights: {

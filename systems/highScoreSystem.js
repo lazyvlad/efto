@@ -147,7 +147,13 @@ export function displayHighScoresSync() {
 
 // Helper function to render the scores list
 function renderHighScoresList(scores) {
-    const scoresList = document.getElementById('scoresList');
+    // Try both old and new element IDs for compatibility
+    const scoresList = document.getElementById('highScoresList') || document.getElementById('scoresList');
+    
+    if (!scoresList) {
+        console.warn('High scores list element not found. Expected #highScoresList or #scoresList');
+        return;
+    }
     
     if (scores.length === 0) {
         scoresList.innerHTML = '<p style="color: #999; font-style: italic;">No high scores yet. Be the first!</p>';

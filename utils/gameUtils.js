@@ -213,7 +213,23 @@ export function checkDragonstalkerCompletion(gameState, gameItems) {
         console.log(`🔄 Resetting tier set counters: tierSetCollected ${gameState.tierSetCollected} → 0, tierSetMissed ${gameState.tierSetMissed} → 0`);
         gameState.tierSetCollected = 0;
         gameState.tierSetMissed = 0;
-    
+        
+        // Increase crit rating by 5% for completing Dragonstalker set
+        const critIncrease = 0.05; // 5%
+        const oldCritRating = gameState.critRating;
+        gameState.critRating = Math.min(gameState.critRating + critIncrease, gameState.critRatingCap);
+        const actualIncrease = gameState.critRating - oldCritRating;
+        
+        if (actualIncrease > 0) {
+            const critPercent = Math.round(actualIncrease * 100);
+            const newCritPercent = Math.round(gameState.critRating * 100);
+            addNotification(gameState, `💥 CRIT RATING INCREASED! +${critPercent}% (Now: ${newCritPercent}%)`, 300, '#FF6B00');
+            console.log(`💥 Crit rating increased by ${critPercent}% to ${newCritPercent}% (${gameState.critRating.toFixed(3)})`);
+        } else {
+            const maxCritPercent = Math.round(gameState.critRatingCap * 100);
+            addNotification(gameState, `💥 CRIT RATING MAXED! (${maxCritPercent}%)`, 240, '#FF6B00');
+            console.log(`💥 Crit rating already at maximum: ${maxCritPercent}%`);
+        }
         
         // Add completion notification
         const reductionPercentDisplay = Math.round(reductionPercent * 100);
@@ -330,6 +346,12 @@ export function calculateDeltaTimeMultiplier(targetFPS = 60) {
 
 // Update game state timers
 export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
+    // Update elapsed time for timer-based systems
+    if (gameState.elapsedTime === undefined) {
+        gameState.elapsedTime = 0;
+    }
+    gameState.elapsedTime += deltaTimeMultiplier / 60; // Convert frames to seconds
+    
     // Update time slow timer
     if (gameState.timeSlowActive && gameState.timeSlowTimer > 0) {
         gameState.timeSlowTimer -= deltaTimeMultiplier;
@@ -480,84 +502,130 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
     }
 }
 
-// Notification system
+// Notification system - updated to use HTML notifications
 export function addNotification(gameState, message, duration = 180, color = '#FFD700') {
-    if (!gameState.notifications) {
-        gameState.notifications = [];
+    // Convert frame-based duration to milliseconds (assuming 60fps)
+    const durationMs = Math.round((duration / 60) * 1000);
+    
+    // Map color to notification type for better styling
+    let notificationType = 'activation';
+    
+    // Parse message for better type detection
+    const lowerMessage = message.toLowerCase();
+    
+    // Determine if duplicates should be allowed based on message type
+    let allowDuplicates = false;
+    
+    // Check if this should be suppressed (effects handled by persistent notifications or unwanted spam)
+    const shouldSuppress = 
+        // Effects with persistent versions
+        lowerMessage.includes('shield active') ||
+        lowerMessage.includes('projectiles frozen') ||
+        lowerMessage.includes('speed boost') ||
+        lowerMessage.includes('time slow') ||
+        lowerMessage.includes('reverse gravity') ||
+        lowerMessage.includes('chicken food applied') ||
+        lowerMessage.includes('shadowbolt applied') ||
+        // Spell activations/expirations (persistent notifications handle these)
+        lowerMessage.includes('activated') ||
+        lowerMessage.includes('expired') ||
+        lowerMessage.includes('cast') ||
+        // Individual healing messages (HOT effect is shown persistently)
+        (lowerMessage.includes('heal') && lowerMessage.includes('+') && lowerMessage.includes('hp')) ||
+        // Generic activation messages for effects with persistent versions
+        (lowerMessage.includes('applied') && (
+            lowerMessage.includes('shield') ||
+            lowerMessage.includes('freeze') ||
+            lowerMessage.includes('slow') ||
+            lowerMessage.includes('gravity') ||
+            lowerMessage.includes('chicken')
+        ));
+
+    // Skip unwanted notifications
+    if (shouldSuppress) {
+        console.log(`Suppressing notification: ${message}`);
+        return;
+    }
+
+    // Use message content for better detection
+    if (lowerMessage.includes('damage') || lowerMessage.includes('fireball') || lowerMessage.includes('hit') || lowerMessage.includes('-') && lowerMessage.includes('hp')) {
+        notificationType = 'damage';
+        allowDuplicates = true; // Allow damage notifications to stack
+    }
+    else if (lowerMessage.includes('heal') || lowerMessage.includes('chicken') || lowerMessage.includes('+') && lowerMessage.includes('hp')) {
+        notificationType = 'healing';
+        allowDuplicates = true; // Allow healing notifications to stack
+    }
+    else if (lowerMessage.includes('frozen') || lowerMessage.includes('freeze') || lowerMessage.includes('frost') || lowerMessage.includes('ice')) {
+        notificationType = 'freeze';
+        allowDuplicates = false; // Don't spam freeze notifications
+    }
+    else if (lowerMessage.includes('speed') || lowerMessage.includes('boost') || lowerMessage.includes('⚡')) {
+        notificationType = 'boost';
+        allowDuplicates = false; // Don't spam speed notifications
+    }
+    else if (lowerMessage.includes('blocked') || lowerMessage.includes('shield') || lowerMessage.includes('🛡️')) {
+        notificationType = 'success';
+        allowDuplicates = true; // Allow shield block notifications
+    }
+            else if (lowerMessage.includes('flask of titans') || lowerMessage.includes('restored')) {
+            notificationType = 'flask_of_titans';
+            allowDuplicates = false; // Don't spam flask of titans
+    }
+    else if (lowerMessage.includes('teleport') || lowerMessage.includes('gravity') || lowerMessage.includes('trajectory')) {
+        notificationType = 'teleport';
+        allowDuplicates = false; // Don't spam teleport/gravity
+    }
+    else if (lowerMessage.includes('cooldown') || lowerMessage.includes('wait')) {
+        notificationType = 'cooldown';
+        allowDuplicates = false; // Don't spam cooldown warnings
+    }
+    else if (lowerMessage.includes('victory') || lowerMessage.includes('complete') || lowerMessage.includes('🏆')) {
+        notificationType = 'success';
+        allowDuplicates = true; // Allow victory notifications
+    }
+    else if (lowerMessage.includes('activated') || lowerMessage.includes('applied') || lowerMessage.includes('cast')) {
+        notificationType = 'activation';
+        allowDuplicates = false; // Don't spam activation notifications
+    }
+    else {
+        // Fallback to color-based detection
+        if (color === '#FF0000' || color === '#FF4500') {
+            notificationType = 'damage';
+        } 
+        else if (color === '#00BFFF' || color === '#87CEEB') {
+            notificationType = 'freeze';
+        } 
+        else if (color === '#FFD700' || color === '#00FF00' || color === '#32CD32') {
+            notificationType = 'success';
+        } 
+        else if (color === '#FF69B4') {
+            notificationType = 'flask_of_titans';
+        } 
+        else if (color === '#4169E1' || color === '#8A2BE2') {
+            notificationType = 'activation';
+        }
+        else if (color === '#00FFFF' || color === '#FF6B35' || color === '#8B00FF' || color === '#9370DB') {
+            notificationType = 'teleport';
+        }
     }
     
-    gameState.notifications.push({
-        message: message,
-        timer: duration, // frames
-        maxTimer: duration,
-        color: color,
-        id: Date.now() + Math.random() // unique id
-    });
+    // Use the new HTML notification system
+    if (typeof window !== 'undefined' && window.notificationSystem) {
+        window.notificationSystem.showSpellNotification(message, durationMs, notificationType, {
+            allowDuplicates: allowDuplicates
+        });
+    } else {
+        console.warn('Notification system not available, message:', message);
+    }
 }
 
 export function updateNotifications(gameState, deltaTimeMultiplier) {
-    if (!gameState.notifications) {
-        gameState.notifications = [];
-        return;
-    }
-    
-    gameState.notifications = gameState.notifications.filter(notification => {
-        notification.timer -= deltaTimeMultiplier;
-        return notification.timer > 0;
-    });
+    // Notifications now handled by HTML+CSS notification system
+    // This function is kept for backward compatibility but does nothing
 }
 
-export function drawNotifications(ctx, canvas, gameState) {
-    if (!gameState.notifications || gameState.notifications.length === 0) {
-        return;
-    }
-    
-    // Import gameConfig here to avoid circular dependencies
-    const gameConfig = typeof window !== 'undefined' && window.gameConfig || 
-                      (typeof globalThis !== 'undefined' && globalThis.gameConfig);
-    
-    ctx.save();
-    
-    let yOffset = gameConfig?.notifications?.yOffset || 50; // Start position from top
-    gameState.notifications.forEach(notification => {
-        const fadeOutPercent = gameConfig?.notifications?.fadeOutPercent || 0.3;
-        const alpha = Math.min(1, notification.timer / (notification.maxTimer * fadeOutPercent)); // Fade out in last 30%
-        
-        // Background
-        ctx.fillStyle = `rgba(0, 0, 0, ${alpha * 0.8})`;
-        ctx.font = `bold ${gameConfig?.notifications?.fontSize || 24}px Arial`;
-        const textMetrics = ctx.measureText(notification.message);
-        const bgWidth = textMetrics.width + 40;
-        const bgHeight = 40;
-        const bgX = (canvas.width - bgWidth) / 2;
-        const bgY = yOffset - 20;
-        
-        // Rounded rectangle background
-        ctx.beginPath();
-        if (ctx.roundRect) {
-            ctx.roundRect(bgX, bgY, bgWidth, bgHeight, 10);
-        } else {
-            // Fallback for browsers without roundRect
-            ctx.rect(bgX, bgY, bgWidth, bgHeight);
-        }
-        ctx.fill();
-        
-        // Border
-        ctx.strokeStyle = notification.color;
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = alpha;
-        ctx.stroke();
-        
-        // Text
-        ctx.fillStyle = notification.color;
-        ctx.textAlign = 'center';
-        ctx.fillText(notification.message, canvas.width / 2, yOffset + 6);
-        
-        yOffset += gameConfig?.notifications?.spacing || 50; // Space between notifications
-    });
-    
-    ctx.restore();
-}
+
 
 // ===== FALL ANGLE CALCULATION SYSTEM =====
 // Dynamic fall angle calculation based on game state
@@ -695,6 +763,7 @@ export class ResponsiveScaler {
         const basePlayerWidth = this.deviceType === 'mobile' ? 60 : 80;  // Base width for player
         const baseItemSize = this.deviceType === 'mobile' ? 60 : 80;
         const basePowerUpSize = this.deviceType === 'mobile' ? 70 : 90;
+        const baseProjectileSize = this.deviceType === 'mobile' ? 50 : 70; // Smaller than items for mobile
         
         // Player aspect ratio is 1:2 (width:height) based on 250x500 original image
         const playerAspectRatio = 0.5; // width/height = 250/500 = 0.5
@@ -704,13 +773,14 @@ export class ResponsiveScaler {
             player: {
                 width: Math.round(basePlayerWidth * this.uniformScale),
                 height: Math.round((basePlayerWidth / playerAspectRatio) * this.uniformScale), // height = width / 0.5 = width * 2
-                speed: Math.round(8 * this.uniformScale)
+                speed: Math.round((this.deviceType === 'mobile' ? 16 : 12) * this.uniformScale) // Higher speed for mobile touch
             },
             
             // Item sizes
             item: {
                 base: Math.round(baseItemSize * this.uniformScale),
-                powerUp: Math.round(basePowerUpSize * this.uniformScale)
+                powerUp: Math.round(basePowerUpSize * this.uniformScale),
+                projectile: Math.round(baseProjectileSize * this.uniformScale)
             },
             
             // UI elements
@@ -737,6 +807,8 @@ export class ResponsiveScaler {
             this.sizes.player.width *= mobileScale;
             this.sizes.player.height *= mobileScale;
             this.sizes.item.base *= 1.1;
+            this.sizes.item.powerUp *= 1.1;
+            this.sizes.item.projectile *= 1.0; // Keep projectiles smaller on mobile for better gameplay
             this.sizes.ui.spellIconSize *= 1.3;
             
             // Increase spacing on mobile for easier gameplay

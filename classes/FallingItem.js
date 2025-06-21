@@ -1,6 +1,6 @@
 import { gameConfig } from '../config/gameConfig.js';
 import { assetManager } from '../utils/AssetManager.js';
-import { checkBoundaryCollision, applyAdvancedBouncePhysics, calculateSpinEffect, applyAirResistance, calculateFallAngle } from '../utils/gameUtils.js';
+import { checkBoundaryCollision, applyAdvancedBouncePhysics, calculateSpinEffect, applyAirResistance, calculateFallAngle, responsiveScaler } from '../utils/gameUtils.js';
 
 export class FallingItem {
     constructor(selectRandomItem, isValidYPosition, recentDropYPositions, gameState, images, canvas) {
@@ -24,10 +24,11 @@ export class FallingItem {
             this.itemData.spawned++;
         }
         
-        // Apply size multiplier from item data
+        // Apply size multiplier from item data with responsive scaling
         const sizeMultiplier = this.itemData.size_multiplier || 1;
-        this.width = gameConfig.visuals.itemSize * sizeMultiplier;
-        this.height = gameConfig.visuals.itemSize * sizeMultiplier;
+        const baseItemSize = responsiveScaler.getSize('item', 'base');
+        this.width = baseItemSize * sizeMultiplier;
+        this.height = baseItemSize * sizeMultiplier;
         
         // Random speed variation: 0.8x to 1.3x of base speed for dynamic gameplay
         const speedVariation = 0.8 + Math.random() * 0.5; // Random between 0.8 and 1.3
@@ -419,5 +420,14 @@ export class FallingItem {
                this.x + this.width > playerBounds.x &&
                this.y < playerBounds.y + playerBounds.height &&
                this.y + this.height > playerBounds.y;
+    }
+    
+    // Handle window resize with responsive scaling
+    repositionOnResize() {
+        // Update size based on new scaling
+        const sizeMultiplier = this.itemData.size_multiplier || 1;
+        const baseItemSize = responsiveScaler.getSize('item', 'base');
+        this.width = baseItemSize * sizeMultiplier;
+        this.height = baseItemSize * sizeMultiplier;
     }
 } 

@@ -36,6 +36,197 @@
             cursor: default;
         }
         
+        /* Spell Notifications */
+        .spell-notifications-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none; /* Makes notifications non-interactive */
+            width: 100%;
+            max-width: 600px;
+            align-items: center;
+        }
+        
+        .spell-notification {
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(20, 20, 20, 0.9));
+            border: 2px solid;
+            border-radius: 12px;
+            padding: 10px 18px;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(8px);
+            animation: spellNotificationSlide 0.4s ease-out forwards;
+            opacity: 0;
+            transform: translateY(-20px);
+            max-width: 90%;
+            word-wrap: break-word;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .spell-notification::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        @keyframes spellNotificationSlide {
+            0% {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.9);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        @keyframes spellNotificationFadeOut {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+        }
+        
+        .spell-notification.fade-out {
+            animation: spellNotificationFadeOut 0.3s ease-in forwards;
+        }
+        
+        /* Notification color variants */
+        .spell-notification.activation {
+            border-color: #4ECDC4;
+            background: linear-gradient(135deg, rgba(78, 205, 196, 0.2), rgba(0, 0, 0, 0.9));
+            box-shadow: 0 8px 32px rgba(78, 205, 196, 0.3);
+        }
+        
+        .spell-notification.expiration {
+            border-color: #FFD700;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(0, 0, 0, 0.9));
+            box-shadow: 0 8px 32px rgba(255, 215, 0, 0.3);
+        }
+        
+        .spell-notification.cooldown {
+            border-color: #FF6B6B;
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.2), rgba(0, 0, 0, 0.9));
+            box-shadow: 0 8px 32px rgba(255, 107, 107, 0.3);
+        }
+        
+        .spell-notification.success {
+            border-color: #00FF00;
+            background: linear-gradient(135deg, rgba(0, 255, 0, 0.2), rgba(0, 0, 0, 0.9));
+            box-shadow: 0 8px 32px rgba(0, 255, 0, 0.3);
+        }
+        
+        .spell-notification.warning {
+            border-color: #FFA500;
+            background: linear-gradient(135deg, rgba(255, 165, 0, 0.2), rgba(0, 0, 0, 0.9));
+            box-shadow: 0 8px 32px rgba(255, 165, 0, 0.3);
+        }
+        
+        .spell-notification.flask_of_titans {
+            border-color: #FF69B4;
+            background: linear-gradient(135deg, rgba(255, 105, 180, 0.2), rgba(0, 0, 0, 0.9));
+            box-shadow: 0 8px 32px rgba(255, 105, 180, 0.3);
+        }
+        
+        .spell-notification.teleport {
+            border-color: #9370DB;
+            background: linear-gradient(135deg, rgba(147, 112, 219, 0.2), rgba(0, 0, 0, 0.9));
+            box-shadow: 0 8px 32px rgba(147, 112, 219, 0.3);
+        }
+        
+        .spell-notification.healing {
+            border-color: #32CD32;
+            background: linear-gradient(135deg, rgba(50, 205, 50, 0.2), rgba(0, 0, 0, 0.9));
+            box-shadow: 0 8px 32px rgba(50, 205, 50, 0.3);
+        }
+        
+        .spell-notification.damage {
+            border-color: #FF6B6B;
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.3), rgba(0, 0, 0, 0.9));
+            box-shadow: 0 8px 32px rgba(255, 107, 107, 0.4);
+        }
+        
+        .spell-notification.freeze {
+            border-color: #00BFFF;
+            background: linear-gradient(135deg, rgba(0, 191, 255, 0.2), rgba(0, 0, 0, 0.9));
+            box-shadow: 0 8px 32px rgba(0, 191, 255, 0.3);
+        }
+        
+        .spell-notification.boost {
+            border-color: #FFD700;
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(0, 0, 0, 0.9));
+            box-shadow: 0 8px 32px rgba(255, 215, 0, 0.3);
+        }
+        
+        /* Persistent notifications (ongoing effects) */
+        .spell-notification.persistent {
+            position: sticky;
+            top: 0;
+            z-index: 1001;
+            border-width: 2px;
+            font-size: 12px;
+            padding: 8px 14px;
+            animation: persistentPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes persistentPulse {
+            0%, 100% { 
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+            50% { 
+                transform: translateY(0) scale(1.02);
+                opacity: 0.95;
+            }
+        }
+        
+        /* Mobile Notifications Styles */
+        @media (max-width: 768px) {
+            .spell-notifications-container {
+                top: 15px;
+                max-width: 95%;
+                gap: 8px;
+            }
+            
+            .spell-notification {
+                font-size: 12px;
+                padding: 8px 14px;
+                border-radius: 10px;
+                border-width: 1px;
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+                max-width: 95%;
+            }
+            
+            .spell-notification.persistent {
+                font-size: 11px;
+                padding: 6px 12px;
+                border-width: 1px;
+            }
+        }
+        
         /* Name Entry Screen */
         #nameEntry {
             position: absolute;
@@ -131,6 +322,215 @@
             background: #26d0ce;
         }
 
+        #settingsBtn {
+            background: #9370DB;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            font-weight: bold;
+            min-width: 120px;
+        }
+
+        #settingsBtn:hover {
+            background: #7B68EE;
+        }
+
+        /* Settings Screen Styles */
+        .settings-section {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid #4ECDC4;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .settings-section h3 {
+            color: #4ECDC4;
+            margin-bottom: 20px;
+            font-size: 20px;
+            text-align: center;
+        }
+
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 15px 0;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .setting-item:last-child {
+            border-bottom: none;
+        }
+
+        .setting-item label {
+            font-size: 16px;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        /* Toggle Switch Styles */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: #4ECDC4;
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Volume Control Styles */
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .volume-slider {
+            width: 150px;
+            height: 8px;
+            background: #ddd;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+
+        .volume-slider:hover {
+            opacity: 1;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #4ECDC4;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #4ECDC4;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        .volume-display {
+            font-size: 14px;
+            color: #4ECDC4;
+            font-weight: bold;
+            min-width: 40px;
+        }
+
+        /* Button Styles */
+        .menu-btn {
+            background: #4ECDC4;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 10px;
+            font-weight: bold;
+            min-width: 120px;
+            transition: background-color 0.3s ease;
+        }
+
+        .menu-btn:hover {
+            background: #26d0ce;
+        }
+
+        .menu-btn.secondary {
+            background: #666;
+        }
+
+        .menu-btn.secondary:hover {
+            background: #555;
+        }
+
+        .button-group {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        /* Base Screen Styles */
+        .screen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            color: white;
+            border-radius: 20px;
+            z-index: 100;
+            border: 2px solid #4ECDC4;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .screen-content {
+            padding: 40px;
+            text-align: center;
+        }
+
+        .screen-content h2 {
+            color: #4ECDC4;
+            margin-bottom: 30px;
+            font-size: 32px;
+        }
+
+        .screen-content h3 {
+            color: #4ECDC4;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
         #continueGameBtn {
             background: #4ECDC4;
             color: white;
@@ -181,6 +581,7 @@
             z-index: 200;
             border: 2px solid #FFD700;
             min-width: 600px;
+            max-width: 90vw;
             max-height: 80vh;
             overflow-y: auto;
         }
@@ -269,7 +670,7 @@
             z-index: 200;
             border: 2px solid #4ECDC4;
             min-width: 600px;
-            max-width: 800px;
+            max-width: min(800px, 90vw);
             max-height: 80vh;
             overflow-y: auto;
         }
@@ -496,6 +897,18 @@
             box-shadow: 0 4px 8px rgba(255, 215, 0, 0.3);
         }
 
+        .settings-btn {
+            background: #9B59B6;
+            color: white;
+            border: 2px solid #8E44AD;
+        }
+
+        .settings-btn:hover {
+            background: #8E44AD;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(155, 89, 182, 0.3);
+        }
+
         .restart-btn {
             background: #FF6B6B;
             color: white;
@@ -513,6 +926,43 @@
             font-size: 14px;
             margin-top: 10px;
             font-style: italic;
+        }
+        
+        /* Pause Menu Mobile Styles */
+        @media (max-width: 768px) {
+            .pause-content {
+                min-width: 280px;
+                max-width: 350px;
+                padding: 25px 20px;
+                margin: 0 10px;
+            }
+            
+            .pause-content h2 {
+                font-size: 28px;
+                margin-bottom: 8px;
+            }
+            
+            .pause-subtitle {
+                font-size: 16px;
+                margin-bottom: 25px;
+            }
+            
+            .pause-buttons {
+                gap: 12px;
+                margin-bottom: 20px;
+            }
+            
+            .pause-btn {
+                padding: 12px 20px;
+                font-size: 16px;
+                min-width: 160px;
+                border-radius: 10px;
+            }
+            
+            .pause-hint {
+                font-size: 12px;
+                margin-top: 8px;
+            }
         }
         
         #audioToggleBtn {
@@ -548,26 +998,195 @@
             background: rgba(255, 107, 107, 0.9);
         }
         
+        /* Audio Button Mobile Styles */
+        @media (max-width: 768px) {
+            #audioToggleBtn {
+                width: 50px;
+                height: 50px;
+                bottom: 15px;
+                right: 15px;
+                font-size: 20px;
+            }
+            
+            #audioStatus {
+                bottom: 75px;
+                right: 15px;
+                font-size: 11px;
+                padding: 6px 10px;
+            }
+        }
+        
         /* Responsive Design */
         @media (max-width: 768px) {
-            #nameEntry, #highScores, #gameOver {
-                width: 90%;
-                max-width: 400px;
-                padding: 20px;
+            /* Main Menu (Name Entry) Mobile Styles */
+            #nameEntry {
+                width: 95%;
+                max-width: 350px;
+                padding: 20px 15px;
+                font-size: 14px;
+            }
+            
+            #nameEntry h2 {
+                font-size: 24px;
+                margin-bottom: 15px;
+            }
+            
+            #nameEntry p {
+                font-size: 14px;
+                margin-bottom: 15px;
             }
             
             #playerNameInput {
                 width: 90%;
                 max-width: 250px;
+                padding: 12px;
+                font-size: 16px;
+                margin-bottom: 20px;
+            }
+            
+            /* Mobile menu buttons */
+            .menu-btn {
+                padding: 12px 20px;
+                font-size: 16px;
+                margin: 8px 5px;
+                min-width: 100px;
+                border-radius: 8px;
+            }
+            
+            /* High Scores Mobile */
+            #highScores, #highScoresScreen {
+                width: 95%;
+                max-width: 350px;
+                min-width: unset; /* Override desktop min-width */
+                padding: 20px 15px;
+            }
+            
+            #highScores h2, #highScoresScreen h2 {
+                font-size: 24px;
+                margin-bottom: 20px;
             }
             
             .score-entry {
-                font-size: 14px;
-                padding: 8px 15px;
+                font-size: 13px;
+                padding: 8px 12px;
+                margin: 3px 0;
             }
             
             .score-date {
                 display: none;
+            }
+            
+            .score-rank {
+                min-width: 40px;
+                font-size: 12px;
+            }
+            
+            .score-points {
+                min-width: 60px;
+                font-size: 13px;
+            }
+            
+            .score-level {
+                min-width: 40px;
+                font-size: 12px;
+            }
+            
+            /* Game Over Mobile */
+            #gameOver {
+                width: 95%;
+                max-width: 350px;
+                padding: 20px 15px;
+            }
+            
+            #gameOver h2 {
+                font-size: 24px;
+            }
+            
+            #gameOver p {
+                font-size: 16px;
+            }
+            
+            /* Settings Screen Mobile */
+            .screen {
+                width: 95%;
+                max-width: 350px;
+                max-height: 85vh;
+                margin: 0;
+            }
+            
+            .screen-content {
+                padding: 20px 15px;
+            }
+            
+            .screen-content h2 {
+                font-size: 24px;
+                margin-bottom: 20px;
+            }
+            
+            .screen-content h3 {
+                font-size: 18px;
+                margin-bottom: 15px;
+            }
+            
+            .settings-section {
+                margin-bottom: 20px;
+            }
+            
+            .setting-item {
+                margin-bottom: 15px;
+                font-size: 14px;
+            }
+            
+            .setting-item label {
+                font-size: 14px;
+            }
+            
+            .volume-control {
+                margin-top: 8px;
+            }
+            
+            .volume-slider {
+                width: 100%;
+                max-width: 200px;
+            }
+            
+            /* How to Play Mobile */
+            #howToPlay {
+                width: 95%;
+                max-width: 350px;
+                min-width: unset; /* Override desktop min-width */
+                padding: 20px 15px;
+                max-height: 85vh;
+                overflow-y: auto;
+            }
+            
+            #howToPlay h2 {
+                font-size: 24px;
+                margin-bottom: 20px;
+            }
+            
+            #howToPlay h3 {
+                font-size: 18px;
+                margin-bottom: 15px;
+            }
+            
+            #howToPlay p {
+                font-size: 14px;
+                line-height: 1.4;
+            }
+            
+            .guide-section {
+                margin-bottom: 20px;
+            }
+            
+            .spell-grid, .item-grid {
+                gap: 8px;
+            }
+            
+            .spell-item, .item-type {
+                padding: 8px;
+                font-size: 13px;
+                line-height: 1.3;
             }
         }
         
@@ -616,7 +1235,7 @@
             position: fixed;
             top: 0px;
             left: 0px;
-            width: 340px;
+            width: 280px;
             max-height: calc(100vh - 20px);
             background: rgba(0, 0, 0, 0.6);
             border: 2px solid rgba(255, 255, 255, 0.3);
@@ -629,6 +1248,89 @@
             backdrop-filter: blur(6px);
             pointer-events: none;
             user-select: none;
+            transition: all 0.3s ease;
+        }
+        
+        /* Mobile responsive styles for items collection panel */
+        @media (max-width: 768px) {
+            #itemsCollectionPanel {
+                width: 200px;
+                top: 5px;
+                left: 5px;
+                max-height: calc(100vh - 10px);
+                border-radius: 8px;
+                border-width: 1px;
+            }
+            
+            /* Hide items list during gameplay on mobile */
+            #itemsCollectionPanel:not(.paused) .items-list {
+                display: none;
+            }
+            
+            /* Show items list when game is paused */
+            #itemsCollectionPanel.paused .items-list {
+                display: block;
+            }
+            
+            /* Compact panel header on mobile */
+            #itemsCollectionPanel .panel-header {
+                padding: 8px;
+            }
+            
+            #itemsCollectionPanel .player-name {
+                font-size: 14px;
+                margin-bottom: 4px;
+            }
+            
+            #itemsCollectionPanel .player-score {
+                font-size: 24px;
+                margin-bottom: 2px;
+            }
+            
+            #itemsCollectionPanel .player-level {
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+            
+            #itemsCollectionPanel .collection-summary {
+                font-size: 9px;
+                margin-top: 4px;
+                padding-top: 4px;
+            }
+            
+            /* Compact player stats on mobile */
+            #itemsCollectionPanel .player-stats {
+                padding: 6px 8px;
+            }
+            
+            #itemsCollectionPanel .stat-row {
+                margin-bottom: 2px;
+            }
+            
+            #itemsCollectionPanel .stat-label {
+                font-size: 9px;
+            }
+            
+            #itemsCollectionPanel .stat-value {
+                font-size: 10px;
+            }
+            
+            /* Compact dragonstalker section on mobile */
+            #itemsCollectionPanel #dragonstalkerSection {
+                padding: 6px 8px;
+            }
+            
+            #itemsCollectionPanel .tier-title {
+                font-size: 10px;
+            }
+            
+            #itemsCollectionPanel .tier-progress {
+                font-size: 9px;
+            }
+            
+            #itemsCollectionPanel .tier-status {
+                font-size: 8px;
+            }
         }
         
         #itemsCollectionPanel.interactive {
@@ -644,13 +1346,13 @@
         .panel-header {
             background: rgba(0, 0, 0, 0.95);
             border-bottom: 2px solid #4ECDC4;
-            padding: 16px;
+            padding: 12px;
             text-align: left;
         }
         
         .player-name {
             color: #4ECDC4;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             margin: 0 0 8px 0;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
@@ -658,7 +1360,7 @@
         
         .player-score {
             color: white;
-            font-size: 32px;
+            font-size: 30px;
             font-weight: bold;
             margin: 0 0 4px 0;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
@@ -666,7 +1368,7 @@
         
         .player-level {
             color: #FFD700;
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
             margin: 0 0 8px 0;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
@@ -674,7 +1376,7 @@
         
         .collection-summary {
             color: #CCCCCC;
-            font-size: 12px;
+            font-size: 10px;
             margin-top: 8px;
             border-top: 1px solid rgba(255, 255, 255, 0.2);
             padding-top: 8px;
@@ -684,7 +1386,7 @@
         .player-stats {
             background: rgba(255, 215, 0, 0.1);
             border-bottom: 1px solid rgba(255, 215, 0, 0.3);
-            padding: 10px 16px;
+            padding: 8px 12px;
         }
         
         .stat-row {
@@ -700,13 +1402,13 @@
         
         .stat-label {
             color: #CCCCCC;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: normal;
         }
         
         .stat-value {
             color: #FFD700;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: bold;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
         }
@@ -715,7 +1417,7 @@
         #dragonstalkerSection {
             background: rgba(0, 255, 255, 0.1);
             border-bottom: 1px solid rgba(0, 255, 255, 0.3);
-            padding: 10px 16px;
+            padding: 8px 12px;
         }
         
         .dragonstalker-header {
@@ -726,25 +1428,25 @@
         }
         
         .tier-icon {
-            font-size: 16px;
+            font-size: 14px;
         }
         
         .tier-title {
             color: #00FFFF;
-            font-size: 13px;
+            font-size: 11px;
             font-weight: bold;
             flex: 1;
         }
         
         .tier-progress {
             color: #FFD700;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: bold;
         }
         
         .tier-status {
             color: #CCCCCC;
-            font-size: 11px;
+            font-size: 9px;
             text-align: center;
         }
         
@@ -787,8 +1489,8 @@
         .item-entry {
             display: flex;
             align-items: center;
-            padding: 4px 16px;
-            font-size: 12px;
+            padding: 4px 14px;
+            font-size: 10px;
             line-height: 1.4;
             transition: background-color 0.2s ease;
         }
@@ -798,9 +1500,9 @@
         }
         
         .item-icon {
-            margin-right: 8px;
-            font-size: 14px;
-            width: 16px;
+            margin-right: 6px;
+            font-size: 12px;
+            width: 14px;
             text-align: center;
         }
         
@@ -811,13 +1513,13 @@
         
         .item-count {
             color: #CCCCCC;
-            font-size: 11px;
-            margin-left: 8px;
+            font-size: 9px;
+            margin-left: 6px;
         }
         
         .item-points {
             color: #FFD700;
-            font-size: 11px;
+            font-size: 9px;
             margin-left: 4px;
         }
         
@@ -832,11 +1534,11 @@
         
         /* Overflow Indicator */
         .overflow-indicator {
-            padding: 8px 16px;
+            padding: 6px 12px;
             border-top: 1px solid rgba(255, 255, 255, 0.2);
             background: rgba(0, 0, 0, 0.3);
             text-align: center;
-            font-size: 11px;
+            font-size: 9px;
             color: #CCCCCC;
         }
         
@@ -868,7 +1570,7 @@
         /* Dedicated Dragonstalker Progress Panel */
         #dragonstalkerProgressPanel {
             position: fixed;
-            top: 100px;
+            top: 20px;
             right: 20px;
             width: 380px;
             background: rgba(0, 0, 0, 0.95);
@@ -882,6 +1584,83 @@
             backdrop-filter: blur(8px);
             pointer-events: none;
             user-select: none;
+            transition: all 0.3s ease;
+        }
+        
+        /* Mobile responsive styles for dragonstalker panel */
+        @media (max-width: 768px) {
+            #dragonstalkerProgressPanel {
+                width: 160px;
+                top: 5px;
+                right: 5px;
+                border-width: 2px;
+                border-radius: 8px;
+            }
+            
+            /* Mini version - compact header */
+            #dragonstalkerProgressPanel .dragonstalker-panel-header {
+                padding: 8px;
+            }
+            
+            #dragonstalkerProgressPanel .dragonstalker-title {
+                font-size: 12px;
+                margin-bottom: 6px;
+            }
+            
+            #dragonstalkerProgressPanel .progress-background {
+                height: 16px;
+            }
+            
+            #dragonstalkerProgressText {
+                font-size: 10px;
+            }
+            
+            #dragonstalkerProgressPanel .dragonstalker-status {
+                font-size: 10px;
+            }
+            
+            /* Mini version - show only icons, not full names */
+            #dragonstalkerProgressPanel .dragonstalker-items-list {
+                padding: 6px 8px;
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 4px;
+            }
+            
+            #dragonstalkerProgressPanel .dragonstalker-item {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 2px;
+                font-size: 10px;
+                min-height: 24px;
+            }
+            
+            /* Hide item names on mobile, show only status icons */
+            #dragonstalkerProgressPanel .dragonstalker-item-name {
+                display: none;
+            }
+            
+            #dragonstalkerProgressPanel .dragonstalker-item-status {
+                margin: 0;
+                width: auto;
+                font-size: 12px;
+                text-align: center;
+            }
+            
+            /* Add item icons for mobile */
+            #dragonstalkerProgressPanel .dragonstalker-item::before {
+                content: attr(data-icon);
+                font-size: 14px;
+                margin-bottom: 2px;
+                display: block;
+            }
+            
+            /* Compact bottom message */
+            #dragonstalkerProgressPanel .dragonstalker-bottom-message {
+                padding: 4px 8px;
+                font-size: 10px;
+            }
         }
         
         #dragonstalkerProgressPanel.interactive {
@@ -1048,12 +1827,20 @@
         /* Spell Bar */
         #spellBar {
             position: absolute;
-            bottom: calc(30vh + 80px); /* Position above player boundary line (30% from bottom) + 80px margin */
-            left: 50%;
-            transform: translateX(-50%);
+            bottom: 20px; /* Move to bottom of screen */
+            left: 20px; /* Move to left side */
+            transform: none; /* Remove center transform */
             display: flex;
             gap: 15px;
-            pointer-events: none;
+            pointer-events: auto; /* Enable pointer events for spell interactions */
+            z-index: 100; /* Ensure spells appear above canvas */
+        }
+        
+        /* Mobile responsive spell bar */
+        @media (max-width: 768px) {
+            #spellBar {
+                gap: 8px; /* Smaller gap between spells */
+            }
         }
         
         .spell-slot {
@@ -1069,7 +1856,44 @@
             justify-content: center;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
             transition: all 0.3s ease;
-            pointer-events: none;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            touch-action: manipulation;
+        }
+        
+        .spell-slot:hover {
+            background: rgba(78, 205, 196, 0.1);
+            border-color: #26d0ce;
+            transform: translateY(-2px);
+        }
+        
+        /* Mobile responsive spell slots */
+        @media (max-width: 768px) {
+            .spell-slot {
+                width: 60px; /* Smaller spell slots */
+                height: 60px;
+                border-width: 1px;
+                border-radius: 8px;
+            }
+            
+            /* Subtle pulse animation on mobile to indicate touchability */
+            .spell-slot:not(.cooldown):not(.active) {
+                animation: mobilePulse 3s ease-in-out infinite;
+            }
+        }
+        
+        @keyframes mobilePulse {
+            0%, 100% { 
+                border-color: #4ECDC4;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            }
+            50% { 
+                border-color: #26d0ce;
+                box-shadow: 0 4px 12px rgba(78, 205, 196, 0.4);
+            }
         }
         
         .spell-slot.active {
@@ -1083,12 +1907,47 @@
             background: rgba(255, 0, 0, 0.2);
         }
         
+        /* Touch feedback styles for mobile spell casting */
+        .spell-slot.spell-pressing {
+            transform: scale(0.95);
+            background: rgba(78, 205, 196, 0.3);
+            border-color: #26d0ce;
+        }
+        
+        .spell-slot.spell-touched {
+            animation: spellTouchFeedback 0.2s ease-out;
+        }
+        
+        @keyframes spellTouchFeedback {
+            0% { 
+                transform: scale(1);
+                box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
+            }
+            50% { 
+                transform: scale(1.05);
+                box-shadow: 0 0 20px rgba(78, 205, 196, 0.7);
+            }
+            100% { 
+                transform: scale(1);
+                box-shadow: 0 0 10px rgba(78, 205, 196, 0.3);
+            }
+        }
+        
         .spell-icon {
             width: 40px;
             height: 40px;
             margin-bottom: 4px;
             position: relative;
             pointer-events: none;
+        }
+        
+        /* Mobile responsive spell icons */
+        @media (max-width: 768px) {
+            .spell-icon {
+                width: 30px; /* Smaller icons */
+                height: 30px;
+                margin-bottom: 2px;
+            }
         }
         
         .spell-image {
@@ -1114,6 +1973,15 @@
             pointer-events: none;
         }
         
+        /* Mobile responsive spell keys */
+        @media (max-width: 768px) {
+            .spell-key {
+                font-size: 8px; /* Smaller key text */
+                padding: 1px 3px;
+                min-width: 10px;
+            }
+        }
+        
         .spell-name {
             font-size: 8px;
             color: white;
@@ -1121,6 +1989,13 @@
             font-weight: bold;
             text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
             pointer-events: none;
+        }
+        
+        /* Mobile responsive spell names */
+        @media (max-width: 768px) {
+            .spell-name {
+                font-size: 6px; /* Smaller spell names */
+            }
         }
         
         .spell-timer {
@@ -1138,6 +2013,15 @@
             text-align: center;
             display: none;
             pointer-events: none;
+        }
+        
+        /* Mobile responsive spell timers */
+        @media (max-width: 768px) {
+            .spell-timer {
+                font-size: 10px; /* Smaller timer text */
+                padding: 1px 4px;
+                min-width: 16px;
+            }
         }
         
         .spell-timer.active {
@@ -1169,13 +2053,21 @@
         /* Health Bar Container */
         #healthBar {
             position: absolute;
-            bottom: calc(30vh + 10px); /* Position just above player boundary line (30% from bottom) + 10px margin */
-            left: 50%;
-            transform: translateX(-50%);
+            bottom: 140px; /* Position above spell bar with more space */
+            left: 20px; /* Move to left side */
+            transform: none; /* Remove center transform */
             display: flex;
             align-items: center;
             gap: 10px;
             pointer-events: none;
+            z-index: 100; /* Ensure health bar appears above canvas */
+        }
+        
+        /* Mobile responsive health bar */
+        @media (max-width: 768px) {
+            #healthBar {
+                gap: 6px; /* Smaller gap */
+            }
         }
         
         /* Player Portrait */
@@ -1188,6 +2080,15 @@
             overflow: hidden;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
             pointer-events: none;
+        }
+        
+        /* Mobile responsive player portrait */
+        @media (max-width: 768px) {
+            .player-portrait {
+                width: 28px; /* Smaller portrait */
+                height: 28px;
+                border-width: 1px;
+            }
         }
         
         .player-portrait img {
@@ -1209,6 +2110,16 @@
             pointer-events: none;
         }
         
+        /* Mobile responsive health bar container */
+        @media (max-width: 768px) {
+            .health-bar-container {
+                width: 180px; /* Narrower health bar */
+                height: 24px; /* Shorter height */
+                border-width: 1px;
+                border-radius: 12px;
+            }
+        }
+        
         .health-background {
             width: 100%;
             height: 100%;
@@ -1218,6 +2129,13 @@
             pointer-events: none;
         }
         
+        /* Mobile responsive health background */
+        @media (max-width: 768px) {
+            .health-background {
+                border-radius: 11px; /* Adjust for smaller container */
+            }
+        }
+        
         .health-fill {
             height: 100%;
             background: linear-gradient(90deg, #FF0000 0%, #FFFF00 50%, #00FF00 100%);
@@ -1225,6 +2143,13 @@
             transition: width 0.3s ease;
             width: 100%;
             pointer-events: none;
+        }
+        
+        /* Mobile responsive health fill */
+        @media (max-width: 768px) {
+            .health-fill {
+                border-radius: 11px; /* Adjust for smaller container */
+            }
         }
         
         .health-fill.low {
@@ -1252,20 +2177,76 @@
             pointer-events: none;
         }
         
+        /* Mobile responsive health text */
+        @media (max-width: 768px) {
+            .health-text {
+                font-size: 11px; /* Smaller health text */
+            }
+        }
+        
         @keyframes pulse-red {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.7; }
+        }
+
+        /* In-Game Settings Button */
+        #gameSettingsBtn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #9370DB;
+            border-radius: 50%;
+            color: #9370DB;
+            font-size: 18px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 50;
+        }
+        
+        /* Mobile responsive settings button */
+        @media (max-width: 768px) {
+            #gameSettingsBtn {
+                top: 10px;
+                right: 10px;
+                width: 40px; /* Smaller settings button */
+                height: 40px;
+                font-size: 14px;
+                border-width: 1px;
+            }
+        }
+
+        #gameSettingsBtn:hover {
+            background: rgba(147, 112, 219, 0.2);
+            border-color: #7B68EE;
+            color: #7B68EE;
+            transform: scale(1.1);
+        }
+
+        #gameSettingsBtn:active {
+            transform: scale(0.95);
         }
     </style>
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
     
+    <!-- Spell Notifications Container -->
+    <div id="spellNotifications" class="spell-notifications-container"></div>
+    
     <!-- Canvas Overlay - prevents mouse interaction when game is not active -->
     <div id="canvasOverlay"></div>
     
     <!-- Game UI Elements -->
     <div id="gameUI" style="display: none;">
+        <!-- In-Game Settings Button -->
+        <button id="gameSettingsBtn" title="Settings (S)">⚙️</button>
+        
         <!-- Spell Bar -->
         <div id="spellBar">
             <div class="spell-slot" id="spell-dragon-cry">
@@ -1288,14 +2269,14 @@
                 <div class="spell-cooldown-overlay" id="spell-zandalari-cooldown"></div>
             </div>
             
-            <div class="spell-slot" id="spell-songflower">
+            <div class="spell-slot" id="spell-flask-of-titans">
                 <div class="spell-icon">
-                    <img src="assets/songflower-buff.png" alt="Songflower" class="spell-image">
+                    <img src="assets/flask_of_titans.webp" alt="Flask of Titans" class="spell-image">
                 </div>
                 <div class="spell-key">E</div>
-                <div class="spell-name">Songflower</div>
-                <div class="spell-timer" id="spell-songflower-timer"></div>
-                <div class="spell-cooldown-overlay" id="spell-songflower-cooldown"></div>
+                <div class="spell-name">Flask of Titans</div>
+                <div class="spell-timer" id="spell-flask-of-titans-timer"></div>
+                <div class="spell-cooldown-overlay" id="spell-flask-of-titans-cooldown"></div>
             </div>
         </div>
         
@@ -1324,13 +2305,59 @@
         <button id="restartGameBtn" style="display: none;">Restart Game</button>
         <button id="viewScoresBtn">High Scores</button>
         <button id="howToPlayBtn">How to Play</button>
+        <button id="settingsBtn">Settings</button>
     </div>
 
     <!-- High Scores Screen -->
-    <div id="highScores" style="display: none;">
-        <h2>🏆 High Scores 🏆</h2>
-        <div id="scoresList"></div>
-        <button id="backToMenuBtn">Back to Menu</button>
+    <div id="highScoresScreen" class="screen" style="display: none;">
+        <div class="screen-content">
+            <h2>🏆 High Scores</h2>
+            <div id="highScoresList"></div>
+            <div class="button-group">
+                <button onclick="showMainMenu()" class="menu-btn">Back to Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Screen -->
+    <div id="settingsScreen" class="screen" style="display: none;">
+        <div class="screen-content">
+            <h2>⚙️ Settings</h2>
+            
+            <!-- Audio Settings Section -->
+            <div class="settings-section">
+                <h3>🔊 Audio Settings</h3>
+                
+                <div class="setting-item">
+                    <label for="soundEffectsToggle">Play Sound Effects:</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="soundEffectsToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+                
+                <div class="setting-item">
+                    <label for="backgroundMusicToggle">Play Background Music:</label>
+                    <div class="toggle-switch">
+                        <input type="checkbox" id="backgroundMusicToggle" checked>
+                        <span class="toggle-slider"></span>
+                    </div>
+                </div>
+                
+                <div class="setting-item">
+                    <label for="volumeSlider">Volume:</label>
+                    <div class="volume-control">
+                        <input type="range" id="volumeSlider" min="0" max="100" value="70" class="volume-slider">
+                        <span id="volumeValue" class="volume-display">70%</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button onclick="resetSettings()" class="menu-btn secondary">Reset to Defaults</button>
+                <button id="settingsBackBtn" onclick="closeSettings()" class="menu-btn">Back</button>
+            </div>
+        </div>
     </div>
 
     <!-- How to Play Screen -->
@@ -1344,8 +2371,10 @@
 
             <div class="guide-section">
                 <h3>🎮 Controls</h3>
-                <p><strong>Mouse:</strong> Move your character</p>
+                <p><strong>Desktop:</strong> Mouse to move your character</p>
+                <p><strong>Mobile:</strong> Touch screen to move your character</p>
                 <p><strong>ESC:</strong> Pause game</p>
+                <p><strong>S:</strong> Open/close settings</p>
             </div>
 
             <div class="guide-section">
@@ -1365,15 +2394,16 @@
 
             <div class="guide-section">
                 <h3>⚔️ Player Spells</h3>
+                <p style="color: #4ECDC4; font-style: italic; margin-bottom: 15px;">💡 Desktop: Press Q/W/E keys | Mobile: Touch the spell icons!</p>
                 <div class="spell-grid">
                     <div class="spell-item player-spell">
-                        <strong>Q - Dragon Cry:</strong> Move anywhere on screen (1 min cooldown)
+                        <strong>Q - Dragon Cry:</strong> Move anywhere on screen + 5% crit chance (1 min cooldown)
                     </div>
                     <div class="spell-item player-spell">
                         <strong>W - Zandalari:</strong> +20% points, slow projectiles and items (45s cooldown)
                     </div>
                     <div class="spell-item player-spell">
-                        <strong>E - Songflower:</strong> Remove one missed Dragonstalker (2 min cooldown)
+                        <strong>E - Flask of Titans:</strong> Remove one missed Dragonstalker (2 min cooldown)
                     </div>
                 </div>
             </div>
@@ -1418,10 +2448,19 @@
             </div>
 
             <div class="guide-section">
+                <h3>💥 Critical Hit System</h3>
+                <p>• 10% base chance to double points from any item</p>
+                <p>• Complete Dragonstalker sets: +5% crit chance each</p>
+                <p>• Collect Thunder Fury: +1% crit chance each</p>
+                <p>• Maximum crit chance: 25%</p>
+            </div>
+
+            <div class="guide-section">
                 <h3>🏆 Scoring Tips</h3>
                 <p>• Use Zandalari spell for +20% points and to slow down all falling objects</p>
                 <p>• Collect Speed Boost projectiles to increase game speed and scoring</p>
-                <p>• Thunder Fury automatically collects all items on screen</p>
+                <p>• Thunder Fury automatically collects all items on screen AND increases crit chance</p>
+                <p>• Complete multiple Dragonstalker sets to maximize crit chance</p>
                 <p>• Higher game speeds = more items = higher scores</p>
             </div>
         </div>
@@ -1439,6 +2478,9 @@
                 </button>
                 <button id="gameInfoPauseBtn" class="pause-btn info-btn">
                     📖 Game Info
+                </button>
+                <button id="settingsPauseBtn" class="pause-btn settings-btn">
+                    ⚙️ Settings
                 </button>
                 <button id="restartPauseBtn" class="pause-btn restart-btn">
                     🔄 Restart
@@ -1491,6 +2533,10 @@
             <div class="stat-row">
                 <span class="stat-label">Actual Projectile Speed:</span>
                 <span class="stat-value" id="actualProjectileSpeed">-- px/frame</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Crit Chance:</span>
+                <span class="stat-value" id="critRating">10%</span>
             </div>
         </div>
         

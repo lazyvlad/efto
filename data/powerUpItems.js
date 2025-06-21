@@ -69,7 +69,7 @@ export const powerUpItems = [
         duration: 300, // 5 seconds at 60fps
         type: "legendary",
         color: "#8B00FF",
-        sound: assetRegistry.audio.ohoo, // Using existing sound effect
+        sound: assetRegistry.audio.reverseGravity, // Using dedicated reverse gravity sound
         description: "Makes all items on screen move upward for 5 seconds",
         baseProbability: 0.1, // 10%
         speedScaling: false

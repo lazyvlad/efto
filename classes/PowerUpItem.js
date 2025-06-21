@@ -1,5 +1,5 @@
 import { gameConfig } from '../config/gameConfig.js';
-import { addNotification, checkBoundaryCollision, applyAdvancedBouncePhysics, calculateSpinEffect, applyAirResistance, calculateFallAngle } from '../utils/gameUtils.js';
+import { addNotification, checkBoundaryCollision, applyAdvancedBouncePhysics, calculateSpinEffect, applyAirResistance, calculateFallAngle, responsiveScaler } from '../utils/gameUtils.js';
 import { assetManager } from '../utils/AssetManager.js';
 
 export class PowerUpItem {
@@ -17,8 +17,10 @@ export class PowerUpItem {
         this.y = attemptY;
         recentDropYPositions.push(this.y);
         
-        this.width = gameConfig.visuals.powerUpItemSize;
-        this.height = gameConfig.visuals.powerUpItemSize;
+        // Use responsive scaling for power-up items
+        const powerUpSize = responsiveScaler.getSize('item', 'powerUp');
+        this.width = powerUpSize;
+        this.height = powerUpSize;
         
         // Slower speed for power-ups (easier to collect)
         const speedVariation = 0.6 + Math.random() * 0.8; // Slower than regular items
@@ -192,8 +194,8 @@ export class PowerUpItem {
         const pulse = Math.sin(this.pulseAnimation) * 0.1 + 1.0;
         
         // Force consistent size regardless of source image dimensions
-        const baseWidth = gameConfig.visuals.powerUpItemSize;
-        const baseHeight = gameConfig.visuals.forceItemAspectRatio ? gameConfig.visuals.powerUpItemSize : this.height;
+        const baseWidth = this.width;  // Use the responsive width we calculated
+        const baseHeight = gameConfig.visuals.forceItemAspectRatio ? this.width : this.height;
         const drawWidth = baseWidth * pulse;
         const drawHeight = baseHeight * pulse;
         
@@ -253,17 +255,30 @@ export class PowerUpItem {
     }
     
     applyEffect(audioInitialized, audioState, volumeSettings, gameState, gameObjects = {}) {
-        if (audioState.isMuted) {
-            // Still apply the effect even if audio is muted, just skip the sound
-            this.applyEffectLogic(gameState, gameObjects);
-            return;
-        }
-        
-        // Play power-up sound
+        // Play power-up sound using optimized audio system
         if (this.data.sound) {
-            const powerUpAudio = new Audio(this.data.sound);
-            powerUpAudio.volume = volumeSettings.effects;
-            powerUpAudio.play().catch(e => console.log(`Power-up sound ${this.data.sound} not available`));
+            // Use AssetManager to get the audio asset (consistent with DamageProjectile)
+            const powerUpAudio = assetManager.getAudio(this.data.sound);
+            if (powerUpAudio && window.playAudioOptimized) {
+                // Use optimized audio system
+                const soundKey = `powerup_${this.data.id || this.data.effect || 'generic'}`;
+                window.playAudioOptimized(soundKey, powerUpAudio, { 
+                    volume: volumeSettings.effects
+                    // Removed allowOverlap to prevent audio overlapping
+                });
+            } else if (powerUpAudio) {
+                // Fallback to direct play if optimized function not available
+                // Check if sound effects are enabled before playing
+                const soundEffectsEnabled = window.gameSettings && typeof window.gameSettings.areSoundEffectsEnabled === 'function' ? window.gameSettings.areSoundEffectsEnabled() : true;
+                
+                if (soundEffectsEnabled) {
+                    powerUpAudio.volume = volumeSettings.effects;
+                    powerUpAudio.currentTime = 0;
+                    powerUpAudio.play().catch(e => console.log(`Power-up sound ${this.data.sound} not available`));
+                } else {
+                    console.log(`Power-up sound ${this.data.sound} blocked by settings (fallback)`);
+                }
+            }
         }
         
         this.applyEffectLogic(gameState, gameObjects);
@@ -443,5 +458,13 @@ export class PowerUpItem {
                 addNotification(gameState, `🔄 Reverse Gravity for ${reverseGravitySeconds}s`, 180, '#8B00FF');
                 break;
         }
+    }
+    
+    // Handle window resize with responsive scaling
+    repositionOnResize() {
+        // Update size based on new scaling
+        const powerUpSize = responsiveScaler.getSize('item', 'powerUp');
+        this.width = powerUpSize;
+        this.height = powerUpSize;
     }
 } 
