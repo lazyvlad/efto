@@ -121,36 +121,38 @@
             }
         }
         
-        /* Spell Notifications */
+        /* Spell Notifications - Positioned at very top and ultra compact */
         .spell-notifications-container {
             position: fixed;
-            top: 170px; /* Moved down to avoid overlap with top player panel */
+            top: 5px; /* Moved to very top of browser */
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 2px; /* Ultra compact gap */
             pointer-events: none; /* Makes notifications non-interactive */
             width: 100%;
-            max-width: 600px;
+            max-width: 450px; /* Reduced max width */
             align-items: center;
+            max-height: 200px; /* Limit height to prevent screen clutter */
+            overflow: hidden; /* Hide excess notifications */
         }
         
         .spell-notification {
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(20, 20, 20, 0.9));
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.85), rgba(20, 20, 20, 0.85));
             border: 2px solid;
-            border-radius: 12px;
-            padding: 10px 18px;
+            border-radius: 8px;
+            padding: 6px 12px; /* More compact padding */
             color: white;
-            font-size: 14px;
+            font-size: 12px; /* Smaller font size */
             font-weight: bold;
             text-align: center;
-            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
-            backdrop-filter: blur(8px);
-            animation: spellNotificationSlide 0.4s ease-out forwards;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(6px);
+            animation: spellNotificationSlide 0.3s ease-out forwards;
             opacity: 0;
-            transform: translateY(-20px);
+            transform: translateY(-15px);
             max-width: 90%;
             word-wrap: break-word;
             position: relative;
@@ -288,19 +290,18 @@
             }
         }
         
-        /* Buff Tracker Styles */
+        /* Buff Tracker Styles - Moved to bottom left */
         .buff-tracker-container {
             position: fixed;
-            top: 50%;
+            bottom: 100px;
             left: 20px;
-            transform: translateY(-50%);
             z-index: 1000;
             display: flex;
             flex-direction: column;
             gap: 8px;
             pointer-events: none;
             width: 220px;
-            max-height: 50vh;
+            max-height: 200px;
             overflow-y: auto;
         }
         
@@ -433,10 +434,9 @@
         @media (max-width: 768px) {
             .buff-tracker-container {
                 left: 10px;
-                top: 45%;
-                transform: translateY(-50%);
+                bottom: 80px; /* Keep at bottom on mobile too */
                 width: 180px;
-                max-height: 35vh;
+                max-height: 150px;
             }
             
             .buff-item {
@@ -489,10 +489,11 @@
         /* Mobile Notifications Styles */
         @media (max-width: 768px) {
             .spell-notifications-container {
-                top: 140px; /* Adjusted for mobile top panel with more spacing */
+                top: 5px; /* Keep at very top on mobile too */
                 max-width: calc(100vw - 20px);
                 left: 50%;
                 transform: translateX(-50%);
+                max-height: 150px; /* More limited on mobile */
             }
             
             .spell-notification {
@@ -1595,13 +1596,13 @@
         
 
         
-        /* DOM-based Items Collection Panel with Safe Area Positioning */
+        /* DOM-based Items Collection Panel positioned at browser viewport top */
         #itemsCollectionPanel {
             position: fixed;
-            top: var(--letterbox-top, 0px);
-            left: 0px;
+            top: 5px;
+            left: 5px;
             width: 300px;
-            max-height: calc(100vh - 160px);
+            max-height: calc(100vh - 20px);
             background: rgba(0, 0, 0, 0.85);
             border: 2px solid rgba(255, 255, 255, 0.5);
             border-radius: 12px;
