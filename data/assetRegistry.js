@@ -25,20 +25,25 @@ export const assetRegistry = {
         alchemy: 'assets/alchemy.png',
         speedBoost: 'assets/speed-boost.png',
         sprint: 'assets/sprint.webp',
+        aspectOfTheMonkey: 'assets/aspect_of_the_monkey.png',
+        evasion: 'assets/evasion.jpg',
         frostNova: 'assets/frost-nova.jpg',
         powerWordShield: 'assets/powerwordshield.jpg',
         chickenFood: 'assets/kokoska.png',
-        reverseGravity: 'assets/reverse_gravity.webp'
+        reverseGravity: 'assets/reverse_gravity.webp',
+        thoriumArrows: 'assets/arrows.webp'
     },
     
     // Buff and effect assets
     buffs: {
         songflower: 'assets/songflower-buff.png',
-        onyxia: 'assets/onyxia-buff.png',
+        onyxia: 'assets/dragon-cry.webp',
         zgBuff1: 'assets/zg-buff.png',
         zgBuff2: 'assets/zg-buff2.png',
         blackLotuses: 'assets/black-lotuses.png',
-        flaskOfTitans: 'assets/flask_of_titans.webp'
+        flaskOfTitans: 'assets/flask_of_titans.webp',
+        autoshot: 'assets/autoshot.webp',
+        multishot: 'assets/multishot.webp'
     },
     
     // Audio assets
@@ -207,14 +212,19 @@ export const assetCategories = {
         // Power-ups and effects
         assetRegistry.powerups.frostNova,
         assetRegistry.powerups.sprint,
+        assetRegistry.powerups.aspectOfTheMonkey,
+        assetRegistry.powerups.evasion,
         assetRegistry.powerups.healthPotion,
         assetRegistry.powerups.manaPotion,
         assetRegistry.powerups.alchemy,
         assetRegistry.powerups.chickenFood,
         assetRegistry.powerups.reverseGravity,
+        assetRegistry.powerups.thoriumArrows,
         
-        // Important special buffs
-        assetRegistry.buffs.flaskOfTitans
+        // Important special buffs and spell icons
+        assetRegistry.buffs.flaskOfTitans,
+        assetRegistry.buffs.autoshot,
+        assetRegistry.buffs.multishot
     ],
     
     // Optional assets - load on demand or in background

@@ -5,7 +5,13 @@ import { assetManager } from '../utils/AssetManager.js';
 export class PowerUpItem {
     constructor(powerUpData, isValidYPosition, recentDropYPositions, gameState) {
         this.data = powerUpData;
-        this.x = Math.random() * (window.innerWidth - 120);
+        
+        // Get resolution scale for consistent sizing and positioning
+        const resolutionScale = gameState.universalMultiplier?.resolution || { average: 1 };
+        const margin = 120 * resolutionScale.average;
+        // Use canvas width instead of window.innerWidth for consistency
+        const canvasWidth = gameState.canvasWidth || window.innerWidth;
+        this.x = Math.random() * (canvasWidth - margin);
         
         // Find valid Y position with spacing
         let attemptY = -120;
@@ -27,7 +33,9 @@ export class PowerUpItem {
         
         // Apply cut_time reduction as a subtraction from level multiplier, not final speed
         const effectiveLevelMultiplier = Math.max(0.2, gameState.levelSpeedMultiplier - gameState.permanentSpeedReduction);
-        const baseSpeed = gameState.baseDropSpeed * effectiveLevelMultiplier * speedVariation;
+        
+        // Apply resolution scaling to base speed for consistent gameplay across resolutions
+        const baseSpeed = gameState.baseDropSpeed * effectiveLevelMultiplier * speedVariation * resolutionScale.average;
         this.baseSpeed = baseSpeed; // Store base speed for recalculation when speed boosts are applied
         this.speed = baseSpeed * gameState.speedIncreaseMultiplier;
         
@@ -48,8 +56,12 @@ export class PowerUpItem {
     update(gameState, deltaTimeMultiplier, canvas) {
         const effectiveDelta = gameState.timeSlowMultiplier * deltaTimeMultiplier;
         
+        // Get current canvas dimensions (supports portrait mode)
+        const canvasWidth = canvas.logicalWidth || gameConfig.canvas.width;
+        const canvasHeight = canvas.logicalHeight || gameConfig.canvas.height;
+        
         // Performance optimization: Skip expensive physics for items far from edges
-        const needsPhysics = this.x < 100 || this.x > canvas.width - 100 || Math.abs(this.horizontalSpeed) > 1;
+        const needsPhysics = this.x < 100 || this.x > canvasWidth - 100 || Math.abs(this.horizontalSpeed) > 1;
         
         if (needsPhysics) {
             // Apply physics effects only when needed
@@ -66,7 +78,7 @@ export class PowerUpItem {
             
             // DEBUG: Log boundary info when close to top during reverse gravity
             if (gameState.reverseGravityActive && this.y <= 50) {
-                console.log(`PowerUp near top: y=${this.y}, canvas.height=${canvas.height}, canvas.width=${canvas.width}, collisions=`, collisions);
+                console.log(`PowerUp near top: y=${this.y}, canvas.height=${canvasHeight}, canvas.width=${canvasWidth}, collisions=`, collisions);
             }
             
             if (collisions.left || collisions.right || collisions.top) {
@@ -119,26 +131,58 @@ export class PowerUpItem {
         if (gameState.reverseGravityActive) {
             // Items that haven't been individually exempted get reverse gravity
             if (this.wasReversed !== false) {
-                this.y -= this.speed * effectiveDelta; // Move upward instead of downward
-                this.wasReversed = true; // Mark as affected by reverse gravity
-                
-                // MANUAL BOUNDARY CHECK: Prevent items from going past top boundary during reverse gravity
-                if (this.y <= 0) {
-                    console.log(`PowerUp manually detected past top boundary: y=${this.y}, forcing bounce...`);
-                    this.y = 0; // Clamp to top boundary
+                // First time being affected by reverse gravity - apply dramatic angle change
+                if (this.wasReversed !== true) {
+                    // REVERSE GRAVITY: Always move upward, but with dramatic angle variation
+                    // Generate dramatic horizontal angles: up to 65 degrees from straight up
+                    const dramaticAngleRange = 65; // Maximum deviation from straight up
+                    const baseVerticalAngle = 270; // 270° = straight up in standard coordinates
                     
-                    // Force bounce behavior - item should immediately start falling
-                    this.wasReversed = false; // Remove reverse gravity effect from this item
-                    this.fallAngle = Math.random() * (gameState.fallAngleMax - gameState.fallAngleMin) + gameState.fallAngleMin;
-                    this.horizontalSpeed = Math.sin(this.fallAngle * Math.PI / 180) * this.speed * (gameState.horizontalSpeedReduction || 0.3);
-                    this.speed = Math.abs(this.speed) * 0.8; // Bounce with energy loss
+                    // Random angle within the dramatic range for horizontal variation
+                    const angleDeviation = (Math.random() - 0.5) * 2 * dramaticAngleRange; // -65 to +65
+                    this.reverseGravityAngle = baseVerticalAngle + angleDeviation; // 205° to 335°
                     
-                    console.log(`PowerUp manual bounce complete: y=${this.y}, speed=${this.speed}, wasReversed=${this.wasReversed}`);
+                    // Calculate movement vectors - ALWAYS upward with horizontal variation
+                    const angleRad = this.reverseGravityAngle * Math.PI / 180;
+                    this.reverseGravityVerticalSpeed = Math.sin(angleRad) * this.speed; // Upward movement
+                    this.reverseGravityHorizontalSpeed = Math.cos(angleRad) * this.speed; // Horizontal variation
+                    
+                    // Ensure vertical speed is always negative (upward)
+                    this.reverseGravityVerticalSpeed = -Math.abs(this.reverseGravityVerticalSpeed);
+                    
+                    // DECREASE speed to give players more time to collect items during reverse gravity
+                    const speedReduction = 0.4; // Reduce speed to 40% (60% slower)
+                    this.reverseGravityVerticalSpeed *= speedReduction;
+                    this.reverseGravityHorizontalSpeed *= speedReduction;
                 }
                 
-                // DEBUG: Log movement during reverse gravity
-                if (this.y <= 10) { // Only log when close to top
-                    console.log(`PowerUp moving upward: y=${this.y}, speed=${this.speed}, effectiveDelta=${effectiveDelta}`);
+                // Apply dramatic movement with the calculated angles
+                this.y += this.reverseGravityVerticalSpeed * effectiveDelta;
+                this.x += this.reverseGravityHorizontalSpeed * effectiveDelta;
+                this.wasReversed = true; // Mark as affected by reverse gravity
+                
+                // MANUAL BOUNDARY CHECK: Bounce off top boundary while preserving angle momentum
+                if (this.y <= 0) {
+                    this.y = 0; // Clamp to top boundary
+                    
+                    // PRESERVE THE ANGLE MOMENTUM - just flip vertical direction
+                    // Keep the same horizontal speed and angle, but make vertical speed positive (downward)
+                    this.reverseGravityVerticalSpeed = Math.abs(this.reverseGravityVerticalSpeed) * 0.8; // Bounce with slight energy loss
+                    // Keep horizontal speed unchanged to maintain the dramatic angle
+                    // this.reverseGravityHorizontalSpeed stays the same
+                    // this.reverseGravityAngle stays the same
+                    
+                    // Mark that this item bounced off top but keep it affected by reverse gravity
+                    this.bouncedOffTopDuringReverse = true;
+                }
+                
+                // Handle horizontal screen boundaries during reverse gravity - BOUNCE instead of wrap
+                if (this.x < 0) {
+                    this.x = 0; // Clamp to left boundary
+                    this.reverseGravityHorizontalSpeed = -this.reverseGravityHorizontalSpeed * 0.8; // Reverse and reduce speed
+                        } else if (this.x > canvasWidth - this.width) {
+            this.x = canvasWidth - this.width; // Clamp to right boundary
+                    this.reverseGravityHorizontalSpeed = -this.reverseGravityHorizontalSpeed * 0.8; // Reverse and reduce speed
                 }
             } else {
                 // Item has bounced off top during this reverse gravity session - make it fall normally
@@ -159,6 +203,11 @@ export class PowerUpItem {
                 this.fallAngle = Math.random() * (gameState.fallAngleMax - gameState.fallAngleMin) + gameState.fallAngleMin;
                 this.horizontalSpeed = Math.sin(this.fallAngle * Math.PI / 180) * this.speed * (gameState.horizontalSpeedReduction || 0.3);
                 
+                // Clear reverse gravity movement vectors
+                this.reverseGravityVerticalSpeed = 0;
+                this.reverseGravityHorizontalSpeed = 0;
+                this.reverseGravityAngle = 0;
+                
                 // Ensure the power-up is moving downward by forcing positive vertical speed
                 // This fixes power-ups that might have upward momentum from bouncing during reverse gravity
                 if (this.speed < 0) {
@@ -173,7 +222,7 @@ export class PowerUpItem {
         this.pulseAnimation += 0.1 * deltaTimeMultiplier;
         
         // Only remove items that go off the bottom during normal gravity
-        if (!gameState.reverseGravityActive && this.y > canvas.height + this.height) {
+        if (!gameState.reverseGravityActive && this.y > canvasHeight + this.height) {
             this.missed = true;
             return false;
         }
@@ -185,6 +234,19 @@ export class PowerUpItem {
     draw(ctx) {
         ctx.save();
         
+        // Enhanced image quality settings for power-ups
+        if (gameConfig.items.imageQuality.smoothing) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = gameConfig.items.imageQuality.quality;
+        } else {
+            ctx.imageSmoothingEnabled = false;
+        }
+        
+        // Apply sharp scaling for pixel art if enabled
+        if (gameConfig.items.imageQuality.sharpScaling) {
+            ctx.imageSmoothingEnabled = false;
+        }
+        
         // Glow effect
         const glow = Math.sin(this.glowAnimation) * 0.4 + 0.6;
         ctx.shadowColor = this.data.color;
@@ -193,19 +255,64 @@ export class PowerUpItem {
         // Pulse effect
         const pulse = Math.sin(this.pulseAnimation) * 0.1 + 1.0;
         
-        // Force consistent size regardless of source image dimensions
-        const baseWidth = this.width;  // Use the responsive width we calculated
-        const baseHeight = gameConfig.visuals.forceItemAspectRatio ? this.width : this.height;
+        // Calculate high-DPI adjusted size with AssetManager constraints
+        let baseWidth = this.width;  // Use the responsive width we calculated
+        let baseHeight = gameConfig.visuals.forceItemAspectRatio ? this.width : this.height;
+        
+        // Apply conservative high-DPI scaling if enabled (focused on quality, not size)
+        if (gameConfig.items.highDPI.enabled) {
+            // Only apply very conservative scaling if explicitly enabled
+            if (gameConfig.items.sizing.scaleWithDPI) {
+                const dpr = window.devicePixelRatio || 1;
+                const conservativeScale = Math.min(dpr * gameConfig.items.highDPI.multiplier, 2.0); // Conservative cap at 2x
+                baseWidth *= conservativeScale;
+                baseHeight *= conservativeScale;
+            }
+            
+            // Only enforce minimum size if explicitly enabled
+            if (gameConfig.items.sizing.respectMinimumSize) {
+                const minPixelSize = gameConfig.items.highDPI.minPixelSize;
+                baseWidth = Math.max(baseWidth, minPixelSize);
+                baseHeight = Math.max(baseHeight, minPixelSize);
+            }
+            
+            // Apply AssetManager scaling constraints to prevent quality degradation
+            if (this.powerUpImage && this.data.image && window.assetManager) {
+                const safeSize = window.assetManager.getMaxSafeSize(this.data.image, baseWidth, baseHeight);
+                if (safeSize.wasConstrained) {
+                    baseWidth = safeSize.width;
+                    baseHeight = safeSize.height;
+                    // Optional: Log when scaling is constrained
+                    if (gameConfig.debug?.logScalingConstraints) {
+                        console.log(`PowerUp ${this.data.name} scaling constrained: ${baseWidth}x${baseHeight} (max ${safeSize.maxScaleFactor}x)`);
+                    }
+                }
+            }
+        }
+        
         const drawWidth = baseWidth * pulse;
         const drawHeight = baseHeight * pulse;
         
         ctx.translate(this.x + this.width/2, this.y + this.height/2);
         ctx.rotate(this.rotation);
         
-        // Use the specific power-up image if loaded, otherwise use placeholder
+        // Use the specific power-up image from AssetManager
         if (this.powerUpImage && this.powerUpImage.complete && this.powerUpImage.naturalWidth > 0) {
-            // Force the image to exact size, ignoring source dimensions
-            ctx.drawImage(this.powerUpImage, -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
+            // Smooth rendering for rotating items to prevent visual tearing
+            // Only use crisp rendering for non-rotating items
+            const isRotating = Math.abs(this.rotationSpeed) > 0.001 || Math.abs(this.rotation) > 0.001;
+            
+            if (gameConfig.items.highDPI.crispRendering && !isRotating) {
+                // Use pixel-perfect positioning only for stationary items
+                const pixelPerfectX = Math.round(-drawWidth/2);
+                const pixelPerfectY = Math.round(-drawHeight/2);
+                const pixelPerfectWidth = Math.round(drawWidth);
+                const pixelPerfectHeight = Math.round(drawHeight);
+                ctx.drawImage(this.powerUpImage, pixelPerfectX, pixelPerfectY, pixelPerfectWidth, pixelPerfectHeight);
+            } else {
+                // Smooth rendering for rotating items or when crisp rendering is disabled
+                ctx.drawImage(this.powerUpImage, -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
+            }
         } else {
             // Draw placeholder based on power-up type with consistent size
             ctx.fillStyle = this.data.color;
@@ -254,16 +361,15 @@ export class PowerUpItem {
                this.y + this.height > playerBounds.y;
     }
     
-    applyEffect(audioInitialized, audioState, volumeSettings, gameState, gameObjects = {}) {
+    applyEffect(gameState, gameObjects = {}) {
         // Play power-up sound using optimized audio system
         if (this.data.sound) {
             // Use AssetManager to get the audio asset (consistent with DamageProjectile)
             const powerUpAudio = assetManager.getAudio(this.data.sound);
             if (powerUpAudio && window.playAudioOptimized) {
-                // Use optimized audio system
+                // Use optimized audio system - volume is handled internally by playAudioOptimized
                 const soundKey = `powerup_${this.data.id || this.data.effect || 'generic'}`;
                 window.playAudioOptimized(soundKey, powerUpAudio, { 
-                    volume: volumeSettings.effects
                     // Removed allowOverlap to prevent audio overlapping
                 });
             } else if (powerUpAudio) {
@@ -272,7 +378,12 @@ export class PowerUpItem {
                 const soundEffectsEnabled = window.gameSettings && typeof window.gameSettings.areSoundEffectsEnabled === 'function' ? window.gameSettings.areSoundEffectsEnabled() : true;
                 
                 if (soundEffectsEnabled) {
-                    powerUpAudio.volume = volumeSettings.effects;
+                    // Get volume from settings system - use effects volume
+                    const volume = (window.gameSettings && typeof window.gameSettings.getEffectsVolumeDecimal === 'function') ? 
+                        window.gameSettings.getEffectsVolumeDecimal() : 
+                        (window.gameSettings && typeof window.gameSettings.getVolumeDecimal === 'function' ? window.gameSettings.getVolumeDecimal() : gameConfig.audio.volumes.effects);
+                        
+                    powerUpAudio.volume = volume;
                     powerUpAudio.currentTime = 0;
                     powerUpAudio.play().catch(e => console.log(`Power-up sound ${this.data.sound} not available`));
                 } else {
@@ -334,7 +445,7 @@ export class PowerUpItem {
                 
                 // Add notification for freeze
                 const freezeSeconds = Math.round(gameConfig.powerUps.freezeTime.duration / 60);
-                addNotification(gameState, `❄️ Projectiles Frozen ${freezeSeconds}s`, 120, '#87CEEB');
+                addNotification(gameState, `❄️ All Items Frozen ${freezeSeconds}s`, 120, '#87CEEB');
                 break;
                 
             case "cut_time":
@@ -425,9 +536,18 @@ export class PowerUpItem {
                     if (removedCount > 0) {
                         console.log(`Reverse Gravity: Cleared ${removedCount} invisible items from queue`);
                     }
+                    
+                    // RESET ALL ITEMS to be eligible for reverse gravity (fixes stacking issue)
+                    gameObjects.fallingItems.forEach(item => {
+                        if (item.wasReversed === false) {
+                            // Reset items that were previously bounced to be eligible again
+                            item.wasReversed = undefined;
+                            item.bouncedOffTopDuringReverse = false;
+                        }
+                    });
                 }
                 
-                // Also clear invisible power-ups
+                // Also clear invisible power-ups and reset their reverse gravity state
                 if (gameObjects.powerUps) {
                     const initialPowerUpCount = gameObjects.powerUps.length;
                     gameObjects.powerUps = gameObjects.powerUps.filter(item => item.y >= 0);
@@ -436,9 +556,18 @@ export class PowerUpItem {
                     if (removedPowerUpCount > 0) {
                         console.log(`Reverse Gravity: Cleared ${removedPowerUpCount} invisible power-ups from queue`);
                     }
+                    
+                    // RESET ALL POWER-UPS to be eligible for reverse gravity
+                    gameObjects.powerUps.forEach(item => {
+                        if (item.wasReversed === false) {
+                            // Reset power-ups that were previously bounced to be eligible again
+                            item.wasReversed = undefined;
+                            item.bouncedOffTopDuringReverse = false;
+                        }
+                    });
                 }
                 
-                // Also clear invisible projectiles (damage items)
+                // Also clear invisible projectiles (damage items) and reset their reverse gravity state
                 if (gameObjects.fireballs) {
                     const initialProjectileCount = gameObjects.fireballs.length;
                     gameObjects.fireballs = gameObjects.fireballs.filter(item => item.y >= 0);
@@ -447,15 +576,66 @@ export class PowerUpItem {
                     if (removedProjectileCount > 0) {
                         console.log(`Reverse Gravity: Cleared ${removedProjectileCount} invisible projectiles from queue`);
                     }
+                    
+                    // RESET ALL PROJECTILES to be eligible for reverse gravity
+                    gameObjects.fireballs.forEach(projectile => {
+                        if (projectile.wasReversed === false) {
+                            // Reset projectiles that were previously bounced to be eligible again
+                            projectile.wasReversed = undefined;
+                            projectile.bouncedOffTopDuringReverse = false;
+                        }
+                    });
                 }
                 
-                // Activate reverse gravity effect for remaining visible items
+                // Activate reverse gravity effect (extend timer if already active)
+                const wasAlreadyActive = gameState.reverseGravityActive;
                 gameState.reverseGravityActive = true;
-                gameState.reverseGravityTimer = this.data.duration;
+                gameState.reverseGravityTimer = this.data.duration; // Reset timer to full duration
                 
                 // Add notification for reverse gravity
-                const reverseGravitySeconds = Math.round(this.data.duration / 60);
-                addNotification(gameState, `🔄 Reverse Gravity for ${reverseGravitySeconds}s`, 180, '#8B00FF');
+                const gravitySeconds = Math.round(this.data.duration / 60);
+                if (wasAlreadyActive) {
+                    addNotification(gameState, `🔄 Reverse Gravity Extended! (${gravitySeconds}s)`, 180, '#8B00FF');
+                } else {
+                    addNotification(gameState, `🔄 Reverse Gravity Activated! (${gravitySeconds}s)`, 180, '#8B00FF');
+                }
+                break;
+                
+            case "dodge_boost":
+                // Apply temporary dodge rating boost
+                gameState.temporaryDodgeBoost = (gameState.temporaryDodgeBoost || 0) + this.data.value;
+                gameState.dodgeBoostTimer = this.data.duration;
+                
+                // Add notification for dodge boost
+                const dodgeBoostPercent = Math.round(this.data.value * 100);
+                const boostSeconds = Math.round(this.data.duration / 60);
+                const totalTempDodgePercent = Math.round((gameState.temporaryDodgeBoost || 0) * 100);
+                addNotification(gameState, `🐒💨 ASPECT OF THE MONKEY! +${dodgeBoostPercent}% Dodge (${boostSeconds}s)`, 300, '#00FF00');
+                break;
+                
+            case "permanent_dodge":
+                // Apply permanent dodge rating increase
+                const oldDodgeRating = gameState.dodgeRating;
+                gameState.dodgeRating = Math.min(gameState.dodgeRating + this.data.value, gameState.dodgeRatingCap);
+                const actualDodgeIncrease = gameState.dodgeRating - oldDodgeRating;
+                
+                if (actualDodgeIncrease > 0) {
+                    const dodgePercent = Math.round(actualDodgeIncrease * 100);
+                    const newDodgePercent = Math.round(gameState.dodgeRating * 100);
+                    addNotification(gameState, `💨 EVASION! Permanent +${dodgePercent}% Dodge (Now: ${newDodgePercent}%)`, 360, '#00FFFF');
+                } else {
+                    const maxDodgePercent = Math.round(gameState.dodgeRatingCap * 100);
+                    addNotification(gameState, `💨 EVASION! Dodge Already Maxed (${maxDodgePercent}%)`, 240, '#00FFFF');
+                }
+                break;
+                
+            case "arrow_ammo":
+                // Add arrows to the ammunition inventory
+                const arrowsToAdd = this.data.value;
+                gameState.arrowCount = (gameState.arrowCount || 0) + arrowsToAdd;
+                
+                // Add notification for arrow collection
+                addNotification(gameState, `🏹 THORIUM ARROWS! +${arrowsToAdd} arrows (Total: ${gameState.arrowCount})`, 300, '#FFD700');
                 break;
         }
     }

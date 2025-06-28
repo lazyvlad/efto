@@ -10,6 +10,10 @@ export class AssetManager {
         this.loadingQueue = []; // Queue for background loading
         this.isLoading = false;
         
+        // Image dimension tracking for scaling constraints
+        this.imageDimensions = new Map(); // Track original dimensions of loaded images
+        this.scalingConstraints = new Map(); // Track max safe scaling per image
+        
         // Loading state tracking
         this.tier1Loaded = false;
         this.tier2Loaded = false;
@@ -96,7 +100,6 @@ export class AssetManager {
     
     // Enhanced loading with performance tracking and retry logic
     async startLoading() {
-        console.log('AssetManager: Starting asset loading...');
         this.loadStartTime = performance.now();
         
         // Calculate total assets for progress tracking (images + audio)
@@ -107,7 +110,6 @@ export class AssetManager {
             audioAssets.length;
         
         // Load Tier 1 (critical assets) with timing
-        console.log('AssetManager: Loading Tier 1 assets...');
         const tier1Start = performance.now();
         await this.loadAssetTier(this.assetManifest.tier1, 1);
         this.loadStats.tier1Time = performance.now() - tier1Start;
@@ -115,7 +117,6 @@ export class AssetManager {
         this.notifyTier1Ready();
         
         // Load Tier 2 (important assets) and essential audio in background with timing
-        console.log('AssetManager: Loading Tier 2 assets and essential audio...');
         const tier2Start = performance.now();
         
         // Load both Tier 2 images and essential audio in parallel
@@ -126,7 +127,6 @@ export class AssetManager {
             this.loadStats.tier2Time = performance.now() - tier2Start;
             this.tier2Loaded = true;
             this.notifyTier2Ready();
-            console.log('AssetManager: All priority assets and essential audio loaded!');
             
             // Start Tier 3 background loading
             this.startBackgroundLoading();
@@ -137,7 +137,6 @@ export class AssetManager {
     async startBackgroundLoading() {
         if (this.tier3Loaded) return;
         
-        console.log('AssetManager: Starting background loading of Tier 3 assets...');
         const tier3Start = performance.now();
         
         try {
@@ -146,7 +145,6 @@ export class AssetManager {
             this.tier3Loaded = true;
             this.notifyTier3Ready();
             this.notifyAllReady();
-            console.log('AssetManager: All assets loaded!');
         } catch (error) {
             console.warn('AssetManager: Some Tier 3 assets failed to load:', error);
         }
@@ -163,14 +161,12 @@ export class AssetManager {
             return await this.loadAsset(path, tier);
         } catch (error) {
             if (attempt < this.maxRetries) {
-                console.warn(`AssetManager: Retry ${attempt}/${this.maxRetries} for ${path}`);
                 this.loadStats.retryAttempts++;
                 
                 // Wait before retrying
                 await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt));
                 return this.loadAssetWithRetry(path, tier, attempt + 1);
             } else {
-                console.error(`AssetManager: Failed to load ${path} after ${this.maxRetries} attempts`);
                 this.loadStats.failedLoads++;
                 throw error;
             }
@@ -194,12 +190,23 @@ export class AssetManager {
             const img = new Image();
             
             img.onload = () => {
+                // Store image and metadata
                 this.assets.set(path, img);
                 this.lastUsed.set(path, Date.now());
+                
+                // Track original dimensions for scaling constraints
+                this.imageDimensions.set(path, {
+                    originalWidth: img.naturalWidth,
+                    originalHeight: img.naturalHeight,
+                    loadedAt: Date.now()
+                });
+                
+                // Calculate safe maximum scaling (prevent upscaling beyond original)
+                this.calculateScalingConstraints(path, img);
+                
                 this.loadingPromises.delete(path);
                 this.assetsLoaded++;
                 this.notifyProgress();
-                console.log(`AssetManager: Loaded ${path} (${this.assetsLoaded}/${this.totalAssetsToLoad})`);
                 
                 // Check memory usage after loading
                 this.checkMemoryUsage();
@@ -208,7 +215,6 @@ export class AssetManager {
             };
             
             img.onerror = (error) => {
-                console.warn(`AssetManager: Failed to load ${path}`, error);
                 this.loadingPromises.delete(path);
                 this.assetsLoaded++;
                 this.notifyProgress();
@@ -240,12 +246,21 @@ export class AssetManager {
         img.onload = () => {
             this.assets.set(path, img);
             this.lastUsed.set(path, Date.now());
-            console.log(`AssetManager: Loaded on-demand ${path}`);
+            
+            // Track original dimensions for scaling constraints
+            this.imageDimensions.set(path, {
+                originalWidth: img.naturalWidth,
+                originalHeight: img.naturalHeight,
+                loadedAt: Date.now()
+            });
+            
+            // Calculate safe maximum scaling (prevent upscaling beyond original)
+            this.calculateScalingConstraints(path, img);
+            
             this.checkMemoryUsage();
         };
         
         img.onerror = () => {
-            console.warn(`AssetManager: Failed to load on-demand ${path}`);
             // Keep the broken image, don't replace with placeholder
         };
         
@@ -268,6 +283,186 @@ export class AssetManager {
     getProgress() {
         if (this.totalAssetsToLoad === 0) return 1;
         return this.assetsLoaded / this.totalAssetsToLoad;
+    }
+    
+    // === IMAGE DIMENSION & SCALING CONSTRAINT METHODS ===
+    
+    // Calculate safe scaling constraints for an image to prevent quality degradation
+    calculateScalingConstraints(path, img) {
+        if (!img || !img.naturalWidth || !img.naturalHeight) return;
+        
+        const originalWidth = img.naturalWidth;
+        const originalHeight = img.naturalHeight;
+        
+        // Calculate maximum safe scaling factors with display size awareness
+        // Consider both image size and display characteristics
+        const viewportWidth = window.innerWidth;
+        const displayScale = Math.min(viewportWidth / 1920, 2.5); // Cap at 2.5x for ultra-wide displays
+        
+        let maxScaleFactor;
+        const minDimension = Math.min(originalWidth, originalHeight);
+        
+        // More generous scaling for larger displays, but quality-aware
+        if (minDimension <= 16) {
+            maxScaleFactor = Math.min(6.0 * displayScale, 8.0); // Very small sprites can scale more
+        } else if (minDimension <= 32) {
+            maxScaleFactor = Math.min(4.0 * displayScale, 6.0); // Small sprites get good scaling
+        } else if (minDimension <= 64) {
+            // This is the key case for many items - be more generous for large displays
+            maxScaleFactor = Math.min(2.5 * displayScale, 4.0); // Allow up to 4x for 64px items on large displays
+        } else if (minDimension <= 128) {
+            maxScaleFactor = Math.min(2.0 * displayScale, 3.0); // Larger sprites still get some scaling
+        } else {
+            maxScaleFactor = Math.min(1.5 * displayScale, 2.0); // Very large images stay conservative
+        }
+        
+        // Quality preference setting - allow users to push quality limits
+        const qualityPreference = 'balanced'; // Could be 'performance', 'balanced', 'quality'
+        if (qualityPreference === 'quality') {
+            maxScaleFactor *= 1.2; // 20% more aggressive scaling for quality preference
+        } else if (qualityPreference === 'performance') {
+            maxScaleFactor *= 0.8; // More conservative for performance
+        }
+        
+        this.scalingConstraints.set(path, {
+            maxScaleFactor: maxScaleFactor,
+            maxWidth: originalWidth * maxScaleFactor,
+            maxHeight: originalHeight * maxScaleFactor,
+            originalWidth: originalWidth,
+            originalHeight: originalHeight,
+            displayScale: displayScale,
+            recommendedMinSize: Math.max(minDimension * 1.5, 48) // Recommend minimum rendered size
+        });
+    }
+    
+    // Get original dimensions of an image
+    getImageDimensions(path) {
+        return this.imageDimensions.get(path) || null;
+    }
+    
+    // Get scaling constraints for an image
+    getScalingConstraints(path) {
+        return this.scalingConstraints.get(path) || null;
+    }
+    
+    // Get maximum safe size for an image given desired dimensions
+    getMaxSafeSize(path, desiredWidth, desiredHeight) {
+        const constraints = this.scalingConstraints.get(path);
+        if (!constraints) {
+            // If no constraints available, return desired size
+            return { width: desiredWidth, height: desiredHeight, wasConstrained: false };
+        }
+        
+        // Check if we're pushing quality limits
+        const requestedScaleX = desiredWidth / constraints.originalWidth;
+        const requestedScaleY = desiredHeight / constraints.originalHeight;
+        const requestedScale = Math.max(requestedScaleX, requestedScaleY);
+        
+        // Clamp to maximum safe dimensions
+        const safeWidth = Math.min(desiredWidth, constraints.maxWidth);
+        const safeHeight = Math.min(desiredHeight, constraints.maxHeight);
+        
+        // Quality assessment
+        let qualityRating = 'excellent';
+        if (requestedScale > constraints.maxScaleFactor * 0.8) {
+            qualityRating = 'good';
+        }
+        if (requestedScale > constraints.maxScaleFactor * 0.95) {
+            qualityRating = 'fair';
+        }
+        if (requestedScale > constraints.maxScaleFactor) {
+            qualityRating = 'poor';
+        }
+        
+        return {
+            width: safeWidth,
+            height: safeHeight,
+            wasConstrained: safeWidth !== desiredWidth || safeHeight !== desiredHeight,
+            maxScaleFactor: constraints.maxScaleFactor,
+            originalWidth: constraints.originalWidth,
+            originalHeight: constraints.originalHeight,
+            requestedScale: requestedScale,
+            qualityRating: qualityRating,
+            displayScale: constraints.displayScale,
+            recommendedMinSize: constraints.recommendedMinSize
+        };
+    }
+    
+    // Recalculate scaling constraints for all loaded images (useful on window resize)
+    recalculateScalingConstraints() {
+        for (const [path, img] of this.assets) {
+            if (img && img.naturalWidth && img.naturalHeight) {
+                this.calculateScalingConstraints(path, img);
+            }
+        }
+        console.log(`🖼️ AssetManager: Recalculated scaling constraints for ${this.assets.size} images`);
+    }
+    
+    // Get quality assessment for current display scaling
+    getQualityAssessment() {
+        const constraints = Array.from(this.scalingConstraints.values());
+        if (constraints.length === 0) return null;
+        
+        const displayScale = constraints[0]?.displayScale || 1.0;
+        const avgOriginalSize = constraints.reduce((sum, c) => sum + Math.min(c.originalWidth, c.originalHeight), 0) / constraints.length;
+        
+        let assessment = 'excellent';
+        if (displayScale > 1.5 && avgOriginalSize < 64) {
+            assessment = 'good';
+        }
+        if (displayScale > 2.0 && avgOriginalSize < 64) {
+            assessment = 'fair';
+        }
+        if (displayScale > 2.5 && avgOriginalSize < 48) {
+            assessment = 'poor';
+        }
+        
+        return {
+            overallQuality: assessment,
+            displayScale: displayScale,
+            averageOriginalSize: Math.round(avgOriginalSize),
+            recommendation: this.getQualityRecommendation(assessment, displayScale, avgOriginalSize)
+        };
+    }
+    
+    getQualityRecommendation(assessment, displayScale, avgOriginalSize) {
+        if (assessment === 'poor') {
+            return 'Consider reducing browser window size for better image quality, or try reducing game scale in settings';
+        } else if (assessment === 'fair') {
+            return 'Image quality may be slightly degraded at this display size';
+        } else if (assessment === 'good') {
+            return 'Good image quality with minor scaling artifacts possible';
+        } else {
+            return 'Excellent image quality';
+        }
+    }
+    
+    // Check if a desired size would exceed safe scaling limits
+    wouldExceedSafeScaling(path, desiredWidth, desiredHeight) {
+        const constraints = this.scalingConstraints.get(path);
+        if (!constraints) return false;
+        
+        return desiredWidth > constraints.maxWidth || desiredHeight > constraints.maxHeight;
+    }
+    
+    // Get recommended size based on original dimensions and desired scale
+    getRecommendedSize(path, scaleFactor) {
+        const dimensions = this.imageDimensions.get(path);
+        const constraints = this.scalingConstraints.get(path);
+        
+        if (!dimensions || !constraints) {
+            return null;
+        }
+        
+        // Clamp scale factor to safe maximum
+        const safeScaleFactor = Math.min(scaleFactor, constraints.maxScaleFactor);
+        
+        return {
+            width: Math.round(dimensions.originalWidth * safeScaleFactor),
+            height: Math.round(dimensions.originalHeight * safeScaleFactor),
+            actualScaleFactor: safeScaleFactor,
+            wasScaleReduced: safeScaleFactor !== scaleFactor
+        };
     }
     
     // Callback registration methods
@@ -309,25 +504,21 @@ export class AssetManager {
     
     // Notification methods
     notifyTier1Ready() {
-        console.log('AssetManager: Tier 1 assets ready!');
         this.onTier1ReadyCallbacks.forEach(callback => callback());
         this.onTier1ReadyCallbacks = [];
     }
     
     notifyTier2Ready() {
-        console.log('AssetManager: Tier 2 assets ready!');
         this.onTier2ReadyCallbacks.forEach(callback => callback());
         this.onTier2ReadyCallbacks = [];
     }
     
     notifyTier3Ready() {
-        console.log('AssetManager: Tier 3 assets ready!');
         this.onTier3ReadyCallbacks.forEach(callback => callback());
         this.onTier3ReadyCallbacks = [];
     }
     
     notifyAllReady() {
-        console.log('AssetManager: All tiers ready!');
         this.onAllReadyCallbacks.forEach(callback => callback());
         this.onAllReadyCallbacks = [];
     }
@@ -398,7 +589,7 @@ export class AssetManager {
         try {
             await Promise.allSettled(batch.map(path => this.loadAsset(path)));
         } catch (error) {
-            console.warn('AssetManager: Error in background loading:', error);
+            // Silently handle background loading errors
         }
         
         this.isLoading = false;
@@ -466,7 +657,6 @@ export class AssetManager {
         this.tier2Loaded = false;
         this.tier3Loaded = false;
         this.assetsLoaded = 0;
-        console.log('AssetManager: Cache cleared');
     }
     
     // Performance monitoring UI (for debugging)
@@ -549,12 +739,10 @@ export class AssetManager {
                 this.loadingPromises.delete(path);
                 this.assetsLoaded++;
                 this.notifyProgress();
-                console.log(`AssetManager: Loaded audio ${path} (${this.assetsLoaded}/${this.totalAssetsToLoad})`);
                 resolve(audio);
             };
             
             audio.onerror = (error) => {
-                console.warn(`AssetManager: Failed to load audio ${path}`, error);
                 this.loadingPromises.delete(path);
                 this.assetsLoaded++;
                 this.notifyProgress();
@@ -585,11 +773,10 @@ export class AssetManager {
         audio.oncanplaythrough = () => {
             this.audioAssets.set(path, audio);
             this.lastUsed.set(path, Date.now());
-            console.log(`AssetManager: Loaded on-demand audio ${path}`);
         };
         
         audio.onerror = () => {
-            console.warn(`AssetManager: Failed to load on-demand audio ${path}`);
+            // Silently handle audio loading errors
         };
         
         // Start loading
@@ -636,14 +823,12 @@ export class AssetManager {
             return await this.loadAudioAsset(path);
         } catch (error) {
             if (attempt < this.maxRetries) {
-                console.warn(`AssetManager: Audio retry ${attempt}/${this.maxRetries} for ${path}`);
                 this.loadStats.retryAttempts++;
                 
                 // Wait before retrying
                 await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt));
                 return this.loadAudioAssetWithRetry(path, attempt + 1);
             } else {
-                console.error(`AssetManager: Failed to load audio ${path} after ${this.maxRetries} attempts`);
                 this.loadStats.failedLoads++;
                 throw error;
             }
@@ -654,8 +839,6 @@ export class AssetManager {
     async initializeAudioSystem() {
         if (this.audioInitialized || this.audioInitAttempted) return;
         this.audioInitAttempted = true;
-        
-        console.log('AssetManager: Initializing audio system...');
         
         // Get essential audio assets from registry
         const essentialAudio = [
@@ -677,18 +860,15 @@ export class AssetManager {
                 backgroundMusic.volume = gameConfig.audio.volumes.background;
                 
                 // Try to start background music immediately
-                console.log('AssetManager: Attempting to start background music with volume:', backgroundMusic.volume);
                 backgroundMusic.play().catch(e => {
-                    console.log('AssetManager: Background music autoplay blocked, will start on user interaction:', e.message);
+                    // Background music autoplay blocked, will start on user interaction
                 });
             }
             
             this.audioInitialized = true;
-            console.log('AssetManager: Audio system initialized successfully!');
             
             return true;
         } catch (error) {
-            console.warn('AssetManager: Audio initialization failed:', error);
             return false;
         }
     }

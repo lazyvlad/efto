@@ -4,7 +4,10 @@ import { checkBoundaryCollision, applyAdvancedBouncePhysics, calculateSpinEffect
 
 export class FallingItem {
     constructor(selectRandomItem, isValidYPosition, recentDropYPositions, gameState, images, canvas) {
-        this.x = Math.random() * (canvas.width - 180);
+        // Get resolution scale for consistent sizing and positioning
+        const resolutionScale = gameState.universalMultiplier?.resolution || { average: 1 };
+        const margin = 180 * resolutionScale.average;
+        this.x = Math.random() * (canvas.width - margin);
         
         // Find valid Y position with spacing
         let attemptY = -180;
@@ -35,7 +38,9 @@ export class FallingItem {
         
         // Apply cut_time reduction as a subtraction from level multiplier, not final speed
         const effectiveLevelMultiplier = Math.max(0.2, gameState.levelSpeedMultiplier - gameState.permanentSpeedReduction);
-        const baseSpeed = gameState.baseDropSpeed * effectiveLevelMultiplier * speedVariation;
+        
+        // Apply resolution scaling to base speed for consistent gameplay across resolutions
+        const baseSpeed = gameState.baseDropSpeed * effectiveLevelMultiplier * speedVariation * resolutionScale.average;
         this.baseSpeed = baseSpeed; // Store base speed for recalculation when speed boosts are applied
         this.speed = baseSpeed * gameState.speedIncreaseMultiplier;
         
@@ -142,21 +147,58 @@ export class FallingItem {
         if (gameState.reverseGravityActive) {
             // Items that haven't been individually exempted get reverse gravity
             if (this.wasReversed !== false) {
-                this.y -= this.speed * effectiveDelta; // Move upward instead of downward
+                // First time being affected by reverse gravity - apply dramatic angle change
+                if (this.wasReversed !== true) {
+                    // REVERSE GRAVITY: Always move upward, but with dramatic angle variation
+                    // Generate dramatic horizontal angles: up to 65 degrees from straight up
+                    const dramaticAngleRange = 65; // Maximum deviation from straight up
+                    const baseVerticalAngle = 270; // 270° = straight up in standard coordinates
+                    
+                    // Random angle within the dramatic range for horizontal variation
+                    const angleDeviation = (Math.random() - 0.5) * 2 * dramaticAngleRange; // -65 to +65
+                    this.reverseGravityAngle = baseVerticalAngle + angleDeviation; // 205° to 335°
+                    
+                    // Calculate movement vectors - ALWAYS upward with horizontal variation
+                    const angleRad = this.reverseGravityAngle * Math.PI / 180;
+                    this.reverseGravityVerticalSpeed = Math.sin(angleRad) * this.speed; // Upward movement
+                    this.reverseGravityHorizontalSpeed = Math.cos(angleRad) * this.speed; // Horizontal variation
+                    
+                    // Ensure vertical speed is always negative (upward)
+                    this.reverseGravityVerticalSpeed = -Math.abs(this.reverseGravityVerticalSpeed);
+                    
+                    // DECREASE speed to give players more time to collect items during reverse gravity
+                    const speedReduction = 0.4; // Reduce speed to 40% (60% slower)
+                    this.reverseGravityVerticalSpeed *= speedReduction;
+                    this.reverseGravityHorizontalSpeed *= speedReduction;
+                }
+                
+                // Apply dramatic movement with the calculated angles
+                this.y += this.reverseGravityVerticalSpeed * effectiveDelta;
+                this.x += this.reverseGravityHorizontalSpeed * effectiveDelta;
                 this.wasReversed = true; // Mark as affected by reverse gravity
                 
-                // MANUAL BOUNDARY CHECK: Prevent items from going past top boundary during reverse gravity
+                // MANUAL BOUNDARY CHECK: Bounce off top boundary while preserving angle momentum
                 if (this.y <= 0) {
-                    console.log(`FallingItem manually detected past top boundary: y=${this.y}, forcing bounce...`);
                     this.y = 0; // Clamp to top boundary
                     
-                    // Force bounce behavior - item should immediately start falling
-                    this.wasReversed = false; // Remove reverse gravity effect from this item
-                    this.fallAngle = Math.random() * (gameState.fallAngleMax - gameState.fallAngleMin) + gameState.fallAngleMin;
-                    this.horizontalSpeed = Math.sin(this.fallAngle * Math.PI / 180) * this.speed * (gameState.horizontalSpeedReduction || 0.3);
-                    this.speed = Math.abs(this.speed) * 1.2; // bounce with some energy added
+                    // PRESERVE THE ANGLE MOMENTUM - just flip vertical direction
+                    // Keep the same horizontal speed and angle, but make vertical speed positive (downward)
+                    this.reverseGravityVerticalSpeed = Math.abs(this.reverseGravityVerticalSpeed) * 0.8; // Bounce with slight energy loss
+                    // Keep horizontal speed unchanged to maintain the dramatic angle
+                    // this.reverseGravityHorizontalSpeed stays the same
+                    // this.reverseGravityAngle stays the same
                     
-                    console.log(`FallingItem manual bounce complete: y=${this.y}, speed=${this.speed}, wasReversed=${this.wasReversed}`);
+                    // Mark that this item bounced off top but keep it affected by reverse gravity
+                    this.bouncedOffTopDuringReverse = true;
+                }
+                
+                // Handle horizontal screen boundaries during reverse gravity - BOUNCE instead of wrap
+                if (this.x < 0) {
+                    this.x = 0; // Clamp to left boundary
+                    this.reverseGravityHorizontalSpeed = -this.reverseGravityHorizontalSpeed * 0.8; // Reverse and reduce speed
+                } else if (this.x > canvas.width - this.width) {
+                    this.x = canvas.width - this.width; // Clamp to right boundary
+                    this.reverseGravityHorizontalSpeed = -this.reverseGravityHorizontalSpeed * 0.8; // Reverse and reduce speed
                 }
             } else {
                 // Item has bounced off top during this reverse gravity session - make it fall normally
@@ -176,6 +218,11 @@ export class FallingItem {
                 // Reset to normal downward movement - ensure angles are downward
                 this.fallAngle = Math.random() * (gameState.fallAngleMax - gameState.fallAngleMin) + gameState.fallAngleMin;
                 this.horizontalSpeed = Math.sin(this.fallAngle * Math.PI / 180) * this.speed * (gameState.horizontalSpeedReduction || 0.3);
+                
+                // Clear reverse gravity movement vectors
+                this.reverseGravityVerticalSpeed = 0;
+                this.reverseGravityHorizontalSpeed = 0;
+                this.reverseGravityAngle = 0;
                 
                 // Ensure the item is moving downward by forcing positive vertical speed
                 // This fixes items that might have upward momentum from bouncing during reverse gravity
@@ -202,12 +249,61 @@ export class FallingItem {
 
     draw(ctx, gameConfig) {
         ctx.save();
+        
+        // Enhanced image quality settings for items
+        if (gameConfig.items.imageQuality.smoothing) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = gameConfig.items.imageQuality.quality;
+        } else {
+            ctx.imageSmoothingEnabled = false;
+        }
+        
+        // Apply sharp scaling for pixel art if enabled
+        if (gameConfig.items.imageQuality.sharpScaling) {
+            ctx.imageSmoothingEnabled = false;
+        }
+        
         ctx.translate(this.x + this.width/2, this.y + this.height/2);
         ctx.rotate(this.rotation);
         
-        // Use the item's actual size (which includes size_multiplier)
-        const drawWidth = this.width;
-        const drawHeight = gameConfig.visuals.forceItemAspectRatio ? this.width : this.height;
+        // Calculate high-DPI adjusted size with AssetManager constraints
+        let drawWidth = this.width;
+        let drawHeight = gameConfig.visuals.forceItemAspectRatio ? this.width : this.height;
+        
+        // Apply conservative high-DPI scaling if enabled (focused on quality, not size)
+        if (gameConfig.items.highDPI.enabled) {
+            // Only apply very conservative scaling if explicitly enabled
+            if (gameConfig.items.sizing.scaleWithDPI) {
+                const dpr = window.devicePixelRatio || 1;
+                const conservativeScale = Math.min(dpr * gameConfig.items.highDPI.multiplier, 2.0); // Conservative cap at 2x
+                drawWidth *= conservativeScale;
+                drawHeight *= conservativeScale;
+            }
+            
+            // Only enforce minimum size if explicitly enabled
+            if (gameConfig.items.sizing.respectMinimumSize) {
+                const minPixelSize = gameConfig.items.highDPI.minPixelSize;
+                drawWidth = Math.max(drawWidth, minPixelSize);
+                drawHeight = Math.max(drawHeight, minPixelSize);
+            }
+            
+            // Apply AssetManager scaling constraints to prevent quality degradation
+            if (this.itemImage && this.itemData.image && window.assetManager) {
+                const safeSize = window.assetManager.getMaxSafeSize(this.itemData.image, drawWidth, drawHeight);
+                if (safeSize.wasConstrained) {
+                    drawWidth = safeSize.width;
+                    drawHeight = safeSize.height;
+                    // Log quality info for debugging on very large displays
+                    if (safeSize.qualityRating === 'poor' || safeSize.qualityRating === 'fair') {
+                        console.log(`🖼️ Item ${this.itemData.name} quality: ${safeSize.qualityRating}
+                            Requested: ${safeSize.requestedScale.toFixed(2)}x (${Math.round(safeSize.requestedScale * safeSize.originalWidth)}x${Math.round(safeSize.requestedScale * safeSize.originalHeight)})
+                            Original: ${safeSize.originalWidth}x${safeSize.originalHeight}
+                            Max Scale: ${safeSize.maxScaleFactor.toFixed(2)}x
+                            Display Scale: ${safeSize.displayScale.toFixed(2)}x`);
+                    }
+                }
+            }
+        }
         
         // Apply animated glow for regular and green items (similar to power-ups)
         if (this.itemData.type === 'regular') {
@@ -224,8 +320,21 @@ export class FallingItem {
         
         // Use the specific item image from AssetManager (always available, placeholder if not loaded)
         if (this.itemImage && this.itemImage.complete && this.itemImage.naturalWidth > 0) {
-            // Force the image to exact size, ignoring source dimensions
-            ctx.drawImage(this.itemImage, -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
+            // Smooth rendering for rotating items to prevent visual tearing
+            // Only use crisp rendering for non-rotating items
+            const isRotating = Math.abs(this.rotationSpeed) > 0.001 || Math.abs(this.rotation) > 0.001;
+            
+            if (gameConfig.items.highDPI.crispRendering && !isRotating) {
+                // Use pixel-perfect positioning only for stationary items
+                const pixelPerfectX = Math.round(-drawWidth/2);
+                const pixelPerfectY = Math.round(-drawHeight/2);
+                const pixelPerfectWidth = Math.round(drawWidth);
+                const pixelPerfectHeight = Math.round(drawHeight);
+                ctx.drawImage(this.itemImage, pixelPerfectX, pixelPerfectY, pixelPerfectWidth, pixelPerfectHeight);
+            } else {
+                // Smooth rendering for rotating items or when crisp rendering is disabled
+                ctx.drawImage(this.itemImage, -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
+            }
         } else {
             // Fallback: try to extract number from old naming pattern, otherwise use first available image
             const numberMatch = this.itemData.image.match(/(\d+)\.png/);
@@ -240,8 +349,18 @@ export class FallingItem {
             
             // Ensure we have a valid image to draw
             if (this.images.items[fallbackIndex] && this.images.items[fallbackIndex].complete && this.images.items[fallbackIndex].naturalWidth > 0) {
-                // Force the fallback image to exact size too
-                ctx.drawImage(this.images.items[fallbackIndex], -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
+                // Apply same smooth rendering to fallback images
+                const isRotating = Math.abs(this.rotationSpeed) > 0.001 || Math.abs(this.rotation) > 0.001;
+                
+                if (gameConfig.items.highDPI.crispRendering && !isRotating) {
+                    const pixelPerfectX = Math.round(-drawWidth/2);
+                    const pixelPerfectY = Math.round(-drawHeight/2);
+                    const pixelPerfectWidth = Math.round(drawWidth);
+                    const pixelPerfectHeight = Math.round(drawHeight);
+                    ctx.drawImage(this.images.items[fallbackIndex], pixelPerfectX, pixelPerfectY, pixelPerfectWidth, pixelPerfectHeight);
+                } else {
+                    ctx.drawImage(this.images.items[fallbackIndex], -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
+                }
             } else {
                 // Final fallback: draw a colored rectangle with consistent size
                 ctx.fillStyle = this.itemData.type === 'regular' ? '#CCCCCC' : 
@@ -267,7 +386,7 @@ export class FallingItem {
             ctx.shadowBlur = 0;
         }
         
-        // Draw custom borders based on item type
+        // Draw custom borders based on item type (use scaled dimensions for borders to match items)
         this.drawItemBorder(ctx, drawWidth, drawHeight);
         
         ctx.restore();

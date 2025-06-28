@@ -124,7 +124,7 @@
         /* Spell Notifications */
         .spell-notifications-container {
             position: fixed;
-            top: 170px; /* Moved down to avoid overlap with top player panel */
+            top: 150px; /* Moved down to avoid overlap with top player panel */
             left: 50%;
             transform: translateX(-50%);
             z-index: 1000;
@@ -433,7 +433,7 @@
         @media (max-width: 768px) {
             .buff-tracker-container {
                 left: 10px;
-                top: 45%;
+                top: 40%;
                 transform: translateY(-50%);
                 width: 180px;
                 max-height: 35vh;
@@ -489,7 +489,7 @@
         /* Mobile Notifications Styles */
         @media (max-width: 768px) {
             .spell-notifications-container {
-                top: 140px; /* Adjusted for mobile top panel with more spacing */
+                top: 100px; /* Adjusted for mobile top panel */
                 max-width: calc(100vw - 20px);
                 left: 50%;
                 transform: translateX(-50%);
@@ -1598,8 +1598,8 @@
         /* DOM-based Items Collection Panel with Safe Area Positioning */
         #itemsCollectionPanel {
             position: fixed;
-            top: var(--letterbox-top, 0px);
-            left: 0px;
+            top: calc(var(--letterbox-top, 0px) + 10px);
+            left: 10px;
             width: 300px;
             max-height: calc(100vh - 160px);
             background: rgba(0, 0, 0, 0.85);
@@ -1620,8 +1620,8 @@
         @media (max-width: 768px) {
             #itemsCollectionPanel {
                 width: 200px;
-                top: var(--letterbox-top, 0px);
-                left: 0px;
+                top: calc(var(--letterbox-top, 0px) + 5px);
+                left: 5px;
                 max-height: calc(100vh - 120px);
                 border-radius: 8px;
                 border-width: 1px;
@@ -1905,346 +1905,6 @@
         
         .overflow-indicator.hidden {
             display: none;
-        }
-
-        /* Dedicated Dragonstalker Progress Panel */
-        #dragonstalkerProgressPanel {
-            position: fixed;
-            top: 170px; /* Moved down to avoid overlap with top player panel */
-            right: 20px;
-            width: 320px; /* Reduced from 380px */
-            background: rgba(0, 0, 0, 0.95);
-            border: 3px solid #00FFFF;
-            border-radius: 12px;
-            color: white;
-            font-family: Arial, sans-serif;
-            z-index: 100;
-            overflow: hidden;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-            backdrop-filter: blur(8px);
-            pointer-events: none;
-            user-select: none;
-            transition: all 0.3s ease;
-        }
-        
-        /* Mobile responsive styles for dragonstalker panel */
-        @media (max-width: 768px) {
-            #dragonstalkerProgressPanel {
-                width: auto;
-                min-width: 250px;
-                max-width: 280px;
-                right: 10px;
-                top: calc(var(--letterbox-top, 0px) + 120px);
-                border-width: 2px;
-                border-radius: 8px;
-                background: rgba(0, 0, 0, 0.7); /* More transparent */
-                backdrop-filter: blur(4px); /* Reduced blur for better performance */
-            }
-        }
-        
-        #dragonstalkerProgressPanel.interactive {
-            pointer-events: auto;
-            user-select: auto;
-            z-index: 200;
-        }
-        
-        #dragonstalkerProgressPanel.hidden {
-            display: none;
-        }
-        
-        #dragonstalkerProgressPanel.victory {
-            border-color: #FFD700;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
-        }
-        
-        #dragonstalkerProgressPanel.impossible {
-            border-color: #FF0000;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
-        }
-        
-        .dragonstalker-panel-header {
-            padding: 10px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .dragonstalker-title {
-            color: #00FFFF;
-            font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 6px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-        }
-        
-        .dragonstalker-progress-bar {
-            position: relative;
-            margin-bottom: 6px;
-        }
-        
-        .progress-background {
-            width: 100%;
-            height: 20px;
-            background: rgba(50, 50, 50, 0.8);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: #00FFFF;
-            border-radius: 10px;
-            transition: width 0.3s ease;
-            width: 0%;
-        }
-        
-        .progress-fill.victory {
-            background: #FFD700;
-        }
-        
-        .progress-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-            pointer-events: none;
-        }
-        
-        .dragonstalker-status {
-            color: #CCCCCC;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        
-        .dragonstalker-items-list {
-            padding: 6px 8px;
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: 4px;
-        }
-        
-        .dragonstalker-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 2px;
-            font-size: 10px;
-            min-height: 24px;
-        }
-        
-        .dragonstalker-item-name {
-            color: #CCCCCC;
-            font-size: 9px;
-            margin-top: 2px;
-            text-align: center;
-            width: 100%;
-        }
-        
-        .dragonstalker-item-status {
-            margin-bottom: 2px;
-            width: 16px;
-            font-size: 12px;
-            text-align: center;
-        }
-        
-        .dragonstalker-item-status.collected {
-            color: #00FF00;
-        }
-        
-        .dragonstalker-item-status.missed {
-            color: #FF0000;
-        }
-        
-        .dragonstalker-item-status.pending {
-            color: #666666;
-        }
-        
-        .dragonstalker-item-name.collected {
-            color: #00FF00;
-        }
-        
-        .dragonstalker-item-name.missed {
-            color: #FF0000;
-        }
-        
-        .dragonstalker-item-name.pending {
-            color: #CCCCCC;
-        }
-        
-        .dragonstalker-bottom-message {
-            padding: 4px 8px;
-            font-size: 10px;
-            text-align: center;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        /* Spell Bar Styles */
-        #spellBar {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 15px;
-            z-index: 1000;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            border-radius: 15px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-        }
-
-        .spell-slot {
-            position: relative;
-            width: 60px;
-            height: 80px;
-            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(40, 40, 40, 0.8));
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding: 4px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-
-        .spell-slot:hover {
-            border-color: #4ECDC4;
-            background: linear-gradient(135deg, rgba(78, 205, 196, 0.2), rgba(40, 40, 40, 0.8));
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(78, 205, 196, 0.3);
-        }
-
-        .spell-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 2px;
-        }
-
-        .spell-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
-        .spell-key {
-            color: #FFD700;
-            font-size: 10px;
-            font-weight: bold;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-            margin-bottom: 1px;
-        }
-
-        .spell-name {
-            color: white;
-            font-size: 8px;
-            font-weight: bold;
-            text-align: center;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-            line-height: 1.1;
-            max-width: 100%;
-            word-wrap: break-word;
-        }
-
-        .spell-timer {
-            position: absolute;
-            top: 2px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            font-size: 16px;
-            font-weight: 900;
-            padding: 2px 6px;
-            border-radius: 4px;
-            border: 2px solid white;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-            z-index: 10;
-            min-width: 20px;
-            text-align: center;
-            display: none;
-        }
-
-        .spell-timer.active {
-            display: block;
-            background: rgba(0, 128, 0, 0.9);
-            border-color: #00ff00;
-            color: #ffffff;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.6);
-        }
-
-        .spell-timer.cooldown {
-            display: block;
-            background: rgba(255, 0, 0, 0.9);
-            border-color: #ff0000;
-            color: #ffffff;
-            box-shadow: 0 0 10px rgba(255, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.6);
-        }
-
-        .spell-cooldown-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 12px;
-            display: none;
-            z-index: 5;
-        }
-
-        .spell-cooldown-overlay.active {
-            display: block;
-        }
-
-        /* Mobile responsive spell bar */
-        @media (max-width: 768px) {
-            #spellBar {
-                bottom: 10px;
-                gap: 10px;
-                padding: 8px;
-                border-radius: 12px;
-            }
-
-            .spell-slot {
-                width: 50px;
-                height: 70px;
-                padding: 3px;
-            }
-
-            .spell-icon {
-                width: 32px;
-                height: 32px;
-                border-radius: 6px;
-            }
-
-            .spell-key {
-                font-size: 9px;
-            }
-
-            .spell-name {
-                font-size: 7px;
-            }
-
-            .spell-timer {
-                font-size: 14px;
-                padding: 1px 4px;
-            }
         }
 
         /* In-Game Settings Button */

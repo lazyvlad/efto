@@ -65,14 +65,57 @@ export const powerUpItems = [
         name: "Reverse Gravity",
         image: assetRegistry.powerups.reverseGravity,
         effect: "reverse_gravity",
-        value: 5, // Duration in seconds
-        duration: 300, // 5 seconds at 60fps
+        value: 10, // Duration in seconds (increased from 5)
+        duration: 600, // 10 seconds at 60fps (increased from 300)
         type: "legendary",
         color: "#8B00FF",
         sound: assetRegistry.audio.reverseGravity, // Using dedicated reverse gravity sound
-        description: "Makes all items on screen move upward for 5 seconds",
-        baseProbability: 0.1, // 10%
+        description: "Makes all items on screen move upward with dramatic angles for 10 seconds",
+        baseProbability: 0.8, // 30% - INCREASED TO 300% FOR TESTING
         speedScaling: false
+    },
+    {
+        id: "swift_reflexes",
+        name: "Aspect of the Monkey",
+        image: assetRegistry.powerups.aspectOfTheMonkey,
+        effect: "dodge_boost",
+        value: 0.03, // +3% dodge rating for duration
+        duration: 900, // 15 seconds at 60fps
+        type: "utility",
+        color: "#00FF00",
+        sound: assetRegistry.audio.speedBoost,
+        description: "Temporarily increases dodge chance by 3% for 15 seconds",
+        baseProbability: 0.20, // 20% base chance
+        speedScaling: true // Increases probability based on game speed
+    },
+    {
+        id: "master_evasion",
+        name: "Evasion",
+        image: assetRegistry.powerups.evasion,
+        effect: "permanent_dodge",
+        value: 0.01, // +1% permanent dodge rating
+        duration: 0, // Permanent effect
+        type: "epic",
+        color: "#00FFFF",
+        sound: assetRegistry.audio.onyxiaRoar,
+        description: "Permanently increases dodge chance by 1%",
+        maxSpawns: 5, // Maximum times this can spawn in a game (5% max dodge from this source)
+        spawnChance: 0.05, // 5% chance when conditions are met (rare)
+        baseProbability: 0.05 // 5% base chance (rare)
+    },
+    {
+        id: "thorium_arrows",
+        name: "Thorium Headed Arrows",
+        image: assetRegistry.powerups.thoriumArrows, // New thorium arrows asset
+        effect: "arrow_ammo",
+        value: 1000, // 1000 arrows per bundle
+        duration: 0, // Instant effect (adds to inventory)
+        type: "utility",
+        color: "#FFD700",
+        sound: assetRegistry.audio.manaDrink, // Temporary - will need dedicated sound
+        description: "Adds 1000 arrows to your ammunition",
+        baseProbability: 0.25, // 25% base chance (same as mana potion)
+        speedScaling: true // Increases probability based on game speed
     }
     
     // Example power-up that modifies horizontal speed reduction (commented out)

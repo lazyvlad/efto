@@ -1,5 +1,12 @@
 [
   {
+    "name": "aaaaaa",
+    "score": 1841,
+    "timestamp": "2025-06-28T00:23:31.595011",
+    "level": 44,
+    "gameTime": 0
+  },
+  {
     "name": "lazyvlad",
     "score": 1400,
     "timestamp": "2025-06-21T06:11:14.400972",
@@ -21,10 +28,101 @@
     "gameTime": 0
   },
   {
+    "name": "lazyvlad",
+    "score": 936,
+    "timestamp": "2025-06-28T23:04:23.795166",
+    "level": 23,
+    "gameTime": 0
+  },
+  {
+    "name": "ssdfgsdf",
+    "score": 926,
+    "timestamp": "2025-06-27T23:43:09.165764",
+    "level": 23,
+    "gameTime": 0
+  },
+  {
+    "name": "dddd",
+    "score": 902,
+    "timestamp": "2025-06-28T13:29:39.326581",
+    "level": 25,
+    "gameTime": 0
+  },
+  {
     "name": "efto",
     "score": 885,
     "timestamp": "2025-06-20T02:02:33.352028",
     "level": 6,
+    "gameTime": 0
+  },
+  {
+    "name": "aaa",
+    "score": 877,
+    "timestamp": "2025-06-28T01:26:35.512627",
+    "level": 24,
+    "gameTime": 0
+  },
+  {
+    "name": "aaaa",
+    "score": 860,
+    "timestamp": "2025-06-27T04:44:03.147241",
+    "level": 20,
+    "gameTime": 0
+  },
+  {
+    "name": "aaa",
+    "score": 844,
+    "timestamp": "2025-06-28T22:19:26.684135",
+    "level": 22,
+    "gameTime": 0
+  },
+  {
+    "name": "bindings",
+    "score": 820,
+    "timestamp": "2025-06-28T00:01:14.106304",
+    "level": 23,
+    "gameTime": 0
+  },
+  {
+    "name": "lazyvlad",
+    "score": 792,
+    "timestamp": "2025-06-28T22:37:27.449090",
+    "level": 21,
+    "gameTime": 0
+  },
+  {
+    "name": "dodge",
+    "score": 786,
+    "timestamp": "2025-06-28T18:59:02.014258",
+    "level": 22,
+    "gameTime": 0
+  },
+  {
+    "name": "aaa",
+    "score": 782,
+    "timestamp": "2025-06-28T14:38:14.023337",
+    "level": 23,
+    "gameTime": 0
+  },
+  {
+    "name": "aaaa",
+    "score": 735,
+    "timestamp": "2025-06-28T20:10:34.481209",
+    "level": 21,
+    "gameTime": 0
+  },
+  {
+    "name": "hghfd",
+    "score": 689,
+    "timestamp": "2025-06-28T18:39:23.011513",
+    "level": 22,
+    "gameTime": 0
+  },
+  {
+    "name": "4654",
+    "score": 647,
+    "timestamp": "2025-06-27T06:21:09.032404",
+    "level": 21,
     "gameTime": 0
   },
   {
@@ -39,6 +137,13 @@
     "score": 630,
     "timestamp": "2025-06-21T12:50:51.405536",
     "level": 7,
+    "gameTime": 0
+  },
+  {
+    "name": "newspeed",
+    "score": 508,
+    "timestamp": "2025-06-27T03:33:37.873843",
+    "level": 12,
     "gameTime": 0
   },
   {
@@ -63,10 +168,52 @@
     "gameTime": 0
   },
   {
+    "name": "disencant",
+    "score": 447,
+    "timestamp": "2025-06-27T02:58:03.483863",
+    "level": 12,
+    "gameTime": 0
+  },
+  {
     "name": "morepowerups",
     "score": 429,
     "timestamp": "2025-06-21T14:20:32.577467",
     "level": 14,
+    "gameTime": 0
+  },
+  {
+    "name": "isitincreased",
+    "score": 426,
+    "timestamp": "2025-06-27T04:34:34.182516",
+    "level": 11,
+    "gameTime": 0
+  },
+  {
+    "name": "aaa",
+    "score": 422,
+    "timestamp": "2025-06-28T20:25:11.275226",
+    "level": 11,
+    "gameTime": 0
+  },
+  {
+    "name": "aaaaa",
+    "score": 406,
+    "timestamp": "2025-06-27T03:22:52.540281",
+    "level": 11,
+    "gameTime": 0
+  },
+  {
+    "name": "aaa",
+    "score": 389,
+    "timestamp": "2025-06-28T02:29:06.862959",
+    "level": 10,
+    "gameTime": 0
+  },
+  {
+    "name": "ggg",
+    "score": 367,
+    "timestamp": "2025-06-28T21:20:11.051756",
+    "level": 8,
     "gameTime": 0
   },
   {
@@ -78,9 +225,58 @@
   },
   {
     "name": "lazyvlad",
+    "score": 365,
+    "timestamp": "2025-06-29T00:09:01.373328",
+    "level": 29,
+    "gameTime": 0
+  },
+  {
+    "name": "aaaa",
+    "score": 354,
+    "timestamp": "2025-06-28T20:43:39.152163",
+    "level": 11,
+    "gameTime": 0
+  },
+  {
+    "name": "aaa",
+    "score": 333,
+    "timestamp": "2025-06-28T21:50:14.571309",
+    "level": 10,
+    "gameTime": 0
+  },
+  {
+    "name": "ggg",
+    "score": 327,
+    "timestamp": "2025-06-28T21:26:03.673263",
+    "level": 9,
+    "gameTime": 0
+  },
+  {
+    "name": "aaa",
+    "score": 309,
+    "timestamp": "2025-06-28T18:19:07.038605",
+    "level": 11,
+    "gameTime": 0
+  },
+  {
+    "name": "AI",
+    "score": 294,
+    "timestamp": "2025-06-27T05:07:21.471643",
+    "level": 8,
+    "gameTime": 0
+  },
+  {
+    "name": "lazyvlad",
     "score": 281,
     "timestamp": "2025-06-21T03:26:15.827855",
     "level": 5,
+    "gameTime": 0
+  },
+  {
+    "name": "lazyvlad",
+    "score": 281,
+    "timestamp": "2025-06-28T23:12:40.980411",
+    "level": 7,
     "gameTime": 0
   },
   {
@@ -99,6 +295,34 @@
   },
   {
     "name": "lazyvlad",
+    "score": 234,
+    "timestamp": "2025-06-28T23:09:52.662681",
+    "level": 4,
+    "gameTime": 0
+  },
+  {
+    "name": "lazyvlad",
+    "score": 214,
+    "timestamp": "2025-06-29T00:14:22.527786",
+    "level": 24,
+    "gameTime": 0
+  },
+  {
+    "name": "fff",
+    "score": 213,
+    "timestamp": "2025-06-28T17:39:26.560284",
+    "level": 10,
+    "gameTime": 0
+  },
+  {
+    "name": "aaa",
+    "score": 206,
+    "timestamp": "2025-06-28T22:10:17.084899",
+    "level": 6,
+    "gameTime": 0
+  },
+  {
+    "name": "lazyvlad",
     "score": 193,
     "timestamp": "2025-06-21T03:30:13.358161",
     "level": 3,
@@ -109,6 +333,13 @@
     "score": 176,
     "timestamp": "2025-06-21T10:31:03.275189",
     "level": 5,
+    "gameTime": 0
+  },
+  {
+    "name": "aaaa",
+    "score": 164,
+    "timestamp": "2025-06-28T19:54:06.770027",
+    "level": 6,
     "gameTime": 0
   },
   {
@@ -140,6 +371,13 @@
     "gameTime": 0
   },
   {
+    "name": "Anonymous",
+    "score": 107,
+    "timestamp": "2025-06-27T03:13:46.291664",
+    "level": 4,
+    "gameTime": 0
+  },
+  {
     "name": "sdfgds",
     "score": 101,
     "timestamp": "2025-06-22T00:10:22.866800",
@@ -151,6 +389,27 @@
     "score": 99,
     "timestamp": "2025-06-22T00:15:10.777040",
     "level": 3,
+    "gameTime": 0
+  },
+  {
+    "name": "fff",
+    "score": 86,
+    "timestamp": "2025-06-28T14:49:52.739229",
+    "level": 4,
+    "gameTime": 0
+  },
+  {
+    "name": "fff",
+    "score": 73,
+    "timestamp": "2025-06-28T17:43:05.627958",
+    "level": 4,
+    "gameTime": 0
+  },
+  {
+    "name": "lazyvlad",
+    "score": 69,
+    "timestamp": "2025-06-29T00:16:29.392860",
+    "level": 22,
     "gameTime": 0
   },
   {
@@ -168,6 +427,13 @@
     "gameTime": 0
   },
   {
+    "name": "lazyvlad",
+    "score": 52,
+    "timestamp": "2025-06-29T00:10:50.380539",
+    "level": 21,
+    "gameTime": 0
+  },
+  {
     "name": "dafsaf",
     "score": 49,
     "timestamp": "2025-06-21T12:58:15.568319",
@@ -182,10 +448,31 @@
     "gameTime": 0
   },
   {
+    "name": "dodge",
+    "score": 32,
+    "timestamp": "2025-06-28T18:51:21.357563",
+    "level": 3,
+    "gameTime": 0
+  },
+  {
     "name": "lazyvlad",
     "score": 31,
     "timestamp": "2025-06-21T03:27:19.833314",
     "level": 0,
+    "gameTime": 0
+  },
+  {
+    "name": "aaaa",
+    "score": 31,
+    "timestamp": "2025-06-28T19:41:58.298823",
+    "level": 3,
+    "gameTime": 0
+  },
+  {
+    "name": "adf",
+    "score": 30,
+    "timestamp": "2025-06-28T20:52:54.632757",
+    "level": 1,
     "gameTime": 0
   },
   {
@@ -197,9 +484,86 @@
   },
   {
     "name": "aaaa",
+    "score": 29,
+    "timestamp": "2025-06-28T20:13:14.814965",
+    "level": 3,
+    "gameTime": 0
+  },
+  {
+    "name": "aaaa",
     "score": 24,
     "timestamp": "2025-06-21T06:19:09.951354",
     "level": 2,
+    "gameTime": 0
+  },
+  {
+    "name": "aaa",
+    "score": 24,
+    "timestamp": "2025-06-28T21:06:00.275681",
+    "level": 2,
+    "gameTime": 0
+  },
+  {
+    "name": "ssss",
+    "score": 21,
+    "timestamp": "2025-06-28T20:18:05.472997",
+    "level": 2,
+    "gameTime": 0
+  },
+  {
+    "name": "fff",
+    "score": 18,
+    "timestamp": "2025-06-28T17:41:13.091790",
+    "level": 2,
+    "gameTime": 0
+  },
+  {
+    "name": "aaa",
+    "score": 18,
+    "timestamp": "2025-06-28T21:04:44.293735",
+    "level": 2,
+    "gameTime": 0
+  },
+  {
+    "name": "aaaa",
+    "score": 16,
+    "timestamp": "2025-06-28T19:35:18.335622",
+    "level": 2,
+    "gameTime": 0
+  },
+  {
+    "name": "this is it",
+    "score": 16,
+    "timestamp": "2025-06-28T20:47:20.783420",
+    "level": 3,
+    "gameTime": 0
+  },
+  {
+    "name": "lazyvlad",
+    "score": 6,
+    "timestamp": "2025-06-29T00:26:24.354550",
+    "level": 20,
+    "gameTime": 0
+  },
+  {
+    "name": "ssssfg",
+    "score": 3,
+    "timestamp": "2025-06-28T20:37:25.378497",
+    "level": 2,
+    "gameTime": 0
+  },
+  {
+    "name": "aaa",
+    "score": 0,
+    "timestamp": "2025-06-28T22:05:46.904582",
+    "level": 1,
+    "gameTime": 0
+  },
+  {
+    "name": "lazyvlad",
+    "score": 0,
+    "timestamp": "2025-06-29T00:23:00.588511",
+    "level": 20,
     "gameTime": 0
   }
 ]

@@ -11,8 +11,8 @@ export const gameItems = [
     { id: "miners-cape", name: "Miners Cape", image: assetRegistry.items.minersCape, value: 1, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
     { id: "walking-stick", name: "Walking Stick", image: assetRegistry.items.walkingStick, value: 1, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.8 },
     
-    { id: "gold", name: "Gold", image: assetRegistry.items.gold, value: 4, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 1 },
-    { id: "wolf-master", name: "Wolfmaster Cape", image: assetRegistry.items.wolfmasterCape, value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 1 },
+    { id: "gold", name: "Gold", image: assetRegistry.items.gold, value: 4, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.6 },
+    { id: "wolf-master", name: "Wolfmaster Cape", image: assetRegistry.items.wolfmasterCape, value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.7 },
     
     // WebP regular items
     { id: "cape21", name: "Woven Cape", image: assetRegistry.items.cape21, value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "", size_multiplier: 0.9 },
@@ -40,11 +40,11 @@ export const gameItems = [
     { id: "black-lotuses", name: "Stack of Black Lotus", image: assetRegistry.buffs.blackLotuses, value: 10, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: assetRegistry.audio.voice, size_multiplier: 1.5 },
     
     { id: "maladath", name: "Maladath", image: assetRegistry.items.maladath, value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2.5 },
-    { id: "ashkandi2", name: "Ashkandi, Greatsword of the Brotherhood", image: assetRegistry.items.ashkandi, value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: "", setPosition: 10, size_multiplier: 1 },
+    { id: "ashkandi2", name: "Ashkandi, Greatsword of the Brotherhood", image: assetRegistry.items.ashkandi, value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: "", setPosition: 10, size_multiplier: 2 },
     { id: "quick-strike-ring", name: "Quick Strike Ring", image: assetRegistry.items.quickStrikeRing, value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 0.8 },
-    { id: "brutality_blade", name: "Brutality Blade", image: assetRegistry.items.brutalityBlade, value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: assetRegistry.audio.disenchant, size_multiplier: 1.8 },
-    { id: "dalrends", name: "Dal Rends", image: assetRegistry.items.dalrends, value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1.8 },
-    { id: "crulshorukh", name: "Crulshorukh", image: assetRegistry.items.item6, value: 7, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 2.4 },
+    { id: "brutality_blade", name: "Brutality Blade", image: assetRegistry.items.brutalityBlade, value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: assetRegistry.audio.disenchant, size_multiplier: 1.2 },
+    { id: "dalrends", name: "Dal Rends", image: assetRegistry.items.dalrends, value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1.2 },
+    { id: "crulshorukh", name: "Crulshorukh", image: assetRegistry.items.item6, value: 7, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 1.6 },
     { id: "drakefangtalisman", name: "Drake Fang Talisman", image: assetRegistry.items.dft, value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: assetRegistry.audio.dft, size_multiplier: 1.2 },
     
     { id: "onslaught", name: "Onslaught", image: assetRegistry.items.onslaught, value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 1},
@@ -52,7 +52,7 @@ export const gameItems = [
     
     // Legendary items
     { id: "ThunderFury", name: "Thunder Fury", image: assetRegistry.items.tunder, value: 5, collected: 0, type: "legendary", baseProbability: gameConfig.itemProbabilities.legendary, sound: "", size_multiplier: 2.8 },
-    { id: "zee", name: "Zee Zgnan Tigar", image: assetRegistry.items.zee, value: 15, collected: 0, spawned: 0, type: "zee_zgnan", baseProbability: gameConfig.itemProbabilities.zee_zgnan, sound: "", size_multiplier: 2.0 },
+    { id: "zee", name: "Zee Zgnan Tigar", image: assetRegistry.items.zee, value: 15, collected: 0, spawned: 0, type: "zee_zgnan", baseProbability: gameConfig.itemProbabilities.zee_zgnan, sound: "", size_multiplier: 1.6 },
     
     // Dragonstalker set items - these are the win condition
     { id: "ds_helm", name: "Dragonstalker's Helm", image: assetRegistry.items.dsHelm, value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: "", setPosition: 1, size_multiplier: 1 },

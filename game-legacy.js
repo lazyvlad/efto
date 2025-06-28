@@ -2738,8 +2738,13 @@ function showNameEntry() {
     document.getElementById('gameOver').style.display = 'none';
     gameState.showSettings = false; // Hide settings when returning to menu
     
-    // Focus on name input
+    // Load saved player name from localStorage and populate input
     const nameInput = document.getElementById('playerNameInput');
+    const savedName = localStorage.getItem('efto_playerName');
+    if (savedName) {
+        nameInput.value = savedName;
+        console.log('Loaded saved player name:', savedName);
+    }
     nameInput.focus();
     nameInput.select();
 }
@@ -2778,6 +2783,10 @@ function startGame() {
     
     gameState.playerName = playerName;
     
+    // Save player name to localStorage for future sessions
+    localStorage.setItem('efto_playerName', playerName);
+    console.log('Saved player name to localStorage:', playerName);
+    
     // Hide name entry screen
     document.getElementById('nameEntry').style.display = 'none';
     
@@ -2800,6 +2809,19 @@ document.addEventListener('DOMContentLoaded', () => {
         nameInput.addEventListener('input', () => {
             const startBtn = document.getElementById('startGameBtn');
             startBtn.disabled = !nameInput.value.trim();
+        });
+        
+        // Save name to localStorage as user types (debounced)
+        let saveTimeout;
+        nameInput.addEventListener('input', (e) => {
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(() => {
+                const name = e.target.value.trim();
+                if (name) {
+                    localStorage.setItem('efto_playerName', name);
+                    console.log('Auto-saved player name:', name);
+                }
+            }, 1000); // Save after 1 second of no typing
         });
     }
 });

@@ -33,165 +33,92 @@ export const sounds = {
     get wegotit2() { return assetManager.getAudio(assetRegistry.audio.wegotit2); }
 };
 
-// Set up background music
-sounds.background.loop = true;
-sounds.background.volume = gameConfig.audio.volumes.background;  // Start with configured volume
-
-// Volume settings (now using config) - Start unmuted
+// Volume settings - now fully managed by settings system
 export let volumeSettings = {
-    background: gameConfig.audio.volumes.background,  // Start with configured volume
-    effects: gameConfig.audio.volumes.effects         // Start with configured volume
+    background: gameConfig.audio.volumes.background,
+    effects: gameConfig.audio.volumes.effects
 };
 
-// Audio state management - Start unmuted by default
-export let audioState = {
-    isMuted: false,  // Start unmuted
-    enabled: true,   // Start enabled
-    previousVolumes: {
-        background: gameConfig.audio.volumes.background,
-        effects: gameConfig.audio.volumes.effects
+// Update volume settings from settings system
+export function updateVolumeFromSettings() {
+    if (window.gameSettings) {
+        // Get separate volume controls
+        const musicVolume = typeof window.gameSettings.getMusicVolumeDecimal === 'function' ? 
+            window.gameSettings.getMusicVolumeDecimal() : 
+            (typeof window.gameSettings.getVolumeDecimal === 'function' ? window.gameSettings.getVolumeDecimal() : gameConfig.audio.volumes.background);
+            
+        const effectsVolume = typeof window.gameSettings.getEffectsVolumeDecimal === 'function' ? 
+            window.gameSettings.getEffectsVolumeDecimal() : 
+            (typeof window.gameSettings.getVolumeDecimal === 'function' ? window.gameSettings.getVolumeDecimal() : gameConfig.audio.volumes.effects);
+        
+        volumeSettings.background = musicVolume;
+        volumeSettings.effects = effectsVolume;
+        
+        console.log('Updated volumes from settings:', { music: musicVolume, effects: effectsVolume });
+        
+        // Update background music volume immediately
+        if (sounds.background) {
+            sounds.background.volume = musicVolume;
+        }
     }
-};
+}
 
-// Initialize audio - now uses AssetManager
+// Initialize audio - now uses AssetManager and respects settings
 export async function initializeAudio() {
     if (audioInitialized || audioInitAttempted) return;
     audioInitAttempted = true;
     
-    console.log('Initializing audio system with AssetManager...');
-    
-    // Ensure button state matches audio state
-    const audioBtn = document.getElementById('audioToggleBtn');
-    if (audioBtn) {
-        if (audioState.isMuted) {
-            audioBtn.textContent = '🔇';
-            audioBtn.classList.add('muted');
-            audioBtn.title = 'Unmute Audio';
-        } else {
-            audioBtn.textContent = '🔊';
-            audioBtn.classList.remove('muted');
-            audioBtn.title = 'Mute Audio';
-        }
-    }
-    
-    // Update audio status message if the function exists
-    if (typeof window.updateAudioStatusMessage === 'function') {
-        window.updateAudioStatusMessage();
-    }
+    console.log('Initializing audio system with settings integration...');
     
     try {
-        // Use AssetManager's audio initialization
-        const success = await assetManager.initializeAudioSystem();
+        // Use AssetManager's audio initialization with timeout
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Audio initialization timeout')), 5000)
+        );
+        
+        const success = await Promise.race([
+            assetManager.initializeAudioSystem(),
+            timeoutPromise
+        ]);
         
         if (success) {
-            // Set initial volumes for loaded audio and start background music
+            // Set up background music properties but don't start automatically
             const backgroundAudio = sounds.background;
             if (backgroundAudio) {
-                backgroundAudio.volume = volumeSettings.background;
                 backgroundAudio.loop = true;
-                
-                // Start background music immediately if not muted
-                if (!audioState.isMuted && volumeSettings.background > 0) {
-                    console.log('Starting background music immediately...');
-                    backgroundAudio.play().catch(e => {
-                        console.log('Background music autoplay blocked, will start on user interaction:', e.message);
-                    });
-                }
+                // Volume will be set when/if music starts
+                console.log('Background music configured but not started (respecting settings)');
             }
             
-            // Test play essential sounds to verify they work
+            // Update volumes from settings
+            updateVolumeFromSettings();
+            
+            // Test sound effects setup (but don't play them)
             const testSounds = ['voice', 'uff', 'total', 'fireballimpact'];
             for (const soundKey of testSounds) {
                 const audio = sounds[soundKey];
-                if (audio && audio.readyState >= 3) { // HAVE_FUTURE_DATA
-                    // Set volume
+                if (audio && audio.readyState >= 3) {
+                    // Set volume based on settings
                     if (soundKey === 'fireballimpact') {
                         audio.volume = gameConfig.audio.volumes.fireballImpact;
                     } else {
                         audio.volume = volumeSettings.effects;
                     }
-                    
-                    // Test play (may fail due to browser autoplay policy)
-                    const testPlay = audio.play();
-                    if (testPlay && testPlay.then) {
-                        testPlay.then(() => {
-                            audio.pause();
-                            audio.currentTime = 0;
-                            console.log(`✓ ${soundKey} audio ready`);
-                        }).catch(e => {
-                            console.log(`✗ ${soundKey} audio requires user interaction:`, e.message);
-                        });
-                    }
+                    console.log(`✓ ${soundKey} audio ready and configured`);
                 }
             }
             
             audioInitialized = true;
-            console.log('🔊 Audio initialization complete with AssetManager!');
+            console.log('🔊 Audio initialization complete with settings integration!');
         } else {
             console.warn('Audio initialization failed, falling back to on-demand loading');
             audioInitialized = false;
+            audioInitAttempted = false; // Allow retry later
         }
     } catch (error) {
         console.error('Audio initialization error:', error);
         audioInitialized = false;
-    }
-}
-
-export function toggleAudio() {
-    const audioBtn = document.getElementById('audioToggleBtn');
-    
-    if (audioState.isMuted) {
-        // Unmute - restore previous volumes
-        volumeSettings.background = audioState.previousVolumes.background;
-        volumeSettings.effects = audioState.previousVolumes.effects;
-        audioState.isMuted = false;
-        audioState.enabled = true;
-        
-        // Force audio initialization if not already done
-        if (!audioInitialized) {
-            audioInitAttempted = false; // Reset to allow re-initialization
-            initializeAudio();
-        }
-        
-        // Update button appearance
-        if (audioBtn) {
-            audioBtn.textContent = '🔊';
-            audioBtn.classList.remove('muted');
-            audioBtn.title = 'Mute Audio';
-        }
-        
-        // Update background music volume if it's playing
-        if (!sounds.background.paused) {
-            sounds.background.volume = volumeSettings.background;
-        }
-        
-        console.log('🔊 Audio unmuted - Effects:', volumeSettings.effects, 'Background:', volumeSettings.background);
-    } else {
-        // Mute - save current volumes and set to 0
-        audioState.previousVolumes.background = volumeSettings.background;
-        audioState.previousVolumes.effects = volumeSettings.effects;
-        
-        volumeSettings.background = 0;
-        volumeSettings.effects = 0;
-        audioState.isMuted = true;
-        audioState.enabled = false;
-        
-        // Update button appearance
-        if (audioBtn) {
-            audioBtn.textContent = '🔇';
-            audioBtn.classList.add('muted');
-            audioBtn.title = 'Unmute Audio';
-        }
-        
-        // Mute background music immediately
-        sounds.background.volume = 0;
-        
-        console.log('🔇 Audio muted');
-    }
-    
-    // Update audio status message if the function exists
-    if (typeof window.updateAudioStatusMessage === 'function') {
-        window.updateAudioStatusMessage();
+        audioInitAttempted = false; // Allow retry later
     }
 }
 
@@ -200,16 +127,11 @@ function playAudioOptimized(soundKey, audioElement, options = {}) {
     if (!audioElement) return false;
     
     // Check if sound effects are disabled in settings (primary control)
-    const soundEffectsEnabled = window.gameSettings && typeof window.gameSettings.areSoundEffectsEnabled === 'function' ? window.gameSettings.areSoundEffectsEnabled() : true;
+    const soundEffectsEnabled = window.gameSettings && typeof window.gameSettings.areSoundEffectsEnabled === 'function' ? 
+        window.gameSettings.areSoundEffectsEnabled() : true;
     
     if (!soundEffectsEnabled) {
         console.log(`Audio blocked by settings: Sound effects disabled for ${soundKey}`);
-        return false;
-    }
-    
-    // Legacy audio mute check (secondary control)
-    if (audioState.isMuted) {
-        console.log(`Audio blocked by legacy mute: ${soundKey}`);
         return false;
     }
     
@@ -251,7 +173,12 @@ function playAudioOptimized(soundKey, audioElement, options = {}) {
     
     // Play the sound asynchronously to avoid blocking
     try {
-        audioElement.volume = Math.max(0, Math.min(1, volume));
+        // Use settings-based volume with proper conversion - use effects volume
+        const settingsVolume = window.gameSettings && typeof window.gameSettings.getEffectsVolumeDecimal === 'function' ? 
+            window.gameSettings.getEffectsVolumeDecimal() : 
+            (window.gameSettings && typeof window.gameSettings.getVolumeDecimal === 'function' ? window.gameSettings.getVolumeDecimal() : volume);
+        
+        audioElement.volume = Math.max(0, Math.min(1, settingsVolume));
         audioElement.currentTime = 0;
         
         // Use async play to avoid blocking the main thread
@@ -299,6 +226,9 @@ setInterval(cleanupAudioTracking, 5000);
 
 // Export optimized audio function globally for use by other classes
 window.playAudioOptimized = playAudioOptimized;
+
+// Export volume update function globally
+window.updateVolumeFromSettings = updateVolumeFromSettings;
 
 // Audio playback functions
 export function playVoiceSound() {
@@ -352,26 +282,41 @@ export function playThunderSound() {
 }
 
 export function startBackgroundMusic() {
-    // Check if background music is disabled in settings (primary control)
+    console.log('startBackgroundMusic called');
+    
+    // Check if background music is disabled in settings
     if (window.gameSettings && typeof window.gameSettings.isBackgroundMusicEnabled === 'function' && !window.gameSettings.isBackgroundMusicEnabled()) {
+        console.log('Background music disabled in settings');
         return;
     }
     
-    // Legacy audio mute check (secondary control)
-    if (audioState.isMuted) return;
+    if (!sounds.background) {
+        console.log('Background music not available');
+        return;
+    }
     
-    const volume = (window.gameSettings && typeof window.gameSettings.getVolumeDecimal === 'function') ? 
-        window.gameSettings.getVolumeDecimal() : 
+    // Set volume from settings - use music volume
+    const volume = (window.gameSettings && typeof window.gameSettings.getMusicVolumeDecimal === 'function') ? 
+        window.gameSettings.getMusicVolumeDecimal() : 
         volumeSettings.background;
+    
+    console.log('Setting background music volume to:', volume);
     sounds.background.volume = volume;
-    sounds.background.play().catch(e => console.log('Background music failed to play'));
+    
+    // Only start if not already playing
+    if (sounds.background.paused) {
+        console.log('Starting background music...');
+        sounds.background.play().catch(e => console.log('Background music failed to play:', e.message));
+    } else {
+        console.log('Background music already playing');
+    }
 }
 
 export function updateBackgroundVolume() {
     if (sounds.background) {
-        // Use settings volume if available, otherwise fall back to volumeSettings
-        const volume = (window.gameSettings && typeof window.gameSettings.getVolumeDecimal === 'function') ? 
-            window.gameSettings.getVolumeDecimal() : 
+        // Use music volume if available, otherwise fall back to volumeSettings
+        const volume = (window.gameSettings && typeof window.gameSettings.getMusicVolumeDecimal === 'function') ? 
+            window.gameSettings.getMusicVolumeDecimal() : 
             volumeSettings.background;
         sounds.background.volume = volume;
     }
@@ -396,29 +341,13 @@ export function playItemSound(item) {
 export function tryAutoInitAudio() {
     // Small delay to ensure DOM is ready
     setTimeout(() => {
-        // Set initial button state based on audio state
-        const audioBtn = document.getElementById('audioToggleBtn');
-        if (audioBtn) {
-            if (audioState.isMuted) {
-                audioBtn.textContent = '🔇';
-                audioBtn.classList.add('muted');
-                audioBtn.title = 'Unmute Audio';
-            } else {
-                audioBtn.textContent = '🔊';
-                audioBtn.classList.remove('muted');
-                audioBtn.title = 'Mute Audio';
-            }
-            
-            // Add click event listener for the audio toggle button
-            audioBtn.addEventListener('click', toggleAudio);
-            console.log('Audio toggle button event listener added');
-        }
         initializeAudio();
         
         // Set up fallback to start background music on first user interaction
         const startBackgroundOnInteraction = () => {
-            // Check if background music is disabled in settings (primary control)
+            // Check if background music is disabled in settings
             if (window.gameSettings && typeof window.gameSettings.isBackgroundMusicEnabled === 'function' && !window.gameSettings.isBackgroundMusicEnabled()) {
+                console.log('Background music disabled in settings - removing interaction listeners');
                 // Remove listeners and exit if background music is disabled
                 document.removeEventListener('click', startBackgroundOnInteraction);
                 document.removeEventListener('keydown', startBackgroundOnInteraction);
@@ -426,10 +355,10 @@ export function tryAutoInitAudio() {
                 return;
             }
             
-            if (!audioState.isMuted && sounds.background.paused) {
+            if (sounds.background && sounds.background.paused) {
                 console.log('Starting background music on user interaction...');
-                const volume = (window.gameSettings && typeof window.gameSettings.getVolumeDecimal === 'function') ? 
-                    window.gameSettings.getVolumeDecimal() : 
+                const volume = (window.gameSettings && typeof window.gameSettings.getMusicVolumeDecimal === 'function') ? 
+                    window.gameSettings.getMusicVolumeDecimal() : 
                     volumeSettings.background;
                 sounds.background.volume = volume;
                 sounds.background.play().catch(e => console.log('Background music still failed:', e.message));
@@ -449,8 +378,8 @@ export function tryAutoInitAudio() {
 
 // Fallback: Initialize audio on user interaction if auto-init failed
 export function fallbackAudioInit() {
-    if (!audioInitialized) {
-        audioInitAttempted = false; // Reset the attempt flag
+    if (!audioInitialized && !audioInitAttempted) {
+        console.log('Fallback audio initialization triggered');
         initializeAudio();
     }
 } 

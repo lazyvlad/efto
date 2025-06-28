@@ -1,5 +1,4 @@
 import { gameConfig } from '../config/gameConfig.js';
-import { audioState, volumeSettings } from '../systems/audioSystem.js';
 import { assetManager } from '../utils/AssetManager.js';
 import { responsiveScaler } from '../utils/gameUtils.js';
 
@@ -90,20 +89,128 @@ export class DamageProjectile {
         this.projectileImage = assetManager.getImage(projectileData.image);
     }
 
-    update(deltaTimeMultiplier, canvas) {
-        this.y += this.speed * deltaTimeMultiplier;
+    update(deltaTimeMultiplier, canvas, gameState) {
+        // Apply reverse gravity effect if active 
+        if (gameState.reverseGravityActive) {
+            // Projectiles that haven't been individually exempted get reverse gravity
+            if (this.wasReversed !== false) {
+                // First time being affected by reverse gravity - apply dramatic angle change
+                if (this.wasReversed !== true) {
+                    // REVERSE GRAVITY: Always move upward, but with dramatic angle variation
+                    // Generate dramatic horizontal angles: up to 45 degrees from straight up (less than items for projectile balance)
+                    const dramaticAngleRange = 45; // Maximum deviation from straight up
+                    const baseVerticalAngle = 270; // 270° = straight up in standard coordinates
+                    
+                    // Random angle within the dramatic range for horizontal variation
+                    const angleDeviation = (Math.random() - 0.5) * 2 * dramaticAngleRange; // -45 to +45
+                    this.reverseGravityAngle = baseVerticalAngle + angleDeviation; // 225° to 315°
+                    
+                    // Calculate movement vectors - ALWAYS upward with horizontal variation
+                    const angleRad = this.reverseGravityAngle * Math.PI / 180;
+                    this.reverseGravityVerticalSpeed = Math.sin(angleRad) * this.speed; // Upward movement
+                    this.reverseGravityHorizontalSpeed = Math.cos(angleRad) * this.speed; // Horizontal variation
+                    
+                    // Ensure vertical speed is always negative (upward)
+                    this.reverseGravityVerticalSpeed = -Math.abs(this.reverseGravityVerticalSpeed);
+                    
+                    // DECREASE speed to give players more time during reverse gravity (but less than items)
+                    const speedReduction = 0.5; // Reduce speed to 50% (50% slower, faster than items for more challenge)
+                    this.reverseGravityVerticalSpeed *= speedReduction;
+                    this.reverseGravityHorizontalSpeed *= speedReduction;
+                }
+                
+                // Apply dramatic movement with the calculated angles
+                this.y += this.reverseGravityVerticalSpeed * deltaTimeMultiplier;
+                this.x += this.reverseGravityHorizontalSpeed * deltaTimeMultiplier;
+                this.wasReversed = true; // Mark as affected by reverse gravity
+                
+                // MANUAL BOUNDARY CHECK: Bounce off top boundary while preserving angle momentum
+                if (this.y <= 0) {
+                    this.y = 0; // Clamp to top boundary
+                    
+                    // PRESERVE THE ANGLE MOMENTUM - just flip vertical direction
+                    // Keep the same horizontal speed and angle, but make vertical speed positive (downward)
+                    this.reverseGravityVerticalSpeed = Math.abs(this.reverseGravityVerticalSpeed) * 0.7; // Bounce with more energy loss than items
+                    // Keep horizontal speed unchanged to maintain the dramatic angle
+                    // this.reverseGravityHorizontalSpeed stays the same
+                    // this.reverseGravityAngle stays the same
+                    
+                    // Mark that this projectile bounced off top but keep it affected by reverse gravity
+                    this.bouncedOffTopDuringReverse = true;
+                }
+                
+                // Handle horizontal screen boundaries during reverse gravity - BOUNCE instead of wrap
+                if (this.x < 0) {
+                    this.x = 0; // Clamp to left boundary
+                    this.reverseGravityHorizontalSpeed = -this.reverseGravityHorizontalSpeed * 0.7; // Reverse and reduce speed (more energy loss)
+                } else if (this.x > canvas.width - this.width) {
+                    this.x = canvas.width - this.width; // Clamp to right boundary
+                    this.reverseGravityHorizontalSpeed = -this.reverseGravityHorizontalSpeed * 0.7; // Reverse and reduce speed (more energy loss)
+                }
+            } else {
+                // Projectile has bounced off top during this reverse gravity session - make it fall normally
+                this.y += this.speed * deltaTimeMultiplier; // Normal downward movement
+            }
+        } else {
+            // When reverse gravity is not active, reset all projectiles to be eligible for future reverse gravity
+            if (this.wasReversed === false) {
+                // Reset previously bounced projectiles to be eligible again
+                this.wasReversed = undefined;
+            }
+            
+            // If reverse gravity just ended and this projectile was reversed, reset its movement
+            if (this.wasReversed) {
+                this.wasReversed = false;
+                this.bouncedOffTopDuringReverse = false; // Reset bounce flag
+                
+                // Clear reverse gravity movement vectors
+                this.reverseGravityVerticalSpeed = 0;
+                this.reverseGravityHorizontalSpeed = 0;
+                this.reverseGravityAngle = 0;
+                
+                // Ensure the projectile is moving downward by forcing positive vertical speed
+                if (this.speed < 0) {
+                    this.speed = Math.abs(this.speed);
+                }
+            }
+            this.y += this.speed * deltaTimeMultiplier; // Normal downward movement
+        }
+        
+        // Update horizontal position (always needed for both normal and reverse gravity)
+        if (gameState.reverseGravityActive && this.wasReversed === true) {
+            // Horizontal movement already handled above during reverse gravity
+        } else {
+            // No horizontal movement during normal gravity for projectiles
+        }
+        
         this.glowAnimation += 0.2 * deltaTimeMultiplier;
         this.pulseAnimation += 0.12 * deltaTimeMultiplier;
         this.flickerAnimation += 0.25 * deltaTimeMultiplier;
         
-        if (this.y > canvas.height + this.height) {
+        // Only remove projectiles that go off the bottom during normal gravity
+        if (!gameState.reverseGravityActive && this.y > canvas.height + this.height) {
             return false;
         }
+        
+        // During reverse gravity, projectiles should NEVER disappear off the top - they should bounce back!
         return true;
     }
 
     draw(ctx) {
         ctx.save();
+        
+        // Enhanced image quality settings for projectiles
+        if (gameConfig.items.imageQuality.smoothing) {
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = gameConfig.items.imageQuality.quality;
+        } else {
+            ctx.imageSmoothingEnabled = false;
+        }
+        
+        // Apply sharp scaling for pixel art if enabled
+        if (gameConfig.items.imageQuality.sharpScaling) {
+            ctx.imageSmoothingEnabled = false;
+        }
         
         // Calculate pulsating effects based on projectile type
         let drawWidth = this.width;
@@ -145,6 +252,37 @@ export class DamageProjectile {
             const glow = Math.sin(this.glowAnimation) * 0.4 + 0.6;
             ctx.shadowColor = this.data.color || '#FFFFFF';
             ctx.shadowBlur = 20 * glow;
+        }
+        
+        // Apply conservative high-DPI scaling if enabled (focused on quality, not size)
+        if (gameConfig.items.highDPI.enabled) {
+            // Only apply very conservative scaling if explicitly enabled
+            if (gameConfig.items.sizing.scaleWithDPI) {
+                const dpr = window.devicePixelRatio || 1;
+                const conservativeScale = Math.min(dpr * gameConfig.items.highDPI.multiplier, 2.0); // Conservative cap at 2x
+                drawWidth *= conservativeScale;
+                drawHeight *= conservativeScale;
+            }
+            
+            // Only enforce minimum size if explicitly enabled
+            if (gameConfig.items.sizing.respectMinimumSize) {
+                const minPixelSize = gameConfig.items.highDPI.minPixelSize;
+                drawWidth = Math.max(drawWidth, minPixelSize);
+                drawHeight = Math.max(drawHeight, minPixelSize);
+            }
+            
+            // Apply AssetManager scaling constraints to prevent quality degradation
+            if (this.projectileImage && this.data.image && window.assetManager) {
+                const safeSize = window.assetManager.getMaxSafeSize(this.data.image, drawWidth, drawHeight);
+                if (safeSize.wasConstrained) {
+                    drawWidth = safeSize.width;
+                    drawHeight = safeSize.height;
+                    // Optional: Log when scaling is constrained
+                    if (gameConfig.debug?.logScalingConstraints) {
+                        console.log(`Projectile ${this.data.id} scaling constrained: ${drawWidth}x${drawHeight} (max ${safeSize.maxScaleFactor}x)`);
+                    }
+                }
+            }
         }
         const borderPadding = 8; // Padding for border around projectiles with variable values
         
@@ -224,11 +362,13 @@ export class DamageProjectile {
             ctx.shadowBlur = 0; // Reset shadow
         }
         
-        // Check if projectile image is loaded, otherwise draw a placeholder
+        // Use the specific projectile image from AssetManager
         if (this.projectileImage && this.projectileImage.complete && this.projectileImage.naturalWidth > 0) {
-            // Center the pulsating image
+            // Center the pulsating image and apply smooth rendering
             const offsetX = (drawWidth - this.width) / 2;
             const offsetY = (drawHeight - this.height) / 2;
+            
+            // Smooth rendering for all projectiles (they usually don't rotate but may pulse)
             ctx.drawImage(this.projectileImage, this.x - offsetX, this.y - offsetY, drawWidth, drawHeight);
         } else {
             // Draw placeholder based on projectile type with pulsating size
@@ -510,11 +650,9 @@ export class DamageProjectile {
             // Use AssetManager to get the audio asset
             const projectileAudio = assetManager.getAudio(this.data.sound);
             if (projectileAudio && window.playAudioOptimized) {
-                // Use optimized audio system
+                // Use optimized audio system - volume is handled internally by playAudioOptimized
                 const soundKey = `projectile_${this.data.id || 'generic'}`;
-                const volume = this.data.id === "fireball" ? gameConfig.audio.volumes.fireballImpact : volumeSettings.effects;
                 window.playAudioOptimized(soundKey, projectileAudio, { 
-                    volume: volume,
                     allowOverlap: true  // Allow multiple projectile impact sounds
                 });
             } else if (projectileAudio) {
@@ -523,7 +661,13 @@ export class DamageProjectile {
                 const soundEffectsEnabled = window.gameSettings && typeof window.gameSettings.areSoundEffectsEnabled === 'function' ? window.gameSettings.areSoundEffectsEnabled() : true;
                 
                 if (soundEffectsEnabled) {
-                    projectileAudio.volume = this.data.id === "fireball" ? gameConfig.audio.volumes.fireballImpact : volumeSettings.effects;
+                    // Get volume from settings system - use effects volume
+                    const volume = (window.gameSettings && typeof window.gameSettings.getEffectsVolumeDecimal === 'function') ? 
+                        window.gameSettings.getEffectsVolumeDecimal() : 
+                        (window.gameSettings && typeof window.gameSettings.getVolumeDecimal === 'function' ? window.gameSettings.getVolumeDecimal() : 
+                        (this.data.id === "fireball" ? gameConfig.audio.volumes.fireballImpact : gameConfig.audio.volumes.effects));
+                        
+                    projectileAudio.volume = volume;
                     projectileAudio.currentTime = 0;
                     projectileAudio.play().catch(e => console.log(`Projectile sound ${this.data.sound} not available`));
                 } else {

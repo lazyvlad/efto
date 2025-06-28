@@ -133,38 +133,52 @@ function calculateNextLevelTime(gameState) {
     return finalTime;
 }
 
-// Mathematical formula for speed progression
-// Produces: Level 0: 1.2x, Level 1: 1.6x, Level 2: 2.6x, Level 3: 3.7x, Level 4: 5.0x, Level 5: 7.0x, Level 6+: Unlimited!
+// Mathematical formula for speed progression with diminishing returns every 5 levels
+// Strategy: Start fast, then slow down the rate of increase every 5 levels
 function calculateSpeedFormula(level) {
     // Optional safety cap to prevent extreme values (can be disabled)
     const enableSafetyCap = gameConfig.levels.enableSafetyCap !== false; // Default: enabled
     const safetyCap = gameConfig.levels.safetyCap || 100.0; // Default: 100x max
     
-    if (enableSafetyCap && level >= 20) {
-        // At level 20+, cap at safety limit to prevent performance issues
-        return Math.min(safetyCap, gameConfig.levels.maxLevelSpeedMultiplier);
+    // Base speed for level 0
+    const baseSpeed = gameConfig.levels.formulaBase;
+    
+    // Calculate speed using tier-based diminishing returns
+    let speed = baseSpeed;
+    let currentLevel = 0;
+    
+    // Define speed increase per level for each tier (aggressive progression)
+    const tierIncrements = [
+        { maxLevel: 5,  increment: 0.5 },   // Levels 1-5:  Fast start (+0.5x per level)
+        { maxLevel: 10, increment: 0.4 },   // Levels 6-10:  Steady ramp (+0.4x per level)
+        { maxLevel: 15, increment: 0.5 },   // Levels 11-15: Accelerating (+0.5x per level)
+        { maxLevel: 20, increment: 0.4 },   // Levels 16-20: Strong ramp (+0.4x per level) → ~10x at level 20
+        { maxLevel: 25, increment: 0.6 },   // Levels 21-25: Very aggressive (+0.6x per level)
+        { maxLevel: 30, increment: 0.6 },   // Levels 26-30: Maximum aggression (+0.6x per level) → ~20x at level 30
+        { maxLevel: 999, increment: 0.3 }   // Levels 31+:   Moderate late-game (+0.3x per level)
+    ];
+    
+    // Apply tier-based progression
+    for (const tier of tierIncrements) {
+        const levelsInThisTier = Math.min(level - currentLevel, tier.maxLevel - currentLevel);
+        if (levelsInThisTier <= 0) break;
+        
+        speed += levelsInThisTier * tier.increment;
+        currentLevel += levelsInThisTier;
+        
+        if (currentLevel >= level) break;
     }
     
-    // Get configurable parameters
-    const baseSpeed = gameConfig.levels.formulaBase;
-    const weights = gameConfig.levels.formulaWeights;
-    
-    // Multi-component mathematical formula for accelerating difficulty curve
-    const linearComponent = level * weights.linear;                                           // Steady growth
-    const quadraticComponent = Math.pow(level, 2) * weights.quadratic;                      // Accelerating growth  
-    const exponentialComponent = (Math.pow(weights.exponentialBase, level) - 1) * weights.exponential; // Rapid late-game growth
-    
-    // Combine all components
-    let speed = baseSpeed + linearComponent + quadraticComponent + exponentialComponent;
-    
-    // Fine-tune specific levels to match your exact desired progression
-    // These micro-adjustments ensure perfect alignment with target values
+    // Fine-tune specific early levels for smooth progression
     const precisionAdjustments = {
-        1: 0.15,  // Target: 1.6x (fine-tune from calculated ~1.45)
-        2: 0.35,  // Target: 2.6x (fine-tune from calculated ~2.25)  
-        3: 0.25,  // Target: 3.7x (fine-tune from calculated ~3.45)
-        4: 0.6,   // Target: 5.0x (fine-tune from calculated ~4.40)
-        5: 1.5    // Target: 7.0x (fine-tune from calculated ~5.50)
+        1: 0.0,   // Level 1: 1.7x (1.2 + 0.5 + 0.0)
+        2: 0.1,   // Level 2: 2.3x (1.2 + 1.0 + 0.1) 
+        3: 0.0,   // Level 3: 2.7x (1.2 + 1.5 + 0.0)
+        4: 0.1,   // Level 4: 3.3x (1.2 + 2.0 + 0.1)
+        5: 0.0,   // Level 5: 3.7x (1.2 + 2.5 + 0.0)
+        10: 0.1,  // Level 10: 5.9x fine-tuning
+        15: 0.0,  // Level 15: 8.2x fine-tuning
+        20: 0.0   // Level 20: 10.2x fine-tuning
     };
     
     if (precisionAdjustments[level] !== undefined) {
@@ -200,7 +214,25 @@ export function checkDragonstalkerCompletion(gameState, gameItems) {
         const currentLevelSpeed = gameState.levelSpeedMultiplier;
         const reductionPercent = gameConfig.dragonstalker.speedReductionPercent;
         const speedReduction = currentLevelSpeed * reductionPercent;
-        gameState.permanentSpeedReductionFromSets += speedReduction;
+        
+        // Apply speed reduction with cap to preserve bullet time access
+        const previousReduction = gameState.permanentSpeedReductionFromSets;
+        const newTotalReduction = previousReduction + speedReduction;
+        const maxReduction = gameConfig.dragonstalker.maxSpeedReduction || 18.0; // Default to 18x if not configured
+        
+        if (newTotalReduction <= maxReduction) {
+            gameState.permanentSpeedReductionFromSets = newTotalReduction;
+        } else {
+            // Cap the reduction to preserve bullet time access
+            const allowedReduction = Math.max(0, maxReduction - previousReduction);
+            gameState.permanentSpeedReductionFromSets = previousReduction + allowedReduction;
+            
+            if (allowedReduction > 0) {
+                console.log(`🛡️ Dragonstalker speed reduction capped to preserve bullet time access (applied: ${allowedReduction.toFixed(1)}x of ${speedReduction.toFixed(1)}x)`);
+            } else {
+                console.log(`🛡️ No speed reduction applied - maximum reached to preserve bullet time access`);
+            }
+        }
         
         // Reset all Dragonstalker items for next collection cycle
         console.log('🔄 Resetting Dragonstalker items for next cycle...');
@@ -232,13 +264,40 @@ export function checkDragonstalkerCompletion(gameState, gameItems) {
             console.log(`💥 Crit rating already at maximum: ${maxCritPercent}%`);
         }
         
-        // Add completion notification
-        const reductionPercentDisplay = Math.round(reductionPercent * 100);
-        addNotification(gameState, 
-            `🏆 DRAGONSTALKER SET #${gameState.dragonstalkerCompletions} COMPLETE! -${speedReduction.toFixed(1)}x (${reductionPercentDisplay}%) Permanent Speed Reduction!`, 
-            480, '#FFD700');
+        // Increase dodge rating by 1% for completing Dragonstalker set
+        const dodgeIncrease = 0.01; // 1%
+        const oldDodgeRating = gameState.dodgeRating;
+        gameState.dodgeRating = Math.min(gameState.dodgeRating + dodgeIncrease, gameState.dodgeRatingCap);
+        const actualDodgeIncrease = gameState.dodgeRating - oldDodgeRating;
         
-        console.log(`🏆 Dragonstalker set ${gameState.dragonstalkerCompletions} completed! Speed reduction: -${speedReduction.toFixed(1)}x (Total: -${gameState.permanentSpeedReductionFromSets.toFixed(1)}x)`);
+        if (actualDodgeIncrease > 0) {
+            const dodgePercent = Math.round(actualDodgeIncrease * 100);
+            const newDodgePercent = Math.round(gameState.dodgeRating * 100);
+            addNotification(gameState, `💨 DODGE RATING INCREASED! +${dodgePercent}% (Now: ${newDodgePercent}%)`, 300, '#00FF00');
+            console.log(`💨 Dodge rating increased by ${dodgePercent}% to ${newDodgePercent}% (${gameState.dodgeRating.toFixed(3)})`);
+        } else {
+            const maxDodgePercent = Math.round(gameState.dodgeRatingCap * 100);
+            addNotification(gameState, `💨 DODGE RATING MAXED! (${maxDodgePercent}%)`, 240, '#00FF00');
+            console.log(`💨 Dodge rating already at maximum: ${maxDodgePercent}%`);
+        }
+        
+        // Add completion notification with actual reduction applied
+        const actualReduction = gameState.permanentSpeedReductionFromSets - previousReduction;
+        const reductionPercentDisplay = Math.round(reductionPercent * 100);
+        const bulletTimePreserved = gameState.permanentSpeedReductionFromSets < maxReduction;
+        
+        let notificationMessage = `🏆 DRAGONSTALKER SET #${gameState.dragonstalkerCompletions} COMPLETE! -${actualReduction.toFixed(1)}x Permanent Speed Reduction!`;
+        if (!bulletTimePreserved) {
+            notificationMessage += ' [Max Reduction Reached]';
+        }
+        
+        addNotification(gameState, notificationMessage, 480, '#FFD700');
+        
+        console.log(`🏆 Dragonstalker set ${gameState.dragonstalkerCompletions} completed! Speed reduction: -${actualReduction.toFixed(1)}x (Total: -${gameState.permanentSpeedReductionFromSets.toFixed(1)}x)`);
+        
+        if (bulletTimePreserved) {
+            console.log(`🎯 Bullet time access preserved - can still reach ${(gameConfig.levels.maxLevelSpeedMultiplier - gameState.permanentSpeedReductionFromSets).toFixed(1)}x speed`);
+        }
         
         return true; // Set was completed
     }
@@ -331,6 +390,55 @@ export function cleanupRecentDropPositions(recentDropYPositions) {
     }
 }
 
+// Calculate resolution scaling factor for consistent gameplay across different screen sizes
+export function calculateResolutionScale(canvas) {
+    if (!gameConfig?.gameplay?.independence?.enabled) {
+        return { x: 1, y: 1, average: 1 };
+    }
+    
+    const config = gameConfig.gameplay.independence;
+    const currentWidth = canvas.logicalWidth || gameConfig.canvas.width;
+    const currentHeight = canvas.logicalHeight || gameConfig.canvas.height;
+    
+    // Calculate scaling factors based on reference resolution
+    let scaleX = currentWidth / config.referenceWidth;
+    let scaleY = currentHeight / config.referenceHeight;
+    
+    // Apply scaling limits
+    scaleX = Math.max(config.minResolutionScale, Math.min(config.maxResolutionScale, scaleX));
+    scaleY = Math.max(config.minResolutionScale, Math.min(config.maxResolutionScale, scaleY));
+    
+    // Calculate average scale for uniform scaling
+    const averageScale = (scaleX + scaleY) / 2;
+    
+    return {
+        x: scaleX,
+        y: scaleY,
+        average: averageScale,
+        width: currentWidth,
+        height: currentHeight,
+        referenceWidth: config.referenceWidth,
+        referenceHeight: config.referenceHeight
+    };
+}
+
+// Calculate comprehensive scaling multiplier that combines frame rate and resolution independence
+export function calculateUniversalMultiplier(canvas, targetFPS = 60) {
+    const frameMultiplier = calculateDeltaTimeMultiplier(targetFPS);
+    const resolutionScale = calculateResolutionScale(canvas);
+    
+    return {
+        frame: frameMultiplier,
+        resolution: resolutionScale,
+        // Combined multiplier for speeds (frame rate * resolution)
+        speed: frameMultiplier * resolutionScale.average,
+        // Size multiplier (resolution only, not frame rate dependent)
+        size: resolutionScale.average,
+        // Position multiplier for spawn coordinates
+        position: resolutionScale
+    };
+}
+
 // Calculate delta time multiplier for frame rate normalization
 export function calculateDeltaTimeMultiplier(targetFPS = 60) {
     const currentTime = performance.now();
@@ -387,6 +495,11 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
     
     // Update time slow timer
     if (gameState.timeSlowActive && gameState.timeSlowTimer > 0) {
+        // Add/update buff in tracker
+        if (typeof window.addBuff === 'function') {
+            window.addBuff('timeSlow', '🐉 Zandalari Blessing', 'Time Slowed & +20% Points', gameState.timeSlowTimer, 'slow');
+        }
+        
         gameState.timeSlowTimer -= deltaTimeMultiplier;
         if (gameState.timeSlowTimer <= 0) {
             gameState.timeSlowActive = false;
@@ -396,6 +509,11 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
     
     // Update freeze time timer
     if (gameState.freezeTimeActive && gameState.freezeTimeTimer > 0) {
+        // Add/update buff in tracker
+        if (typeof window.addBuff === 'function') {
+            window.addBuff('freezeTime', '❄️ Freeze Time', 'All Items Frozen', gameState.freezeTimeTimer, 'freeze');
+        }
+        
         gameState.freezeTimeTimer -= deltaTimeMultiplier;
         if (gameState.freezeTimeTimer <= 0) {
             gameState.freezeTimeActive = false;
@@ -404,6 +522,12 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
     
     // Update speed increase timer
     if (gameState.speedIncreaseActive && gameState.speedIncreaseTimer > 0) {
+        // Add/update buff in tracker
+        if (typeof window.addBuff === 'function') {
+            const speedPercent = Math.min(gameState.currentSpeedIncreasePercent, 100);
+            window.addBuff('speedBoost', '⚡ Speed Boost', `+${speedPercent}% Game Speed`, gameState.speedIncreaseTimer, 'speed');
+        }
+        
         gameState.speedIncreaseTimer -= deltaTimeMultiplier;
         if (gameState.speedIncreaseTimer <= 0) {
             gameState.speedIncreaseActive = false;
@@ -418,10 +542,31 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
     
     // Update shield timer
     if (gameState.shieldActive && gameState.shieldTimer > 0) {
+        // Add/update buff in tracker
+        if (typeof window.addBuff === 'function') {
+            window.addBuff('shield', '🛡️ Shield', 'Blocks All Damage', gameState.shieldTimer, 'shield');
+        }
+        
         gameState.shieldTimer -= deltaTimeMultiplier;
         if (gameState.shieldTimer <= 0) {
             gameState.shieldActive = false;
             gameState.shieldTimer = 0;
+        }
+    }
+    
+    // Update dodge boost timer
+    if (gameState.dodgeBoostTimer > 0) {
+        // Add/update buff in tracker
+        if (typeof window.addBuff === 'function') {
+            const tempDodgePercent = Math.round((gameState.temporaryDodgeBoost || 0) * 100);
+            window.addBuff('dodgeBoost', '🐒 Aspect of the Monkey', `+${tempDodgePercent}% Dodge`, gameState.dodgeBoostTimer, 'dodge');
+        }
+        
+        gameState.dodgeBoostTimer -= deltaTimeMultiplier;
+        if (gameState.dodgeBoostTimer <= 0) {
+            gameState.temporaryDodgeBoost = 0;
+            gameState.dodgeBoostTimer = 0;
+            addNotification(gameState, `🐒💨 Aspect of the Monkey Expired`, 180, '#FF8C00');
         }
     }
     
@@ -455,6 +600,13 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
     
     // Update shadowbolt damage-over-time effects
     if (gameState.shadowboltDots && gameState.shadowboltDots.length > 0) {
+        // Add/update buff in tracker
+        if (typeof window.addBuff === 'function') {
+            const activeDots = gameState.shadowboltDots.length;
+            const maxDuration = Math.max(...gameState.shadowboltDots.map(dot => dot.remainingDuration));
+            window.addBuff('shadowboltDot', '🌑 Shadowbolt DOT', `${activeDots} stack${activeDots > 1 ? 's' : ''} active`, maxDuration, 'damage');
+        }
+        
         gameState.shadowboltTimer -= deltaTimeMultiplier;
         
         if (gameState.shadowboltTimer <= 0) {
@@ -494,6 +646,13 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
     
     // Update chicken food heal-over-time effects
     if (gameState.chickenFoodHots && gameState.chickenFoodHots.length > 0) {
+        // Add/update buff in tracker
+        if (typeof window.addBuff === 'function') {
+            const activeHots = gameState.chickenFoodHots.length;
+            const maxDuration = Math.max(...gameState.chickenFoodHots.map(hot => hot.remainingDuration));
+            window.addBuff('chickenFoodHot', '🐔 Chicken Food HOT', `${activeHots} stack${activeHots > 1 ? 's' : ''} active`, maxDuration, 'food');
+        }
+        
         gameState.chickenFoodTimer -= deltaTimeMultiplier;
         
         if (gameState.chickenFoodTimer <= 0) {
@@ -526,6 +685,11 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
     
     // Update reverse gravity timer
     if (gameState.reverseGravityActive && gameState.reverseGravityTimer > 0) {
+        // Add/update buff in tracker
+        if (typeof window.addBuff === 'function') {
+            window.addBuff('reverseGravity', '🔄 Reverse Gravity', 'Items Fall Upward', gameState.reverseGravityTimer, 'gravity');
+        }
+        
         gameState.reverseGravityTimer -= deltaTimeMultiplier;
         if (gameState.reverseGravityTimer <= 0) {
             gameState.reverseGravityActive = false;
@@ -553,7 +717,7 @@ export function addNotification(gameState, message, duration = 180, color = '#FF
     const shouldSuppress = 
         // Effects with persistent versions
         lowerMessage.includes('shield active') ||
-        lowerMessage.includes('projectiles frozen') ||
+        lowerMessage.includes('all items frozen') ||
         lowerMessage.includes('speed boost') ||
         lowerMessage.includes('time slow') ||
         lowerMessage.includes('reverse gravity') ||
@@ -601,9 +765,13 @@ export function addNotification(gameState, message, duration = 180, color = '#FF
         notificationType = 'success';
         allowDuplicates = true; // Allow shield block notifications
     }
-            else if (lowerMessage.includes('flask of titans') || lowerMessage.includes('restored')) {
-            notificationType = 'flask_of_titans';
-            allowDuplicates = false; // Don't spam flask of titans
+    else if (lowerMessage.includes('dodge') || lowerMessage.includes('aspect of the monkey') || lowerMessage.includes('evasion') || lowerMessage.includes('💨')) {
+        notificationType = 'dodge';
+        allowDuplicates = false; // Don't spam dodge notifications
+    }
+    else if (lowerMessage.includes('flask of titans') || lowerMessage.includes('restored')) {
+        notificationType = 'flask_of_titans';
+        allowDuplicates = false; // Don't spam flask of titans
     }
     else if (lowerMessage.includes('teleport') || lowerMessage.includes('gravity') || lowerMessage.includes('trajectory')) {
         notificationType = 'teleport';
@@ -681,25 +849,43 @@ export function calculateFallAngle(gameState) {
 
 export class ResponsiveScaler {
     constructor() {
-        this.baseWidth = 1920;  // Reference desktop width
-        this.baseHeight = 1080; // Reference desktop height
-        this.minScale = 0.5;    // Minimum scale factor
-        this.maxScale = 2.0;    // Maximum scale factor
+        // Import canvas config
+        this.canvasConfig = gameConfig.canvas;
+        
+        // Reference playable area for scaling (THE KING 👑)
+        this.basePlayableArea = this.canvasConfig.scaling.basePlayableArea;
         
         // Device type detection
         this.deviceType = this.detectDeviceType();
         this.orientation = this.getOrientation();
         
-        // Scale factors
-        this.scaleX = 1;
-        this.scaleY = 1;
-        this.uniformScale = 1;
+        // Get canvas dimensions for current device
+        this.canvasDimensions = this.getCanvasDimensions();
         
-        // Element sizes (will be calculated based on scale)
+        // Calculate playable area for current device
+        this.playableArea = {
+            width: this.canvasDimensions.playableWidth,
+            height: this.canvasDimensions.playableHeight
+        };
+        
+        // Scale factors based on playable area
+        this.scaleX = this.playableArea.width / this.basePlayableArea.width;
+        this.scaleY = this.playableArea.height / this.basePlayableArea.height;
+        this.uniformScale = (this.scaleX + this.scaleY) / 2; // Average of both scales for uniform scaling
+        
+        // Apply device-specific scale adjustments
+        this.applyDeviceScaleAdjustments();
+        
+        // Element sizes (calculated based on playable area scale)
         this.sizes = {};
+        this.calculateElementSizes();
         
-        this.updateScaling();
-        
+        console.log(`🎮 ResponsiveScaler initialized:
+            Device: ${this.deviceType}
+            Canvas: ${this.canvasDimensions.width}x${this.canvasDimensions.height}
+            Playable Area: ${this.playableArea.width}x${this.playableArea.height}
+            Scale: ${this.uniformScale.toFixed(2)}x (${this.scaleX.toFixed(2)}x width, ${this.scaleY.toFixed(2)}x height)`);
+            
         // Listen for orientation changes
         window.addEventListener('orientationchange', () => {
             setTimeout(() => {
@@ -707,9 +893,24 @@ export class ResponsiveScaler {
             }, 100);
         });
         
-        // Listen for resize events
+        // Listen for resize events with quality monitoring
         window.addEventListener('resize', () => {
             this.updateScaling();
+            
+            // Recalculate AssetManager constraints on significant resize
+            if (window.assetManager) {
+                window.assetManager.recalculateScalingConstraints();
+                
+                // Log quality assessment for large displays
+                const qualityAssessment = window.assetManager.getQualityAssessment();
+                if (qualityAssessment && qualityAssessment.displayScale > 1.8) {
+                    console.log(`🖼️ Display Quality Assessment:
+                        Quality: ${qualityAssessment.overallQuality}
+                        Display Scale: ${qualityAssessment.displayScale.toFixed(2)}x
+                        Avg Original Size: ${qualityAssessment.averageOriginalSize}px
+                        Recommendation: ${qualityAssessment.recommendation}`);
+                }
+            }
         });
     }
     
@@ -718,104 +919,81 @@ export class ResponsiveScaler {
         const width = window.innerWidth;
         const height = window.innerHeight;
         const maxDimension = Math.max(width, height);
-        const minDimension = Math.min(width, height);
+        const detection = this.canvasConfig.deviceDetection;
         
-        // Check for mobile devices
-        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
-            // Distinguish between phone and tablet
-            if (maxDimension < 768 || minDimension < 500) {
-                return 'mobile';
-            } else {
-                return 'tablet';
-            }
+        // Check for mobile devices by user agent
+        const isMobileUserAgent = detection.mobileUserAgents.some(agent => 
+            userAgent.includes(agent)
+        );
+        
+        // Check by screen size
+        if (isMobileUserAgent || maxDimension <= detection.mobileMaxWidth) {
+            return 'mobile';
+        } else if (maxDimension <= detection.tabletMaxWidth) {
+            return 'tablet';
+        } else {
+            return 'desktop';
         }
-        
-        // Check for small desktop screens
-        if (width < 1024 || height < 768) {
-            return 'small-desktop';
-        }
-        
-        return 'desktop';
     }
     
     getOrientation() {
         return window.innerWidth > window.innerHeight ? 'landscape' : 'portrait';
     }
     
-    updateScaling() {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        
-        // Update device detection
-        this.deviceType = this.detectDeviceType();
-        this.orientation = this.getOrientation();
-        
-        // Calculate scale factors
-        this.scaleX = width / this.baseWidth;
-        this.scaleY = height / this.baseHeight;
-        
-        // Use different scaling strategies based on device type
+    getCanvasDimensions() {
+        // Return canvas dimensions based on device type
+        return this.canvasConfig[this.deviceType];
+    }
+    
+    applyDeviceScaleAdjustments() {
+        // Apply conservative device-specific scaling adjustments
         switch (this.deviceType) {
             case 'mobile':
-                // For mobile, use smaller of the two scales to ensure everything fits
-                this.uniformScale = Math.min(this.scaleX, this.scaleY);
-                // But don't make things too small on mobile
-                this.uniformScale = Math.max(this.uniformScale, 0.6);
+                // Mobile gets slightly larger items for better touch interaction (reduced)
+                this.uniformScale *= 1.08; // Reduced from 1.15
                 break;
                 
             case 'tablet':
-                // For tablets, use a balanced approach
-                this.uniformScale = Math.min(this.scaleX, this.scaleY);
-                this.uniformScale = Math.max(this.uniformScale, 0.7);
+                // Tablet gets minimal scaling adjustment (reduced)
+                this.uniformScale *= 1.02; // Reduced from 1.05
                 break;
                 
-            case 'small-desktop':
-                // For small desktops, scale down but not too much
-                this.uniformScale = Math.min(this.scaleX, this.scaleY);
-                this.uniformScale = Math.max(this.uniformScale, 0.8);
-                break;
-                
-            default: // desktop
-                // For desktop, use average of scales but cap it
-                this.uniformScale = (this.scaleX + this.scaleY) / 2;
+            case 'desktop':
+                // Desktop uses base scaling with no additional adjustments
                 break;
         }
         
-        // Apply min/max constraints
-        this.uniformScale = Math.max(this.minScale, Math.min(this.maxScale, this.uniformScale));
-        
-        // Calculate element sizes based on device type and scale
-        this.calculateElementSizes();
-        
-        console.log(`Scaling updated: ${this.deviceType} (${this.orientation}), scale: ${this.uniformScale.toFixed(2)}, player: ${this.sizes.player.width}x${this.sizes.player.height}`);
+        // Ensure scale stays within reasonable bounds
+        this.uniformScale = Math.max(0.5, Math.min(2.0, this.uniformScale));
     }
     
     calculateElementSizes() {
-        // Enhanced base sizes for better mobile experience
-        const basePlayerWidth = this.deviceType === 'mobile' ? 70 : 80;  // Slightly larger for mobile
-        const baseItemSize = this.deviceType === 'mobile' ? 70 : 80;     // Larger items on mobile
-        const basePowerUpSize = this.deviceType === 'mobile' ? 80 : 90;  // Larger power-ups
-        const baseProjectileSize = this.deviceType === 'mobile' ? 60 : 70; // Appropriate projectile size
+        // Reduced base sizes for more reasonable item scaling
+        // These are optimized for desktop playable area (1440x243)
+        const basePlayerWidth = 60;      // Reduced from 80
+        const baseItemSize = 55;         // Reduced from 80  
+        const basePowerUpSize = 65;      // Reduced from 90
+        const baseProjectileSize = 50;   // Reduced from 70
         
         // Player aspect ratio is 1:2 (width:height) based on 250x500 original image
-        const playerAspectRatio = 0.5; // width/height = 250/500 = 0.5
+        const playerAspectRatio = 0.5;
         
         this.sizes = {
             // Player sizes (maintaining proper aspect ratio)
             player: {
                 width: Math.round(basePlayerWidth * this.uniformScale),
-                height: Math.round((basePlayerWidth / playerAspectRatio) * this.uniformScale), // height = width / 0.5 = width * 2
-                speed: Math.round((this.deviceType === 'mobile' ? 16 : 12) * this.uniformScale) // Higher speed for mobile touch
+                height: Math.round((basePlayerWidth / playerAspectRatio) * this.uniformScale),
+                speed: Math.round(12 * this.uniformScale)
             },
             
-            // Item sizes
+            // Item sizes (all based on playable area scaling)
             item: {
                 base: Math.round(baseItemSize * this.uniformScale),
                 powerUp: Math.round(basePowerUpSize * this.uniformScale),
                 projectile: Math.round(baseProjectileSize * this.uniformScale)
             },
             
-            // UI elements
+            // UI elements (scaled proportionally)
             ui: {
                 healthBarWidth: Math.round(200 * this.uniformScale),
                 healthBarHeight: Math.round(20 * this.uniformScale),
@@ -824,7 +1002,7 @@ export class ResponsiveScaler {
                 spellIconSize: Math.round(50 * this.uniformScale)
             },
             
-            // Spacing and layout
+            // Spacing and layout (based on playable area)
             spacing: {
                 minYSpacing: Math.round(150 * this.uniformScale),
                 borderWidth: Math.max(1, Math.round(2 * this.uniformScale)),
@@ -832,29 +1010,61 @@ export class ResponsiveScaler {
             }
         };
         
-        // Enhanced mobile-specific adjustments
+        // Device-specific final adjustments (reduced)
         if (this.deviceType === 'mobile') {
-            // Make touch targets appropriately sized (maintain aspect ratio)
-            const mobileScale = 1.3; // Increased from 1.2 to 1.3 for better visibility
-            this.sizes.player.width = Math.round(this.sizes.player.width * mobileScale);
-            this.sizes.player.height = Math.round(this.sizes.player.height * mobileScale);
-            this.sizes.item.base = Math.round(this.sizes.item.base * 1.2); // Increased scaling
-            this.sizes.item.powerUp = Math.round(this.sizes.item.powerUp * 1.2);
-            this.sizes.item.projectile = Math.round(this.sizes.item.projectile * 1.1); // Keep projectiles reasonable
-            this.sizes.ui.spellIconSize = Math.round(this.sizes.ui.spellIconSize * 1.4); // Larger touch targets
-            
-            // Increase spacing on mobile for easier gameplay
-            this.sizes.spacing.minYSpacing = Math.round(this.sizes.spacing.minYSpacing * 1.4); // More spacing
-            
-            // Ensure minimum sizes for high-DPI displays
-            const minItemSize = 60; // Minimum item size in pixels
-            if (this.sizes.item.base < minItemSize) {
-                const scaleFactor = minItemSize / this.sizes.item.base;
-                this.sizes.item.base = minItemSize;
+            // Ensure minimum sizes for mobile touch interaction but don't go overboard
+            const minTouchSize = 60; // Reduced from 75
+            if (this.sizes.item.base < minTouchSize) {
+                const scaleFactor = minTouchSize / this.sizes.item.base;
+                this.sizes.item.base = minTouchSize;
                 this.sizes.item.powerUp = Math.round(this.sizes.item.powerUp * scaleFactor);
                 this.sizes.item.projectile = Math.round(this.sizes.item.projectile * scaleFactor);
             }
+            
+            // Larger spell icons for mobile (but not too large)
+            this.sizes.ui.spellIconSize = Math.round(this.sizes.ui.spellIconSize * 1.2); // Reduced from 1.3
         }
+        
+        console.log(`📏 Element sizes calculated:
+            Player: ${this.sizes.player.width}x${this.sizes.player.height}
+            Items: ${this.sizes.item.base}px (base), ${this.sizes.item.powerUp}px (power-up), ${this.sizes.item.projectile}px (projectile)
+            UI: ${this.sizes.ui.spellIconSize}px (spell icons)`);
+    }
+    
+    updateScaling() {
+        // Re-detect device type and recalculate everything
+        const oldDeviceType = this.deviceType;
+        this.deviceType = this.detectDeviceType();
+        this.orientation = this.getOrientation();
+        
+        // Only recalculate if device type changed
+        if (oldDeviceType !== this.deviceType) {
+            this.canvasDimensions = this.getCanvasDimensions();
+            this.playableArea = {
+                width: this.canvasDimensions.playableWidth,
+                height: this.canvasDimensions.playableHeight
+            };
+            
+            // Recalculate scale factors
+            this.scaleX = this.playableArea.width / this.basePlayableArea.width;
+            this.scaleY = this.playableArea.height / this.basePlayableArea.height;
+            this.uniformScale = (this.scaleX + this.scaleY) / 2;
+            
+            this.applyDeviceScaleAdjustments();
+            this.calculateElementSizes();
+            
+            console.log(`🔄 Device type changed from ${oldDeviceType} to ${this.deviceType}, scaling updated`);
+        }
+    }
+    
+    // Get the canvas dimensions for the current device
+    getCanvasDimensionsForDevice() {
+        return this.canvasDimensions;
+    }
+    
+    // Get the playable area dimensions for the current device
+    getPlayableAreaDimensions() {
+        return this.playableArea;
     }
     
     // Get scaled size for any element type
@@ -865,7 +1075,7 @@ export class ResponsiveScaler {
         return this.sizes[category] || {};
     }
     
-    // Scale a custom value
+    // Scale a custom value based on playable area
     scale(value) {
         return Math.round(value * this.uniformScale);
     }
@@ -883,23 +1093,12 @@ export class ResponsiveScaler {
         };
     }
     
-    // Update movable area based on device
+    // Get movable area config - now consistent across all devices
+    // The playable-area-based scaling ensures consistent feel
     getMovableAreaConfig() {
-        let heightPercent = 0.3; // Default for desktop
-        
-        switch (this.deviceType) {
-            case 'mobile':
-                // Give more space on mobile since screen is smaller
-                heightPercent = this.orientation === 'portrait' ? 0.4 : 0.5;
-                break;
-            case 'tablet':
-                heightPercent = 0.35;
-                break;
-        }
-        
         return {
             enabled: true,
-            heightPercent: heightPercent,
+            heightPercent: 0.3,     // Consistent 30% across all devices
             showBorder: true,
             borderColor: '#4ECDC4',
             borderOpacity: this.deviceType === 'mobile' ? 0.4 : 0.3, // More visible on mobile
@@ -916,7 +1115,7 @@ export function checkBoundaryCollision(item, canvas) {
     // Only check for side and top collisions - bottom collision means the item is missed
     return {
         left: item.x <= 0,
-        right: item.x + item.width >= canvas.width,
+        right: item.x + item.width >= (canvas.logicalWidth || gameConfig.canvas.width),
         top: item.y <= 0,
         bottom: false // Never bounce from bottom - items should be missed instead
     };
@@ -942,7 +1141,7 @@ export function applyBoundaryBounce(item, collisions, canvas, restitution = 0.7,
     
     // Right wall collision
     if (collisions.right) {
-        item.x = canvas.width - item.width; // Correct position
+                    item.x = (canvas.logicalWidth || gameConfig.canvas.width) - item.width; // Correct position
         item.horizontalSpeed = -Math.abs(item.horizontalSpeed) * restitution; // Bounce left
         
         // Add rotational effect based on vertical speed
@@ -984,7 +1183,7 @@ export function applyAdvancedBouncePhysics(item, collisions, canvas, options = {
         const isLeftWall = collisions.left;
         
         // Position correction
-        item.x = isLeftWall ? 0 : canvas.width - item.width;
+        item.x = isLeftWall ? 0 : (canvas.logicalWidth || gameConfig.canvas.width) - item.width;
         
         // Simply reverse horizontal speed with energy loss
         item.horizontalSpeed = -item.horizontalSpeed * restitution;
@@ -1223,5 +1422,53 @@ export function clearGameCache() {
                 registration.update(); // Force service worker update
             });
         });
+    }
+}
+
+// ===== GAME MODE UTILITIES =====
+
+// Get current game mode modifiers
+export function getGameModeModifiers() {
+    // Import settings from settings system if available
+    let gameMode = 'normal'; // default
+    
+    try {
+        // Try to import getGameMode function
+        if (typeof window !== 'undefined' && window.getGameMode) {
+            gameMode = window.getGameMode();
+        }
+    } catch (error) {
+        console.warn('Could not get game mode from settings, using normal mode');
+    }
+    
+    return gameConfig.gameModes[gameMode] || gameConfig.gameModes.normal;
+}
+
+// Apply game mode modifier to a value
+export function applyGameModeModifier(baseValue, modifierType) {
+    const modifiers = getGameModeModifiers().modifiers;
+    const modifier = modifiers[modifierType] || 1.0;
+    return baseValue * modifier;
+}
+
+// Check if current game mode is specific mode
+export function isGameMode(mode) {
+    try {
+        if (typeof window !== 'undefined' && window.getGameMode) {
+            return window.getGameMode() === mode;
+        }
+    } catch (error) {
+        console.warn('Could not check game mode');
+    }
+    return mode === 'normal'; // default
+}
+
+// Get current game mode name
+export function getCurrentGameModeName() {
+    try {
+        const currentMode = getGameModeModifiers();
+        return currentMode.name || 'Normal Mode';
+    } catch (error) {
+        return 'Normal Mode';
     }
 } 

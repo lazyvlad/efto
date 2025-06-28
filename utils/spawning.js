@@ -72,11 +72,21 @@ export function calculatePowerUpProbability(powerUp, gameState) {
     if (powerUp.healthScaling && gameState.health !== undefined) {
         const healthPercent = gameState.health / gameState.maxHealth;
         if (healthPercent < 0.3) {
-            probability *= 1.3; // 30% bonus at <30% health
+            probability *= 2.0; // 100% bonus at <30% health (increased from 30%)
         } else if (healthPercent < 0.5) {
-            probability *= 1.2; // 20% bonus at <50% health
+            probability *= 1.4; // 40% bonus at <50% health (increased from 20%)
         } else if (healthPercent < 0.7) {
-            probability *= 1.1; // 10% bonus at <70% health
+            probability *= 1.2; // 20% bonus at <70% health (increased from 10%)
+        }
+    }
+    
+    // Apply level scaling for healing items in later levels
+    if (powerUp.healthScaling && gameState.currentLevel !== undefined) {
+        const currentLevel = gameState.currentLevel + 1; // Convert 0-based to 1-based
+        if (currentLevel >= 10) {
+            // Increase healing item spawn rate significantly in late game
+            const levelBonus = 1 + (currentLevel - 9) * 0.1; // 10% bonus per level after 9
+            probability *= Math.min(levelBonus, 2.5); // Cap at 2.5x bonus (level 25+)
         }
     }
     
@@ -200,7 +210,14 @@ function getRandomSpawnInterval(gameState) {
     const currentLevel = Math.max(1, (gameState.currentLevel || 0) + 1);
     
     // Apply level scaling (each level makes spawns faster)
-    const scalingFactor = Math.pow(levelScaling, currentLevel - 1);
+    let scalingFactor = Math.pow(levelScaling, currentLevel - 1);
+    
+    // Apply additional scaling for high levels (10+) to increase spawn frequency
+    if (currentLevel >= 10) {
+        const highLevelBonus = 1 - ((currentLevel - 9) * 0.05); // 5% faster per level after 9
+        scalingFactor *= Math.max(highLevelBonus, 0.3); // Cap at 70% faster (minimum 0.3x interval)
+    }
+    
     const levelMin = Math.max(minAbsolute, baseMin * scalingFactor);
     const levelMax = Math.max(minAbsolute, baseMax * scalingFactor);
     

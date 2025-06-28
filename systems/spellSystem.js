@@ -1,6 +1,7 @@
 // Player spell system
 import { playerSpells } from '../data/playerSpells.js';
 import { notificationSystem } from './notificationSystem.js';
+import { Arrow } from '../classes/Arrow.js';
 
 class SpellSystem {
     constructor() {
@@ -74,6 +75,13 @@ class SpellSystem {
         if (spell.id === 'flask_of_titans') {
             this.handleFlaskOfTitansEffect();
             return; // Flask of Titans is instant, no duration tracking needed
+        } else if (spell.id === 'zandalari' && spell.effects.reverse_gravity) {
+            // Activate reverse gravity through gameState if available
+            this.activateReverseGravity();
+        } else if (spell.effects.fire_arrow) {
+            // Handle arrow spells (autoshot/multishot)
+            this.handleFireArrowEffect(spell);
+            return; // Arrow spells are instant, no duration tracking needed
         }
         
         // Add to active spells (only for spells with duration)
@@ -174,6 +182,12 @@ class SpellSystem {
         if (spellId === 'dragon_cry' && player && canvas && gameConfig) {
             // Teleport player back to constrained area if they're outside
             this.teleportPlayerToConstrainedArea(player, canvas, gameConfig);
+        } else if (spellId === 'zandalari' && spell.effects.reverse_gravity) {
+            // Deactivate reverse gravity when Zandalari expires
+            this.deactivateReverseGravity();
+            
+            // Apply Zandalari aftereffect: +5% dodge rating for 15 seconds
+            this.applyZandalariAftereffect();
         }
     }
 
@@ -184,9 +198,9 @@ class SpellSystem {
         if (!movableArea.enabled) return; // No constraints to enforce
         
         // Calculate constrained area bounds
-        const movableHeight = canvas.height * movableArea.heightPercent;
-        const minY = canvas.height - movableHeight;
-        const maxY = canvas.height - player.height;
+        const movableHeight = canvas.logicalHeight * movableArea.heightPercent;
+        const minY = canvas.logicalHeight - movableHeight;
+        const maxY = canvas.logicalHeight - player.height;
         
         // Check if player is outside the constrained area
         if (player.y < minY) {
@@ -197,7 +211,7 @@ class SpellSystem {
         
         // Ensure player is also within horizontal bounds (just in case)
         const minX = 0;
-        const maxX = canvas.width - player.width;
+        const maxX = canvas.logicalWidth - player.width;
         
         if (player.x < minX) {
             player.x = minX;
@@ -272,6 +286,140 @@ class SpellSystem {
             }
         }
         return bonus;
+    }
+
+    // Get dodge rating bonus from active spells
+    getDodgeRatingBonus() {
+        let bonus = 0.0;
+        for (const [spellId, activeSpell] of this.activeSpells.entries()) {
+            if (activeSpell.spell.effects.dodge_rating_bonus) {
+                bonus += activeSpell.spell.effects.dodge_rating_bonus;
+            }
+        }
+        return bonus;
+    }
+
+    // Check if reverse gravity is active from spells
+    hasReverseGravity() {
+        for (const [spellId, activeSpell] of this.activeSpells.entries()) {
+            if (activeSpell.spell.effects.reverse_gravity) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // Activate reverse gravity effect
+    activateReverseGravity() {
+        const gameState = this.gameStateCallback ? this.gameStateCallback() : null;
+        if (gameState) {
+            // Clear invisible items and reset all objects for reverse gravity
+            this.clearInvisibleObjectsForReverseGravity();
+            
+            // Activate reverse gravity
+            const wasAlreadyActive = gameState.reverseGravityActive;
+            gameState.reverseGravityActive = true;
+            gameState.reverseGravityTimer = 600; // 10 seconds to match Zandalari duration
+            
+            // Add notification
+            if (wasAlreadyActive) {
+                this.addNotification('🔄⚡ Zandalari Extended Reverse Gravity!', 3000, 'boost');
+            } else {
+                this.addNotification('🔄⚡ Zandalari Activated Reverse Gravity!', 3000, 'boost');
+            }
+        }
+    }
+
+    // Deactivate reverse gravity effect
+    deactivateReverseGravity() {
+        const gameState = this.gameStateCallback ? this.gameStateCallback() : null;
+        if (gameState) {
+            gameState.reverseGravityActive = false;
+            gameState.reverseGravityTimer = 0;
+            this.addNotification('🔄⚡ Zandalari Reverse Gravity Ended', 2000, 'warning');
+        }
+    }
+
+    // Apply Zandalari aftereffect: +5% dodge rating for 15 seconds
+    applyZandalariAftereffect() {
+        const gameState = this.gameStateCallback ? this.gameStateCallback() : null;
+        if (gameState) {
+            // Apply +5% dodge boost for 15 seconds (900 frames at 60fps)
+            const dodgeBonus = 0.05;
+            const duration = 900; // 15 seconds
+            
+            // Stack with existing temporary dodge boost
+            gameState.temporaryDodgeBoost = (gameState.temporaryDodgeBoost || 0) + dodgeBonus;
+            gameState.dodgeBoostTimer = duration;
+            
+            // Add notification for the aftereffect
+            const dodgePercent = Math.round(dodgeBonus * 100);
+            const durationSeconds = Math.round(duration / 60);
+            this.addNotification(`🐉💨 Zandalari Aftereffect: +${dodgePercent}% Dodge (${durationSeconds}s)`, 4000, 'dodge');
+        }
+    }
+
+    // Clear invisible objects for reverse gravity (similar to power-up implementation)
+    clearInvisibleObjectsForReverseGravity() {
+        // Access global game objects if available
+        if (typeof window !== 'undefined') {
+            // Clear invisible falling items and reset reverse gravity state
+            if (window.fallingItems) {
+                const initialCount = window.fallingItems.length;
+                window.fallingItems = window.fallingItems.filter(item => item.y >= 0);
+                const removedCount = initialCount - window.fallingItems.length;
+                
+                // Reset all items to be eligible for reverse gravity
+                window.fallingItems.forEach(item => {
+                    if (item.wasReversed === false) {
+                        item.wasReversed = undefined;
+                        item.bouncedOffTopDuringReverse = false;
+                    }
+                });
+                
+                if (removedCount > 0) {
+                    console.log(`Zandalari Reverse Gravity: Cleared ${removedCount} invisible items`);
+                }
+            }
+            
+            // Clear invisible power-ups and reset reverse gravity state
+            if (window.powerUps) {
+                const initialPowerUpCount = window.powerUps.length;
+                window.powerUps = window.powerUps.filter(item => item.y >= 0);
+                const removedPowerUpCount = initialPowerUpCount - window.powerUps.length;
+                
+                // Reset all power-ups to be eligible for reverse gravity
+                window.powerUps.forEach(item => {
+                    if (item.wasReversed === false) {
+                        item.wasReversed = undefined;
+                        item.bouncedOffTopDuringReverse = false;
+                    }
+                });
+                
+                if (removedPowerUpCount > 0) {
+                    console.log(`Zandalari Reverse Gravity: Cleared ${removedPowerUpCount} invisible power-ups`);
+                }
+            }
+            
+            // Clear invisible projectiles and reset reverse gravity state
+            if (window.fireballs) {
+                const initialProjectileCount = window.fireballs.length;
+                window.fireballs = window.fireballs.filter(item => item.y >= 0);
+                const removedProjectileCount = initialProjectileCount - window.fireballs.length;
+                
+                // Reset all projectiles to be eligible for reverse gravity
+                window.fireballs.forEach(projectile => {
+                    if (projectile.wasReversed === false) {
+                        projectile.wasReversed = undefined;
+                        projectile.bouncedOffTopDuringReverse = false;
+                    }
+                });
+                
+                if (removedProjectileCount > 0) {
+                    console.log(`Zandalari Reverse Gravity: Cleared ${removedProjectileCount} invisible projectiles`);
+                }
+            }
+        }
     }
 
     // Handle flask of titans effect - remove one missed dragonstalker item
@@ -365,6 +513,72 @@ class SpellSystem {
             this.addNotification(`Flask of Titans restored ${itemToFix.name}! Victory is possible again! 🏆`, 4000, 'success');
         } else {
             this.addNotification(`Flask of Titans restored ${itemToFix.name}!`, 3000, 'flask_of_titans');
+        }
+    }
+
+    // Handle arrow spells (autoshot/multishot)
+    handleFireArrowEffect(spell) {
+        const gameState = this.gameStateCallback ? this.gameStateCallback() : null;
+        if (!gameState) {
+            this.addNotification('Arrow spell failed - game state not available', 3000, 'warning');
+            return;
+        }
+
+        const arrowData = spell.effects.fire_arrow;
+        const requiredAmmo = spell.ammoRequired || 1;
+
+        // Check if player has enough arrows
+        if (gameState.arrowCount < requiredAmmo) {
+            this.addNotification(`${spell.name} needs ${requiredAmmo} arrows (have: ${gameState.arrowCount})`, 2000, 'warning');
+            return;
+        }
+
+        // Consume arrows
+        gameState.arrowCount -= requiredAmmo;
+
+        // Get player position for arrow spawn
+        const player = gameState.player;
+        if (!player) {
+            this.addNotification('Arrow spell failed - player not available', 3000, 'warning');
+            return;
+        }
+
+        // Access global arrows array
+        if (typeof window !== 'undefined' && window.arrows) {
+            // Fire arrows based on spell configuration
+            const { count, angles, crit_bonus } = arrowData;
+            
+            // Determine size multiplier - multishot arrows are double the size
+            const sizeMultiplier = spell.id === 'multishot' ? 2.0 : 1.0;
+            
+            for (let i = 0; i < count; i++) {
+                const angle = angles[i] || -90; // Default to straight up
+                
+                // Create arrow directly using imported Arrow class
+                const arrow = new Arrow(
+                    player.x + player.width/2 - (5 * sizeMultiplier), // Center on player, offset for arrow width
+                    player.y,
+                    angle,
+                    8, // Speed same as projectiles
+                    sizeMultiplier // Size multiplier for multishot arrows
+                );
+                
+                // Add crit bonus for multishot arrows
+                if (crit_bonus) {
+                    arrow.critBonus = crit_bonus;
+                }
+                
+                window.arrows.push(arrow);
+            }
+
+            // Add notification for arrow firing
+            if (count === 1) {
+                this.addNotification(`🏹 ${spell.name}! (${gameState.arrowCount} arrows left)`, 2000, 'combat');
+            } else {
+                this.addNotification(`🏹 ${spell.name}! ${count} arrows fired (${gameState.arrowCount} left)`, 2000, 'combat');
+            }
+        } else {
+            this.addNotification('Arrow spell failed - arrows array not available', 3000, 'warning');
         }
     }
 }
