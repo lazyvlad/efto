@@ -571,11 +571,13 @@ class SpellSystem {
                 window.arrows.push(arrow);
             }
 
-            // Add notification for arrow firing
-            if (count === 1) {
-                this.addNotification(`🏹 ${spell.name}! (${gameState.arrowCount} arrows left)`, 2000, 'combat');
-            } else {
-                this.addNotification(`🏹 ${spell.name}! ${count} arrows fired (${gameState.arrowCount} left)`, 2000, 'combat');
+            // Add notification for arrow firing only when arrows are low (≤50)
+            if (gameState.arrowCount <= 50) {
+                if (count === 1) {
+                    this.addNotification(`🏹 ${spell.name}! (${gameState.arrowCount} arrows left)`, 2000, 'warning');
+                } else {
+                    this.addNotification(`🏹 ${spell.name}! ${count} arrows fired (${gameState.arrowCount} left)`, 2000, 'warning');
+                }
             }
         } else {
             this.addNotification('Arrow spell failed - arrows array not available', 3000, 'warning');
