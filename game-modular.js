@@ -215,7 +215,17 @@ async function init() {
     updateLoadingProgress(0.75);
     
     // Initialize player with logical canvas dimensions (supports portrait mode)
-    player = new Player(canvas.logicalWidth || gameConfig.canvas.width, canvas.logicalHeight || gameConfig.canvas.height);
+    // Get correct canvas dimensions with device-specific fallback
+    const canvasWidth = canvas.logicalWidth || 
+                       (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
+                        canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
+                        gameConfig.canvas.desktop.width);
+    const canvasHeight = canvas.logicalHeight || 
+                        (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.height :
+                         canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.height :
+                         gameConfig.canvas.desktop.height);
+    
+    player = new Player(canvasWidth, canvasHeight);
     gameState.player = player;
     updateLoadingProgress(0.8);
     
@@ -526,7 +536,7 @@ function render() {
     } else if (gameState.health <= 0) {
         renderGameOver();
     } else {
-        renderHighScores();
+        // renderHighScores();
     }
 }
 
@@ -634,29 +644,26 @@ function renderGameOver() {
     
     ctx.font = '24px Arial';
     ctx.fillText(`Score: ${gameState.score}`, canvas.logicalWidth/2, canvas.logicalHeight/2 + 20);
-    ctx.fillText('Press SPACE to restart', canvas.logicalWidth/2, canvas.logicalHeight/2 + 60);
+
 }
 
 function renderVictory() {
     ctx.fillStyle = 'gold';
-    ctx.font = '48px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText('VICTORY!', canvas.logicalWidth/2, canvas.logicalHeight/2 - 50);
-    
     ctx.font = '24px Arial';
     ctx.fillText(`Score: ${gameState.score}`, canvas.logicalWidth/2, canvas.logicalHeight/2 + 20);
-    ctx.fillText('You collected all Dragonstalker pieces!', canvas.logicalWidth/2, canvas.logicalHeight/2 + 60);
+
 }
 
-function renderHighScores() {
-    ctx.fillStyle = 'white';
-    ctx.font = '36px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('HIGH SCORES', canvas.logicalWidth/2, 100);
+// function renderHighScores() {
+//     ctx.fillStyle = 'white';
+//     ctx.font = '36px Arial';
+//     ctx.textAlign = 'center';
+//     ctx.fillText('HIGH SCORES', canvas.logicalWidth/2, 100);
     
-    ctx.font = '16px Arial';
-    ctx.fillText('Press ESC to return', canvas.logicalWidth/2, canvas.logicalHeight - 50);
-}
+//     ctx.font = '16px Arial';
+
+// }
 
 
 
@@ -2736,6 +2743,9 @@ function updateDOMItemsPanel(gameState, gameItems) {
             panel.classList.remove('interactive');
             panel.classList.remove('paused'); // Remove paused class during gameplay
         }
+        
+        // Check if mobile portrait mode and restructure HTML accordingly
+        // createMobileIntegratedLayout(gameState, gameItems); // Temporarily disabled
     } else {
         panel.classList.add('hidden');
         panel.classList.remove('interactive');
@@ -2772,6 +2782,153 @@ function updateDOMItemsPanel(gameState, gameItems) {
     updateDragonstalkerProgressPanel(gameState, gameItems);
 }
 
+// Create integrated mobile layout
+function createMobileIntegratedLayout(gameState, gameItems) {
+    // Check if device is mobile portrait
+    const isMobilePortrait = (responsiveScaler.deviceType === 'mobile' || window.innerWidth <= 1024) && 
+                           window.matchMedia('(orientation: portrait)').matches;
+    
+    if (!isMobilePortrait) {
+        return; // Use standard layout for desktop/landscape
+    }
+    
+    const panel = document.getElementById('itemsCollectionPanel');
+    const dragonstalkerPanel = document.getElementById('dragonstalkerProgressPanel');
+    
+    // Check if we already have the mobile layout (avoid recreating every frame)
+    if (panel.querySelector('.mobile-player-info')) {
+        // Just update the values, don't recreate HTML
+        updateMobileIntegratedValues(gameState, gameItems);
+        return;
+    }
+    
+    // Get dragonstalker data
+    const dragonstalkerItems = gameItems.filter(item => 
+        item.type === 'tier_set' && item.special_type === 'dragonstalker'
+    );
+    const collectedCount = dragonstalkerItems.reduce((sum, item) => sum + item.collected, 0);
+    const totalPieces = dragonstalkerItems.length;
+    const progressPercent = totalPieces > 0 ? (collectedCount / totalPieces) * 100 : 0;
+    
+    // Create integrated layout HTML
+    const integratedHTML = `
+        <div class="panel-header">
+            <div class="mobile-player-info">
+                <div class="player-name" id="playerNameDisplay">${gameState.playerName || 'Unknown'}</div>
+                <div class="player-score" id="playerScoreDisplay">${gameState.score.toLocaleString()}</div>
+                <div class="player-level" id="playerLevelDisplay">Level ${(gameState.currentLevel || 0) + 1}</div>
+            </div>
+            
+            <div class="player-health-section">
+                <div id="healthBar" class="compact-health-bar">
+                    <div class="player-portrait">
+                        <img src="assets/efto.png" alt="Player Portrait">
+                    </div>
+                    <div class="health-bar-container">
+                        <div class="health-background">
+                            <div class="health-fill" id="healthFill" style="width: ${gameState.player ? (gameState.player.health / gameState.player.maxHealth) * 100 : 100}%"></div>
+                        </div>
+                        <div class="health-text" id="healthText">${gameState.player ? Math.round(gameState.player.health) : 100}/${gameState.player ? gameState.player.maxHealth : 100}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mobile-dragonstalker-progress">
+                <div class="mobile-dragonstalker-title">🐉 DRAGONSTALKER</div>
+                <div class="mobile-dragonstalker-bar">
+                    <div class="mobile-dragonstalker-fill" style="width: ${progressPercent}%"></div>
+                    <div class="mobile-dragonstalker-text">${collectedCount}/${totalPieces}</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Hidden sections for mobile -->
+        <div class="player-stats" style="display: none;">
+            <div class="stat-row">
+                <span class="stat-label">Speed:</span>
+                <span class="stat-value" id="gameSpeed">1.0x</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Crit Chance:</span>
+                <span class="stat-value" id="critRating">10%</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Arrows:</span>
+                <span class="stat-value" id="arrowCount">0</span>
+            </div>
+        </div>
+        
+        <div class="items-list" id="itemsList" style="display: none;">
+            <!-- Items hidden in mobile during gameplay -->
+        </div>
+        
+        <div class="collection-summary" style="display: none;">
+            <span id="collectionCount">0 types, 0 total</span>
+        </div>
+    `;
+    
+    // Update panel HTML
+    panel.innerHTML = integratedHTML;
+    
+    // Hide separate dragonstalker panel on mobile
+    if (dragonstalkerPanel) {
+        dragonstalkerPanel.style.display = 'none';
+    }
+    
+    // Update the stats that are still needed but hidden
+    updatePlayerStats(gameState);
+    
+    // Update health bar specifically for integrated layout
+    updateHealthBarHTML();
+}
+
+// Update values in existing mobile integrated layout
+function updateMobileIntegratedValues(gameState, gameItems) {
+    // Update player info
+    const playerNameDisplay = document.getElementById('playerNameDisplay');
+    const playerScoreDisplay = document.getElementById('playerScoreDisplay');
+    const playerLevelDisplay = document.getElementById('playerLevelDisplay');
+    
+    if (playerNameDisplay) playerNameDisplay.textContent = gameState.playerName || 'Unknown';
+    if (playerScoreDisplay) playerScoreDisplay.textContent = gameState.score.toLocaleString();
+    if (playerLevelDisplay) playerLevelDisplay.textContent = `Level ${(gameState.currentLevel || 0) + 1}`;
+    
+    // Update health bar
+    const healthFill = document.getElementById('healthFill');
+    const healthText = document.getElementById('healthText');
+    
+    if (gameState.player && healthFill) {
+        const healthPercent = (gameState.player.health / gameState.player.maxHealth) * 100;
+        healthFill.style.width = healthPercent + '%';
+    }
+    
+    if (gameState.player && healthText) {
+        healthText.textContent = `${Math.round(gameState.player.health)}/${gameState.player.maxHealth}`;
+    }
+    
+    // Update dragonstalker progress
+    const dragonstalkerItems = gameItems.filter(item => 
+        item.type === 'tier_set' && item.special_type === 'dragonstalker'
+    );
+    const collectedCount = dragonstalkerItems.reduce((sum, item) => sum + item.collected, 0);
+    const totalPieces = dragonstalkerItems.length;
+    const progressPercent = totalPieces > 0 ? (collectedCount / totalPieces) * 100 : 0;
+    
+    const dragonstalkerFill = document.querySelector('.mobile-dragonstalker-fill');
+    const dragonstalkerText = document.querySelector('.mobile-dragonstalker-text');
+
+    // const dragonstalkerStatus = document.querySelector('.mobile-dragonstalker-status');
+    
+    if (dragonstalkerFill) dragonstalkerFill.style.width = progressPercent + '%';
+    if (dragonstalkerText) dragonstalkerText.textContent = `${collectedCount}/${totalPieces}`;
+    // if (dragonstalkerStatus) {
+    //     dragonstalkerStatus.textContent = progressPercent === 100 ? 'COMPLETE!' : `Need ${totalPieces - collectedCount} more pieces`;
+    // }
+    
+    // Update hidden stats
+    updatePlayerStats(gameState);
+}
+
 function updatePlayerStats(gameState) {
     // Update main header elements
     const playerNameDisplay = document.getElementById('playerNameDisplay');
@@ -2780,8 +2937,7 @@ function updatePlayerStats(gameState) {
     const gameSpeed = document.getElementById('gameSpeed');
     const speedBoostRow = document.getElementById('speedBoostRow');
     const speedBoostValue = document.getElementById('speedBoostValue');
-    const actualItemSpeed = document.getElementById('actualItemSpeed');
-    const actualProjectileSpeed = document.getElementById('actualProjectileSpeed');
+    // Removed actualItemSpeed and actualProjectileSpeed - not needed
     const critRating = document.getElementById('critRating');
     const dodgeRating = document.getElementById('dodgeRating');
     
@@ -2805,6 +2961,31 @@ function updatePlayerStats(gameState) {
         playerLevelDisplay.textContent = `Level ${(gameState.currentLevel || 0) + 1}`;
     }
     
+    // Update health bar in player section
+    const playerHealthFill = document.getElementById('playerHealthFill');
+    const playerHealthText = document.getElementById('playerHealthText');
+    
+    if (playerHealthFill && playerHealthText && gameState.health !== undefined && gameState.maxHealth !== undefined) {
+        const healthPercentage = Math.max(0, gameState.health / gameState.maxHealth);
+        const healthPercent = Math.ceil(healthPercentage * 100);
+        
+        // Update health fill width and color
+        playerHealthFill.style.width = `${healthPercentage * 100}%`;
+        
+        // Update health fill color based on health level
+        playerHealthFill.className = 'player-health-fill';
+        if (healthPercentage <= 0.25) {
+            playerHealthFill.style.background = 'linear-gradient(90deg, #ff0000, #ff3333)'; // Red for low
+        } else if (healthPercentage <= 0.6) {
+            playerHealthFill.style.background = 'linear-gradient(90deg, #ff8800, #ffaa00)'; // Orange for medium
+        } else {
+            playerHealthFill.style.background = 'linear-gradient(90deg, #00ff00, #44ff44)'; // Green for high
+        }
+        
+        // Update health text
+        playerHealthText.textContent = `${Math.round(gameState.health)}/${gameState.maxHealth}`;
+    }
+    
     // Calculate and update effective game speed (in stats section)
     if (gameSpeed) {
         // levelSpeedMultiplier already includes Dragonstalker reductions, but not cut_time reductions
@@ -2824,28 +3005,28 @@ function updatePlayerStats(gameState) {
         gameSpeed.textContent = speedText;
         
         // Add level progress info for hybrid progression
-        if (gameConfig.levels.progressionType === "hybrid" || gameConfig.levels.progressionType === "time") {
-            const progress = getLevelProgress(gameState);
-            const timeRemaining = Math.ceil(progress.timeRemaining);
-            const minutes = Math.floor(timeRemaining / 60);
-            const seconds = timeRemaining % 60;
-            const timeStr = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds}s`;
+        // if (gameConfig.levels.progressionType === "hybrid" || gameConfig.levels.progressionType === "time") {
+        //     const progress = getLevelProgress(gameState);
+        //     const timeRemaining = Math.ceil(progress.timeRemaining);
+        //     const minutes = Math.floor(timeRemaining / 60);
+        //     const seconds = timeRemaining % 60;
+        //     const timeStr = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds}s`;
             
-            // Show activity bonuses/penalties
-            const activity = progress.activity || {};
-            let activityStr = '';
-            if (activity.collections > 0 || activity.misses > 0 || activity.powerUpsCollected > 0 || activity.damageReceived > 0) {
-                const bonuses = [];
-                if (activity.collections > 0) bonuses.push(`📦${activity.collections}`);
-                if (activity.powerUpsCollected > 0) bonuses.push(`⚡${activity.powerUpsCollected}`);
-                if (activity.misses > 0) bonuses.push(`❌${activity.misses}`);
-                if (activity.damageReceived > 0) bonuses.push(`💔${Math.round(activity.damageReceived)}`);
-                activityStr = ` (${bonuses.join(' ')})`;
-            }
+        //     // Show activity bonuses/penalties
+        //     const activity = progress.activity || {};
+        //     let activityStr = '';
+        //     if (activity.collections > 0 || activity.misses > 0 || activity.powerUpsCollected > 0 || activity.damageReceived > 0) {
+        //         const bonuses = [];
+        //         if (activity.collections > 0) bonuses.push(`📦${activity.collections}`);
+        //         if (activity.powerUpsCollected > 0) bonuses.push(`⚡${activity.powerUpsCollected}`);
+        //         if (activity.misses > 0) bonuses.push(`❌${activity.misses}`);
+        //         if (activity.damageReceived > 0) bonuses.push(`💔${Math.round(activity.damageReceived)}`);
+        //         activityStr = ` (${bonuses.join(' ')})`;
+        //     }
             
-            speedText += ` | Next: ${timeStr}${activityStr}`;
-            gameSpeed.textContent = speedText;
-        }
+        //     speedText += ` | Next: ${timeStr}${activityStr}`;
+        //     gameSpeed.textContent = speedText;
+        // }
     }
     
     // Update speed boost display
@@ -2859,26 +3040,7 @@ function updatePlayerStats(gameState) {
         }
     }
     
-    // Calculate actual speeds from items on screen (minimal performance impact)
-    if (actualItemSpeed) {
-        if (fallingItems.length > 0) {
-            const totalItemSpeed = fallingItems.reduce((sum, item) => sum + (item.speed || 0), 0);
-            const avgItemSpeed = totalItemSpeed / fallingItems.length;
-            actualItemSpeed.textContent = `${avgItemSpeed.toFixed(1)} px/frame`;
-        } else {
-            actualItemSpeed.textContent = '-- px/frame';
-        }
-    }
-    
-    if (actualProjectileSpeed) {
-        if (fireballs.length > 0) {
-            const totalProjectileSpeed = fireballs.reduce((sum, projectile) => sum + (projectile.speed || 0), 0);
-            const avgProjectileSpeed = totalProjectileSpeed / fireballs.length;
-            actualProjectileSpeed.textContent = `${avgProjectileSpeed.toFixed(1)} px/frame`;
-        } else {
-            actualProjectileSpeed.textContent = '-- px/frame';
-        }
-    }
+    // Removed actual speed calculations - not needed
     
     // Update crit rating display
     if (critRating) {
@@ -3019,21 +3181,8 @@ function updatePlayerStats(gameState) {
         dodgeRating.style.textShadow = textShadow;
     }
     
-    // Update dodge statistics display
-    const totalDodgesElement = document.getElementById('totalDodges');
+    // Update dodge statistics display (removed totalDodges - not needed)
     const healthSavedElement = document.getElementById('healthSavedFromDodges');
-    
-    if (totalDodgesElement) {
-        totalDodgesElement.textContent = gameState.totalDodges.toString();
-        // Color code based on dodge count
-        if (gameState.totalDodges === 0) {
-            totalDodgesElement.style.color = '#CCCCCC'; // Gray for no dodges
-        } else if (gameState.totalDodges < 10) {
-            totalDodgesElement.style.color = '#FFD700'; // Gold for some dodges
-        } else {
-            totalDodgesElement.style.color = '#00FF00'; // Green for many dodges
-        }
-    }
     
     if (healthSavedElement) {
         healthSavedElement.textContent = `${Math.round(gameState.healthSavedFromDodges)} HP`;
@@ -3256,28 +3405,28 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
     }
     
     // Update status message
-    const statusElement = document.getElementById('dragonstalkerStatus');
-    if (statusElement) {
-        statusElement.className = 'dragonstalker-status';
-        if (gameState.gameWon) {
-            if (zeeZgnanCollected) {
-                statusElement.textContent = '🎯 ZEE ZGNAN VICTORY! 🎯';
-                statusElement.classList.add('victory');
-            } else {
-                statusElement.textContent = '🏆 SET COMPLETE! 🏆';
-                statusElement.classList.add('victory');
-            }
-        } else if (uniquePiecesCollected >= 8) {
-            statusElement.textContent = '🏆 ALMOST THERE! 🏆';
-        } else {
-            statusElement.textContent = `Need ${10 - uniquePiecesCollected} more pieces`;
-        }
+    // const statusElement = document.getElementById('dragonstalkerStatus');
+    // if (statusElement) {
+    //     statusElement.className = 'dragonstalker-status';
+    //     if (gameState.gameWon) {
+    //         if (zeeZgnanCollected) {
+    //             statusElement.textContent = '🎯 ZEE ZGNAN VICTORY! 🎯';
+    //             statusElement.classList.add('victory');
+    //         } else {
+    //             statusElement.textContent = '🏆 SET COMPLETE! 🏆';
+    //             statusElement.classList.add('victory');
+    //         }
+    //     } else if (uniquePiecesCollected >= 8) {
+    //         statusElement.textContent = '🏆 ALMOST THERE! 🏆';
+    //     } else {
+    //         statusElement.textContent = `Need ${10 - uniquePiecesCollected} more pieces`;
+    //     }
         
-        // Add speed reduction info if any completions
-        if (gameState.permanentSpeedReductionFromSets > 0) {
-            statusElement.textContent += ` | Speed Reduction: -${gameState.permanentSpeedReductionFromSets.toFixed(1)}x`;
-        }
-    }
+    //     // Add speed reduction info if any completions
+    //     if (gameState.permanentSpeedReductionFromSets > 0) {
+    //         statusElement.textContent += ` | Speed Reduction: -${gameState.permanentSpeedReductionFromSets.toFixed(1)}x`;
+    //     }
+    // }
     
     // Update items list
     const itemsList = document.getElementById('dragonstalkerItemsList');
@@ -3311,13 +3460,13 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
                 nameClass = 'missed';
             }
             
-            // Add data-icon attribute for mobile responsive CSS
+            // Add icon for mobile layout
             const itemIcon = getDragonstalkerItemIcon(item.id);
             itemDiv.setAttribute('data-icon', itemIcon);
             
             // Use shortened names for mobile/compact view
             const isCompactView = responsiveScaler.deviceType === 'mobile' || 
-                                 window.innerWidth <= 768 || 
+                                 window.innerWidth <= 1024 || 
                                  document.body.classList.contains('force-mobile-panels');
             
             let displayName = item.name;
@@ -3325,35 +3474,27 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
                 displayName = getShortenedDragonstalkerName(item.id, item.name);
             }
             
-            itemDiv.innerHTML = `
-                <div class="dragonstalker-item-status ${statusClass}">${status}</div>
-                <div class="dragonstalker-item-name ${nameClass}">${displayName}</div>
-            `;
+            // Create different layouts for mobile vs desktop
+            if (isCompactView) {
+                // Mobile: Show emoji icon with status overlay
+                itemDiv.innerHTML = `
+                    <div class="dragonstalker-item-icon">${itemIcon}</div>
+                    <div class="dragonstalker-item-status ${statusClass}">${status}</div>
+                    <div class="dragonstalker-item-name ${nameClass}">${displayName}</div>
+                `;
+            } else {
+                // Desktop: Traditional layout
+                itemDiv.innerHTML = `
+                    <div class="dragonstalker-item-status ${statusClass}">${status}</div>
+                    <div class="dragonstalker-item-name ${nameClass}">${displayName}</div>
+                `;
+            }
             
             itemsList.appendChild(itemDiv);
         });
     }
     
-    // Update bottom message
-    const bottomMessage = document.getElementById('dragonstalkerBottomMessage');
-    if (bottomMessage) {
-        bottomMessage.className = 'dragonstalker-bottom-message';
-        
-        if (gameState.gameWon) {
-            if (zeeZgnanCollected) {
-                bottomMessage.textContent = 'Ultimate Victory Achieved!';
-                bottomMessage.classList.add('victory');
-            } else {
-                bottomMessage.textContent = 'Dragonstalker Set Complete!';
-                bottomMessage.classList.add('victory');
-            }
-        } else if (uniquePiecesCollected >= 8) {
-            bottomMessage.textContent = 'So close to victory!';
-            bottomMessage.classList.add('almost-there');
-        } else {
-            bottomMessage.textContent = 'Collect all pieces to win the game!';
-        }
-    }
+
 }
 
 // ===== GAME END FUNCTIONS =====
@@ -3640,10 +3781,51 @@ function setupHighDPICanvas() {
     canvas.style.width = displayWidth + 'px';
     canvas.style.height = displayHeight + 'px';
     
-    // Handle centering
+    // Handle positioning - mobile-optimized for touch devices
     if (gameConfig.canvas.scaling.centerCanvas) {
-        const leftOffset = (viewportWidth - displayWidth) / 2;
-        const topOffset = (viewportHeight - displayHeight) / 2;
+        const deviceDimensions = responsiveScaler.getCanvasDimensionsForDevice();
+        const isMobilePortrait = responsiveScaler.deviceType === 'mobile' && 
+                                responsiveScaler.orientation === 'portrait' &&
+                                deviceDimensions.positioning?.useCustomPositioning;
+        
+        let leftOffset, topOffset;
+        
+        if (isMobilePortrait) {
+            // Mobile portrait: Horizontal center, positioned between combined panel and spell buttons
+            leftOffset = deviceDimensions.positioning.centerHorizontally ? 
+                (viewportWidth - displayWidth) / 2 : 0;
+            
+            // Calculate positioning between top panel and bottom spell buttons
+            const topOffset_setting = deviceDimensions.positioning.topOffset || 90; // Below combined panel
+            const bottomOffset = deviceDimensions.positioning.bottomOffset || 100; // Above spell buttons
+            
+            // Calculate available space for canvas
+            const availableHeight = viewportHeight - topOffset_setting - bottomOffset;
+            
+            // Center canvas in available space or position at top offset if it doesn't fit
+            if (displayHeight <= availableHeight) {
+                // Canvas fits - center it in available space
+                const extraSpace = availableHeight - displayHeight;
+                topOffset = topOffset_setting + (extraSpace / 2);
+            } else {
+                // Canvas too tall - position at minimum top offset
+                topOffset = topOffset_setting;
+            }
+            
+            // Ensure we don't go above the panel or below the buttons
+            topOffset = Math.max(topOffset_setting, Math.min(topOffset, viewportHeight - displayHeight - bottomOffset));
+            
+            console.log(`📱 Mobile Portrait Canvas Positioning:
+                Canvas: ${displayWidth}x${displayHeight}
+                Viewport: ${viewportWidth}x${viewportHeight}  
+                Position: left=${leftOffset}px, top=${topOffset}px
+                Top offset: ${topOffset_setting}px, Bottom offset: ${bottomOffset}px
+                Available space: ${availableHeight}px`);
+        } else {
+            // Desktop/landscape: Standard centering
+            leftOffset = (viewportWidth - displayWidth) / 2;
+            topOffset = (viewportHeight - displayHeight) / 2;
+        }
         
         canvas.style.position = 'fixed';
         canvas.style.left = leftOffset + 'px';
@@ -3712,7 +3894,9 @@ function setupHighDPICanvas() {
         DPR: ${pixelRatio}
         Viewport: ${viewportWidth}x${viewportHeight}
         Playable Area: ${playableArea.width}x${playableArea.height}
-        Item Scale: ${responsiveScaler.uniformScale.toFixed(2)}x`);
+        Item Scale: ${responsiveScaler.uniformScale.toFixed(2)}x
+        
+`);
     
     // Debug info for letterboxing
     if (gameConfig.canvas.scaling.showLetterboxInfo) {
