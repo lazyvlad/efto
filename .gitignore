@@ -6,22 +6,56 @@ __pycache__/
 *.pyc
 *.pyo
 
-# Node modules (if any)
-node_modules/
-
-# Build output
+# Build output directories
 dist/
-build-info.json
-*.log
+dev_dist/
+
+# Dependencies
+node_modules/
 
 # Environment files
 .env
 .env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
-# IDE files
-.vscode/settings.json
-.idea/
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
 
 # OS generated files
 .DS_Store
-Thumbs.db 
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+
+# Backup files
+*.bak
+*.backup
+config/*.bak
+
+# IDE files
+.vscode/settings.json 

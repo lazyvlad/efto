@@ -1,12 +1,12 @@
 {
   "name": "efto-game",
   "version": "1.0.0",
-  "description": "DMTribut - EFTO Game - Production Build System",
+  "description": "EFTO Game - Simple Build System",
   "main": "game-modular.js",
   "scripts": {
     "build": "node build.js",
     "build:dev": "node build.js --dev",
-    "clean": "node -e \"const fs = require('fs-extra'); fs.removeSync('dist');\""
+    "clean": "node -e \"const fs = require('fs-extra'); fs.removeSync('dist'); fs.removeSync('dev_dist');\""
   },
   "devDependencies": {
     "terser": "^5.24.0",

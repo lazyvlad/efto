@@ -11,7 +11,7 @@ const readlineSync = require('readline-sync');
 // Configuration
 const CONFIG = {
     srcDir: '.',
-    distDir: 'dist',
+    distDir: process.argv.includes('--dev') ? 'dev_dist' : 'dist',
     isDev: process.argv.includes('--dev'),
     addCacheBusting: !process.argv.includes('--no-cache'),
     
@@ -681,8 +681,9 @@ export const serverConfig = {
             let content = await fs.readFile(srcPath, 'utf8');
             this.log(`📋 Processing ${file}...`, 'info');
             
-            // First: Update file references for cache busting (file renaming)
+            // First: Handle file references based on build mode
             if (!CONFIG.isDev && CONFIG.addCacheBusting && this.fileMap.size > 0) {
+                // PRODUCTION: Apply file mappings for cache busting
                 this.log(`  🔄 Applying ${this.fileMap.size} file mappings...`, 'info');
                 for (const [originalFile, newFile] of this.fileMap) {
                     const beforeContent = content;
@@ -712,6 +713,29 @@ export const serverConfig = {
                         } else {
                             this.log(`  ⚠️  No matches found for: ${originalFile}`, 'warning');
                         }
+                    }
+                }
+            } else if (CONFIG.isDev) {
+                // DEVELOPMENT: Clean up any existing hashed references from previous production builds
+                this.log(`  🧹 Cleaning up hashed file references for development...`, 'info');
+                
+                // List of files that might have been hashed in previous builds
+                const filesToCleanup = ['game-modular.js'];
+                
+                for (const originalFile of filesToCleanup) {
+                    const beforeContent = content;
+                    const ext = path.extname(originalFile);
+                    const baseName = path.basename(originalFile, ext);
+                    
+                    // Create regex to match any hashed version of this file
+                    const hashedPattern = `${baseName}\\.[a-z0-9]+${ext.replace('.', '\\.')}`;
+                    const hashedRegex = new RegExp(hashedPattern, 'g');
+                    const hashedMatches = content.match(hashedRegex);
+                    
+                    if (hashedMatches) {
+                        this.log(`  🔍 Found hashed versions to clean: ${hashedMatches.join(', ')}`, 'info');
+                        content = content.replace(hashedRegex, originalFile);
+                        this.log(`  ✅ Restored original filename: ${originalFile}`, 'success');
                     }
                 }
             } else if (!CONFIG.isDev && CONFIG.addCacheBusting) {
