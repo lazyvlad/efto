@@ -393,6 +393,8 @@ export const serverConfig = {
             const files = await glob(pattern, { cwd: CONFIG.srcDir });
             allJsFiles.push(...files);
         }
+        
+        this.log(`📋 Found ${allJsFiles.length} JavaScript files to process`, 'info');
 
         for (const file of allJsFiles) {
             // Skip serverConfig.js as it's handled separately
@@ -425,6 +427,7 @@ export const serverConfig = {
                     const name = path.basename(file, ext);
                     outputFilename = `${name}.${this.cacheHash}${ext}`;
                     this.fileMap.set(file, outputFilename);
+                    this.log(`🔄 Cache busting: ${file} → ${outputFilename}`, 'info');
                 }
             } else {
                 this.log(`📋 Copied: ${file}`, 'info');
@@ -433,6 +436,13 @@ export const serverConfig = {
             const destPath = path.join(CONFIG.distDir, outputFilename);
             await fs.ensureDir(path.dirname(destPath));
             await fs.writeFile(destPath, processedContent);
+        }
+        
+        if (!CONFIG.isDev && CONFIG.addCacheBusting) {
+            this.log(`📋 File mappings created:`, 'info');
+            for (const [original, renamed] of this.fileMap) {
+                this.log(`  ${original} → ${renamed}`, 'info');
+            }
         }
     }
 
@@ -487,27 +497,73 @@ export const serverConfig = {
             }
 
             let content = await fs.readFile(srcPath, 'utf8');
+            this.log(`📋 Processing ${file}...`, 'info');
             
-            // Update file references for cache busting
-            if (!CONFIG.isDev && CONFIG.addCacheBusting) {
+            // First: Update file references for cache busting (file renaming)
+            if (!CONFIG.isDev && CONFIG.addCacheBusting && this.fileMap.size > 0) {
+                this.log(`  🔄 Applying ${this.fileMap.size} file mappings...`, 'info');
                 for (const [originalFile, newFile] of this.fileMap) {
-                    content = content.replace(new RegExp(originalFile, 'g'), newFile);
+                    const beforeContent = content;
+                    content = content.replace(new RegExp(originalFile.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newFile);
+                    if (content !== beforeContent) {
+                        this.log(`  ✅ Renamed: ${originalFile} → ${newFile}`, 'success');
+                    } else {
+                        this.log(`  ⚠️  No matches found for: ${originalFile}`, 'warning');
+                    }
                 }
+            } else if (!CONFIG.isDev && CONFIG.addCacheBusting) {
+                this.log(`  ℹ️  No file mappings to apply`, 'info');
             }
 
-            // Update version parameters in script tags and links
+            // Second: Update version parameters in script and link tags
             if (this.gameVersion) {
-                // Update script src with version parameter
+                // Update script src with version parameter (simplified approach)
+                const scriptBeforeContent = content;
+                
+                // Handle script tags - simple and reliable approach
                 content = content.replace(
-                    /(<script[^>]+src="[^"]*")(\?v=[^"]*)?(")/g,
-                    `$1?v=${this.gameVersion}$3`
+                    /(<script[^>]+src="[^"]+)\?v=[^"&]*([^"]*"[^>]*>)/g,
+                    `$1?v=${this.gameVersion}$2`
                 );
                 
-                // Update link href with version parameter (for CSS files)
+                // Handle script tags without version parameter
                 content = content.replace(
-                    /(<link[^>]+href="[^"]*\.css")(\?v=[^"]*)?(")/g,
-                    `$1?v=${this.gameVersion}$3`
+                    /(<script[^>]+src="[^"]+)("[^>]*>)/g,
+                    (match, prefix, suffix) => {
+                        if (prefix.includes('?v=')) {
+                            return match; // Already handled above
+                        }
+                        return `${prefix}?v=${this.gameVersion}${suffix}`;
+                    }
                 );
+                
+                if (content !== scriptBeforeContent) {
+                    this.log(`  ✅ Updated script version parameters to v=${this.gameVersion}`, 'success');
+                }
+                
+                // Update link href with version parameter (for CSS files)
+                const linkBeforeContent = content;
+                
+                // Handle CSS link tags - simple and reliable approach
+                content = content.replace(
+                    /(<link[^>]+href="[^"]+\.css)\?v=[^"&]*([^"]*"[^>]*>)/g,
+                    `$1?v=${this.gameVersion}$2`
+                );
+                
+                // Handle CSS link tags without version parameter
+                content = content.replace(
+                    /(<link[^>]+href="[^"]+\.css)("[^>]*>)/g,
+                    (match, prefix, suffix) => {
+                        if (prefix.includes('?v=')) {
+                            return match; // Already handled above
+                        }
+                        return `${prefix}?v=${this.gameVersion}${suffix}`;
+                    }
+                );
+                
+                if (content !== linkBeforeContent) {
+                    this.log(`  ✅ Updated CSS version parameters to v=${this.gameVersion}`, 'success');
+                }
                 
                 // Update any hardcoded version numbers in comments or meta tags
                 content = content.replace(
