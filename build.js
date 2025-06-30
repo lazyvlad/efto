@@ -393,8 +393,172 @@ export const serverConfig = {
     }
 })();
 `;
+        }
+    
+    removeDebugLogs(content, filename) {
+        let processed = content;
+        let removedCount = 0;
+        
+        // Define critical console.log patterns that should be KEPT in production
+        const criticalPatterns = [
+            /console\.log\([^)]*['"`]Game started['"`]/,
+            /console\.log\([^)]*['"`]Game initialization complete['"`]/,
+            /console\.log\([^)]*['"`]🎉 Build completed successfully['"`]/,
+            /console\.log\([^)]*['"`]💥 Build failed['"`]/,
+            /console\.log\([^)]*['"`]Error[^)]*['"`]/,
+            /console\.log\([^)]*['"`]Failed[^)]*['"`]/,
+            /console\.log\([^)]*clearGameCacheNow\(\)/,
+            /console\.log\([^)]*['"`]🧹 To clear cache['"`]/,
+            /console\.log\([^)]*['"`]📱 Chrome Force Refresh['"`]/,
+            /console\.log\([^)]*['"`]✅ All caches cleared['"`]/,
+            /console\.log\([^)]*['"`]Cleared:', key/,
+            // Keep final canvas setup summary for debugging display issues
+            /console\.log\([^)]*['"`]👑 Playable-Area-Based Canvas Setup Complete['"`]/
+        ];
+        
+        // Define debug console.log patterns that should be REMOVED in production
+        const debugPatterns = [
+            // Notification system spam
+            /console\.log\([^)]*['"`]Attempting to show notification['"`]/g,
+            /console\.log\([^)]*['"`]Current notifications count['"`]/g,
+            /console\.log\([^)]*['"`]Skipping duplicate notification['"`]/g,
+            /console\.log\([^)]*['"`]Removing oldest.*notification['"`]/g,
+            /console\.log\([^)]*['"`]Cleaning up orphaned['"`]/g,
+            /console\.log\([^)]*['"`]Successfully added notification['"`]/g,
+            /console\.log\([^)]*['"`]Removing type.*from activeTypes['"`]/g,
+            /console\.log\([^)]*['"`]Keeping type.*in activeTypes['"`]/g,
+            /console\.log\([^)]*['"`]Created persistent notification['"`]/g,
+            /console\.log\([^)]*['"`]Removed persistent notification['"`]/g,
+            
+            // Level and speed debug logs
+            /console\.log\([^)]*['"`]🔍 LEVEL SPEED DEBUG['"`]/g,
+            /console\.log\([^)]*['"`]Level up! Now level['"`]/g,
+            /console\.log\([^)]*['"`]🕐 TIME-BASED LEVEL UP['"`]/g,
+            /console\.log\([^)]*['"`]⏱️ Next level time['"`]/g,
+            
+            // Item collection debug logs
+            /console\.log\([^)]*['"`]Tier set item collected['"`]/g,
+            /console\.log\([^)]*['"`]Player celebration method exists['"`]/g,
+            /console\.log\([^)]*['"`]Triggering.*celebration for['"`]/g,
+            
+            // Dragonstalker debug logs
+            /console\.log\([^)]*['"`]🔄 Resetting Dragonstalker items['"`]/g,
+            /console\.log\([^)]*['"`]  Resetting.*collected.*missed['"`]/g,
+            /console\.log\([^)]*['"`]🔄 Resetting tier set counters['"`]/g,
+            /console\.log\([^)]*['"`]🛡️ Dragonstalker speed reduction capped['"`]/g,
+            /console\.log\([^)]*['"`]🛡️ No speed reduction applied['"`]/g,
+            /console\.log\([^)]*['"`]🏆 Dragonstalker set.*completed['"`]/g,
+            /console\.log\([^)]*['"`]🎯 Bullet time access preserved['"`]/g,
+            /console\.log\([^)]*['"`]🚫 Multiple completions disabled['"`]/g,
+            
+            // Settings and UI debug logs
+            /console\.log\([^)]*['"`]📊 Auto Panel Detection['"`]/g,
+            /console\.log\([^)]*['"`]Setting up.*event handler['"`]/g,
+            /console\.log\([^)]*['"`]Toggle.*CLICKED['"`]/g,
+            /console\.log\([^)]*['"`]Current settings.*update['"`]/g,
+            /console\.log\([^)]*['"`]Game mode.*to.*['"`]/g,
+            /console\.log\([^)]*['"`].*panel style changed to['"`]/g,
+            
+            // Audio debug logs
+            /console\.log\([^)]*['"`]Audio blocked by settings['"`]/g,
+            /console\.log\([^)]*['"`]Audio cooldown active['"`]/g,
+            /console\.log\([^)]*['"`]Too many sounds playing['"`]/g,
+            /console\.log\([^)]*['"`]Background music.*settings['"`]/g,
+            /console\.log\([^)]*['"`]Starting background music['"`]/g,
+            /console\.log\([^)]*['"`]Updated volumes from settings['"`]/g,
+            
+            // Asset and display debug logs
+            /console\.log\([^)]*['"`]🖼️ Display Quality Assessment['"`]/g,
+            /console\.log\([^)]*['"`]📏 Element sizes calculated['"`]/g,
+            /console\.log\([^)]*['"`]🔄 Device type changed['"`]/g,
+            /console\.log\([^)]*['"`]AssetManager.*Recalculated scaling['"`]/g,
+            /console\.log\([^)]*['"`]AssetManager.*Cleaned up old asset['"`]/g,
+            
+            // Input system debug logs
+            /console\.log\([^)]*['"`]Touch device detected['"`]/g,
+            /console\.log\([^)]*['"`]Input state reset['"`]/g,
+            /console\.log\([^)]*['"`]Player initialized at position['"`]/g,
+            /console\.log\([^)]*['"`]🚀 TESTING.*Base Drop Speed['"`]/g,
+            /console\.log\([^)]*['"`]Spell.*cast via touch['"`]/g,
+            /console\.log\([^)]*['"`]Click detected on spell['"`]/g,
+            
+            // High score and save system debug logs
+            /console\.log\([^)]*['"`]Loaded saved player name['"`]/g,
+            /console\.log\([^)]*['"`]Saved player name to localStorage['"`]/g,
+            /console\.log\([^)]*['"`]Auto-saved player name['"`]/g,
+            /console\.log\([^)]*['"`]Current cache stats['"`]/g,
+            /console\.log\([^)]*['"`]Detailed asset stats['"`]/g,
+            
+            // Screen transition debug logs
+            /console\.log\([^)]*['"`]Showing.*screen['"`]/g,
+            /console\.log\([^)]*['"`]showSettings\(\) called['"`]/g,
+            /console\.log\([^)]*['"`]Settings screen displayed['"`]/g,
+            /console\.log\([^)]*['"`]Updating settings UI['"`]/g,
+            /console\.log\([^)]*['"`]Setting up event handlers['"`]/g,
+            /console\.log\([^)]*['"`]showSettings\(\) complete['"`]/g,
+            
+            // Asset loading debug logs
+            /console\.log\([^)]*['"`]Starting asset preloading['"`]/g,
+            /console\.log\([^)]*['"`]Tier 2 assets ready['"`]/g,
+            /console\.log\([^)]*['"`]All assets loaded['"`]/g,
+            /console\.log\([^)]*['"`]Critical assets loaded['"`]/g,
+            /console\.log\([^)]*['"`]Level.*Preloading.*assets['"`]/g,
+            
+            // Crit/dodge rating debug logs
+            /console\.log\([^)]*['"`]⚡ Thunderfury.*crit rating['"`]/g,
+            /console\.log\([^)]*['"`]💥 Crit rating.*increased['"`]/g,
+            /console\.log\([^)]*['"`]💥 Crit rating already at maximum['"`]/g,
+            /console\.log\([^)]*['"`]💨 Dodge rating.*increased['"`]/g,
+            /console\.log\([^)]*['"`]💨 Dodge rating already at maximum['"`]/g,
+            
+            // Bullet time debug logs
+            /console\.log\([^)]*['"`]🎯 Bullet time activated['"`]/g,
+            /console\.log\([^)]*['"`]⏰ Bullet time deactivated['"`]/g,
+            
+            // General debug patterns
+            /console\.log\([^)]*['"`]Development mode.*Press Ctrl['"`]/g,
+            /console\.log\([^)]*['"`]💡 Type checkDisplayQuality['"`]/g,
+            /console\.log\([^)]*['"`]Suppressing notification['"`]/g,
+            /console\.log\([^)]*['"`]Zandalari Reverse Gravity.*Cleared['"`]/g,
+            /console\.log\([^)]*['"`]🚀 Starting at Level['"`]/g,
+            /console\.log\([^)]*['"`]🔄 Restarting at Level['"`]/g,
+            
+            // Canvas setup logs (keep only final summary - verbose logs removed)
+            /console\.log\([^)]*['"`]🎮 Setting up canvas for['"`]/g,
+            /console\.log\([^)]*['"`]📱 Mobile Portrait Canvas['"`]/g,
+            /console\.log\([^)]*['"`]Letterbox Info['"`]/g,
+        ];
+        
+        // Apply debug pattern removal
+        for (const pattern of debugPatterns) {
+            const beforeLength = processed.length;
+            processed = processed.replace(pattern, '/* debug log removed */');
+            const afterLength = processed.length;
+            if (beforeLength !== afterLength) {
+                removedCount++;
+            }
+        }
+        
+        // Remove any remaining console.log statements that aren't explicitly critical
+        const beforeLength = processed.length;
+        processed = processed.replace(/console\.log\s*\([^)]*\)\s*;?/g, (match) => {
+            // Check if this console.log matches any critical pattern
+            for (const criticalPattern of criticalPatterns) {
+                if (criticalPattern.test(match)) {
+                    return match; // Keep this one
+                }
+            }
+            removedCount++;
+            return '/* debug log removed */'; // Remove this one
+        });
+        
+        if (removedCount > 0) {
+            this.log(`🧹 Removed ${removedCount} debug console.log statements from ${filename}`, 'info');
+        }
+        
+        return processed;
     }
-
+    
     async processJavaScript() {
         this.log('📦 Processing JavaScript files...', 'info');
         
@@ -421,9 +585,12 @@ export const serverConfig = {
             let outputFilename = file;
 
             if (!CONFIG.isDev) {
-                // Minify JavaScript and remove console logs
+                // First: Remove most console.log statements (keep only critical ones)
+                processedContent = this.removeDebugLogs(processedContent, file);
+                
+                // Then: Minify JavaScript 
                 try {
-                    const result = await minify(content, TERSER_OPTIONS);
+                    const result = await minify(processedContent, TERSER_OPTIONS);
                     processedContent = result.code;
                     this.log(`✅ Minified: ${file} (${this.getFileSizeReduction(content, processedContent)})`, 'success');
                 } catch (error) {
@@ -696,7 +863,7 @@ export const serverConfig = {
             if (!CONFIG.isDev) {
                 this.log('🏭 Production optimizations applied:', 'info');
                 this.log('  ✅ JavaScript minified', 'success');
-                this.log('  ✅ Console logs removed', 'success');
+                this.log('  ✅ Debug console.log statements removed', 'success');
                 this.log('  ✅ CSS minified', 'success');
                 this.log('  ✅ Version cache busting applied', 'success');
                 if (CONFIG.addCacheBusting) {
