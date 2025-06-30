@@ -395,12 +395,7 @@
     color: #CCCCCC;
 }
 
-.dragonstalker-bottom-message {
-    padding: 4px 8px;
-    font-size: 10px;
-    text-align: center;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
-}
+
 
 /* Panel Style Override Classes */
 .force-desktop-panels #itemsCollectionPanel.force-desktop,

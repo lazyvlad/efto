@@ -38,16 +38,7 @@
         min-width: 10px;
     }
     
-    /* Settings button positioning */
-    #gameSettingsBtn {
-        top: 190px !important; /* BELOW BOTH PANELS */
-        right: 15px !important;
-        width: 40px;
-        height: 40px;
-        font-size: 14px;
-        border-width: 1px;
-        z-index: 999;
-    }
+
 }
 
 /* Mobile Landscape Notifications */
@@ -79,16 +70,7 @@
         max-height: 150px;
     }
     
-    /* Settings button on mobile landscape */
-    #gameSettingsBtn {
-        top: 100px;
-        right: 10px;
-        width: 40px;
-        height: 40px;
-        font-size: 14px;
-        border-width: 1px;
-        z-index: 999;
-    }
+
 }
 
 /* Items Collection Panel Mobile Layout */
@@ -572,15 +554,15 @@
         border-radius: 8px;
     }
     
-    /* High Scores Mobile */
-    #highScores, #highScoresScreen {
+        /* High Scores Mobile */
+    #highScoresScreen {
         width: 95%;
         max-width: 350px;
         min-width: unset;
         padding: 20px 15px;
     }
-    
-    #highScores h2, #highScoresScreen h2 {
+
+    #highScoresScreen h2 {
         font-size: 24px;
         margin-bottom: 20px;
     }

@@ -111,29 +111,7 @@
     color: #FFD700;
 }
 
-#highScores {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0, 0, 0, 0.95);
-    color: white;
-    padding: 40px;
-    border-radius: 20px;
-    text-align: center;
-    z-index: 200;
-    border: 2px solid #FFD700;
-    min-width: 600px;
-    max-width: 90vw;
-    max-height: 80vh;
-    overflow-y: auto;
-}
 
-#highScores h2 {
-    color: #FFD700;
-    margin-bottom: 30px;
-    font-size: 32px;
-}
 
 .score-entry {
     display: flex;

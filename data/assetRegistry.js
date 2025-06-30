@@ -159,6 +159,7 @@ export const assetCategories = {
         assetRegistry.projectiles.fireball,
         assetRegistry.projectiles.frostbolt,
         
+        
         // All regular items - first to appear in game
         assetRegistry.items.ring1,
         assetRegistry.items.ring2,
@@ -252,6 +253,7 @@ export const assetCategories = {
         assetRegistry.items.circleOfAppliedForce,
         assetRegistry.items.dft,
         assetRegistry.items.perditionsBlade,
+        assetRegistry.items.item6,
         
         // Additional projectiles and effects
         assetRegistry.projectiles.shadowbolt,

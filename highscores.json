@@ -484,6 +484,13 @@
   },
   {
     "name": "lazyvlad",
+    "score": 176,
+    "timestamp": "2025-06-30T02:38:49.191763",
+    "level": 6,
+    "gameTime": 0
+  },
+  {
+    "name": "lazyvlad",
     "score": 175,
     "timestamp": "2025-06-29T22:00:23.816424",
     "level": 6,
@@ -690,13 +697,6 @@
     "score": 54,
     "timestamp": "2025-06-21T12:43:50.940594",
     "level": 2,
-    "gameTime": 0
-  },
-  {
-    "name": "lazyvlad",
-    "score": 52,
-    "timestamp": "2025-06-29T00:10:50.380539",
-    "level": 21,
     "gameTime": 0
   }
 ]
