@@ -247,8 +247,8 @@ export function checkDragonstalkerCompletion(gameState, gameItems) {
         gameState.tierSetCollected = 0;
         gameState.tierSetMissed = 0;
         
-        // Increase crit rating by 5% for completing Dragonstalker set
-        const critIncrease = 0.05; // 5%
+        // Increase crit rating by 8% for completing Dragonstalker set
+        const critIncrease = 0.08; // 8%
         const oldCritRating = gameState.critRating;
         gameState.critRating = Math.min(gameState.critRating + critIncrease, gameState.critRatingCap);
         const actualIncrease = gameState.critRating - oldCritRating;

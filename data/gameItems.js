@@ -35,24 +35,32 @@ export const gameItems = [
     { id: "bronze-coin", name: "Bronze Coin", image: assetRegistry.items.coin01, value: 1, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "", size_multiplier: 0.8 },
     
     // Tier set items
-    { id: "ashjrethul", name: "Ashjre'thul, Crossbow of Smiting", image: assetRegistry.items.item4, value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: assetRegistry.audio.disenchant, setPosition: 9, size_multiplier: 2 },
+    { id: "ashjrethul", name: "Ashjre'thul, Crossbow of Smiting", image: assetRegistry.items.item4, value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: assetRegistry.audio.disenchant, setPosition: 9, size_multiplier: 2,
+      crit_rating_bonus: 0.02, dodge_rating_bonus: 0, effect_type: "permanent" },
     
-    { id: "black-lotuses", name: "Stack of Black Lotus", image: assetRegistry.buffs.blackLotuses, value: 10, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: assetRegistry.audio.voice, size_multiplier: 1.5 },
+    { id: "black-lotuses", name: "Stack of Black Lotus", image: assetRegistry.buffs.blackLotuses, value: 10, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: assetRegistry.audio.voice, size_multiplier: 1.5,
+      crit_rating_bonus: 0.05, dodge_rating_bonus: 0, effect_type: "temporary", effect_duration: 3600 }, // 60 seconds
     
-    { id: "maladath", name: "Maladath", image: assetRegistry.items.maladath, value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2.5 },
+    { id: "maladath", name: "Maladath", image: assetRegistry.items.maladath, value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 2.5,
+      crit_rating_bonus: 0, dodge_rating_bonus: 0.02, effect_type: "permanent" },
     { id: "ashkandi2", name: "Ashkandi, Greatsword of the Brotherhood", image: assetRegistry.items.ashkandi, value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: "", setPosition: 10, size_multiplier: 2 },
-    { id: "quick-strike-ring", name: "Quick Strike Ring", image: assetRegistry.items.quickStrikeRing, value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 0.8 },
-    { id: "brutality_blade", name: "Brutality Blade", image: assetRegistry.items.brutalityBlade, value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: assetRegistry.audio.disenchant, size_multiplier: 1.2 },
+    { id: "quick-strike-ring", name: "Quick Strike Ring", image: assetRegistry.items.quickStrikeRing, value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 0.8,
+      crit_rating_bonus: 0.03, dodge_rating_bonus: 0.02, effect_type: "temporary", effect_duration: 1800 }, // 30 seconds at 60fps
+    { id: "brutality_blade", name: "Brutality Blade", image: assetRegistry.items.brutalityBlade, value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: assetRegistry.audio.disenchant, size_multiplier: 1.2,
+      crit_rating_bonus: 0.02, dodge_rating_bonus: 0, effect_type: "permanent" },
     { id: "dalrends", name: "Dal Rends", image: assetRegistry.items.dalrends, value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "", size_multiplier: 1.2 },
     { id: "crulshorukh", name: "Crulshorukh", image: assetRegistry.items.item6, value: 7, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 1.6 },
     { id: "drakefangtalisman", name: "Drake Fang Talisman", image: assetRegistry.items.dft, value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: assetRegistry.audio.dft, size_multiplier: 1.2 },
     
-    { id: "onslaught", name: "Onslaught", image: assetRegistry.items.onslaught, value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 1},
-    { id: "circle-of-applied-force", name: "Circle of Applied", image: assetRegistry.items.circleOfAppliedForce, value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 1},
+    { id: "onslaught", name: "Onslaught", image: assetRegistry.items.onslaught, value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 1,
+      crit_rating_bonus: 0.05, dodge_rating_bonus: 0, effect_type: "temporary", effect_duration: 1800 }, // 30 seconds at 60fps
+    { id: "circle-of-applied-force", name: "Circle of Applied", image: assetRegistry.items.circleOfAppliedForce, value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "", size_multiplier: 1,
+      crit_rating_bonus: 0.01, dodge_rating_bonus: 0.03, effect_type: "permanent" }, // Permanent dodge bonus
     
     // Legendary items
-    { id: "ThunderFury", name: "Thunder Fury", image: assetRegistry.items.tunder, value: 5, collected: 0, type: "legendary", baseProbability: gameConfig.itemProbabilities.legendary, sound: "", size_multiplier: 2.8 },
-    { id: "zee", name: "Zee Zgnan Tigar", image: assetRegistry.items.zee, value: 15, collected: 0, spawned: 0, type: "zee_zgnan", baseProbability: gameConfig.itemProbabilities.zee_zgnan, sound: "", size_multiplier: 1.6 },
+    { id: "ThunderFury", name: "Thunder Fury", image: assetRegistry.items.tunder, value: 5, collected: 0, type: "legendary", baseProbability: gameConfig.itemProbabilities.legendary, sound: "", size_multiplier: 2.8, 
+      crit_rating_bonus: 0.03, dodge_rating_bonus: 0, effect_type: "permanent" },
+    { id: "zee", name: "Zee Zgnan Tigar", image: assetRegistry.items.zee, value: 30, collected: 0, spawned: 0, type: "zee_zgnan", baseProbability: gameConfig.itemProbabilities.zee_zgnan, sound: "", size_multiplier: 1.6 },
     
     // Dragonstalker set items - these are the win condition
     { id: "ds_helm", name: "Dragonstalker's Helm", image: assetRegistry.items.dsHelm, value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: "", setPosition: 1, size_multiplier: 1 },

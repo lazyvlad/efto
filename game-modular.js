@@ -508,6 +508,7 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     updateParticles(bulletTimeAdjustedDelta);
     updateCombatTexts(bulletTimeAdjustedDelta);
     updateBuffTracker(deltaTimeMultiplier); // Buff timers not affected by bullet time
+    updateTemporaryStatEffects(deltaTimeMultiplier); // Update temporary stat effects
     
     // Check collisions
     checkCollisions();
@@ -713,6 +714,7 @@ function startGame() {
     // Reset caches for performance
     resetDragonstalkerCache();
     resetItemsListCache();
+    clearTemporaryStatEffects();
     
     // Apply starting level configuration for testing
     const startingLevel = Math.max(0, (gameConfig.levels.startingLevel || 1) - 1); // Convert 1-based to 0-based
@@ -907,6 +909,7 @@ function restartGame() {
     // Reset caches for performance
     resetDragonstalkerCache();
     resetItemsListCache();
+    clearTemporaryStatEffects();
     
     // Reset all game state
     gameState.score = 0;
@@ -1443,24 +1446,10 @@ function checkCollisions() {
                 // Special effect for Thunderfury: Auto-collect all falling items
                 if (item.itemData.id === "ThunderFury") {
                     triggerThunderfuryEffect(item.x + item.width/2, item.y + item.height/2);
-                    
-                    // Increase crit rating by 1% for collecting Thunderfury
-                    const critIncrease = 0.01; // 1%
-                    const oldCritRating = gameState.critRating;
-                    gameState.critRating = Math.min(gameState.critRating + critIncrease, gameState.critRatingCap);
-                    const actualIncrease = gameState.critRating - oldCritRating;
-                    
-                    if (actualIncrease > 0) {
-                        const critPercent = Math.round(actualIncrease * 100);
-                        const newCritPercent = Math.round(gameState.critRating * 100);
-                        addNotification(gameState, `⚡ THUNDERFURY POWER! Crit +${critPercent}% (Now: ${newCritPercent}%)`, 240, '#FF6B00');
-                        console.log(`⚡ Thunderfury increased crit rating by ${critPercent}% to ${newCritPercent}% (${gameState.critRating.toFixed(3)})`);
-                    } else {
-                        const maxCritPercent = Math.round(gameState.critRatingCap * 100);
-                        addNotification(gameState, `⚡ THUNDERFURY! Crit already maxed (${maxCritPercent}%)`, 180, '#FF6B00');
-                        console.log(`⚡ Thunderfury collected but crit rating already at maximum: ${maxCritPercent}%`);
-                    }
                 }
+                
+                // Apply configurable stat bonuses (crit rating, dodge rating)
+                applyItemStatBonuses(item.itemData);
                 
                 // Play sounds and handle tier set collection
                 if (item.itemData.type === "tier_set") {
@@ -1813,19 +1802,10 @@ function checkCollisions() {
                     // Handle special item effects (Thunderfury, tier sets, etc.)
                     if (item.itemData.id === "ThunderFury") {
                         triggerThunderfuryEffect(item.x + item.width/2, item.y + item.height/2);
-                        
-                        // Increase crit rating by 1% for collecting Thunderfury
-                        const critIncrease = 0.01; // 1%
-                        const oldCritRating = gameState.critRating;
-                        gameState.critRating = Math.min(gameState.critRating + critIncrease, gameState.critRatingCap);
-                        const actualIncrease = gameState.critRating - oldCritRating;
-                        
-                        if (actualIncrease > 0) {
-                            const critPercent = Math.round(actualIncrease * 100);
-                            const newCritPercent = Math.round(gameState.critRating * 100);
-                            addNotification(gameState, `⚡ THUNDERFURY POWER! Crit +${critPercent}% (Now: ${newCritPercent}%)`, 240, '#FF6B00');
-                        }
                     }
+                    
+                    // Apply configurable stat bonuses (crit rating, dodge rating)
+                    applyItemStatBonuses(item.itemData);
                     
                     // Handle tier set items
                     if (item.itemData.type === "tier_set") {
@@ -2704,6 +2684,16 @@ function setupUIEventHandlers() {
         });
     }
     
+    // Item bonuses button handler
+    const itemBonusesPauseBtn = document.getElementById('itemBonusesPauseBtn');
+    if (itemBonusesPauseBtn) {
+        itemBonusesPauseBtn.addEventListener('click', function() {
+            // Hide pause menu and show item bonuses
+            hidePauseMenu();
+            showItemBonuses('pause');
+        });
+    }
+    
     if (restartPauseBtn) {
         restartPauseBtn.addEventListener('click', function() {
             // Hide pause menu and restart to main menu
@@ -2718,6 +2708,297 @@ function setupUIEventHandlers() {
             showNameEntry();
         });
     }
+    
+    // Desktop item bonuses icon handler
+    const itemBonusesDesktopBtn = document.getElementById('itemBonusesDesktopBtn');
+    if (itemBonusesDesktopBtn) {
+        itemBonusesDesktopBtn.addEventListener('click', function() {
+            showItemBonuses('desktop');
+        });
+    }
+}
+
+// ===== ITEM BONUSES WINDOW FUNCTIONS =====
+
+// Show the Item Bonuses window
+function showItemBonuses(source = null) {
+    const itemBonusesWindow = document.getElementById('itemBonusesWindow');
+    if (!itemBonusesWindow) return;
+    
+    // Show the window
+    itemBonusesWindow.style.display = 'flex';
+    
+    // Store source for back navigation
+    gameState.itemBonusesSource = source;
+    
+    // Populate with current data
+    updateItemBonusesWindow();
+    
+    // Set up event handlers if not already done
+    setupItemBonusesEventHandlers();
+    
+    console.log('Item Bonuses window opened from:', source);
+}
+
+// Hide the Item Bonuses window
+function hideItemBonuses() {
+    const itemBonusesWindow = document.getElementById('itemBonusesWindow');
+    if (!itemBonusesWindow) return;
+    
+    itemBonusesWindow.style.display = 'none';
+    
+    // Handle back navigation
+    const source = gameState.itemBonusesSource;
+    if (source === 'pause') {
+        // Return to pause menu
+        showPauseMenu();
+    }
+    // If from desktop, just close and return to game
+    
+    console.log('Item Bonuses window closed, returning to:', source || 'game');
+}
+
+// Update the Item Bonuses window with current data
+function updateItemBonusesWindow() {
+    // Update summary stats
+    const totalCrit = getCurrentTotalCritRating();
+    const totalDodge = getCurrentTotalDodgeRating();
+    
+    document.getElementById('totalCritRating').textContent = `${Math.round(totalCrit * 100)}%`;
+    document.getElementById('totalDodgeRating').textContent = `${Math.round(totalDodge * 100)}%`;
+    
+    // Update tabs content
+    updatePermanentBonusesTab();
+    updateTemporaryBonusesTab();
+    updateAllItemsTab();
+}
+
+// Update permanent bonuses tab
+function updatePermanentBonusesTab() {
+    const container = document.getElementById('permanentBonusesList');
+    const noItemsMsg = document.getElementById('noPermanentBonuses');
+    
+    // Get items with permanent bonuses that have been collected
+    const permanentBonusItems = gameItems.filter(item => 
+        item.collected > 0 && 
+        item.effect_type === 'permanent' && 
+        (item.crit_rating_bonus > 0 || item.dodge_rating_bonus > 0)
+    );
+    
+    if (permanentBonusItems.length === 0) {
+        noItemsMsg.style.display = 'block';
+        // Hide any existing bonus items
+        container.querySelectorAll('.bonus-item:not(.no-bonuses)').forEach(item => item.remove());
+        return;
+    }
+    
+    noItemsMsg.style.display = 'none';
+    
+    // Clear existing bonus items (but keep the no-bonuses message)
+    container.querySelectorAll('.bonus-item:not(.no-bonuses)').forEach(item => item.remove());
+    
+    // Add permanent bonus items
+    permanentBonusItems.forEach(item => {
+        const bonusElement = createBonusItemElement(item, 'permanent');
+        container.appendChild(bonusElement);
+    });
+}
+
+// Update temporary bonuses tab
+function updateTemporaryBonusesTab() {
+    const container = document.getElementById('temporaryBonusesList');
+    const noItemsMsg = document.getElementById('noTemporaryBonuses');
+    
+    // Get active temporary effects
+    const hasTempEffects = temporaryStatEffects.critRatingEffects.length > 0 || 
+                          temporaryStatEffects.dodgeRatingEffects.length > 0;
+    
+    if (!hasTempEffects) {
+        noItemsMsg.style.display = 'block';
+        container.querySelectorAll('.bonus-item:not(.no-bonuses)').forEach(item => item.remove());
+        return;
+    }
+    
+    noItemsMsg.style.display = 'none';
+    
+    // Clear existing bonus items
+    container.querySelectorAll('.bonus-item:not(.no-bonuses)').forEach(item => item.remove());
+    
+    // Add temporary crit effects
+    temporaryStatEffects.critRatingEffects.forEach(effect => {
+        const bonusElement = createTemporaryEffectElement(effect, 'crit');
+        container.appendChild(bonusElement);
+    });
+    
+    // Add temporary dodge effects
+    temporaryStatEffects.dodgeRatingEffects.forEach(effect => {
+        const bonusElement = createTemporaryEffectElement(effect, 'dodge');
+        container.appendChild(bonusElement);
+    });
+}
+
+// Update all items tab
+function updateAllItemsTab() {
+    const container = document.getElementById('allItemsList');
+    const noItemsMsg = document.getElementById('noItems');
+    
+    // Get all items with stat bonuses (regardless of collection status)
+    const allBonusItems = gameItems.filter(item => 
+        item.crit_rating_bonus > 0 || item.dodge_rating_bonus > 0
+    );
+    
+    if (allBonusItems.length === 0) {
+        noItemsMsg.querySelector('.bonus-item-name').textContent = 'No items with stat bonuses found';
+        noItemsMsg.querySelector('.bonus-description').textContent = 'No items are configured with crit or dodge bonuses';
+        noItemsMsg.style.display = 'block';
+        container.querySelectorAll('.bonus-item:not(.no-bonuses)').forEach(item => item.remove());
+        return;
+    }
+    
+    noItemsMsg.style.display = 'none';
+    
+    // Clear existing bonus items
+    container.querySelectorAll('.bonus-item:not(.no-bonuses)').forEach(item => item.remove());
+    
+    // Sort items by type priority
+    const sortedItems = allBonusItems.sort((a, b) => {
+        const priorityOrder = { zee_zgnan: 5, legendary: 4, special: 3, epic: 2, tier_set: 1, regular: 0 };
+        const aPriority = priorityOrder[a.type] || 0;
+        const bPriority = priorityOrder[b.type] || 0;
+        
+        if (aPriority !== bPriority) return bPriority - aPriority;
+        return a.name.localeCompare(b.name);
+    });
+    
+    // Add all bonus items
+    sortedItems.forEach(item => {
+        const bonusElement = createBonusItemElement(item, 'all');
+        container.appendChild(bonusElement);
+    });
+}
+
+// Create a bonus item element
+function createBonusItemElement(item, tabType) {
+    const bonusElement = document.createElement('div');
+    bonusElement.className = 'bonus-item';
+    
+    const isCollected = item.collected > 0;
+    const collectionText = tabType === 'all' ? 
+        (isCollected ? ` (Collected ${item.collected}x)` : ' (Not collected)') : 
+        ` (${item.collected}x)`;
+    
+    const critBonus = item.crit_rating_bonus || 0;
+    const dodgeBonus = item.dodge_rating_bonus || 0;
+    
+    let bonusValues = '';
+    if (critBonus > 0) {
+        bonusValues += `<span class="bonus-value crit">+${Math.round(critBonus * 100)}% Crit</span>`;
+    }
+    if (dodgeBonus > 0) {
+        bonusValues += `<span class="bonus-value dodge">+${Math.round(dodgeBonus * 100)}% Dodge</span>`;
+    }
+    
+    const effectTypeText = item.effect_type === 'permanent' ? 'Permanent' : 
+        `Temporary (${Math.round((item.effect_duration || 600) / 60)}s)`;
+    
+    bonusElement.innerHTML = `
+        <div class="bonus-info">
+            <div class="bonus-item-name">${item.name}${collectionText}</div>
+            <div class="bonus-description">${effectTypeText} • ${item.type}</div>
+        </div>
+        <div class="bonus-values">
+            ${bonusValues}
+        </div>
+    `;
+    
+    // Add visual indicators for collection status
+    if (tabType === 'all') {
+        if (!isCollected) {
+            bonusElement.style.opacity = '0.6';
+            bonusElement.style.borderStyle = 'dashed';
+        }
+    }
+    
+    return bonusElement;
+}
+
+// Create a temporary effect element
+function createTemporaryEffectElement(effect, type) {
+    const bonusElement = document.createElement('div');
+    bonusElement.className = 'bonus-item';
+    
+    const remainingSeconds = Math.ceil(effect.remainingFrames / 60);
+    const bonusPercent = Math.round(effect.bonus * 100);
+    const bonusType = type === 'crit' ? 'Crit' : 'Dodge';
+    const colorClass = type === 'crit' ? 'crit' : 'dodge';
+    
+    bonusElement.innerHTML = `
+        <div class="bonus-info">
+            <div class="bonus-item-name">${effect.itemName}</div>
+            <div class="bonus-description">Active temporary effect • ${remainingSeconds}s remaining</div>
+        </div>
+        <div class="bonus-values">
+            <span class="bonus-value ${colorClass} temporary">+${bonusPercent}% ${bonusType}</span>
+        </div>
+    `;
+    
+    return bonusElement;
+}
+
+// Set up event handlers for the Item Bonuses window
+function setupItemBonusesEventHandlers() {
+    // Close button
+    const closeBonusesBtn = document.getElementById('closeBonusesBtn');
+    if (closeBonusesBtn && !closeBonusesBtn.hasEventListener) {
+        closeBonusesBtn.addEventListener('click', hideItemBonuses);
+        closeBonusesBtn.hasEventListener = true;
+    }
+    
+    // Tab switching
+    const permanentTab = document.getElementById('permanentBonusesTab');
+    const temporaryTab = document.getElementById('temporaryBonusesTab');
+    const allItemsTab = document.getElementById('allItemsTab');
+    
+    if (permanentTab && !permanentTab.hasEventListener) {
+        permanentTab.addEventListener('click', () => switchBonusTab('permanent'));
+        permanentTab.hasEventListener = true;
+    }
+    
+    if (temporaryTab && !temporaryTab.hasEventListener) {
+        temporaryTab.addEventListener('click', () => switchBonusTab('temporary'));
+        temporaryTab.hasEventListener = true;
+    }
+    
+    if (allItemsTab && !allItemsTab.hasEventListener) {
+        allItemsTab.addEventListener('click', () => switchBonusTab('all'));
+        allItemsTab.hasEventListener = true;
+    }
+}
+
+// Switch between bonus tabs
+function switchBonusTab(tabName) {
+    // Remove active class from all tabs and lists
+    document.querySelectorAll('.bonus-tab').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.bonuses-list').forEach(list => list.classList.remove('active'));
+    
+    // Activate selected tab and list (handle different naming conventions)
+    let tabButton, tabList;
+    
+    if (tabName === 'permanent') {
+        tabButton = document.getElementById('permanentBonusesTab');
+        tabList = document.getElementById('permanentBonusesList');
+    } else if (tabName === 'temporary') {
+        tabButton = document.getElementById('temporaryBonusesTab');
+        tabList = document.getElementById('temporaryBonusesList');
+    } else if (tabName === 'all') {
+        tabButton = document.getElementById('allItemsTab');
+        tabList = document.getElementById('allItemsList');
+    }
+    
+    if (tabButton) tabButton.classList.add('active');
+    if (tabList) tabList.classList.add('active');
+    
+    console.log('Switched to bonus tab:', tabName);
 }
 
 // ===== HIGH SCORES FUNCTIONS =====
@@ -4077,14 +4358,15 @@ function setupHighDPICanvas() {
 
 // Utility function to check if an action should crit
 function shouldCrit() {
-    return Math.random() < gameState.critRating;
+    return Math.random() < getCurrentTotalCritRating();
 }
 
 // Utility function to check if the player should dodge an attack
 function shouldDodge() {
     const spellDodgeBonus = spellSystem.getDodgeRatingBonus ? spellSystem.getDodgeRatingBonus() : 0;
     const tempDodgeBonus = gameState.temporaryDodgeBoost || 0;
-    const totalDodgeRating = Math.min(gameState.dodgeRating + spellDodgeBonus + tempDodgeBonus, gameState.dodgeRatingCap);
+    const itemBasedDodgeRating = getCurrentTotalDodgeRating(); // Includes permanent + temporary from items
+    const totalDodgeRating = Math.min(itemBasedDodgeRating + spellDodgeBonus + tempDodgeBonus, gameState.dodgeRatingCap);
     return Math.random() < totalDodgeRating;
 }
 
@@ -4202,6 +4484,176 @@ function clearAllBuffs() {
 window.addBuff = addBuff;
 window.removeBuff = removeBuff;
 window.clearAllBuffs = clearAllBuffs;
+
+// ===== CONFIGURABLE STAT BONUS SYSTEM =====
+
+// Temporary stat effects tracking
+let temporaryStatEffects = {
+    critRatingEffects: [], // { bonus, remainingFrames, itemName }
+    dodgeRatingEffects: [] // { bonus, remainingFrames, itemName }
+};
+
+// Apply stat bonuses from collected items (crit rating, dodge rating)
+function applyItemStatBonuses(itemData) {
+    // Performance optimization: skip if no bonuses defined
+    const hasCritBonus = itemData.crit_rating_bonus && itemData.crit_rating_bonus > 0;
+    const hasDodgeBonus = itemData.dodge_rating_bonus && itemData.dodge_rating_bonus > 0;
+    
+    if (!hasCritBonus && !hasDodgeBonus) {
+        return; // No bonuses to apply
+    }
+    
+    // Handle crit rating bonus
+    if (hasCritBonus) {
+        if (itemData.effect_type === "permanent") {
+            applyPermanentCritBonus(itemData.crit_rating_bonus, itemData.name);
+        } else if (itemData.effect_type === "temporary") {
+            applyTemporaryCritBonus(itemData.crit_rating_bonus, itemData.effect_duration || 600, itemData.name);
+        }
+    }
+    
+    // Handle dodge rating bonus
+    if (hasDodgeBonus) {
+        if (itemData.effect_type === "permanent") {
+            applyPermanentDodgeBonus(itemData.dodge_rating_bonus, itemData.name);
+        } else if (itemData.effect_type === "temporary") {
+            applyTemporaryDodgeBonus(itemData.dodge_rating_bonus, itemData.effect_duration || 600, itemData.name);
+        }
+    }
+}
+
+// Apply permanent crit rating bonus
+function applyPermanentCritBonus(bonus, itemName) {
+    const oldCritRating = gameState.critRating;
+    gameState.critRating = Math.min(gameState.critRating + bonus, gameState.critRatingCap);
+    const actualIncrease = gameState.critRating - oldCritRating;
+    
+    if (actualIncrease > 0) {
+        const critPercent = Math.round(actualIncrease * 100);
+        const newCritPercent = Math.round(gameState.critRating * 100);
+        addNotification(gameState, `⚡ ${itemName}! Crit +${critPercent}% (Now: ${newCritPercent}%)`, 240, '#FF6B00');
+        console.log(`⚡ ${itemName} increased permanent crit rating by ${critPercent}% to ${newCritPercent}%`);
+    } else {
+        const maxCritPercent = Math.round(gameState.critRatingCap * 100);
+        addNotification(gameState, `⚡ ${itemName}! Crit already maxed (${maxCritPercent}%)`, 180, '#FF6B00');
+    }
+}
+
+// Apply permanent dodge rating bonus
+function applyPermanentDodgeBonus(bonus, itemName) {
+    const oldDodgeRating = gameState.dodgeRating;
+    gameState.dodgeRating = Math.min(gameState.dodgeRating + bonus, gameState.dodgeRatingCap);
+    const actualIncrease = gameState.dodgeRating - oldDodgeRating;
+    
+    if (actualIncrease > 0) {
+        const dodgePercent = Math.round(actualIncrease * 100);
+        const newDodgePercent = Math.round(gameState.dodgeRating * 100);
+        addNotification(gameState, `💨 ${itemName}! Dodge +${dodgePercent}% (Now: ${newDodgePercent}%)`, 240, '#00FF00');
+        console.log(`💨 ${itemName} increased permanent dodge rating by ${dodgePercent}% to ${newDodgePercent}%`);
+    } else {
+        const maxDodgePercent = Math.round(gameState.dodgeRatingCap * 100);
+        addNotification(gameState, `💨 ${itemName}! Dodge already maxed (${maxDodgePercent}%)`, 180, '#00FF00');
+    }
+}
+
+// Apply temporary crit rating bonus
+function applyTemporaryCritBonus(bonus, durationFrames, itemName) {
+    // Add to temporary effects list
+    temporaryStatEffects.critRatingEffects.push({
+        bonus: bonus,
+        remainingFrames: durationFrames,
+        itemName: itemName
+    });
+    
+    const critPercent = Math.round(bonus * 100);
+    const durationSeconds = Math.round(durationFrames / 60);
+    addNotification(gameState, `⚡ ${itemName}! Temp Crit +${critPercent}% (${durationSeconds}s)`, 180, '#FFD700');
+    console.log(`⚡ ${itemName} applied temporary crit bonus: +${critPercent}% for ${durationSeconds} seconds`);
+}
+
+// Apply temporary dodge rating bonus
+function applyTemporaryDodgeBonus(bonus, durationFrames, itemName) {
+    // Add to temporary effects list
+    temporaryStatEffects.dodgeRatingEffects.push({
+        bonus: bonus,
+        remainingFrames: durationFrames,
+        itemName: itemName
+    });
+    
+    const dodgePercent = Math.round(bonus * 100);
+    const durationSeconds = Math.round(durationFrames / 60);
+    addNotification(gameState, `💨 ${itemName}! Temp Dodge +${dodgePercent}% (${durationSeconds}s)`, 180, '#87CEEB');
+    console.log(`💨 ${itemName} applied temporary dodge bonus: +${dodgePercent}% for ${durationSeconds} seconds`);
+}
+
+// Update temporary stat effects (call each frame)
+function updateTemporaryStatEffects(deltaTimeMultiplier) {
+    let effectsChanged = false;
+    
+    // Update crit rating effects
+    for (let i = temporaryStatEffects.critRatingEffects.length - 1; i >= 0; i--) {
+        const effect = temporaryStatEffects.critRatingEffects[i];
+        effect.remainingFrames -= deltaTimeMultiplier;
+        
+        if (effect.remainingFrames <= 0) {
+            // Effect expired
+            const critPercent = Math.round(effect.bonus * 100);
+            addNotification(gameState, `⚡ ${effect.itemName} crit bonus expired (-${critPercent}%)`, 120, '#888888');
+            temporaryStatEffects.critRatingEffects.splice(i, 1);
+            effectsChanged = true;
+        }
+    }
+    
+    // Update dodge rating effects
+    for (let i = temporaryStatEffects.dodgeRatingEffects.length - 1; i >= 0; i--) {
+        const effect = temporaryStatEffects.dodgeRatingEffects[i];
+        effect.remainingFrames -= deltaTimeMultiplier;
+        
+        if (effect.remainingFrames <= 0) {
+            // Effect expired
+            const dodgePercent = Math.round(effect.bonus * 100);
+            addNotification(gameState, `💨 ${effect.itemName} dodge bonus expired (-${dodgePercent}%)`, 120, '#888888');
+            temporaryStatEffects.dodgeRatingEffects.splice(i, 1);
+            effectsChanged = true;
+        }
+    }
+    
+    // Update Item Bonuses window if it's open and effects changed
+    const itemBonusesWindow = document.getElementById('itemBonusesWindow');
+    if (itemBonusesWindow && itemBonusesWindow.style.display === 'flex') {
+        // Update every 30 frames to show timer countdown
+        if (!gameState.bonusesUpdateCounter) gameState.bonusesUpdateCounter = 0;
+        gameState.bonusesUpdateCounter++;
+        
+        if (gameState.bonusesUpdateCounter % 30 === 0 || effectsChanged) {
+            updateItemBonusesWindow();
+        }
+    }
+}
+
+// Get current total crit rating (permanent + temporary)
+function getCurrentTotalCritRating() {
+    let totalBonus = 0;
+    temporaryStatEffects.critRatingEffects.forEach(effect => {
+        totalBonus += effect.bonus;
+    });
+    return Math.min(gameState.critRating + totalBonus, gameState.critRatingCap);
+}
+
+// Get current total dodge rating (permanent + temporary)
+function getCurrentTotalDodgeRating() {
+    let totalBonus = 0;
+    temporaryStatEffects.dodgeRatingEffects.forEach(effect => {
+        totalBonus += effect.bonus;
+    });
+    return Math.min(gameState.dodgeRating + totalBonus, gameState.dodgeRatingCap);
+}
+
+// Clear all temporary stat effects (call on game restart)
+function clearTemporaryStatEffects() {
+    temporaryStatEffects.critRatingEffects = [];
+    temporaryStatEffects.dodgeRatingEffects = [];
+}
 
 // === BULLET TIME SYSTEM ===
 function updateBulletTime(deltaTimeMultiplier) {

@@ -367,7 +367,7 @@
             <div class="guide-section">
                 <h3>💥 Critical Hit System</h3>
                 <p>• 10% base chance to double points from any item</p>
-                <p>• Complete Dragonstalker sets: +5% crit chance each</p>
+                                    <p>• Complete Dragonstalker sets: +8% crit chance each</p>
                 <p>• Collect Thunder Fury: +1% crit chance each</p>
                 <p>• Maximum crit chance: 25%</p>
             </div>
@@ -421,6 +421,9 @@
                 <button id="gameInfoPauseBtn" class="pause-btn info-btn">
                     📖 Game Info
                 </button>
+                <button id="itemBonusesPauseBtn" class="pause-btn bonuses-btn">
+                    ⚡ Item Bonuses
+                </button>
                 <button id="settingsPauseBtn" class="pause-btn settings-btn">
                     ⚙️ Settings
                 </button>
@@ -429,6 +432,81 @@
                 </button>
             </div>
             <p class="pause-hint">Press ESC to continue</p>
+        </div>
+    </div>
+
+    <!-- Item Bonuses Window -->
+    <div id="itemBonusesWindow" style="display: none;">
+        <div class="bonuses-content">
+            <div class="bonuses-header">
+                <h2>⚡ Item Stat Bonuses</h2>
+                <p class="bonuses-subtitle">Active bonuses from collected items</p>
+            </div>
+            
+            <div class="bonuses-body">
+                <div class="bonus-summary">
+                    <div class="summary-stats">
+                        <div class="summary-stat">
+                            <span class="summary-label">Total Crit Rating:</span>
+                            <span class="summary-value" id="totalCritRating">0%</span>
+                        </div>
+                        <div class="summary-stat">
+                            <span class="summary-label">Total Dodge Rating:</span>
+                            <span class="summary-value" id="totalDodgeRating">0%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bonuses-tabs">
+                    <button id="permanentBonusesTab" class="bonus-tab active">
+                        📌 Permanent Bonuses
+                    </button>
+                    <button id="temporaryBonusesTab" class="bonus-tab">
+                        ⏱️ Temporary Bonuses
+                    </button>
+                    <button id="allItemsTab" class="bonus-tab">
+                        📋 All Items
+                    </button>
+                </div>
+                
+                <div class="bonuses-list-container">
+                    <!-- Permanent Bonuses Tab -->
+                    <div id="permanentBonusesList" class="bonuses-list active">
+                        <div class="bonus-item no-bonuses" id="noPermanentBonuses">
+                            <div class="bonus-info">
+                                <div class="bonus-item-name">No permanent bonuses yet</div>
+                                <div class="bonus-description">Collect items with permanent stat bonuses to see them here</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Temporary Bonuses Tab -->
+                    <div id="temporaryBonusesList" class="bonuses-list">
+                        <div class="bonus-item no-bonuses" id="noTemporaryBonuses">
+                            <div class="bonus-info">
+                                <div class="bonus-item-name">No temporary bonuses active</div>
+                                <div class="bonus-description">Collect items with temporary stat bonuses to see them here</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- All Items Tab -->
+                    <div id="allItemsList" class="bonuses-list">
+                        <div class="bonus-item no-bonuses" id="noItems">
+                            <div class="bonus-info">
+                                <div class="bonus-item-name">Loading items...</div>
+                                <div class="bonus-description">Item bonus data will appear here</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bonuses-footer">
+                <button id="closeBonusesBtn" class="bonuses-btn close-btn">
+                    ❌ Close
+                </button>
+            </div>
         </div>
     </div>
 
@@ -468,6 +546,9 @@
             <div id="healthBar" class="compact-health-bar">
                 <div class="player-portrait">
                     <img src="assets/efto.png" alt="Player Portrait">
+                    <button id="itemBonusesDesktopBtn" class="player-bonus-icon desktop-only" title="View Item Bonuses">
+                        ⚡
+                    </button>
                 </div>
                 <div class="health-bar-container">
                     <div class="health-background">
