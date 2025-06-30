@@ -519,11 +519,32 @@ export const serverConfig = {
                 this.log(`  🔄 Applying ${this.fileMap.size} file mappings...`, 'info');
                 for (const [originalFile, newFile] of this.fileMap) {
                     const beforeContent = content;
-                    content = content.replace(new RegExp(originalFile.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), newFile);
-                    if (content !== beforeContent) {
-                        this.log(`  ✅ Renamed: ${originalFile} → ${newFile}`, 'success');
+                    
+                    // Extract the base name and extension from original file
+                    const ext = path.extname(originalFile);
+                    const baseName = path.basename(originalFile, ext);
+                    
+                    // Create regex to match any hashed version of this file
+                    // e.g., game-modular.js matches game-modular.*.js or game-modular.abcd1234.js
+                    const hashedPattern = `${baseName}\\.[a-z0-9]+${ext.replace('.', '\\.')}`;
+                    const basePattern = originalFile.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    
+                    // Try to replace hashed versions first (from previous builds)
+                    const hashedRegex = new RegExp(hashedPattern, 'g');
+                    const hashedMatches = content.match(hashedRegex);
+                    
+                    if (hashedMatches) {
+                        this.log(`  🔍 Found existing hashed versions: ${hashedMatches.join(', ')}`, 'info');
+                        content = content.replace(hashedRegex, newFile);
+                        this.log(`  ✅ Replaced hashed versions with: ${newFile}`, 'success');
                     } else {
-                        this.log(`  ⚠️  No matches found for: ${originalFile}`, 'warning');
+                        // Fallback: try to replace the original filename
+                        content = content.replace(new RegExp(basePattern, 'g'), newFile);
+                        if (content !== beforeContent) {
+                            this.log(`  ✅ Replaced original file: ${originalFile} → ${newFile}`, 'success');
+                        } else {
+                            this.log(`  ⚠️  No matches found for: ${originalFile}`, 'warning');
+                        }
                     }
                 }
             } else if (!CONFIG.isDev && CONFIG.addCacheBusting) {
