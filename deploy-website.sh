@@ -102,13 +102,13 @@ server {
     error_log /var/log/nginx/$DOMAIN.error.log;
 
     # Redirect www to non-www
-    if (\$host ~* ^www\\.(.*)) {
+    if (\$host ~* ^www\\.(.*)$) {
         set \$host_without_www \$1;
         rewrite ^/(.*)\$ \$scheme://\$host_without_www/\$1 permanent;
     }
 
     # Remove trailing slashes
-    if (!\-d \$request_filename) {
+    if (!-d \$request_filename) {
         rewrite ^/(.+)/\$ /\$1 permanent;
     }
 
