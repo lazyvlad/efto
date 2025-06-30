@@ -85,7 +85,7 @@ const CLEANCSS_OPTIONS = {
 class BuildSystem {
     constructor() {
         this.buildTime = new Date().toISOString();
-        this.cacheHash = this.generateCacheHash();
+        this.cacheHash = null; // Will be generated fresh for each build
         this.fileMap = new Map(); // For tracking renamed files
         this.gameVersion = null;
         this.buildTimestamp = Date.now();
@@ -93,7 +93,10 @@ class BuildSystem {
 
     generateCacheHash() {
         if (!CONFIG.addCacheBusting) return '';
-        return Date.now().toString(36).substr(-8);
+        // Generate a more robust hash using timestamp + random component
+        const timestamp = Date.now().toString(36);
+        const random = Math.random().toString(36).substr(2, 4);
+        return (timestamp + random).substr(-8);
     }
 
     log(message, type = 'info') {
@@ -110,6 +113,13 @@ class BuildSystem {
     async init() {
         this.log('🚀 Starting EFTO Game Build System', 'info');
         this.log(`Mode: ${CONFIG.isDev ? 'Development' : 'Production'}`, 'info');
+        
+        // Generate fresh cache hash for this build
+        this.cacheHash = this.generateCacheHash();
+        
+        if (!CONFIG.isDev && CONFIG.addCacheBusting) {
+            this.log(`🔢 Generated fresh cache hash: ${this.cacheHash}`, 'info');
+        }
         
         // Clean dist directory
         await fs.remove(CONFIG.distDir);
@@ -427,7 +437,7 @@ export const serverConfig = {
                     const name = path.basename(file, ext);
                     outputFilename = `${name}.${this.cacheHash}${ext}`;
                     this.fileMap.set(file, outputFilename);
-                    this.log(`🔄 Cache busting: ${file} → ${outputFilename}`, 'info');
+                    this.log(`🔄 Cache busting: ${file} → ${outputFilename} (hash: ${this.cacheHash})`, 'info');
                 }
             } else {
                 this.log(`📋 Copied: ${file}`, 'info');
@@ -442,6 +452,11 @@ export const serverConfig = {
             this.log(`📋 File mappings created:`, 'info');
             for (const [original, renamed] of this.fileMap) {
                 this.log(`  ${original} → ${renamed}`, 'info');
+                
+                // Verify the file actually exists
+                const destPath = path.join(CONFIG.distDir, renamed);
+                const exists = await fs.pathExists(destPath);
+                this.log(`  📁 File exists: ${exists ? '✅' : '❌'} ${renamed}`, exists ? 'success' : 'error');
             }
         }
     }
@@ -665,6 +680,20 @@ export const serverConfig = {
                 this.log('  ✅ Version cache busting applied', 'success');
                 if (CONFIG.addCacheBusting) {
                     this.log('  ✅ File hash cache busting applied', 'success');
+                    
+                    // List actual files in dist directory for verification
+                    try {
+                        const files = await glob('game-modular*.js', { cwd: CONFIG.distDir });
+                        this.log('📄 JavaScript files in dist:', 'info');
+                        for (const file of files) {
+                            this.log(`  📄 ${file}`, 'info');
+                        }
+                        if (files.length === 0) {
+                            this.log('  ⚠️  No game-modular*.js files found in dist!', 'warning');
+                        }
+                    } catch (error) {
+                        this.log(`❌ Error listing dist files: ${error.message}`, 'error');
+                    }
                 }
             }
             
