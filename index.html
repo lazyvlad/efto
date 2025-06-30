@@ -21,8 +21,10 @@
     <title>DMTribut - EFTO Game</title>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="manifest" href="site.webmanifest">
     
     <!-- Preload critical background image with high priority -->
     <link rel="preload" href="assets/background.jpg" as="image" fetchpriority="high">
@@ -87,7 +89,7 @@
                 <div class="spell-icon">
                     <img src="assets/flask_of_titans.webp" alt="Flask of Titans" class="spell-image">
                 </div>
-                <div class="spell-key">E</div>
+                <div class="spell-key">T</div>
                 <div class="spell-name">Flask of Titans</div>
                 <div class="spell-timer" id="spell-flask-of-titans-timer"></div>
                 <div class="spell-cooldown-overlay" id="spell-flask-of-titans-cooldown"></div>
@@ -97,7 +99,7 @@
                 <div class="spell-icon">
                     <img src="assets/autoshot.webp" alt="Autoshot" class="spell-image">
                 </div>
-                                        <div class="spell-key">A</div>
+                <div class="spell-key">E</div>
                 <div class="spell-name">Autoshot</div>
                 <div class="spell-timer" id="spell-autoshot-timer"></div>
                 <div class="spell-cooldown-overlay" id="spell-autoshot-cooldown"></div>
@@ -303,16 +305,22 @@
 
             <div class="guide-section">
                 <h3>⚔️ Player Spells</h3>
-                <p style="color: #4ECDC4; font-style: italic; margin-bottom: 15px;">💡 Desktop: Press Q/W/E keys | Mobile: Touch the spell icons!</p>
+                <p style="color: #4ECDC4; font-style: italic; margin-bottom: 15px;">💡 Desktop: Press Q/W/T/E/R keys | Mobile: Touch the spell icons!</p>
                 <div class="spell-grid">
                     <div class="spell-item player-spell">
-                        <strong>Q - Dragon Cry:</strong> Move anywhere on screen + 5% crit chance (1 min cooldown)
+                        <strong>Q - Dragon Cry:</strong> Move anywhere on screen + 5% crit chance (30s cooldown)
                     </div>
                     <div class="spell-item player-spell">
-                        <strong>W - Zandalari:</strong> +20% points, slow projectiles and items (45s cooldown)
+                        <strong>W - Zandalari:</strong> +100% points, slow projectiles and items (45s cooldown)
                     </div>
                     <div class="spell-item player-spell">
-                        <strong>E - Flask of Titans:</strong> Remove one missed Dragonstalker (2 min cooldown)
+                        <strong>T - Flask of Titans:</strong> Remove one missed Dragonstalker (2 min cooldown)
+                    </div>
+                    <div class="spell-item player-spell">
+                        <strong>E - Autoshot:</strong> Fire 1 arrow straight up (0.5s cooldown)
+                    </div>
+                    <div class="spell-item player-spell">
+                        <strong>R - Multishot:</strong> Fire 5 arrows in wide spread + 5% crit (0.5s cooldown)
                     </div>
                 </div>
             </div>
@@ -379,12 +387,14 @@
 
             <div class="guide-section">
                 <h3>🏹 Arrow Combat System</h3>
-                <p>• Collect "Thorium Headed Arrows" power-ups to gain 1000 arrows</p>
-                <p>• <strong>Autoshot (A):</strong> Fires 1 arrow straight up (no cooldown)</p>
-                <p>• <strong>Multishot (R):</strong> Fires 3 arrows in spread pattern with +5% crit (10s cooldown)</p>
+                <p>• <strong>Starting Arrows:</strong> Begin with 20 arrows</p>
+                <p>• <strong>Arrow Power-ups:</strong> Bronze (+25), Silver (+50), Thorium (+100)</p>
+                <p>• <strong>Autoshot (E):</strong> Fires 1 arrow straight up (0.5s cooldown, uses 1 arrow)</p>
+                <p>• <strong>Multishot (R):</strong> Fires 5 arrows in wide spread with +5% crit (0.5s cooldown, uses 5 arrows)</p>
                 <p>• Arrows collect items on contact (same as player collision)</p>
                 <p>• Arrows destroy harmful projectiles and gain beneficial effects</p>
                 <p>• Multishot arrows have increased crit chance for collected items</p>
+                <p>• Arrow power-ups display the amount they add below the icon</p>
             </div>
 
             <div class="guide-section">

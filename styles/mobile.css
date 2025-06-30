@@ -1,1 +1,773 @@
-@media screen and (max-width:1024px) and (orientation:portrait),screen and (max-height:1024px) and (orientation:portrait),screen and (max-width:480px){.spell-notifications-container{top:190px!important;max-width:calc(100vw - 30px)!important;z-index:998}.buff-tracker-container{bottom:270px!important;left:5px!important;width:160px!important;max-height:160px!important}.buff-item{padding:6px 8px;font-size:10px}.buff-name{font-size:9px}.buff-effect{font-size:8px}.buff-timer{font-size:9px;min-width:10px}}@media (max-width:1024px) and (orientation:landscape){.spell-notifications-container{top:5px;max-width:calc(100vw - 20px);left:50%;transform:translateX(-50%);max-height:150px}.spell-notification{padding:8px 14px;font-size:12px;max-width:95%}.spell-notification.persistent{font-size:10px;padding:6px 10px}.buff-tracker-container{bottom:120px;left:15px;width:180px;max-height:150px}}@media screen and (max-width:1024px) and (orientation:portrait),screen and (max-height:1024px) and (orientation:portrait),screen and (max-width:480px){#itemsCollectionPanel{position:fixed!important;top:0!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:auto!important;max-width:390px!important;height:120px!important;max-height:120px!important;min-width:0!important;border-radius:0!important;border:none!important;border-bottom:1px solid rgba(78,205,196,.3)!important;margin:0!important;padding:0!important;box-sizing:border-box!important;background:rgba(0,0,0,.95);backdrop-filter:blur(4px);display:flex!important;align-items:stretch!important;z-index:1000}#itemsCollectionPanel .items-list{display:none}#itemsCollectionPanel.paused .items-list{display:block;max-height:120px;overflow-y:auto}#itemsCollectionPanel .panel-header{flex:0 0 200px!important;padding:8px 15px!important;margin:0!important;display:flex!important;flex-direction:column!important;justify-content:center!important;border-right:1px solid rgba(78,205,196,.3)!important}#itemsCollectionPanel .player-name{font-size:12px!important;margin-bottom:2px!important;line-height:1!important}#itemsCollectionPanel .player-score{font-size:20px!important;margin-bottom:2px!important;line-height:1!important;font-weight:700!important}#itemsCollectionPanel .player-level{font-size:10px!important;margin-bottom:0!important;line-height:1!important}#itemsCollectionPanel .collection-summary,#itemsCollectionPanel .player-health-section{display:none!important}#itemsCollectionPanel .player-stats{flex:1!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:2px 8px!important;padding:8px 15px!important;background:rgba(255,215,0,.1)!important;margin:0!important;align-content:center!important}#itemsCollectionPanel .stat-row{display:flex!important;justify-content:space-between!important;align-items:center!important;margin-bottom:0!important;padding:1px 0!important;white-space:nowrap!important}#itemsCollectionPanel .stat-label{font-size:9px!important;color:#ccc!important;font-weight:400!important}#itemsCollectionPanel .stat-value{font-size:10px!important;color:gold!important;font-weight:700!important;text-shadow:1px 1px 2px rgba(0,0,0,.8)!important}.player-health-bar{display:flex!important;align-items:center!important;gap:4px!important;margin:2px 0!important;padding:0!important}.player-health-background{flex:1!important;height:8px!important;background:rgba(50,50,50,.8)!important;border-radius:4px!important;overflow:hidden!important;border:1px solid rgba(255,255,255,.2)!important}.player-health-fill{height:100%!important;background:linear-gradient(90deg,#0f0,#4f4)!important;border-radius:3px!important;transition:width .3s!important;width:100%!important}.player-health-text{font-size:8px!important;color:gold!important;font-weight:700!important;text-shadow:1px 1px 2px rgba(0,0,0,.8)!important;min-width:30px!important;text-align:right!important}#dragonstalkerProgressPanel{position:fixed!important;top:93px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;width:auto!important;max-width:390px!important;height:auto!important;min-width:0!important;border:none!important;border-bottom:1px solid rgba(0,255,255,.3)!important;border-radius:0!important;margin:0!important;padding:0!important;box-sizing:border-box!important;background:rgba(0,0,0,.95);backdrop-filter:blur(4px);z-index:999;overflow:hidden!important}#dragonstalkerProgressPanel .dragonstalker-panel-header{padding:4px 15px!important;margin:0!important;border-bottom:none!important}#dragonstalkerProgressPanel .dragonstalker-title{font-size:12px!important;margin-bottom:2px!important}#dragonstalkerProgressPanel .dragonstalker-progress-bar{margin-bottom:2px!important}#dragonstalkerProgressPanel .progress-background{height:15px!important}#dragonstalkerProgressPanel .progress-text{font-size:10px!important}#dragonstalkerProgressPanel .dragonstalker-status{font-size:10px!important;margin-bottom:2px!important}#dragonstalkerProgressPanel .dragonstalker-items-list{padding:0!important;display:grid!important;grid-template-columns:repeat(10,1fr)!important;gap:2px!important;max-height:50px!important;min-height:40px!important;overflow:visible!important;background:rgba(0,0,0,.1)!important}#dragonstalkerProgressPanel .dragonstalker-item{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;padding:1px!important;min-height:35px!important;max-height:35px!important;width:100%!important;font-size:8px!important;position:relative!important;background:rgba(255,255,255,.05)!important;border-radius:3px!important}#dragonstalkerProgressPanel .dragonstalker-item-icon{font-size:14px!important;line-height:18px!important;height:18px!important;display:flex!important;align-items:center!important;justify-content:center!important;margin-bottom:1px!important;color:#fff!important}#dragonstalkerProgressPanel .dragonstalker-item-status{position:absolute!important;bottom:0!important;right:0!important;width:12px!important;height:12px!important;font-size:9px!important;font-weight:700!important;display:flex!important;align-items:center!important;justify-content:center!important;background:rgba(0,0,0,.8)!important;border-radius:50%!important;color:#fff!important}#dragonstalkerProgressPanel .dragonstalker-item-name{display:none!important}#spellBar{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);gap:1px;padding:1px;border-radius:12px;max-width:90vw}.spell-slot{width:48px;height:68px;padding:3px}.spell-icon{width:30px;height:30px;border-radius:6px}.spell-key{font-size:9px}.spell-name{font-size:7px}.spell-timer{font-size:12px;padding:1px 3px}}@media (max-width:1024px) and (orientation:landscape){#itemsCollectionPanel{position:fixed;top:5px;left:5px;width:220px;max-height:calc(100vh - 120px);border-radius:8px;border-width:1px;z-index:100}#itemsCollectionPanel:not(.paused) .items-list{display:none}#itemsCollectionPanel.paused .items-list{display:block}#itemsCollectionPanel .panel-header{padding:6px}#itemsCollectionPanel .player-name{font-size:12px;margin-bottom:2px}#itemsCollectionPanel .player-name::before{content:none}#itemsCollectionPanel .player-score{font-size:20px;margin-bottom:1px}#itemsCollectionPanel .player-level{font-size:10px;margin-bottom:2px}#itemsCollectionPanel .collection-summary{font-size:8px;margin-top:2px;padding-top:2px}#itemsCollectionPanel .health-bar{display:flex;align-items:center;gap:4px}#itemsCollectionPanel .health-text{font-size:9px;font-weight:700;color:gold;min-width:30px;text-align:right}#itemsCollectionPanel .stat-row:nth-child(3),#itemsCollectionPanel .stat-row:nth-child(4){display:none!important}#dragonstalkerProgressPanel{position:fixed;top:170px;right:10px;width:auto;min-width:240px;max-width:280px;border-width:2px;border-radius:8px;background:rgba(0,0,0,.8);backdrop-filter:blur(4px);z-index:100}#spellBar{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);gap:10px;padding:8px;border-radius:12px;justify-content:space-between;width:auto;max-width:400px}.spell-slot{width:50px;height:70px;padding:3px}.spell-icon{width:32px;height:32px;border-radius:6px}.spell-key{font-size:9px}.spell-name{font-size:7px}.spell-timer{font-size:14px;padding:1px 4px}}@media (max-width:1024px){#nameEntry{width:95%;max-width:310px;padding:20px 15px;font-size:14px}#nameEntry h2{font-size:24px;margin-bottom:15px}#nameEntry p{font-size:14px;margin-bottom:15px}#playerNameInput{width:90%;max-width:250px;padding:12px;font-size:16px;margin-bottom:20px}.menu-btn{padding:12px 20px;font-size:16px;margin:8px 5px;min-width:100px;border-radius:8px}#highScoresScreen{width:95%;max-width:350px;min-width:unset;padding:20px 15px}#highScoresScreen h2{font-size:24px;margin-bottom:20px}.score-entry{font-size:13px;padding:8px 12px;margin:3px 0}.score-date{display:none}.score-rank{min-width:40px;font-size:12px}.score-points{min-width:60px;font-size:13px}.score-level{min-width:40px;font-size:12px}#gameOver{width:95%;max-width:310px;padding:20px 15px}#gameOver h2{font-size:24px}#gameOver p{font-size:16px}.screen{width:95%;max-width:350px;max-height:85vh;margin:0}.screen-content{padding:20px 15px}.screen-content h2{font-size:24px;margin-bottom:20px}.screen-content h3{font-size:18px;margin-bottom:15px}.settings-section{margin-bottom:20px}.setting-item{margin-bottom:15px;font-size:14px}.setting-item label{font-size:14px}.volume-control{margin-top:8px}.volume-slider{width:100%;max-width:200px}#howToPlay{width:95%;max-width:350px;min-width:unset;padding:20px 15px;max-height:85vh;overflow-y:auto}#howToPlay h2{font-size:24px;margin-bottom:20px}#howToPlay h3{font-size:18px;margin-bottom:15px}#howToPlay p{font-size:14px;line-height:1.4}.guide-section{margin-bottom:20px}.item-grid,.spell-grid{gap:8px}.item-type,.spell-item{padding:8px;font-size:13px;line-height:1.3}.pause-content{min-width:280px;max-width:350px;padding:25px 20px;margin:0 10px}.pause-content h2{font-size:28px;margin-bottom:8px}.pause-subtitle{font-size:16px;margin-bottom:25px}.pause-buttons{gap:12px;margin-bottom:20px}.pause-btn{padding:12px 20px;font-size:16px;min-width:160px;border-radius:10px}.pause-hint{font-size:12px;margin-top:8px}}@media screen and (max-width:1024px) and (orientation:portrait),screen and (max-height:1024px) and (orientation:portrait),screen and (max-width:480px){.force-mobile-panels #itemsCollectionPanel,.force-mobile-panels #itemsCollectionPanel.force-mobile,body.force-mobile-panels #itemsCollectionPanel,body.force-mobile-panels #itemsCollectionPanel.force-mobile{height:90px!important;max-height:120px!important;display:flex!important;align-items:stretch!important;position:fixed!important;top:2px!important;left:50%!important;right:auto!important;transform:translateX(-50%)!important;border-radius:8px!important;border:none!important;border-bottom:1px solid rgba(78,205,196,.3)!important;background:rgba(0,0,0,.95)!important;backdrop-filter:blur(4px)!important;z-index:1000!important}body #itemsCollectionPanel.hidden,body.force-mobile-panels #itemsCollectionPanel.hidden{display:none!important}#itemsCollectionPanel.force-mobile .panel-header,.force-mobile-panels #itemsCollectionPanel .panel-header,body.force-mobile-panels #itemsCollectionPanel .panel-header{flex:0 0 43px!important;display:flex!important;flex-direction:column!important;justify-content:center!important;border-right:1px solid rgba(78,205,196,.3)!important;padding:8px 15px!important;margin:0!important}#itemsCollectionPanel.force-mobile .player-stats,.force-mobile-panels #itemsCollectionPanel .player-stats,body.force-mobile-panels #itemsCollectionPanel .player-stats{flex:1!important;gap:5px!important;padding:8px!important;background:rgba(255,215,0,.1)!important;margin:4px!important;align-content:center!important}#itemsCollectionPanel.force-mobile .stat-row,.force-mobile-panels #itemsCollectionPanel .stat-row,body.force-mobile-panels #itemsCollectionPanel .stat-row{display:flex!important;justify-content:space-between!important;align-items:center!important;margin-bottom:0!important;padding:1px 0!important;white-space:nowrap!important}#itemsCollectionPanel.force-mobile .collection-summary,#itemsCollectionPanel.force-mobile .player-health-section,.force-mobile-panels #itemsCollectionPanel .collection-summary,.force-mobile-panels #itemsCollectionPanel .player-health-section,body.force-mobile-panels #itemsCollectionPanel .collection-summary,body.force-mobile-panels #itemsCollectionPanel .player-health-section{display:none!important}}
+/* Mobile and Responsive Styles for EFTO Game */
+
+/* ===== MOBILE PORTRAIT & SMALL SCREENS ===== */
+@media screen and (max-width: 1024px) and (orientation: portrait),
+       screen and (max-height: 1024px) and (orientation: portrait),
+       screen and (max-width: 480px) {
+    
+    /* Spell Notifications */
+    .spell-notifications-container {
+        top: 190px !important;
+        max-width: calc(100vw - 30px) !important;
+        z-index: 998;
+    }
+    
+    /* Buff Tracker */
+    .buff-tracker-container {
+        bottom: 270px !important;
+        left: 5px !important;
+        width: 160px !important;
+        max-height: 160px !important;
+    }
+    
+    .buff-item {
+        padding: 6px 8px;
+        font-size: 10px;
+    }
+    
+    .buff-name {
+        font-size: 9px;
+    }
+    
+    .buff-effect {
+        font-size: 8px;
+    }
+    
+    .buff-timer {
+        font-size: 9px;
+        min-width: 10px;
+    }
+}
+
+/* ===== MOBILE LANDSCAPE ===== */
+@media (max-width: 1024px) and (orientation: landscape) {
+    
+    /* Spell Notifications */
+    .spell-notifications-container {
+        top: 5px;
+        max-width: calc(100vw - 20px);
+        left: 50%;
+        transform: translateX(-50%);
+        max-height: 150px;
+    }
+    
+    .spell-notification {
+        padding: 8px 14px;
+        font-size: 12px;
+        max-width: 95%;
+    }
+    
+    .spell-notification.persistent {
+        font-size: 10px;
+        padding: 6px 10px;
+    }
+    
+    /* Buff Tracker */
+    .buff-tracker-container {
+        bottom: 120px;
+        left: 15px;
+        width: 180px;
+        max-height: 150px;
+    }
+}
+
+/* ===== ITEMS COLLECTION PANEL - MOBILE PORTRAIT ===== */
+@media screen and (max-width: 1024px) and (orientation: portrait),
+       screen and (max-height: 1024px) and (orientation: portrait),
+       screen and (max-width: 480px) {
+    
+    #itemsCollectionPanel {
+        position: fixed !important;
+        top: 0 !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+        width: auto !important;
+        max-width: 390px !important;
+        height: 120px !important;
+        max-height: 120px !important;
+        min-width: 0 !important;
+        border-radius: 0 !important;
+        border: none !important;
+        border-bottom: 1px solid rgba(78, 205, 196, 0.3) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        background: rgba(0, 0, 0, 0.95);
+        backdrop-filter: blur(4px);
+        display: flex !important;
+        align-items: stretch !important;
+        z-index: 1000;
+    }
+    
+    #itemsCollectionPanel .items-list {
+        display: none;
+    }
+    
+    #itemsCollectionPanel.paused .items-list {
+        display: block;
+        max-height: 120px;
+        overflow-y: auto;
+    }
+    
+    /* Panel Header */
+    #itemsCollectionPanel .panel-header {
+        flex: 0 0 200px !important;
+        padding: 8px 15px !important;
+        margin: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        border-right: 1px solid rgba(78, 205, 196, 0.3) !important;
+    }
+    
+    #itemsCollectionPanel .player-name {
+        font-size: 12px !important;
+        margin-bottom: 2px !important;
+        line-height: 1 !important;
+    }
+    
+    #itemsCollectionPanel .player-score {
+        font-size: 20px !important;
+        margin-bottom: 2px !important;
+        line-height: 1 !important;
+        font-weight: 700 !important;
+    }
+    
+    #itemsCollectionPanel .player-level {
+        font-size: 10px !important;
+        margin-bottom: 0 !important;
+        line-height: 1 !important;
+    }
+    
+    #itemsCollectionPanel .collection-summary,
+    #itemsCollectionPanel .player-health-section {
+        display: none !important;
+    }
+    
+    /* Player Stats */
+    #itemsCollectionPanel .player-stats {
+        flex: 1 !important;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 2px 8px !important;
+        padding: 8px 15px !important;
+        background: rgba(255, 215, 0, 0.1) !important;
+        margin: 0 !important;
+        align-content: center !important;
+    }
+    
+    #itemsCollectionPanel .stat-row {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        margin-bottom: 0 !important;
+        padding: 1px 0 !important;
+        white-space: nowrap !important;
+    }
+    
+    #itemsCollectionPanel .stat-label {
+        font-size: 9px !important;
+        color: #ccc !important;
+        font-weight: 400 !important;
+    }
+    
+    #itemsCollectionPanel .stat-value {
+        font-size: 10px !important;
+        color: gold !important;
+        font-weight: 700 !important;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important;
+    }
+    
+    /* Health Bar */
+    .player-health-bar {
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+        margin: 2px 0 !important;
+        padding: 0 !important;
+    }
+    
+    .player-health-background {
+        flex: 1 !important;
+        height: 8px !important;
+        background: rgba(50, 50, 50, 0.8) !important;
+        border-radius: 4px !important;
+        overflow: hidden !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    }
+    
+    .player-health-fill {
+        height: 100% !important;
+        background: linear-gradient(90deg, #0f0, #4f4) !important;
+        border-radius: 3px !important;
+        transition: width 0.3s !important;
+        width: 100% !important;
+    }
+    
+    .player-health-text {
+        font-size: 8px !important;
+        color: gold !important;
+        font-weight: 700 !important;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important;
+        min-width: 30px !important;
+        text-align: right !important;
+    }
+    
+    /* Dragonstalker Progress Panel */
+    #dragonstalkerProgressPanel {
+        position: fixed !important;
+        top: 93px !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+        width: auto !important;
+        max-width: 390px !important;
+        height: auto !important;
+        min-width: 0 !important;
+        border: none !important;
+        border-bottom: 1px solid rgba(0, 255, 255, 0.3) !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        background: rgba(0, 0, 0, 0.95);
+        backdrop-filter: blur(4px);
+        z-index: 999;
+        overflow: hidden !important;
+    }
+    
+    #dragonstalkerProgressPanel .dragonstalker-panel-header {
+        padding: 4px 15px !important;
+        margin: 0 !important;
+        border-bottom: none !important;
+    }
+    
+    #dragonstalkerProgressPanel .dragonstalker-title {
+        font-size: 12px !important;
+        margin-bottom: 2px !important;
+    }
+    
+    #dragonstalkerProgressPanel .dragonstalker-progress-bar {
+        margin-bottom: 2px !important;
+    }
+    
+    #dragonstalkerProgressPanel .progress-background {
+        height: 15px !important;
+    }
+    
+    #dragonstalkerProgressPanel .progress-text {
+        font-size: 10px !important;
+    }
+    
+    #dragonstalkerProgressPanel .dragonstalker-status {
+        font-size: 10px !important;
+        margin-bottom: 2px !important;
+    }
+    
+    #dragonstalkerProgressPanel .dragonstalker-items-list {
+        padding: 0 !important;
+        display: grid !important;
+        grid-template-columns: repeat(10, 1fr) !important;
+        gap: 2px !important;
+        max-height: 50px !important;
+        min-height: 40px !important;
+        overflow: visible !important;
+        background: rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    #dragonstalkerProgressPanel .dragonstalker-item {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 1px !important;
+        min-height: 35px !important;
+        max-height: 35px !important;
+        width: 100% !important;
+        font-size: 8px !important;
+        position: relative !important;
+        background: rgba(255, 255, 255, 0.05) !important;
+        border-radius: 3px !important;
+    }
+    
+    #dragonstalkerProgressPanel .dragonstalker-item-icon {
+        font-size: 14px !important;
+        line-height: 18px !important;
+        height: 18px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-bottom: 1px !important;
+        color: #fff !important;
+    }
+    
+    #dragonstalkerProgressPanel .dragonstalker-item-status {
+        position: absolute !important;
+        bottom: 0 !important;
+        right: 0 !important;
+        width: 12px !important;
+        height: 12px !important;
+        font-size: 9px !important;
+        font-weight: 700 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: rgba(0, 0, 0, 0.8) !important;
+        border-radius: 50% !important;
+        color: #fff !important;
+    }
+    
+    #dragonstalkerProgressPanel .dragonstalker-item-name {
+        display: none !important;
+    }
+    
+    /* Spell Bar */
+    #spellBar {
+        position: fixed;
+        bottom: 15px;
+        left: 50%;
+        transform: translateX(-50%);
+        gap: 1px;
+        padding: 1px;
+        border-radius: 12px;
+        max-width: 90vw;
+    }
+    
+    .spell-slot {
+        width: 48px;
+        height: 68px;
+        padding: 3px;
+    }
+    
+    .spell-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 6px;
+    }
+    
+    .spell-key {
+        font-size: 9px;
+    }
+    
+    .spell-name {
+        font-size: 7px;
+    }
+    
+    .spell-timer {
+        font-size: 12px;
+        padding: 1px 3px;
+    }
+}
+
+/* ===== LANDSCAPE MOBILE/TABLET ===== */
+@media (max-width: 1024px) and (orientation: landscape) {
+    
+    /* Items Collection Panel */
+    #itemsCollectionPanel {
+        position: fixed;
+        top: 5px;
+        left: 5px;
+        width: 220px;
+        max-height: calc(100vh - 120px);
+        border-radius: 8px;
+        border-width: 1px;
+        z-index: 100;
+    }
+    
+    #itemsCollectionPanel:not(.paused) .items-list {
+        display: none;
+    }
+    
+    #itemsCollectionPanel.paused .items-list {
+        display: block;
+    }
+    
+    #itemsCollectionPanel .panel-header {
+        padding: 6px;
+    }
+    
+    #itemsCollectionPanel .player-name {
+        font-size: 12px;
+        margin-bottom: 2px;
+    }
+    
+    #itemsCollectionPanel .player-name::before {
+        content: none;
+    }
+    
+    #itemsCollectionPanel .player-score {
+        font-size: 20px;
+        margin-bottom: 1px;
+    }
+    
+    #itemsCollectionPanel .player-level {
+        font-size: 10px;
+        margin-bottom: 2px;
+    }
+    
+    #itemsCollectionPanel .collection-summary {
+        font-size: 8px;
+        margin-top: 2px;
+        padding-top: 2px;
+    }
+    
+    #itemsCollectionPanel .health-bar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    #itemsCollectionPanel .health-text {
+        font-size: 9px;
+        font-weight: 700;
+        color: gold;
+        min-width: 30px;
+        text-align: right;
+    }
+    
+    #itemsCollectionPanel .stat-row:nth-child(3),
+    #itemsCollectionPanel .stat-row:nth-child(4) {
+        display: none !important;
+    }
+    
+    /* Dragonstalker Progress Panel */
+    #dragonstalkerProgressPanel {
+        position: fixed;
+        top: 170px;
+        right: 10px;
+        width: auto;
+        min-width: 240px;
+        max-width: 280px;
+        border-width: 2px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(4px);
+        z-index: 100;
+    }
+    
+    /* Spell Bar */
+    #spellBar {
+        position: fixed;
+        bottom: 15px;
+        left: 50%;
+        transform: translateX(-50%);
+        gap: 10px;
+        padding: 8px;
+        border-radius: 12px;
+        justify-content: space-between;
+        width: auto;
+        max-width: 400px;
+    }
+    
+    .spell-slot {
+        width: 50px;
+        height: 70px;
+        padding: 3px;
+    }
+    
+    .spell-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+    }
+    
+    .spell-key {
+        font-size: 9px;
+    }
+    
+    .spell-name {
+        font-size: 7px;
+    }
+    
+    .spell-timer {
+        font-size: 14px;
+        padding: 1px 4px;
+    }
+}
+
+/* ===== GENERAL MOBILE STYLES ===== */
+@media (max-width: 1024px) {
+    
+    /* Name Entry */
+    #nameEntry {
+        width: 95%;
+        max-width: 310px;
+        padding: 20px 15px;
+        font-size: 14px;
+    }
+    
+    #nameEntry h2 {
+        font-size: 24px;
+        margin-bottom: 15px;
+    }
+    
+    #nameEntry p {
+        font-size: 14px;
+        margin-bottom: 15px;
+    }
+    
+    #playerNameInput {
+        width: 90%;
+        max-width: 250px;
+        padding: 12px;
+        font-size: 16px;
+        margin-bottom: 20px;
+    }
+    
+    /* Menu Buttons */
+    .menu-btn {
+        padding: 12px 20px;
+        font-size: 16px;
+        margin: 8px 5px;
+        min-width: 100px;
+        border-radius: 8px;
+    }
+    
+    /* High Scores */
+    #highScoresScreen {
+        width: 95%;
+        max-width: 350px;
+        min-width: unset;
+        padding: 20px 15px;
+    }
+    
+    #highScoresScreen h2 {
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+    
+    .score-entry {
+        font-size: 13px;
+        padding: 8px 12px;
+        margin: 3px 0;
+    }
+    
+    .score-date {
+        display: none;
+    }
+    
+    .score-rank {
+        min-width: 40px;
+        font-size: 12px;
+    }
+    
+    .score-points {
+        min-width: 60px;
+        font-size: 13px;
+    }
+    
+    .score-level {
+        min-width: 40px;
+        font-size: 12px;
+    }
+    
+    /* Game Over */
+    #gameOver {
+        width: 95%;
+        max-width: 310px;
+        padding: 20px 15px;
+    }
+    
+    #gameOver h2 {
+        font-size: 24px;
+    }
+    
+    #gameOver p {
+        font-size: 16px;
+    }
+    
+    /* General Screen Styles */
+    .screen {
+        width: 95%;
+        max-width: 350px;
+        max-height: 85vh;
+        margin: 0;
+    }
+    
+    .screen-content {
+        padding: 20px 15px;
+    }
+    
+    .screen-content h2 {
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+    
+    .screen-content h3 {
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+    
+    /* Settings */
+    .settings-section {
+        margin-bottom: 20px;
+    }
+    
+    .setting-item {
+        margin-bottom: 15px;
+        font-size: 14px;
+    }
+    
+    .setting-item label {
+        font-size: 14px;
+    }
+    
+    .volume-control {
+        margin-top: 8px;
+    }
+    
+    .volume-slider {
+        width: 100%;
+        max-width: 200px;
+    }
+    
+    /* How to Play */
+    #howToPlay {
+        width: 95%;
+        max-width: 350px;
+        min-width: unset;
+        padding: 20px 15px;
+        max-height: 85vh;
+        overflow-y: auto;
+    }
+    
+    #howToPlay h2 {
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+    
+    #howToPlay h3 {
+        font-size: 18px;
+        margin-bottom: 15px;
+    }
+    
+    #howToPlay p {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    
+    .guide-section {
+        margin-bottom: 20px;
+    }
+    
+    .item-grid, .spell-grid {
+        gap: 8px;
+    }
+    
+    .item-type, .spell-item {
+        padding: 8px;
+        font-size: 13px;
+        line-height: 1.3;
+    }
+    
+    /* Pause Menu */
+    .pause-content {
+        min-width: 280px;
+        max-width: 350px;
+        padding: 25px 20px;
+        margin: 0 10px;
+    }
+    
+    .pause-content h2 {
+        font-size: 28px;
+        margin-bottom: 8px;
+    }
+    
+    .pause-subtitle {
+        font-size: 16px;
+        margin-bottom: 25px;
+    }
+    
+    .pause-buttons {
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    
+    .pause-btn {
+        padding: 12px 20px;
+        font-size: 16px;
+        min-width: 160px;
+        border-radius: 10px;
+    }
+    
+    .pause-hint {
+        font-size: 12px;
+        margin-top: 8px;
+    }
+}
+
+/* ===== FORCE MOBILE PANELS OVERRIDES ===== */
+@media screen and (max-width: 1024px) and (orientation: portrait),
+       screen and (max-height: 1024px) and (orientation: portrait),
+       screen and (max-width: 480px) {
+    
+    .force-mobile-panels #itemsCollectionPanel,
+    .force-mobile-panels #itemsCollectionPanel.force-mobile,
+    body.force-mobile-panels #itemsCollectionPanel,
+    body.force-mobile-panels #itemsCollectionPanel.force-mobile {
+        height: 90px !important;
+        max-height: 120px !important;
+        display: flex !important;
+        align-items: stretch !important;
+        position: fixed !important;
+        top: 2px !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%) !important;
+        border-radius: 8px !important;
+        border: none !important;
+        border-bottom: 1px solid rgba(78, 205, 196, 0.3) !important;
+        background: rgba(0, 0, 0, 0.95) !important;
+        backdrop-filter: blur(4px) !important;
+        z-index: 1000 !important;
+    }
+    
+    body #itemsCollectionPanel.hidden,
+    body.force-mobile-panels #itemsCollectionPanel.hidden {
+        display: none !important;
+    }
+    
+    #itemsCollectionPanel.force-mobile .panel-header,
+    .force-mobile-panels #itemsCollectionPanel .panel-header,
+    body.force-mobile-panels #itemsCollectionPanel .panel-header {
+        flex: 0 0 43px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        border-right: 1px solid rgba(78, 205, 196, 0.3) !important;
+        padding: 8px 15px !important;
+        margin: 0 !important;
+    }
+    
+    #itemsCollectionPanel.force-mobile .player-stats,
+    .force-mobile-panels #itemsCollectionPanel .player-stats,
+    body.force-mobile-panels #itemsCollectionPanel .player-stats {
+        flex: 1 !important;
+        gap: 5px !important;
+        padding: 8px !important;
+        background: rgba(255, 215, 0, 0.1) !important;
+        margin: 4px !important;
+        align-content: center !important;
+    }
+    
+    #itemsCollectionPanel.force-mobile .stat-row,
+    .force-mobile-panels #itemsCollectionPanel .stat-row,
+    body.force-mobile-panels #itemsCollectionPanel .stat-row {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        margin-bottom: 0 !important;
+        padding: 1px 0 !important;
+        white-space: nowrap !important;
+    }
+    
+    #itemsCollectionPanel.force-mobile .collection-summary,
+    #itemsCollectionPanel.force-mobile .player-health-section,
+    .force-mobile-panels #itemsCollectionPanel .collection-summary,
+    .force-mobile-panels #itemsCollectionPanel .player-health-section,
+    body.force-mobile-panels #itemsCollectionPanel .collection-summary,
+    body.force-mobile-panels #itemsCollectionPanel .player-health-section {
+        display: none !important;
+    }
+}

@@ -1287,8 +1287,16 @@ export function applyAirResistance(item, deltaTime, airDensity = 0.001) {
     const linearDrag = 1 - Math.min(airDensity * deltaTime, 0.01); // Cap at 1% per frame
     const angularDrag = 1 - Math.min(airDensity * 0.3 * deltaTime, 0.005); // Even gentler for rotation
     
-    // Apply drag to speeds
-    item.speed *= linearDrag;
+    // Apply drag to speeds - but preserve speed boost effects
+    if (item.baseSpeed && window.gameState && window.gameState.speedIncreaseActive) {
+        // When speed boost is active, apply drag to base speed then recalculate final speed
+        item.baseSpeed *= linearDrag;
+        item.speed = item.baseSpeed * window.gameState.speedIncreaseMultiplier;
+    } else {
+        // Normal air resistance when no speed boost is active
+        item.speed *= linearDrag;
+    }
+    
     item.horizontalSpeed *= linearDrag;
     item.rotationSpeed *= angularDrag;
     

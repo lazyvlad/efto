@@ -1,1 +1,93 @@
-body,html{margin:0;padding:0;height:100%;overflow:hidden;background:url('../assets/background.jpg') center center/cover no-repeat #1a1a1a;font-family:Arial,sans-serif}#gameCanvas{display:block;cursor:none;background:0 0;position:fixed;top:0;left:0;width:100vw;height:100vh;image-rendering:-webkit-optimize-contrast;image-rendering:crisp-edges;image-rendering:pixelated;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;z-index:1}#gameCanvas.show-cursor{cursor:default}.canvas-border{position:fixed;background:linear-gradient(135deg,rgba(78,205,196,.6) 0,rgba(255,215,0,.4) 50%,rgba(78,205,196,.6) 100%);box-shadow:0 0 10px rgba(78,205,196,.3),inset 0 0 5px rgba(255,215,0,.2);z-index:2;pointer-events:none;backdrop-filter:blur(3px)}.canvas-border.top{top:calc(var(--letterbox-top,0px) - 5px);left:calc(var(--letterbox-left,0px) - 5px);width:calc(var(--letterbox-width,100vw) + 10px);height:5px;border-radius:6px 6px 0 0}.canvas-border.bottom{top:calc(var(--letterbox-top,0px) + var(--letterbox-height,100vh));left:calc(var(--letterbox-left,0px) - 5px);width:calc(var(--letterbox-width,100vw) + 10px);height:5px;border-radius:0 0 6px 6px}.canvas-border.left{top:calc(var(--letterbox-top,0px) - 5px);left:calc(var(--letterbox-left,0px) - 5px);width:5px;height:calc(var(--letterbox-height,100vh) + 10px);border-radius:6px 0 0 6px}.canvas-border.right{top:calc(var(--letterbox-top,0px) - 5px);left:calc(var(--letterbox-left,0px) + var(--letterbox-width,100vw));width:5px;height:calc(var(--letterbox-height,100vh) + 10px);border-radius:0 6px 6px 0}@media (max-width:1024px){.canvas-border{display:var(--show-borders,block)}}.hidden{display:none!important}button:focus,input:focus{outline:#4ECDC4 solid 3px;outline-offset:2px}
+/* Base styles for EFTO Game */
+
+/* Reset and base body styles */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden;
+    background: url('../assets/background.jpg') center center/cover no-repeat #1a1a1a;
+    font-family: Arial, sans-serif;
+}
+
+/* Game canvas styling */
+#gameCanvas {
+    display: block;
+    cursor: none;
+    background: transparent;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    z-index: 1;
+}
+
+#gameCanvas.show-cursor {
+    cursor: default;
+}
+
+/* Canvas border effects */
+.canvas-border {
+    position: fixed;
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.6) 0%, rgba(255, 215, 0, 0.4) 50%, rgba(78, 205, 196, 0.6) 100%);
+    box-shadow: 0 0 10px rgba(78, 205, 196, 0.3), inset 0 0 5px rgba(255, 215, 0, 0.2);
+    z-index: 2;
+    pointer-events: none;
+    backdrop-filter: blur(3px);
+}
+
+.canvas-border.top {
+    top: calc(var(--letterbox-top, 0px) - 5px);
+    left: calc(var(--letterbox-left, 0px) - 5px);
+    width: calc(var(--letterbox-width, 100vw) + 10px);
+    height: 5px;
+    border-radius: 6px 6px 0 0;
+}
+
+.canvas-border.bottom {
+    top: calc(var(--letterbox-top, 0px) + var(--letterbox-height, 100vh));
+    left: calc(var(--letterbox-left, 0px) - 5px);
+    width: calc(var(--letterbox-width, 100vw) + 10px);
+    height: 5px;
+    border-radius: 0 0 6px 6px;
+}
+
+.canvas-border.left {
+    top: calc(var(--letterbox-top, 0px) - 5px);
+    left: calc(var(--letterbox-left, 0px) - 5px);
+    width: 5px;
+    height: calc(var(--letterbox-height, 100vh) + 10px);
+    border-radius: 6px 0 0 6px;
+}
+
+.canvas-border.right {
+    top: calc(var(--letterbox-top, 0px) - 5px);
+    left: calc(var(--letterbox-left, 0px) + var(--letterbox-width, 100vw));
+    width: 5px;
+    height: calc(var(--letterbox-height, 100vh) + 10px);
+    border-radius: 0 6px 6px 0;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 1024px) {
+    .canvas-border {
+        display: var(--show-borders, block);
+    }
+}
+
+/* Utility classes */
+.hidden {
+    display: none !important;
+}
+
+/* Focus styles */
+button:focus, input:focus {
+    outline: #4ECDC4 solid 3px;
+    outline-offset: 2px;
+}

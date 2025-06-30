@@ -111,19 +111,49 @@ export const powerUpItems = [
         size_multiplier: 1.2 // Standardized size
     },
     {
+        id: "bronze_arrows",
+        name: "Bronze Arrows",
+        image: assetRegistry.powerups.thoriumArrows, // Reusing arrows asset for now
+        effect: "arrow_ammo",
+        value: 25, // 25 arrows per bundle
+        duration: 0, // Instant effect (adds to inventory)
+        type: "utility",
+        color: "#CD7F32",
+        sound: assetRegistry.audio.manaDrink, // Temporary - will need dedicated sound
+        description: "Adds 25 arrows to your ammunition",
+        baseProbability: 0.35, // 35% base chance (higher for lowest tier)
+        speedScaling: true, // Increases probability based on game speed
+        size_multiplier: 1.0 // Smaller size for bronze tier
+    },
+    {
+        id: "silver_arrows",
+        name: "Silver Arrows",
+        image: assetRegistry.powerups.thoriumArrows, // Reusing arrows asset for now
+        effect: "arrow_ammo",
+        value: 50, // 50 arrows per bundle
+        duration: 0, // Instant effect (adds to inventory)
+        type: "utility",
+        color: "#C0C0C0",
+        sound: assetRegistry.audio.manaDrink, // Temporary - will need dedicated sound
+        description: "Adds 50 arrows to your ammunition",
+        baseProbability: 0.25, // 25% base chance (medium tier)
+        speedScaling: true, // Increases probability based on game speed
+        size_multiplier: 1.1 // Medium size for silver tier
+    },
+    {
         id: "thorium_arrows",
-        name: "Thorium Headed Arrows",
+        name: "Thorium Arrows",
         image: assetRegistry.powerups.thoriumArrows, // New thorium arrows asset
         effect: "arrow_ammo",
-        value: 1000, // 1000 arrows per bundle
+        value: 100, // 100 arrows per bundle
         duration: 0, // Instant effect (adds to inventory)
         type: "utility",
         color: "#FFD700",
         sound: assetRegistry.audio.manaDrink, // Temporary - will need dedicated sound
-        description: "Adds 1000 arrows to your ammunition",
-        baseProbability: 0.25, // 25% base chance (same as mana potion)
+        description: "Adds 100 arrows to your ammunition",
+        baseProbability: 0.15, // 15% base chance (lowest for highest tier)
         speedScaling: true, // Increases probability based on game speed
-        size_multiplier: 1.2 // Appropriate size for arrow bundles
+        size_multiplier: 1.2 // Largest size for thorium tier
     }
     
     // Example power-up that modifies horizontal speed reduction (commented out)

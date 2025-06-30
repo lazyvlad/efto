@@ -59,7 +59,7 @@ export const playerSpells = [
         manaCost: 25,
         castTime: 60, // 1 second
         category: "utility",
-        key: "E"
+        key: "T"
     },
     {
         id: "autoshot",
@@ -81,30 +81,30 @@ export const playerSpells = [
         manaCost: 0,
         castTime: 0,
         category: "combat",
-        key: "A",
+        key: "E",
         ammoRequired: 1 // Requires 1 arrow
     },
     {
         id: "multishot",
         name: "Multishot",
         type: "instant",
-        description: "Fires 3 arrows in a spread pattern with +5% crit chance",
+        description: "Fires 5 arrows in a wide spread pattern with +5% crit chance (0.5s cooldown)",
         duration: 0, // Instant effect
         effects: {
             fire_arrow: {
-                count: 3,
-                angles: [-65, -90, -135], // Left, center, right spread
+                count: 5,
+                angles: [-30, -60, -90, -120, -150], // 5 arrows in wide spread: upward left to upward right
                 crit_bonus: 0.05 // +5% crit chance
             }
         },
         icon: assetRegistry.buffs.multishot, // New multishot icon
         color: "#FF6B35",
         rarity: "uncommon",
-        cooldown: 120, // 2 seconds at 60fps
+        cooldown: 30, // 0.5 second cooldown (30 frames at 60fps) - same as autoshot
         manaCost: 0,
         castTime: 0,
         category: "combat",
         key: "R",
-        ammoRequired: 3 // Requires 3 arrows (one per shot)
+        ammoRequired: 5 // Requires 5 arrows (one per shot)
     }
 ]; 

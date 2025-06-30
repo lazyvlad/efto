@@ -272,15 +272,8 @@ function handleKeyDown(e, gameState, restartGame, startGame, deprecatedParam, sh
         return;
     }
     
-    // Autoshot spell (A key) - only during gameplay
-    if (e.key.toLowerCase() === 'a' && gameState.gameRunning) {
-        e.preventDefault();
-        spellSystem.castSpellByKey('a', Date.now());
-        return;
-    }
-    
-    // Spell casting keys (Q, W, E, R) - only during gameplay
-    if (gameState.gameRunning && ['q', 'w', 'e', 'r'].includes(e.key.toLowerCase())) {
+    // Spell casting keys (Q, W, T, E, R) - only during gameplay
+    if (gameState.gameRunning && ['q', 'w', 't', 'e', 'r'].includes(e.key.toLowerCase())) {
         e.preventDefault();
         spellSystem.castSpellByKey(e.key, Date.now());
         return;
@@ -292,7 +285,9 @@ function initializeSpellTouchHandlers(gameState) {
     const spells = [
         { id: 'dragon_cry', key: 'q', elementId: 'spell-dragon-cry' },
         { id: 'zandalari', key: 'w', elementId: 'spell-zandalari' },
-        { id: 'flask_of_titans', key: 'e', elementId: 'spell-flask-of-titans' }
+        { id: 'flask_of_titans', key: 't', elementId: 'spell-flask-of-titans' },
+        { id: 'autoshot', key: 'e', elementId: 'spell-autoshot' },
+        { id: 'multishot', key: 'r', elementId: 'spell-multishot' }
     ];
     
     spells.forEach(spell => {

@@ -358,6 +358,34 @@ export class PowerUpItem {
         }
         
         ctx.restore();
+        
+        // Draw effect text for arrow powerups (outside of restore so text isn't affected by rotation)
+        this.drawEffectText(ctx, drawWidth, drawHeight);
+    }
+
+    drawEffectText(ctx, drawWidth, drawHeight) {
+        // Only draw text for arrow powerups
+        if (this.data.effect === "arrow_ammo") {
+            // Background for text readability
+            const textX = this.x + this.width/2;
+            const textY = this.y + this.height + 25; // Position below the powerup
+            const textWidth = 50;
+            const textHeight = 20;
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(textX - textWidth/2, textY - textHeight/2, textWidth, textHeight);
+            
+            // Border around text background using powerup color
+            ctx.strokeStyle = this.data.color;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(textX - textWidth/2, textY - textHeight/2, textWidth, textHeight);
+            
+            // Text showing arrow count
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(`+${this.data.value}`, textX, textY + 4);
+        }
     }
 
     checkCollision(player) {
@@ -641,8 +669,16 @@ export class PowerUpItem {
                 const arrowsToAdd = this.data.value;
                 gameState.arrowCount = (gameState.arrowCount || 0) + arrowsToAdd;
                 
-                // Add notification for arrow collection
-                addNotification(gameState, `🏹 THORIUM ARROWS! +${arrowsToAdd} arrows (Total: ${gameState.arrowCount})`, 300, '#FFD700');
+                // Add notification for arrow collection with tier-specific names and emojis
+                let arrowNotification = '';
+                if (this.data.id === 'bronze_arrows') {
+                    arrowNotification = `🏹 BRONZE ARROWS! +${arrowsToAdd} arrows (Total: ${gameState.arrowCount})`;
+                } else if (this.data.id === 'silver_arrows') {
+                    arrowNotification = `🏹 SILVER ARROWS! +${arrowsToAdd} arrows (Total: ${gameState.arrowCount})`;
+                } else {
+                    arrowNotification = `🏹 THORIUM ARROWS! +${arrowsToAdd} arrows (Total: ${gameState.arrowCount})`;
+                }
+                addNotification(gameState, arrowNotification, 300, this.data.color);
                 break;
         }
     }

@@ -6,6 +6,10 @@ import { assetRegistry } from '../data/assetRegistry.js';
 export let audioInitialized = false;
 export let audioInitAttempted = false;
 
+// Add retry limiting
+let audioInitRetryCount = 0;
+const MAX_AUDIO_INIT_RETRIES = 3;
+
 // Audio playback tracking to prevent overlapping sounds
 const activeSounds = new Map();
 const soundCooldowns = new Map();
@@ -65,10 +69,11 @@ export function updateVolumeFromSettings() {
 
 // Initialize audio - now uses AssetManager and respects settings
 export async function initializeAudio() {
-    if (audioInitialized || audioInitAttempted) return;
+    if (audioInitialized || audioInitAttempted || audioInitRetryCount >= MAX_AUDIO_INIT_RETRIES) return;
     audioInitAttempted = true;
+    audioInitRetryCount++;
     
-    console.log('Initializing audio system with settings integration...');
+    console.log(`Initializing audio system with settings integration... (attempt ${audioInitRetryCount}/${MAX_AUDIO_INIT_RETRIES})`);
     
     try {
         // Use AssetManager's audio initialization with timeout
@@ -111,14 +116,24 @@ export async function initializeAudio() {
             audioInitialized = true;
             console.log('🔊 Audio initialization complete with settings integration!');
         } else {
-            console.warn('Audio initialization failed, falling back to on-demand loading');
+            console.warn(`Audio initialization failed (attempt ${audioInitRetryCount}/${MAX_AUDIO_INIT_RETRIES}), falling back to on-demand loading`);
             audioInitialized = false;
-            audioInitAttempted = false; // Allow retry later
+            // Only allow retry if we haven't exceeded max attempts
+            if (audioInitRetryCount < MAX_AUDIO_INIT_RETRIES) {
+                audioInitAttempted = false; // Allow retry later
+            } else {
+                console.log('🔇 Max audio initialization attempts reached, disabling further attempts');
+            }
         }
     } catch (error) {
-        console.error('Audio initialization error:', error);
+        console.error(`Audio initialization error (attempt ${audioInitRetryCount}/${MAX_AUDIO_INIT_RETRIES}):`, error);
         audioInitialized = false;
-        audioInitAttempted = false; // Allow retry later
+        // Only allow retry if we haven't exceeded max attempts
+        if (audioInitRetryCount < MAX_AUDIO_INIT_RETRIES) {
+            audioInitAttempted = false; // Allow retry later
+        } else {
+            console.log('🔇 Max audio initialization attempts reached, disabling further attempts');
+        }
     }
 }
 
@@ -378,8 +393,19 @@ export function tryAutoInitAudio() {
 
 // Fallback: Initialize audio on user interaction if auto-init failed
 export function fallbackAudioInit() {
-    if (!audioInitialized && !audioInitAttempted) {
+    if (!audioInitialized && !audioInitAttempted && audioInitRetryCount < MAX_AUDIO_INIT_RETRIES) {
         console.log('Fallback audio initialization triggered');
         initializeAudio();
+    } else if (audioInitRetryCount >= MAX_AUDIO_INIT_RETRIES) {
+        // Silently skip if max retries reached
+        return;
     }
+}
+
+// Reset audio initialization state (useful for testing or settings changes)
+export function resetAudioInitialization() {
+    audioInitialized = false;
+    audioInitAttempted = false;
+    audioInitRetryCount = 0;
+    console.log('🔄 Audio initialization state reset');
 } 

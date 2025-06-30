@@ -1,9 +1,22 @@
 // CombatText.js - Floating combat text for crits and other feedback
 export class CombatText {
     constructor(x, y, text, color = '#FFD700', isCrit = false) {
-        this.x = x;
-        this.y = y;
-        this.startY = y;
+        // Get canvas dimensions for boundary checking
+        const canvas = document.getElementById('gameCanvas');
+        const canvasWidth = canvas ? canvas.width : 1600;
+        const canvasHeight = canvas ? canvas.height : 900;
+        
+        // Define safe boundaries with padding for text visibility
+        const padding = 40; // Space from edges for text to be fully visible
+        const minY = padding + (isCrit ? 35 : 25); // Extra space for larger crit text
+        const maxY = canvasHeight - padding;
+        const minX = padding;
+        const maxX = canvasWidth - padding;
+        
+        // Clamp position within safe boundaries
+        this.x = Math.max(minX, Math.min(maxX, x));
+        this.y = Math.max(minY, Math.min(maxY, y));
+        this.startY = this.y;
         this.text = text;
         this.color = color;
         this.isCrit = isCrit;

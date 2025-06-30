@@ -71,7 +71,7 @@ export const assetRegistry = {
         manaDrink: 'assets/mana_potion.wav',
         healDrink: 'assets/health_potion.mp3',
         timeCut: 'assets/time_cut.mp3',
-        speedboost: 'assets/speedboost.mp3',
+        speedboost: 'assets/speedboost.wav',
         shieldCast: 'assets/shield_cast.mp3',
         frostbolt: 'assets/frostbolt.mp3',
         shadowImpact: 'assets/shadow_impact.mp3',

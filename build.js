@@ -495,21 +495,19 @@ export const serverConfig = {
             let processedContent = content;
             let outputFilename = file;
 
-            if (!CONFIG.isDev) {
-                // Minify CSS
-                try {
-                    const result = new CleanCSS(CLEANCSS_OPTIONS).minify(content);
-                    if (result.errors.length > 0) {
-                        throw new Error(result.errors.join(', '));
-                    }
-                    processedContent = result.styles;
-                    this.log(`✅ Minified: ${file} (${this.getFileSizeReduction(content, processedContent)})`, 'success');
-                } catch (error) {
-                    this.log(`❌ Error minifying ${file}: ${error.message}`, 'error');
-                    processedContent = content; // Fallback to original
+            // Always minify CSS for builds (both production and development)
+            // This keeps source files unminified for development, but builds are optimized
+            try {
+                const result = new CleanCSS(CLEANCSS_OPTIONS).minify(content);
+                if (result.errors.length > 0) {
+                    throw new Error(result.errors.join(', '));
                 }
-            } else {
-                this.log(`📋 Copied: ${file}`, 'info');
+                processedContent = result.styles;
+                this.log(`✅ Minified: ${file} (${this.getFileSizeReduction(content, processedContent)})`, 'success');
+            } catch (error) {
+                this.log(`❌ Error minifying ${file}: ${error.message}`, 'error');
+                processedContent = content; // Fallback to original
+                this.log(`📋 Using unminified fallback for: ${file}`, 'warning');
             }
 
             const destPath = path.join(CONFIG.distDir, outputFilename);

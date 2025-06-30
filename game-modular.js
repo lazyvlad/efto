@@ -146,7 +146,7 @@ let gameState = {
     player: null,
 
     // Arrow ammunition system
-    arrowCount: 1000, // Current number of arrows available (start with 1000 for testing)
+    arrowCount: 20, // Current number of arrows available (start with 20)
     
     // Bullet Time system
     bulletTimeActive: false,            // Whether bullet time is currently active
@@ -710,6 +710,10 @@ function startGame() {
     gameState.gamePaused = false;
     gameState.currentScreen = 'game';
     
+    // Reset caches for performance
+    resetDragonstalkerCache();
+    resetItemsListCache();
+    
     // Apply starting level configuration for testing
     const startingLevel = Math.max(0, (gameConfig.levels.startingLevel || 1) - 1); // Convert 1-based to 0-based
     gameState.currentLevel = startingLevel;
@@ -853,8 +857,8 @@ function startGame() {
     gameState.healthSavedFromDodges = 0;
     gameState.dodgeAreaExpansion = 0;
     
-    // Reset arrow ammunition - start with 1000 arrows for testing
-    gameState.arrowCount = 1000;
+    // Reset arrow ammunition - start with 20 arrows
+    gameState.arrowCount = 20;
     
     // Reset bullet time system
     gameState.bulletTimeActive = false;
@@ -900,6 +904,10 @@ function startGame() {
 }
 
 function restartGame() {
+    // Reset caches for performance
+    resetDragonstalkerCache();
+    resetItemsListCache();
+    
     // Reset all game state
     gameState.score = 0;
     gameState.health = 100;
@@ -1047,8 +1055,8 @@ function restartGame() {
     gameState.healthSavedFromDodges = 0;
     gameState.dodgeAreaExpansion = 0;
     
-    // Reset arrow ammunition - start with 1000 arrows for testing
-    gameState.arrowCount = 1000;
+    // Reset arrow ammunition - start with 20 arrows
+    gameState.arrowCount = 20;
     
     // Reset bullet time system
     gameState.bulletTimeActive = false;
@@ -1289,6 +1297,9 @@ function triggerThunderfuryEffect(thunderfuryX, thunderfuryY) {
             // Collect the item
             otherItem.itemData.collected++;
             
+            // Trigger items list update
+            onItemCollected(otherItem.itemData);
+            
             // Apply spell point multipliers
             const pointMultiplier = spellSystem.getPointMultiplier();
             const basePoints = otherItem.itemData.value;
@@ -1371,6 +1382,9 @@ function checkCollisions() {
             // Update item data and score
             if (item.itemData) {
                 item.itemData.collected++;
+                
+                // Trigger items list update
+                onItemCollected(item.itemData);
                 
                 // Apply spell point multipliers
                 const pointMultiplier = spellSystem.getPointMultiplier();
@@ -1747,6 +1761,9 @@ function checkCollisions() {
                 // Collect the item with potential crit bonus from multishot
                 if (item.itemData) {
                     item.itemData.collected++;
+                    
+                    // Trigger items list update
+                    onItemCollected(item.itemData);
                     
                     // Apply spell point multipliers
                     const pointMultiplier = spellSystem.getPointMultiplier();
@@ -2775,8 +2792,11 @@ function updateDOMItemsPanel(gameState, gameItems) {
     // Update player stats
     updatePlayerStats(gameState);
     
-    // Update items list
-    updateItemsList(sortedItems);
+    // Update items list only when needed (event-based updates)
+    // Note: updateItemsList will skip updates if no items were collected
+    if (itemsListCache.needsUpdate || gameState.showingPauseMenu) {
+        updateItemsList(sortedItems);
+    }
     
     // Update dedicated dragonstalker progress panel
     updateDragonstalkerProgressPanel(gameState, gameItems);
@@ -2804,7 +2824,7 @@ function createMobileIntegratedLayout(gameState, gameItems) {
     
     // Get dragonstalker data
     const dragonstalkerItems = gameItems.filter(item => 
-        item.type === 'tier_set' && item.special_type === 'dragonstalker'
+        item.type === 'tier_set'
     );
     const collectedCount = dragonstalkerItems.reduce((sum, item) => sum + item.collected, 0);
     const totalPieces = dragonstalkerItems.length;
@@ -2908,7 +2928,7 @@ function updateMobileIntegratedValues(gameState, gameItems) {
     
     // Update dragonstalker progress
     const dragonstalkerItems = gameItems.filter(item => 
-        item.type === 'tier_set' && item.special_type === 'dragonstalker'
+        item.type === 'tier_set'
     );
     const collectedCount = dragonstalkerItems.reduce((sum, item) => sum + item.collected, 0);
     const totalPieces = dragonstalkerItems.length;
@@ -3233,6 +3253,56 @@ function updateItemsList(sortedItems) {
     
     if (!itemsList) return;
     
+    // Check if update is actually needed
+    if (!itemsListCache.needsUpdate) {
+        return; // Skip update if nothing changed
+    }
+    
+    // Calculate current stats
+    const filteredItems = sortedItems.filter(item => 
+        item.type === 'epic' || 
+        item.type === 'legendary' || 
+        item.type === 'zee_zgnan' || 
+        item.type === 'tier_set'
+    );
+    const currentTotalCount = filteredItems.reduce((sum, item) => sum + item.collected, 0);
+    const currentUniqueCount = filteredItems.filter(item => item.collected > 0).length;
+    
+    // Check if we actually need to update
+    let hasChanges = false;
+    
+    // Check if overall counts changed
+    if (currentTotalCount !== itemsListCache.lastTotalCount || 
+        currentUniqueCount !== itemsListCache.lastUniqueCount) {
+        hasChanges = true;
+    }
+    
+    // Check if individual item counts changed
+    if (!hasChanges) {
+        for (const item of filteredItems) {
+            const lastCount = itemsListCache.lastItemCounts.get(item.id) || 0;
+            if (item.collected !== lastCount) {
+                hasChanges = true;
+                break;
+            }
+        }
+    }
+    
+    // If nothing actually changed, skip the update
+    if (!hasChanges && !itemsListCache.needsUpdate) {
+        return;
+    }
+    
+    // Update cache
+    itemsListCache.lastTotalCount = currentTotalCount;
+    itemsListCache.lastUniqueCount = currentUniqueCount;
+    for (const item of filteredItems) {
+        itemsListCache.lastItemCounts.set(item.id, item.collected);
+    }
+    itemsListCache.needsUpdate = false;
+    
+    // Debug: console.log(`🔄 Items list updated: ${currentUniqueCount} unique, ${currentTotalCount} total`);
+    
     // Clear existing items
     itemsList.innerHTML = '';
     
@@ -3240,14 +3310,6 @@ function updateItemsList(sortedItems) {
     const isCompactView = responsiveScaler.deviceType === 'mobile' || 
                          window.innerWidth <= 768 || 
                          document.body.classList.contains('force-mobile-panels');
-    
-    // Filter items - only show epic, legendary, and tier set items
-    const filteredItems = sortedItems.filter(item => 
-        item.type === 'epic' || 
-        item.type === 'legendary' || 
-        item.type === 'zee_zgnan' || 
-        item.type === 'tier_set'
-    );
     
     const maxVisibleItems = isCompactView ? 15 : 20; // Fewer items on mobile
     const visibleItems = filteredItems.slice(0, maxVisibleItems);
@@ -3335,6 +3397,46 @@ function getShortenedDragonstalkerName(itemId, originalName) {
     return shortNameMap[itemId] || originalName;
 }
 
+// Cache for tracking changes to avoid unnecessary DOM updates
+let dragonstalkerCache = {
+    lastUpdate: 0,
+    lastCollectedCount: -1,
+    lastCompletionCount: -1,
+    lastGameWon: false,
+    itemStates: new Map() // Track individual item states
+};
+
+// Reset the dragonstalker cache (call when starting new game)
+function resetDragonstalkerCache() {
+    dragonstalkerCache.lastUpdate = 0;
+    dragonstalkerCache.lastCollectedCount = -1;
+    dragonstalkerCache.lastCompletionCount = -1;
+    dragonstalkerCache.lastGameWon = false;
+    dragonstalkerCache.itemStates.clear();
+}
+
+// Cache for tracking items list changes to avoid unnecessary DOM updates
+let itemsListCache = {
+    lastItemCounts: new Map(), // Track collected count for each item
+    lastTotalCount: 0,
+    lastUniqueCount: 0,
+    needsUpdate: true // Force initial update
+};
+
+// Reset the items list cache (call when starting new game)
+function resetItemsListCache() {
+    itemsListCache.lastItemCounts.clear();
+    itemsListCache.lastTotalCount = 0;
+    itemsListCache.lastUniqueCount = 0;
+    itemsListCache.needsUpdate = true;
+}
+
+// Trigger items list update when an item is collected
+function onItemCollected(itemData) {
+    // Mark that we need to update the items list
+    itemsListCache.needsUpdate = true;
+}
+
 // Update dedicated Dragonstalker progress panel
 function updateDragonstalkerProgressPanel(gameState, gameItems) {
     const panel = document.getElementById('dragonstalkerProgressPanel');
@@ -3343,6 +3445,25 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
     // Get Dragonstalker items
     const dragonstalkerItems = gameItems.filter(item => item.type === "tier_set");
     const uniquePiecesCollected = dragonstalkerItems.filter(item => item.collected > 0).length;
+    
+    // Check if anything actually changed
+    const currentTime = Date.now();
+    const hasCollectionChanged = uniquePiecesCollected !== dragonstalkerCache.lastCollectedCount;
+    const hasCompletionChanged = gameState.dragonstalkerCompletions !== dragonstalkerCache.lastCompletionCount;
+    const hasGameStateChanged = gameState.gameWon !== dragonstalkerCache.lastGameWon;
+    
+    // Throttle updates - only update every 1 second unless something important changed
+    const timeSinceLastUpdate = currentTime - dragonstalkerCache.lastUpdate;
+    const shouldForceUpdate = hasCollectionChanged || hasCompletionChanged || hasGameStateChanged;
+    
+    if (!shouldForceUpdate && timeSinceLastUpdate < 1000) {
+        return; // Skip update if nothing changed and throttle time hasn't passed
+    }
+    
+    dragonstalkerCache.lastUpdate = currentTime;
+    dragonstalkerCache.lastCollectedCount = uniquePiecesCollected;
+    dragonstalkerCache.lastCompletionCount = gameState.dragonstalkerCompletions;
+    dragonstalkerCache.lastGameWon = gameState.gameWon;
     
 
     
@@ -3431,8 +3552,6 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
     // Update items list
     const itemsList = document.getElementById('dragonstalkerItemsList');
     if (itemsList) {
-        itemsList.innerHTML = '';
-        
         // Get all tier set items dynamically and sort by setPosition
         const sortedDragonstalkerItems = [...dragonstalkerItems].sort((a, b) => {
             const aPos = a.setPosition || 999; // Put items without setPosition at the end
@@ -3440,11 +3559,31 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
             return aPos - bPos;
         });
         
-        // Items are sorted by setPosition for display
+        // Check if we need to rebuild the list (first time or after game restart)
+        if (itemsList.children.length !== sortedDragonstalkerItems.length) {
+            itemsList.innerHTML = '';
+            
+            // Create all items initially
+            sortedDragonstalkerItems.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'dragonstalker-item';
+                itemDiv.setAttribute('data-item-id', item.id);
+                itemsList.appendChild(itemDiv);
+                
+                // Initialize cache for this item
+                dragonstalkerCache.itemStates.set(item.id, {
+                    collected: -1,
+                    missed: -1,
+                    status: '',
+                    displayName: ''
+                });
+            });
+        }
         
+        // Update only items that have changed
         sortedDragonstalkerItems.forEach(item => {
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'dragonstalker-item';
+            const itemDiv = itemsList.querySelector(`[data-item-id="${item.id}"]`);
+            if (!itemDiv) return;
             
             let status = '○';
             let statusClass = 'pending';
@@ -3460,11 +3599,7 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
                 nameClass = 'missed';
             }
             
-            // Add icon for mobile layout
-            const itemIcon = getDragonstalkerItemIcon(item.id);
-            itemDiv.setAttribute('data-icon', itemIcon);
-            
-            // Use shortened names for mobile/compact view
+            // Check what layout we need
             const isCompactView = responsiveScaler.deviceType === 'mobile' || 
                                  window.innerWidth <= 1024 || 
                                  document.body.classList.contains('force-mobile-panels');
@@ -3474,27 +3609,52 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
                 displayName = getShortenedDragonstalkerName(item.id, item.name);
             }
             
-            // Create different layouts for mobile vs desktop
-            if (isCompactView) {
-                // Mobile: Show emoji icon with status overlay
-                itemDiv.innerHTML = `
-                    <div class="dragonstalker-item-icon">${itemIcon}</div>
-                    <div class="dragonstalker-item-status ${statusClass}">${status}</div>
-                    <div class="dragonstalker-item-name ${nameClass}">${displayName}</div>
-                `;
-            } else {
-                // Desktop: Traditional layout
-                itemDiv.innerHTML = `
-                    <div class="dragonstalker-item-status ${statusClass}">${status}</div>
-                    <div class="dragonstalker-item-name ${nameClass}">${displayName}</div>
-                `;
-            }
+            // Get cached state for this item (provide default if not found)
+            const cachedState = dragonstalkerCache.itemStates.get(item.id) || {
+                collected: -1,
+                missed: -1,
+                status: '',
+                displayName: ''
+            };
             
-            itemsList.appendChild(itemDiv);
+            // Check if anything changed
+            const collectedChanged = cachedState.collected !== item.collected;
+            const missedChanged = cachedState.missed !== item.missed;
+            const statusChanged = cachedState.status !== status;
+            const nameChanged = cachedState.displayName !== displayName;
+            
+            // Only update if something actually changed or if this is initial load
+            if (collectedChanged || missedChanged || statusChanged || nameChanged || !itemDiv.innerHTML) {
+                const itemIcon = getDragonstalkerItemIcon(item.id);
+                itemDiv.setAttribute('data-icon', itemIcon);
+                
+                // Create layouts for mobile vs desktop (both show icons now)
+                if (isCompactView) {
+                    // Mobile: Compact layout with icon and status overlay
+                    itemDiv.innerHTML = `
+                        <div class="dragonstalker-item-icon">${itemIcon}</div>
+                        <div class="dragonstalker-item-status ${statusClass}">${status}</div>
+                        <div class="dragonstalker-item-name ${nameClass}">${displayName}</div>
+                    `;
+                } else {
+                    // Desktop: Traditional layout with icons
+                    itemDiv.innerHTML = `
+                        <div class="dragonstalker-item-icon">${itemIcon}</div>
+                        <div class="dragonstalker-item-status ${statusClass}">${status}</div>
+                        <div class="dragonstalker-item-name ${nameClass}">${displayName}</div>
+                    `;
+                }
+                
+                // Update cache
+                dragonstalkerCache.itemStates.set(item.id, {
+                    collected: item.collected,
+                    missed: item.missed,
+                    status: status,
+                    displayName: displayName
+                });
+            }
         });
     }
-    
-
 }
 
 // ===== GAME END FUNCTIONS =====
