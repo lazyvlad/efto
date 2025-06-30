@@ -46,6 +46,7 @@ build-and-deploy.bat
 - ✅ **CSS Minification**: Optimized CSS with reduced file sizes
 - ✅ **Cache Busting**: Automatic file versioning for browser cache invalidation
 - ✅ **Dead Code Elimination**: Removes unused code
+- ✅ **Interactive Server Config**: Automatically sets up `serverConfig.js` if missing
 - ✅ **Build Info**: Generates `build-info.json` with build metadata
 
 ### Development Build (`npm run build:dev`)
@@ -85,6 +86,56 @@ Typical size reductions for production builds:
 | `game-modular.js` | ~170KB | ~60KB | ~65% |
 | CSS files | ~50KB | ~20KB | ~60% |
 | **Total** | ~220KB | ~80KB | ~64% |
+
+## Interactive Server Configuration
+
+### Automatic Setup
+When you run `npm run build`, the system checks for `config/serverConfig.js`:
+
+- ✅ **If found**: Copies existing config to dist folder
+- ⚙️ **If missing**: Prompts you to create one interactively
+
+### Configuration Options
+The interactive setup will ask you to configure:
+
+1. **Deployment Path** 
+   - Root directory: `` (most common)
+   - Subdirectory: `/game`
+   - GitHub Pages: `/repository-name`
+
+2. **Server Type**
+   - PHP Server → `api/highscores.php`
+   - Python/Flask → `api/highscores`  
+   - Custom endpoint
+
+3. **Environment Mode**
+   - Development: Extra logging enabled
+   - Production: Optimized for deployment
+
+### Example Configuration Session
+```
+⚙️  Checking server configuration...
+🔧 No serverConfig.js found!
+📋 The game needs a server configuration file to work properly.
+Would you like to create serverConfig.js now? [y/N]: y
+
+📋 Server Configuration Setup
+1. Deployment Path Configuration
+🔗 Enter the base path (or press Enter for root): 
+
+2. Server Type Configuration
+🖥️  Select server type:
+[1] PHP Server
+[2] Python/Flask Server  
+[3] Custom endpoint
+[0] CANCEL
+> 1
+
+3. Environment Configuration
+🔍 Is this a development environment? [y/N]: n
+
+✅ Created serverConfig.js in both source and dist directories
+```
 
 ## Cache Busting
 
@@ -182,6 +233,11 @@ build-and-deploy.bat
 - Test with development build first
 - Check browser console for errors
 - Some dynamic code might need exclusion from minification
+
+**"Server configuration issues"**
+- Delete `config/serverConfig.js` and run build again for fresh setup
+- Check that your server supports the chosen endpoint type
+- Verify the basePath matches your actual deployment path
 
 ### Debug Mode
 ```bash
