@@ -397,8 +397,14 @@ export function calculateResolutionScale(canvas) {
     }
     
     const config = gameConfig.gameplay.independence;
-    const currentWidth = canvas.logicalWidth || gameConfig.canvas.width;
-    const currentHeight = canvas.logicalHeight || gameConfig.canvas.height;
+    const currentWidth = canvas.logicalWidth || 
+                        (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
+                         canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
+                         gameConfig.canvas.desktop.width);
+    const currentHeight = canvas.logicalHeight || 
+                         (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.height :
+                          canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.height :
+                          gameConfig.canvas.desktop.height);
     
     // Calculate scaling factors based on reference resolution
     let scaleX = currentWidth / config.referenceWidth;
@@ -729,6 +735,8 @@ export function addNotification(gameState, message, duration = 180, color = '#FF
         lowerMessage.includes('cast') ||
         // Individual healing messages (HOT effect is shown persistently)
         (lowerMessage.includes('heal') && lowerMessage.includes('+') && lowerMessage.includes('hp')) ||
+        // Chicken Food HOT notifications (shown persistently in buff tracker)
+        (lowerMessage.includes('chicken food') && lowerMessage.includes('+') && lowerMessage.includes('hp')) ||
         // Generic activation messages for effects with persistent versions
         (lowerMessage.includes('applied') && (
             lowerMessage.includes('shield') ||
@@ -921,17 +929,25 @@ export class ResponsiveScaler {
         const maxDimension = Math.max(width, height);
         const detection = this.canvasConfig.deviceDetection;
         
-        // Check for mobile devices by user agent
+        // Touch-first detection approach
+        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         const isMobileUserAgent = detection.mobileUserAgents.some(agent => 
             userAgent.includes(agent)
         );
         
-        // Check by screen size
-        if (isMobileUserAgent || maxDimension <= detection.mobileMaxWidth) {
-            return 'mobile';
-        } else if (maxDimension <= detection.tabletMaxWidth) {
-            return 'tablet';
+        // Primary: Check if device has touch capability
+        if (hasTouch || isMobileUserAgent) {
+            // Touch device - determine mobile vs tablet based on size
+            if (maxDimension <= detection.mobileMaxWidth) {
+                return 'mobile';
+            } else if (maxDimension <= detection.tabletMaxWidth) {
+                return 'tablet';
+            } else {
+                // Large touch device - still considered tablet
+                return 'tablet';
+            }
         } else {
+            // No touch - desktop regardless of size
             return 'desktop';
         }
     }
@@ -946,16 +962,18 @@ export class ResponsiveScaler {
     }
     
     applyDeviceScaleAdjustments() {
-        // Apply conservative device-specific scaling adjustments
+        // Apply device-specific scaling adjustments
         switch (this.deviceType) {
             case 'mobile':
-                // Mobile gets slightly larger items for better touch interaction (reduced)
-                this.uniformScale *= 1.08; // Reduced from 1.15
+                // Mobile needs significant size reduction due to large playable area percentage (60% vs 30% desktop)
+                // The mobile playableHeight (480px) is much larger than desktop (270px), causing uniformScale ~1.0
+                // We need to scale DOWN to get appropriately sized mobile items
+                this.uniformScale *= 0.8; // Moderate reduction for proper mobile sizing
                 break;
                 
             case 'tablet':
-                // Tablet gets minimal scaling adjustment (reduced)
-                this.uniformScale *= 1.02; // Reduced from 1.05
+                // Tablet gets moderate scaling adjustment
+                this.uniformScale *= 0.85; // Moderate reduction from desktop size
                 break;
                 
             case 'desktop':
@@ -964,16 +982,16 @@ export class ResponsiveScaler {
         }
         
         // Ensure scale stays within reasonable bounds
-        this.uniformScale = Math.max(0.5, Math.min(2.0, this.uniformScale));
+        this.uniformScale = Math.max(0.3, Math.min(2.0, this.uniformScale));
     }
     
     calculateElementSizes() {
-        // Reduced base sizes for more reasonable item scaling
-        // These are optimized for desktop playable area (1440x243)
+        // Balanced base sizes for mobile and desktop
+        // These provide good mobile touch interaction without making desktop items too large
         const basePlayerWidth = 60;      // Reduced from 80
-        const baseItemSize = 55;         // Reduced from 80  
-        const basePowerUpSize = 65;      // Reduced from 90
-        const baseProjectileSize = 50;   // Reduced from 70
+        const baseItemSize = 70;         // Moderate increase from 55 for mobile visibility  
+        const basePowerUpSize = 80;      // Moderate increase from 65 - balanced for mobile/desktop
+        const baseProjectileSize = 60;   // Moderate increase from 50 for mobile visibility
         
         // Player aspect ratio is 1:2 (width:height) based on 250x500 original image
         const playerAspectRatio = 0.5;
@@ -1012,6 +1030,10 @@ export class ResponsiveScaler {
         
         // Device-specific final adjustments (reduced)
         if (this.deviceType === 'mobile') {
+            // Make player smaller on mobile
+            this.sizes.player.width = Math.round(this.sizes.player.width * 0.8); // 20% smaller
+            this.sizes.player.height = Math.round(this.sizes.player.height * 0.8); // 20% smaller
+            
             // Ensure minimum sizes for mobile touch interaction but don't go overboard
             const minTouchSize = 60; // Reduced from 75
             if (this.sizes.item.base < minTouchSize) {
@@ -1021,8 +1043,8 @@ export class ResponsiveScaler {
                 this.sizes.item.projectile = Math.round(this.sizes.item.projectile * scaleFactor);
             }
             
-            // Larger spell icons for mobile (but not too large)
-            this.sizes.ui.spellIconSize = Math.round(this.sizes.ui.spellIconSize * 1.2); // Reduced from 1.3
+            // Smaller spell icons for mobile
+            this.sizes.ui.spellIconSize = Math.round(this.sizes.ui.spellIconSize * 0.8); // 20% smaller
         }
         
         console.log(`📏 Element sizes calculated:
@@ -1082,13 +1104,20 @@ export class ResponsiveScaler {
     
     // Get device-specific settings
     getDeviceSettings() {
+        const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         return {
             deviceType: this.deviceType,
             orientation: this.orientation,
             scale: this.uniformScale,
             isMobile: this.deviceType === 'mobile',
             isTablet: this.deviceType === 'tablet',
-            isTouch: 'ontouchstart' in window,
+            isDesktop: this.deviceType === 'desktop',
+            isTouch: hasTouch,
+            isPortrait: this.orientation === 'portrait',
+            isLandscape: this.orientation === 'landscape',
+            // Touch-specific categories
+            isTouchPortrait: hasTouch && this.orientation === 'portrait',
+            isTouchLandscape: hasTouch && this.orientation === 'landscape',
             sizes: this.sizes
         };
     }
@@ -1112,10 +1141,18 @@ export const responsiveScaler = new ResponsiveScaler();
 
 // Physics functions for boundary collision and bouncing
 export function checkBoundaryCollision(item, canvas) {
+    // Get the correct canvas width - fallback to device-specific width
+    const canvasWidth = canvas.logicalWidth || 
+                       (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
+                        canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
+                        gameConfig.canvas.desktop.width);
+    
+
+    
     // Only check for side and top collisions - bottom collision means the item is missed
     return {
         left: item.x <= 0,
-        right: item.x + item.width >= (canvas.logicalWidth || gameConfig.canvas.width),
+        right: item.x + item.width >= canvasWidth,
         top: item.y <= 0,
         bottom: false // Never bounce from bottom - items should be missed instead
     };
@@ -1141,7 +1178,12 @@ export function applyBoundaryBounce(item, collisions, canvas, restitution = 0.7,
     
     // Right wall collision
     if (collisions.right) {
-                    item.x = (canvas.logicalWidth || gameConfig.canvas.width) - item.width; // Correct position
+        // Get the correct canvas width - fallback to device-specific width
+        const canvasWidth = canvas.logicalWidth || 
+                           (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
+                            canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
+                            gameConfig.canvas.desktop.width);
+        item.x = canvasWidth - item.width; // Correct position
         item.horizontalSpeed = -Math.abs(item.horizontalSpeed) * restitution; // Bounce left
         
         // Add rotational effect based on vertical speed
@@ -1182,8 +1224,12 @@ export function applyAdvancedBouncePhysics(item, collisions, canvas, options = {
         // Simple wall collision physics - just reverse horizontal direction with energy loss
         const isLeftWall = collisions.left;
         
-        // Position correction
-        item.x = isLeftWall ? 0 : (canvas.logicalWidth || gameConfig.canvas.width) - item.width;
+        // Position correction - get the correct canvas width
+        const canvasWidth = canvas.logicalWidth || 
+                           (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
+                            canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
+                            gameConfig.canvas.desktop.width);
+        item.x = isLeftWall ? 0 : canvasWidth - item.width;
         
         // Simply reverse horizontal speed with energy loss
         item.horizontalSpeed = -item.horizontalSpeed * restitution;

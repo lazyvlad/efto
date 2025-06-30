@@ -143,6 +143,15 @@ class SpellSystem {
                 notificationSystem.removePersistentNotification(`spell_${spellId}`);
             }
             
+            // Remove from left-side buff tracker
+            if (typeof window.removeBuff === 'function') {
+                if (spellId === 'dragon_cry') {
+                    window.removeBuff('dragonCry');
+                } else if (spellId === 'zandalari') {
+                    window.removeBuff('zandalariSpell');
+                }
+            }
+            
             // Don't show expiration notification - persistent notification disappearing will indicate expiration
         }
     }
@@ -154,21 +163,36 @@ class SpellSystem {
         for (const [spellId, activeSpell] of this.activeSpells.entries()) {
             const remainingTime = Math.max(0, activeSpell.endTime - currentTime);
             const seconds = Math.ceil(remainingTime / 1000);
+            const frames = Math.ceil(remainingTime / (1000 / 60)); // Convert to frames for addBuff
             
             if (seconds > 0) {
                 let icon = '✨';
                 let type = 'activation';
+                let buffType = 'default';
                 
                 // Customize icon and type based on spell
                 if (spellId === 'dragon_cry') {
                     icon = '🐲';
                     type = 'teleport';
+                    buffType = 'teleport';
+                    
+                    // Add to left-side buff tracker
+                    if (typeof window.addBuff === 'function') {
+                        window.addBuff('dragonCry', '🐲 Dragon Cry', 'Unrestricted Movement & +5% Crit', frames, buffType);
+                    }
                 } else if (spellId === 'zandalari') {
                     icon = '⚡';
                     type = 'boost';
+                    buffType = 'slow';
+                    
+                    // Add to left-side buff tracker
+                    if (typeof window.addBuff === 'function') {
+                        window.addBuff('zandalariSpell', '⚡ Zandalari', 'Slow Projectiles & +100% Points', frames, buffType);
+                    }
                 } else if (spellId === 'flask_of_titans') {
                     icon = '🌸';
                     type = 'flask_of_titans';
+                    buffType = 'flask';
                 }
                 
                 const message = `${icon} ${activeSpell.spell.name} (${seconds}s)`;

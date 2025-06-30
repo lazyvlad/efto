@@ -23,10 +23,11 @@ export class PowerUpItem {
         this.y = attemptY;
         recentDropYPositions.push(this.y);
         
-        // Use responsive scaling for power-up items
-        const powerUpSize = responsiveScaler.getSize('item', 'powerUp');
-        this.width = powerUpSize;
-        this.height = powerUpSize;
+        // Use responsive scaling for power-up items with size multiplier
+        const sizeMultiplier = this.data.size_multiplier || 1;
+        const basePowerUpSize = responsiveScaler.getSize('item', 'powerUp');
+        this.width = basePowerUpSize * sizeMultiplier;
+        this.height = basePowerUpSize * sizeMultiplier;
         
         // Slower speed for power-ups (easier to collect)
         const speedVariation = 0.6 + Math.random() * 0.8; // Slower than regular items
@@ -57,8 +58,14 @@ export class PowerUpItem {
         const effectiveDelta = gameState.timeSlowMultiplier * deltaTimeMultiplier;
         
         // Get current canvas dimensions (supports portrait mode)
-        const canvasWidth = canvas.logicalWidth || gameConfig.canvas.width;
-        const canvasHeight = canvas.logicalHeight || gameConfig.canvas.height;
+        const canvasWidth = canvas.logicalWidth || 
+                           (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
+                            canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
+                            gameConfig.canvas.desktop.width);
+        const canvasHeight = canvas.logicalHeight || 
+                            (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.height :
+                             canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.height :
+                             gameConfig.canvas.desktop.height);
         
         // Performance optimization: Skip expensive physics for items far from edges
         const needsPhysics = this.x < 100 || this.x > canvasWidth - 100 || Math.abs(this.horizontalSpeed) > 1;
@@ -642,9 +649,10 @@ export class PowerUpItem {
     
     // Handle window resize with responsive scaling
     repositionOnResize() {
-        // Update size based on new scaling
-        const powerUpSize = responsiveScaler.getSize('item', 'powerUp');
-        this.width = powerUpSize;
-        this.height = powerUpSize;
+        // Update size based on new scaling with size multiplier
+        const sizeMultiplier = this.data.size_multiplier || 1;
+        const basePowerUpSize = responsiveScaler.getSize('item', 'powerUp');
+        this.width = basePowerUpSize * sizeMultiplier;
+        this.height = basePowerUpSize * sizeMultiplier;
     }
 } 

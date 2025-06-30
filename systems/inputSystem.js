@@ -74,8 +74,24 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
         
         const rect = canvas.getBoundingClientRect();
         const touch = e.touches[0];
-        const touchX = touch.clientX - rect.left;
-        const touchY = touch.clientY - rect.top;
+        const rawTouchX = touch.clientX - rect.left;
+        const rawTouchY = touch.clientY - rect.top;
+        
+        // Convert screen coordinates to logical canvas coordinates (same as mouse)
+        let touchX, touchY;
+        if (canvas.logicalWidth && canvas.logicalHeight && canvas.displayWidth && canvas.displayHeight) {
+            // Convert screen coordinates to logical canvas coordinates
+            touchX = rawTouchX * (canvas.logicalWidth / canvas.displayWidth);
+            touchY = rawTouchY * (canvas.logicalHeight / canvas.displayHeight);
+        } else if (canvas.logicalWidth && canvas.logicalHeight) {
+            // Fallback coordinate conversion
+            touchX = rawTouchX * (canvas.logicalWidth / rect.width);
+            touchY = rawTouchY * (canvas.logicalHeight / rect.height);
+        } else {
+            // No conversion needed
+            touchX = rawTouchX;
+            touchY = rawTouchY;
+        }
         
         inputState.touchActive = true;
         inputState.lastTouchX = touchX;
@@ -90,8 +106,23 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
         e.preventDefault();
         const rect = canvas.getBoundingClientRect();
         const touch = e.touches[0];
-        inputState.lastTouchX = touch.clientX - rect.left;
-        inputState.lastTouchY = touch.clientY - rect.top;
+        const rawTouchX = touch.clientX - rect.left;
+        const rawTouchY = touch.clientY - rect.top;
+        
+        // Convert screen coordinates to logical canvas coordinates (same as mouse)
+        if (canvas.logicalWidth && canvas.logicalHeight && canvas.displayWidth && canvas.displayHeight) {
+            // Convert screen coordinates to logical canvas coordinates
+            inputState.lastTouchX = rawTouchX * (canvas.logicalWidth / canvas.displayWidth);
+            inputState.lastTouchY = rawTouchY * (canvas.logicalHeight / canvas.displayHeight);
+        } else if (canvas.logicalWidth && canvas.logicalHeight) {
+            // Fallback coordinate conversion
+            inputState.lastTouchX = rawTouchX * (canvas.logicalWidth / rect.width);
+            inputState.lastTouchY = rawTouchY * (canvas.logicalHeight / rect.height);
+        } else {
+            // No conversion needed
+            inputState.lastTouchX = rawTouchX;
+            inputState.lastTouchY = rawTouchY;
+        }
     });
 
     canvas.addEventListener('touchend', (e) => {

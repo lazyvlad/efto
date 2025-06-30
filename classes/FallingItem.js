@@ -7,7 +7,13 @@ export class FallingItem {
         // Get resolution scale for consistent sizing and positioning
         const resolutionScale = gameState.universalMultiplier?.resolution || { average: 1 };
         const margin = 180 * resolutionScale.average;
-        this.x = Math.random() * (canvas.width - margin);
+        
+        // Use logical width instead of physical canvas width (fixes high-DPI scaling issues)
+        const canvasLogicalWidth = canvas.logicalWidth || 
+                                  (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
+                                   canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
+                                   gameConfig.canvas.desktop.width);
+        this.x = Math.random() * (canvasLogicalWidth - margin);
         
         // Find valid Y position with spacing
         let attemptY = -180;
@@ -83,7 +89,11 @@ export class FallingItem {
         const effectiveDelta = timeSlowMultiplier * deltaTimeMultiplier;
         
         // Performance optimization: Skip expensive physics for items far from edges
-        const needsPhysics = this.x < 100 || this.x > canvas.width - 100 || Math.abs(this.horizontalSpeed) > 1;
+        const canvasLogicalWidth = canvas.logicalWidth || 
+                                  (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
+                                   canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
+                                   gameConfig.canvas.desktop.width);
+        const needsPhysics = this.x < 100 || this.x > canvasLogicalWidth - 100 || Math.abs(this.horizontalSpeed) > 1;
         
         if (needsPhysics) {
             // Apply physics effects only when needed
@@ -193,11 +203,15 @@ export class FallingItem {
                 }
                 
                 // Handle horizontal screen boundaries during reverse gravity - BOUNCE instead of wrap
+                const canvasLogicalWidthForBoundary = canvas.logicalWidth || 
+                                                     (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
+                                                      canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
+                                                      gameConfig.canvas.desktop.width);
                 if (this.x < 0) {
                     this.x = 0; // Clamp to left boundary
                     this.reverseGravityHorizontalSpeed = -this.reverseGravityHorizontalSpeed * 0.8; // Reverse and reduce speed
-                } else if (this.x > canvas.width - this.width) {
-                    this.x = canvas.width - this.width; // Clamp to right boundary
+                } else if (this.x > canvasLogicalWidthForBoundary - this.width) {
+                    this.x = canvasLogicalWidthForBoundary - this.width; // Clamp to right boundary
                     this.reverseGravityHorizontalSpeed = -this.reverseGravityHorizontalSpeed * 0.8; // Reverse and reduce speed
                 }
             } else {
@@ -293,14 +307,7 @@ export class FallingItem {
                 if (safeSize.wasConstrained) {
                     drawWidth = safeSize.width;
                     drawHeight = safeSize.height;
-                    // Log quality info for debugging on very large displays
-                    if (safeSize.qualityRating === 'poor' || safeSize.qualityRating === 'fair') {
-                        console.log(`🖼️ Item ${this.itemData.name} quality: ${safeSize.qualityRating}
-                            Requested: ${safeSize.requestedScale.toFixed(2)}x (${Math.round(safeSize.requestedScale * safeSize.originalWidth)}x${Math.round(safeSize.requestedScale * safeSize.originalHeight)})
-                            Original: ${safeSize.originalWidth}x${safeSize.originalHeight}
-                            Max Scale: ${safeSize.maxScaleFactor.toFixed(2)}x
-                            Display Scale: ${safeSize.displayScale.toFixed(2)}x`);
-                    }
+                    // Quality info available but not logged to prevent spam
                 }
             }
         }

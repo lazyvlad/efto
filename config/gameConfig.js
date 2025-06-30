@@ -61,20 +61,33 @@ export const gameConfig = {
         },
         
         mobile: {
-            width: 720,             // Mobile canvas width (portrait)
-            height: 1280,           // Mobile canvas height (portrait)
-            aspectRatio: 720/1280,  // Portrait aspect ratio (~0.56)
-            playableWidth: 720,     // Full width is playable
-            playableHeight: 1280 * 0.3, // Bottom 30% for player movement (384px)
+            width: 360,             // Conservative phone width - guaranteed to fit
+            height: 800,            // Conservative phone height
+            aspectRatio: 360/800,   // Conservative aspect ratio (0.45)
+            playableWidth: 360,     // Full width is playable
+            playableHeight: 800 * 0.6, // 60% playable area (480px)
+            
+            // Mobile-specific positioning
+            positioning: {
+                centerHorizontally: true,  // Center left/right
+                centerVertically: false,   // Don't center vertically
+                bottomOffset: 100,         // Pixels from bottom (above spell buttons)
+                topOffset: 185,            // Pixels from top (below both panels: 120px + 60px + 5px margin)
+                useCustomPositioning: true // Enable mobile-specific positioning
+            }
         },
         
-        // Device detection thresholds
+        // Device detection thresholds - Touch-first approach
         deviceDetection: {
-            mobileMaxWidth: 768,    // Devices <= 768px width are mobile
-            tabletMaxWidth: 1366,   // Devices <= 1366px width are tablet
-            // Anything larger is desktop
+            // Primary: Touch capability detection
+            touchFirst: true,       // Prioritize touch detection over screen size
             
-            // Additional mobile detection
+            // Secondary: Size thresholds for touch devices
+            mobileMaxWidth: 1024,   // Touch devices <= 1024px width are mobile (updated for modern devices)
+            tabletMaxWidth: 1366,   // Touch devices <= 1366px width are tablet
+            // Anything larger with touch is tablet, without touch is desktop
+            
+            // Touch device detection
             mobileUserAgents: ['Android', 'webOS', 'iPhone', 'iPad', 'iPod', 'BlackBerry', 'IEMobile', 'Opera Mini'],
             tabletMinDiagonal: 7,   // Minimum diagonal inches for tablet classification
         },

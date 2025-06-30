@@ -5,6 +5,8 @@ class NotificationSystem {
         this.notifications = new Map();
         this.persistentNotifications = new Map(); // For ongoing effects
         this.activeTypes = new Set(); // Track active notification types
+        this.notificationOrder = []; // Track order of ALL notifications for removal (regular + persistent)
+        this.maxNotifications = 4; // Maximum number of notifications allowed at the TOP (total)
         this.nextId = 1;
     }
 
@@ -25,10 +27,30 @@ class NotificationSystem {
             return;
         }
 
+        console.log(`Attempting to show notification: "${message}" (type: ${type}, allowDuplicates: ${allowDuplicates})`);
+        console.log(`Current notifications count: ${this.notifications.size}, persistent: ${this.persistentNotifications.size}, total: ${this.notifications.size + this.persistentNotifications.size}`);
+
         // Prevent duplicate notifications of the same type unless allowed
         if (!allowDuplicates && this.activeTypes.has(type)) {
             console.log(`Skipping duplicate notification of type: ${type}`);
             return null;
+        }
+
+        // Check if we need to remove oldest notifications to stay under the limit
+        // Count BOTH regular and persistent notifications against the limit
+        while ((this.notifications.size + this.persistentNotifications.size) >= this.maxNotifications && this.notificationOrder.length > 0) {
+            const oldestId = this.notificationOrder[0];
+            if (this.notifications.has(oldestId)) {
+                console.log(`Removing oldest regular notification (ID: ${oldestId}) to make room for new one. Total count: ${this.notifications.size + this.persistentNotifications.size}`);
+                this.removeNotification(oldestId);
+            } else if (this.persistentNotifications.has(oldestId)) {
+                console.log(`Removing oldest persistent notification (ID: ${oldestId}) to make room for new one. Total count: ${this.notifications.size + this.persistentNotifications.size}`);
+                this.removePersistentNotification(oldestId);
+            } else {
+                // Clean up orphaned ID from order tracking
+                console.log(`Cleaning up orphaned notification ID: ${oldestId}`);
+                this.notificationOrder.shift();
+            }
         }
 
         const id = this.nextId++;
@@ -52,12 +74,17 @@ class NotificationSystem {
             type: type
         });
 
+        // Add to order tracking (newest at the end)
+        this.notificationOrder.push(id);
+
         // Set up auto-removal
         const timeoutId = setTimeout(() => {
             this.removeNotification(id);
         }, duration);
 
         this.notifications.get(id).timeout = timeoutId;
+
+        console.log(`Successfully added notification ID: ${id}. New count: ${this.notifications.size}, persistent: ${this.persistentNotifications.size}`);
 
         return id;
     }
@@ -74,9 +101,26 @@ class NotificationSystem {
             clearTimeout(timeout);
         }
 
-        // Remove from active types tracking
+        // Remove from active types tracking - only if no other notifications of this type exist
         if (type) {
-            this.activeTypes.delete(type);
+            // Check if there are other notifications of the same type
+            const hasOtherOfSameType = Array.from(this.notifications.values())
+                .some(n => n.type === type && n !== notificationData) ||
+                Array.from(this.persistentNotifications.values())
+                .some(n => n.type === type);
+            
+            if (!hasOtherOfSameType) {
+                this.activeTypes.delete(type);
+                console.log(`Removing type "${type}" from activeTypes - no more notifications of this type`);
+            } else {
+                console.log(`Keeping type "${type}" in activeTypes - other notifications of this type still exist`);
+            }
+        }
+
+        // Remove from order tracking
+        const orderIndex = this.notificationOrder.indexOf(id);
+        if (orderIndex !== -1) {
+            this.notificationOrder.splice(orderIndex, 1);
         }
 
         // Add fade out animation
@@ -101,6 +145,20 @@ class NotificationSystem {
         for (const [effectKey] of this.persistentNotifications) {
             this.removePersistentNotification(effectKey);
         }
+        // Clear order tracking
+        this.notificationOrder = [];
+    }
+
+    // Get current notification status (for debugging)
+    getStatus() {
+        return {
+            regularNotifications: this.notifications.size,
+            persistentNotifications: this.persistentNotifications.size,
+            totalVisible: this.notifications.size + this.persistentNotifications.size,
+            maxTotalAllowed: this.maxNotifications,
+            orderQueue: this.notificationOrder.length,
+            activeTypes: Array.from(this.activeTypes)
+        };
     }
 
     // Show or update a persistent notification for ongoing effects
@@ -118,6 +176,23 @@ class NotificationSystem {
         let notification = this.persistentNotifications.get(effectKey);
         
         if (!notification) {
+            // Check if we need to remove old notifications to make room
+            // Apply the same limit to persistent notifications
+            while ((this.notifications.size + this.persistentNotifications.size) >= this.maxNotifications && this.notificationOrder.length > 0) {
+                const oldestId = this.notificationOrder[0];
+                if (this.notifications.has(oldestId)) {
+                    console.log(`Removing oldest regular notification (ID: ${oldestId}) to make room for persistent notification. Total count: ${this.notifications.size + this.persistentNotifications.size}`);
+                    this.removeNotification(oldestId);
+                } else if (this.persistentNotifications.has(oldestId)) {
+                    console.log(`Removing oldest persistent notification (ID: ${oldestId}) to make room for new persistent notification. Total count: ${this.notifications.size + this.persistentNotifications.size}`);
+                    this.removePersistentNotification(oldestId);
+                } else {
+                    // Clean up orphaned ID from order tracking
+                    console.log(`Cleaning up orphaned notification ID: ${oldestId}`);
+                    this.notificationOrder.shift();
+                }
+            }
+
             // Create new persistent notification
             const element = document.createElement('div');
             element.className = `spell-notification ${type} persistent`;
@@ -138,6 +213,11 @@ class NotificationSystem {
             
             this.persistentNotifications.set(effectKey, notification);
             this.activeTypes.add(type);
+            
+            // Add to order tracking (persistent notifications go to the end too)
+            this.notificationOrder.push(effectKey);
+            
+            console.log(`Created persistent notification: ${effectKey}. Total count: ${this.notifications.size + this.persistentNotifications.size}`);
         }
 
         // Update the message
@@ -163,6 +243,12 @@ class NotificationSystem {
             this.activeTypes.delete(type);
         }
 
+        // Remove from order tracking
+        const orderIndex = this.notificationOrder.indexOf(effectKey);
+        if (orderIndex !== -1) {
+            this.notificationOrder.splice(orderIndex, 1);
+        }
+
         // Add fade out animation
         element.classList.add('fade-out');
 
@@ -175,6 +261,8 @@ class NotificationSystem {
 
         // Remove from map
         this.persistentNotifications.delete(effectKey);
+        
+        console.log(`Removed persistent notification: ${effectKey}. Total count: ${this.notifications.size + this.persistentNotifications.size}`);
     }
 
     // Get notification type based on message content

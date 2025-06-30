@@ -15,24 +15,21 @@ export class DamageProjectile {
     constructor(projectileData, isValidYPosition, recentDropYPositions, gameState, canvas) {
         this.data = projectileData;
         
-        // Use responsive scaling for projectiles, but maintain aspect ratio from data
+        // Use responsive scaling for projectiles with size multiplier (like PowerUpItem)
+        const sizeMultiplier = projectileData.size_multiplier || 1;
         const baseProjectileSize = responsiveScaler.getSize('item', 'projectile');
-        const aspectRatio = projectileData.size.width / projectileData.size.height;
-        
-        if (aspectRatio >= 1) {
-            // Wider than tall - scale based on width
-            this.width = baseProjectileSize;
-            this.height = baseProjectileSize / aspectRatio;
-        } else {
-            // Taller than wide - scale based on height
-            this.height = baseProjectileSize;
-            this.width = baseProjectileSize * aspectRatio;
-        }
+        this.width = baseProjectileSize * sizeMultiplier;
+        this.height = baseProjectileSize * sizeMultiplier;
         
         // Gaussian randomized horizontal position (centered with some spread)
-        const centerX = canvas.width / 2;
-        const gaussianX = gaussianRandom(centerX, canvas.width * 0.25);
-        this.x = Math.max(0, Math.min(canvas.width - this.width, gaussianX));
+        // Use logical width instead of physical canvas width (fixes high-DPI scaling issues)
+        const canvasLogicalWidth = canvas.logicalWidth || 
+                                  (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
+                                   canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
+                                   gameConfig.canvas.desktop.width);
+        const centerX = canvasLogicalWidth / 2;
+        const gaussianX = gaussianRandom(centerX, canvasLogicalWidth * 0.25);
+        this.x = Math.max(0, Math.min(canvasLogicalWidth - this.width, gaussianX));
         
         // Find valid Y position with spacing
         let attemptY = -this.height;
@@ -90,6 +87,12 @@ export class DamageProjectile {
     }
 
     update(deltaTimeMultiplier, canvas, gameState) {
+        // Get logical width for boundary calculations
+        const canvasLogicalWidth = canvas.logicalWidth || 
+                                  (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
+                                   canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
+                                   gameConfig.canvas.desktop.width);
+        
         // Apply reverse gravity effect if active 
         if (gameState.reverseGravityActive) {
             // Projectiles that haven't been individually exempted get reverse gravity
@@ -143,8 +146,8 @@ export class DamageProjectile {
                 if (this.x < 0) {
                     this.x = 0; // Clamp to left boundary
                     this.reverseGravityHorizontalSpeed = -this.reverseGravityHorizontalSpeed * 0.7; // Reverse and reduce speed (more energy loss)
-                } else if (this.x > canvas.width - this.width) {
-                    this.x = canvas.width - this.width; // Clamp to right boundary
+                } else if (this.x > canvasLogicalWidth - this.width) {
+                    this.x = canvasLogicalWidth - this.width; // Clamp to right boundary
                     this.reverseGravityHorizontalSpeed = -this.reverseGravityHorizontalSpeed * 0.7; // Reverse and reduce speed (more energy loss)
                 }
             } else {
@@ -339,26 +342,30 @@ export class DamageProjectile {
         }
         
         // Draw colored border for projectiles with variable values
+        // Calculate correct offset to match image positioning
+        const offsetX = (drawWidth - this.width) / 2;
+        const offsetY = (drawHeight - this.height) / 2;
+        
         if (this.data.effects === "speed_increase" && this.speedIncreasePercent) {
             ctx.strokeStyle = '#FF0000';
             ctx.lineWidth = 3;
             ctx.shadowColor = '#FF0000';
             ctx.shadowBlur = 8;
-            ctx.strokeRect(this.x - borderPadding, this.y - borderPadding, drawWidth + (borderPadding * 2), drawHeight + (borderPadding * 2));
+            ctx.strokeRect(this.x - offsetX - borderPadding, this.y - offsetY - borderPadding, drawWidth + (borderPadding * 2), drawHeight + (borderPadding * 2));
             ctx.shadowBlur = 0; // Reset shadow
         } else if (this.data.effects === "freeze_time" && this.freezeDuration) {
             ctx.strokeStyle = '#87CEEB';
             ctx.lineWidth = 3;
             ctx.shadowColor = '#87CEEB';
             ctx.shadowBlur = 8;
-            ctx.strokeRect(this.x - borderPadding, this.y - borderPadding, drawWidth + (borderPadding * 2), drawHeight + (borderPadding * 2));
+            ctx.strokeRect(this.x - offsetX - borderPadding, this.y - offsetY - borderPadding, drawWidth + (borderPadding * 2), drawHeight + (borderPadding * 2));
             ctx.shadowBlur = 0; // Reset shadow
         } else if (this.data.effects === "shield" && this.shieldDuration) {
             ctx.strokeStyle = '#FFD700';
             ctx.lineWidth = 3;
             ctx.shadowColor = '#FFD700';
             ctx.shadowBlur = 8;
-            ctx.strokeRect(this.x - borderPadding, this.y - borderPadding, drawWidth + (borderPadding * 2), drawHeight + (borderPadding * 2));
+            ctx.strokeRect(this.x - offsetX - borderPadding, this.y - offsetY - borderPadding, drawWidth + (borderPadding * 2), drawHeight + (borderPadding * 2));
             ctx.shadowBlur = 0; // Reset shadow
         }
         
@@ -420,11 +427,11 @@ export class DamageProjectile {
             // Speed boost placeholder - red circle with percentage
             ctx.fillStyle = '#FF0000';
             ctx.beginPath();
-            ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/2, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY, drawWidth/2, 0, Math.PI * 2);
             ctx.fill();
             ctx.fillStyle = '#FFFFFF';
             ctx.beginPath();
-            ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/2.5, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY, drawWidth/2.5, 0, Math.PI * 2);
             ctx.fill();
         } else if (this.data.id === "frostbolt") {
             // Frostbolt placeholder with crystalline shimmer
@@ -471,40 +478,40 @@ export class DamageProjectile {
             // Power Word Shield placeholder - cyan shield with glow
             ctx.fillStyle = '#87CEEB';
             ctx.beginPath();
-            ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/2, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY, drawWidth/2, 0, Math.PI * 2);
             ctx.fill();
             ctx.fillStyle = '#FFFFFF';
             ctx.beginPath();
-            ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/2.5, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY, drawWidth/2.5, 0, Math.PI * 2);
             ctx.fill();
             // Add shield cross pattern
             ctx.strokeStyle = '#87CEEB';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.moveTo(this.x + drawWidth/2, this.y + drawHeight/4);
-            ctx.lineTo(this.x + drawWidth/2, this.y + drawHeight*3/4);
-            ctx.moveTo(this.x + drawWidth/4, this.y + drawHeight/2);
-            ctx.lineTo(this.x + drawWidth*3/4, this.y + drawHeight/2);
+            ctx.moveTo(centerX, centerY - drawHeight/4);
+            ctx.lineTo(centerX, centerY + drawHeight/4);
+            ctx.moveTo(centerX - drawWidth/4, centerY);
+            ctx.lineTo(centerX + drawWidth/4, centerY);
             ctx.stroke();
         } else if (this.data.id === "frost_nova") {
             // Frost Nova placeholder - similar to frostbolt but with different color scheme
             ctx.fillStyle = '#00BFFF';
             ctx.beginPath();
-            ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/2, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY, drawWidth/2, 0, Math.PI * 2);
             ctx.fill();
             ctx.fillStyle = '#87CEEB';
             ctx.beginPath();
-            ctx.arc(this.x + drawWidth/2, this.y + drawHeight/2, drawWidth/3, 0, Math.PI * 2);
+            ctx.arc(centerX, centerY, drawWidth/3, 0, Math.PI * 2);
             ctx.fill();
             // Add frost nova effect - more elaborate than frostbolt
             ctx.strokeStyle = '#FFFFFF';
             ctx.lineWidth = 2;
             for (let i = 0; i < 8; i++) {
                 const angle = (i * Math.PI) / 4;
-                const startX = this.x + drawWidth/2 + Math.cos(angle) * (drawWidth/6);
-                const startY = this.y + drawHeight/2 + Math.sin(angle) * (drawHeight/6);
-                const endX = this.x + drawWidth/2 + Math.cos(angle) * (drawWidth/2.2);
-                const endY = this.y + drawHeight/2 + Math.sin(angle) * (drawHeight/2.2);
+                const startX = centerX + Math.cos(angle) * (drawWidth/6);
+                const startY = centerY + Math.sin(angle) * (drawHeight/6);
+                const endX = centerX + Math.cos(angle) * (drawWidth/2.2);
+                const endY = centerY + Math.sin(angle) * (drawHeight/2.2);
                 ctx.beginPath();
                 ctx.moveTo(startX, startY);
                 ctx.lineTo(endX, endY);
@@ -574,8 +581,8 @@ export class DamageProjectile {
     drawEffectText(ctx, drawWidth, drawHeight) {
         if (this.data.effects === "speed_increase" && this.speedIncreasePercent) {
             // Background for text readability
-            const textX = this.x + drawWidth/2;
-            const textY = this.y + drawHeight + 20;
+            const textX = this.x + this.width/2;
+            const textY = this.y + this.height + 20;
             const textWidth = 60;
             const textHeight = 18;
             
@@ -594,8 +601,8 @@ export class DamageProjectile {
             ctx.fillText(`+${this.speedIncreasePercent}%`, textX, textY + 4);
         } else if (this.data.effects === "freeze_time" && this.freezeDuration) {
             // Background for text readability
-            const textX = this.x + drawWidth/2;
-            const textY = this.y + drawHeight + 20;
+            const textX = this.x + this.width/2;
+            const textY = this.y + this.height + 20;
             const textWidth = 60;
             const textHeight = 18;
             
@@ -615,8 +622,8 @@ export class DamageProjectile {
             ctx.fillText(`${seconds}s`, textX, textY + 4);
         } else if (this.data.effects === "shield" && this.shieldDuration) {
             // Background for text readability
-            const textX = this.x + drawWidth/2;
-            const textY = this.y + drawHeight + 20;
+            const textX = this.x + this.width/2;
+            const textY = this.y + this.height + 20;
             const textWidth = 60;
             const textHeight = 18;
             
@@ -679,19 +686,11 @@ export class DamageProjectile {
     
     // Handle window resize with responsive scaling
     repositionOnResize() {
-        // Update size based on new scaling, maintaining aspect ratio
+        // Update size based on new scaling with size multiplier (like PowerUpItem)
+        const sizeMultiplier = this.data.size_multiplier || 1;
         const baseProjectileSize = responsiveScaler.getSize('item', 'projectile');
-        const aspectRatio = this.data.size.width / this.data.size.height;
-        
-        if (aspectRatio >= 1) {
-            // Wider than tall - scale based on width
-            this.width = baseProjectileSize;
-            this.height = baseProjectileSize / aspectRatio;
-        } else {
-            // Taller than wide - scale based on height
-            this.height = baseProjectileSize;
-            this.width = baseProjectileSize * aspectRatio;
-        }
+        this.width = baseProjectileSize * sizeMultiplier;
+        this.height = baseProjectileSize * sizeMultiplier;
     }
 }
 

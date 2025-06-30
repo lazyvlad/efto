@@ -25,7 +25,7 @@ export const assetRegistry = {
         alchemy: 'assets/alchemy.png',
         speedBoost: 'assets/speed-boost.png',
         sprint: 'assets/sprint.webp',
-        aspectOfTheMonkey: 'assets/aspect_of_the_monkey.png',
+        aspectOfTheMonkey: 'assets/aspect_of_the_monkey.webp',
         evasion: 'assets/evasion.jpg',
         frostNova: 'assets/frost-nova.jpg',
         powerWordShield: 'assets/powerwordshield.jpg',
@@ -40,7 +40,7 @@ export const assetRegistry = {
         onyxia: 'assets/dragon-cry.webp',
         zgBuff1: 'assets/zg-buff.png',
         zgBuff2: 'assets/zg-buff2.png',
-        blackLotuses: 'assets/black-lotuses.png',
+        blackLotuses: 'assets/black-lotuses.webp',
         flaskOfTitans: 'assets/flask_of_titans.webp',
         autoshot: 'assets/autoshot.webp',
         multishot: 'assets/multishot.webp'

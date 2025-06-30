@@ -1,0 +1,447 @@
+/* Items Collection Panel */
+#itemsCollectionPanel {
+    position: fixed;
+    top: 5px;
+    left: 5px;
+    width: 300px;
+    max-height: calc(100vh - 20px);
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 12px;
+    color: white;
+    font-family: Arial, sans-serif;
+    z-index: 100;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    pointer-events: none;
+    user-select: none;
+    transition: all 0.3s ease;
+}
+
+#itemsCollectionPanel.interactive {
+    pointer-events: auto;
+    user-select: auto;
+    z-index: 200;
+}
+
+/* Panel Header */
+.panel-header {
+    background: rgba(0, 0, 0, 0.95);
+    border-bottom: 2px solid #4ECDC4;
+    padding: 10px;
+    text-align: left;
+}
+
+.player-name {
+    color: #4ECDC4;
+    font-size: 14px;
+    font-weight: bold;
+    margin: 0 0 6px 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.player-score {
+    color: white;
+    font-size: 26px;
+    font-weight: bold;
+    margin: 0 0 3px 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.player-level {
+    color: #FFD700;
+    font-size: 13px;
+    font-weight: bold;
+    margin: 0 0 6px 0;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.collection-summary {
+    color: #CCCCCC;
+    font-size: 9px;
+    margin-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    padding-top: 6px;
+}
+
+/* Player Stats Section */
+.player-stats {
+    background: rgba(255, 215, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+    padding: 8px 10px;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3px;
+}
+
+.stat-row:last-child {
+    margin-bottom: 0;
+}
+
+.stat-label {
+    color: #CCCCCC;
+    font-size: 10px;
+    font-weight: normal;
+}
+
+.stat-value {
+    color: #FFD700;
+    font-size: 11px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* Health Bar Section */
+.player-health-section {
+    background: rgba(255, 20, 20, 0.1);
+    border-bottom: 1px solid rgba(255, 20, 20, 0.3);
+    padding: 8px 10px;
+}
+
+.compact-health-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.player-portrait {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid #4ECDC4;
+    flex-shrink: 0;
+}
+
+.player-portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.health-bar-container {
+    flex-grow: 1;
+    position: relative;
+}
+
+.health-background {
+    width: 100%;
+    height: 16px;
+    background: rgba(50, 50, 50, 0.8);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.health-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff4444, #ff6666);
+    border-radius: 8px;
+    transition: width 0.3s ease;
+    width: 100%;
+}
+
+.health-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+}
+
+/* Player Health Bar in Panel Header */
+.player-health-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 2px 0;
+    padding: 0;
+}
+
+.player-health-background {
+    flex: 1;
+    height: 8px;
+    background: rgba(50, 50, 50, 0.8);
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.player-health-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #00ff00, #44ff44);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+    width: 100%;
+}
+
+.player-health-text {
+    font-size: 8px;
+    color: #FFD700;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    min-width: 30px;
+    text-align: right;
+}
+
+/* Items List */
+.items-list {
+    background: rgba(78, 205, 196, 0.05);
+    border-bottom: 1px solid rgba(78, 205, 196, 0.3);
+    padding: 8px 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.item-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 4px;
+    margin-bottom: 2px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+    font-size: 9px;
+}
+
+.item-entry:last-child {
+    margin-bottom: 0;
+}
+
+.item-name {
+    color: #4ECDC4;
+    font-weight: bold;
+    flex-grow: 1;
+}
+
+.item-count {
+    color: #FFD700;
+    font-weight: bold;
+    margin: 0 4px;
+}
+
+.item-points {
+    color: #CCCCCC;
+    font-size: 8px;
+}
+
+/* Overflow indicator */
+.overflow-indicator {
+    background: rgba(255, 165, 0, 0.1);
+    border: 1px solid rgba(255, 165, 0, 0.3);
+    border-radius: 4px;
+    padding: 4px 6px;
+    text-align: center;
+    font-size: 8px;
+    color: #FFA500;
+    margin: 4px 10px;
+}
+
+/* Dragonstalker Progress Panel */
+#dragonstalkerProgressPanel {
+    position: fixed;
+    top: 5px;
+    right: 5px;
+    width: 320px;
+    background: rgba(0, 0, 0, 0.95);
+    border: 3px solid #00FFFF;
+    border-radius: 12px;
+    color: white;
+    font-family: Arial, sans-serif;
+    z-index: 100;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    backdrop-filter: blur(8px);
+    pointer-events: none;
+    user-select: none;
+    transition: all 0.3s ease;
+}
+
+#dragonstalkerProgressPanel.interactive {
+    pointer-events: auto;
+    user-select: auto;
+    z-index: 200;
+}
+
+#dragonstalkerProgressPanel.victory {
+    border-color: #FFD700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+}
+
+#dragonstalkerProgressPanel.impossible {
+    border-color: #FF0000;
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
+}
+
+.dragonstalker-panel-header {
+    padding: 10px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dragonstalker-title {
+    color: #00FFFF;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 6px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.dragonstalker-progress-bar {
+    position: relative;
+    margin-bottom: 6px;
+}
+
+.progress-background {
+    width: 100%;
+    height: 20px;
+    background: rgba(50, 50, 50, 0.8);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #00FFFF;
+    border-radius: 10px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.progress-fill.victory {
+    background: #FFD700;
+}
+
+.progress-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+}
+
+.dragonstalker-status {
+    color: #CCCCCC;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.dragonstalker-items-list {
+    padding: 6px 8px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+}
+
+.dragonstalker-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2px;
+    font-size: 10px;
+    min-height: 24px;
+    position: relative;
+}
+
+.dragonstalker-item-name {
+    color: #CCCCCC;
+    font-size: 9px;
+    margin-top: 2px;
+    text-align: center;
+    width: 100%;
+}
+
+.dragonstalker-item-status {
+    margin-bottom: 2px;
+    width: 16px;
+    font-size: 12px;
+    text-align: center;
+}
+
+.dragonstalker-item-status.collected {
+    color: #00FF00;
+}
+
+.dragonstalker-item-status.missed {
+    color: #FF0000;
+}
+
+.dragonstalker-item-status.pending {
+    color: #666666;
+}
+
+.dragonstalker-item-name.collected {
+    color: #00FF00;
+}
+
+.dragonstalker-item-name.missed {
+    color: #FF0000;
+}
+
+.dragonstalker-item-name.pending {
+    color: #CCCCCC;
+}
+
+.dragonstalker-bottom-message {
+    padding: 4px 8px;
+    font-size: 10px;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Panel Style Override Classes */
+.force-desktop-panels #itemsCollectionPanel.force-desktop,
+.force-desktop-panels #dragonstalkerProgressPanel.force-desktop,
+body.force-desktop-panels #itemsCollectionPanel,
+body.force-desktop-panels #dragonstalkerProgressPanel {
+    width: 280px !important;
+    font-size: 16px !important;
+    padding: 12px !important;
+    border-radius: 12px !important;
+    border-width: 2px !important;
+}
+
+.force-mobile-panels #itemsCollectionPanel.force-mobile,
+.force-mobile-panels #dragonstalkerProgressPanel.force-mobile,
+body.force-mobile-panels #itemsCollectionPanel,
+body.force-mobile-panels #dragonstalkerProgressPanel {
+    width: 360px !important;
+    font-size: 14px !important;
+    padding: 8px !important;
+    border-radius: 8px !important;
+    border-width: 1px !important;
+}
+
+/* Force mobile panel specific overrides */
+body.force-mobile-panels #itemsCollectionPanel .player-name,
+#itemsCollectionPanel.force-mobile .player-name {
+    font-size: 14px !important;
+}
+
+body.force-mobile-panels #itemsCollectionPanel .player-score,
+#itemsCollectionPanel.force-mobile .player-score {
+    font-size: 24px !important;
+}
+
+body.force-mobile-panels #itemsCollectionPanel .stat-label,
+#itemsCollectionPanel.force-mobile .stat-label {
+    font-size: 9px !important;
+}
+
+body.force-mobile-panels #itemsCollectionPanel .stat-value,
+#itemsCollectionPanel.force-mobile .stat-value {
+    font-size: 10px !important;
+} 

@@ -12,7 +12,7 @@ export const damageProjectiles = [
         baseProbability: 0.035, 
         sound: assetRegistry.audio.fireballimpact,
         speed: { min: 1.2, max: 2.0 }, // Reduced from 2.0-3.5 for better balance
-        size: { width: 120, height: 120 },
+        size_multiplier: 0.8, // Reduced to compensate for larger base size
         color: "#FF4500",
         effects: "burn"
     },
@@ -27,7 +27,7 @@ export const damageProjectiles = [
         baseProbability: 0.015, // Same spawn rate as power_word_shield
         sound: assetRegistry.audio.speedboost,
         speed: { min: 1.5, max: 2.3 }, // Reduced from 2.0-4.0 for better balance
-        size: { width: 80, height: 80 },
+        size_multiplier: 1.2, // Reduced to compensate for larger base size
         color: "#FF0000",
         effects: "speed_increase",
         speedIncreaseOptions: [10, 20, 30] // Possible percentage increases
@@ -43,7 +43,7 @@ export const damageProjectiles = [
         baseProbability: 0.01, // Same spawn rate as speedboost
         sound: assetRegistry.audio.shieldCast,
         speed: { min: 1.0, max: 2.0 }, // Slower speed for easier collection
-        size: { width: 90, height: 90 },
+        size_multiplier: 1.3, // Reduced to compensate for larger base size
         color: "#87CEEB",
         effects: "shield",
         shieldDurationOptions: [180, 300, 600] // 3, 5, or 10 seconds at 60fps
@@ -59,7 +59,7 @@ export const damageProjectiles = [
         baseProbability: 0.015, // Same spawn rate as power word shield
         sound: assetRegistry.audio.shieldCast,
         speed: { min: 1.0, max: 2.0 }, // Slower speed for easier collection
-        size: { width: 90, height: 90 },
+        size_multiplier: 1.0, // Reduced to compensate for larger base size
         color: "#87CEEB",
         effects: "freeze_time",
         freezeDurationOptions: [60, 180, 300] // 1, 3, or 5 seconds at 60fps
@@ -75,7 +75,7 @@ export const damageProjectiles = [
         baseProbability: 0.025, 
         sound: assetRegistry.audio.frostbolt,
         speed: { min: 0.8, max: 1.8 }, // Reduced from 1.0-3.0 for better balance
-        size: { width: 100, height: 100 },
+        size_multiplier: 1.0, // Reduced to compensate for larger base size
         color: "#00BFFF",
         effects: "freeze"
     },
@@ -90,7 +90,7 @@ export const damageProjectiles = [
         baseProbability: 0.01, 
         sound: assetRegistry.audio.shadowImpact,
         speed: { min: 0.6, max: 1.2 }, // Slower than other projectiles
-        size: { width: 110, height: 110 },
+        size_multiplier: 1.1, // Reduced to compensate for larger base size
         color: "#4B0082", // Dark purple/indigo
         effects: "damage_over_time",
         dotDuration: 300, // 5 seconds at 60fps
