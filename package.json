@@ -1,0 +1,21 @@
+{
+  "name": "efto-game",
+  "version": "1.0.0",
+  "description": "DMTribut - EFTO Game - Production Build System",
+  "main": "game-modular.js",
+  "scripts": {
+    "build": "node build.js",
+    "build:dev": "node build.js --dev",
+    "clean": "node -e \"const fs = require('fs-extra'); fs.removeSync('dist');\""
+  },
+  "devDependencies": {
+    "terser": "^5.24.0",
+    "clean-css": "^5.3.3",
+    "fs-extra": "^11.2.0",
+    "glob": "^10.3.10",
+    "chalk": "^4.1.2"
+  },
+  "keywords": ["game", "javascript", "html5"],
+  "author": "EFTO Team",
+  "license": "MIT"
+} 
