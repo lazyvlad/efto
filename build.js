@@ -50,7 +50,7 @@ const CONFIG = {
 // Terser options for production
 const TERSER_OPTIONS = {
     compress: {
-        drop_console: true,  // Remove console.log statements
+        drop_console: false,  // Don't drop console.logs here - we handle it manually first
         drop_debugger: true, // Remove debugger statements
         dead_code: true,
         unused: true,
@@ -64,8 +64,7 @@ const TERSER_OPTIONS = {
         hoist_vars: false,
         if_return: true,
         join_vars: true,
-        cascade: true,
-        side_effects: true
+        side_effects: false  // Changed from true to prevent aggressive optimization that might break code
     },
     mangle: {
         toplevel: false,
@@ -595,7 +594,8 @@ export const serverConfig = {
                     this.log(`✅ Minified: ${file} (${this.getFileSizeReduction(content, processedContent)})`, 'success');
                 } catch (error) {
                     this.log(`❌ Error minifying ${file}: ${error.message}`, 'error');
-                    processedContent = content; // Fallback to original
+                    this.log(`⚠️  Using unminified but debug-cleaned version`, 'warning');
+                    // Keep processedContent (with debug logs removed) instead of reverting to original
                 }
 
                 // Add cache busting to main files
