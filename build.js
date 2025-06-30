@@ -87,6 +87,8 @@ class BuildSystem {
         this.buildTime = new Date().toISOString();
         this.cacheHash = this.generateCacheHash();
         this.fileMap = new Map(); // For tracking renamed files
+        this.gameVersion = null;
+        this.buildTimestamp = Date.now();
     }
 
     generateCacheHash() {
@@ -114,6 +116,90 @@ class BuildSystem {
         await fs.ensureDir(CONFIG.distDir);
         
         this.log('✨ Cleaned dist directory', 'success');
+    }
+
+    async setupGameVersion() {
+        this.log('🏷️  Checking game version...', 'info');
+        
+        const gameConfigPath = path.join(CONFIG.srcDir, 'config', 'gameConfig.js');
+        
+        // Read current version from gameConfig.js
+        try {
+            const gameConfigContent = await fs.readFile(gameConfigPath, 'utf8');
+            const versionMatch = gameConfigContent.match(/export const GAME_VERSION = ["']([^"']+)["']/);
+            
+            if (versionMatch) {
+                const currentVersion = versionMatch[1];
+                this.log(`📋 Current game version: ${currentVersion}`, 'info');
+                
+                // Ask user if they want to update the version
+                const updateVersion = readlineSync.keyInYNStrict(
+                    `Do you want to update the game version? (current: ${currentVersion})`
+                );
+                
+                if (updateVersion) {
+                    this.gameVersion = this.promptForNewVersion(currentVersion);
+                    await this.updateGameConfig(gameConfigPath, gameConfigContent);
+                    this.log(`✅ Updated game version to: ${this.gameVersion}`, 'success');
+                } else {
+                    this.gameVersion = currentVersion;
+                    // Still update the build timestamp
+                    await this.updateGameConfig(gameConfigPath, gameConfigContent, false);
+                    this.log(`📋 Keeping current version: ${this.gameVersion}`, 'info');
+                }
+            } else {
+                this.log('⚠️  Could not find GAME_VERSION in gameConfig.js', 'warning');
+                this.gameVersion = readlineSync.question('🏷️  Enter game version: ', {
+                    defaultInput: '1.0.0'
+                });
+                await this.updateGameConfig(gameConfigPath, gameConfigContent);
+            }
+        } catch (error) {
+            this.log(`❌ Error reading gameConfig.js: ${error.message}`, 'error');
+            this.gameVersion = '1.0.0';
+        }
+    }
+    
+    promptForNewVersion(currentVersion) {
+        console.log('');
+        console.log(chalk.cyan('🏷️  Game Version Update'));
+        console.log(chalk.gray('Current version: ') + chalk.yellow(currentVersion));
+        console.log('');
+        console.log('Suggested version increments:');
+        
+        const versionParts = currentVersion.split('.');
+        const major = parseInt(versionParts[0]) || 1;
+        const minor = parseInt(versionParts[1]) || 0;
+        const patch = parseInt(versionParts[2]) || 0;
+        
+        console.log(`  Patch: ${major}.${minor}.${patch + 1} (bug fixes)`);
+        console.log(`  Minor: ${major}.${minor + 1}.0 (new features)`);
+        console.log(`  Major: ${major + 1}.0.0 (breaking changes)`);
+        console.log('');
+        
+        return readlineSync.question('🏷️  Enter new version: ', {
+            defaultInput: `${major}.${minor}.${patch + 1}`
+        });
+    }
+    
+    async updateGameConfig(gameConfigPath, content, updateVersion = true) {
+        let updatedContent = content;
+        
+        if (updateVersion) {
+            // Update GAME_VERSION
+            updatedContent = updatedContent.replace(
+                /export const GAME_VERSION = ["'][^"']+["']/,
+                `export const GAME_VERSION = "${this.gameVersion}"`
+            );
+        }
+        
+        // Always update BUILD_TIMESTAMP
+        updatedContent = updatedContent.replace(
+            /export const BUILD_TIMESTAMP = \d+/,
+            `export const BUILD_TIMESTAMP = ${this.buildTimestamp}`
+        );
+        
+        await fs.writeFile(gameConfigPath, updatedContent);
     }
 
     async setupServerConfig() {
@@ -315,6 +401,8 @@ export const serverConfig = {
             }
             
             const srcPath = path.join(CONFIG.srcDir, file);
+            
+            // Read file content (gameConfig.js will have updated version/timestamp at this point)
             const content = await fs.readFile(srcPath, 'utf8');
             
             let processedContent = content;
@@ -407,13 +495,34 @@ export const serverConfig = {
                 }
             }
 
-            // Add build info comment
-            const buildComment = `<!-- Built: ${this.buildTime} | Mode: ${CONFIG.isDev ? 'Development' : 'Production'} -->`;
+            // Update version parameters in script tags and links
+            if (this.gameVersion) {
+                // Update script src with version parameter
+                content = content.replace(
+                    /(<script[^>]+src="[^"]*")(\?v=[^"]*)?(")/g,
+                    `$1?v=${this.gameVersion}$3`
+                );
+                
+                // Update link href with version parameter (for CSS files)
+                content = content.replace(
+                    /(<link[^>]+href="[^"]*\.css")(\?v=[^"]*)?(")/g,
+                    `$1?v=${this.gameVersion}$3`
+                );
+                
+                // Update any hardcoded version numbers in comments or meta tags
+                content = content.replace(
+                    /version\s*[:=]\s*["']?[\d.]+["']?/gi,
+                    `version="${this.gameVersion}"`
+                );
+            }
+
+            // Add build info comment with version
+            const buildComment = `<!-- Built: ${this.buildTime} | Version: ${this.gameVersion} | Mode: ${CONFIG.isDev ? 'Development' : 'Production'} -->`;
             content = content.replace('</head>', `  ${buildComment}\n</head>`);
 
             const destPath = path.join(CONFIG.distDir, file);
             await fs.writeFile(destPath, content);
-            this.log(`📋 Processed: ${file}`, 'success');
+            this.log(`📋 Processed: ${file} (version: ${this.gameVersion})`, 'success');
         }
     }
 
@@ -446,10 +555,12 @@ export const serverConfig = {
     async generateBuildInfo() {
         const buildInfo = {
             buildTime: this.buildTime,
+            buildTimestamp: this.buildTimestamp,
             mode: CONFIG.isDev ? 'development' : 'production',
+            gameVersion: this.gameVersion,
             cacheHash: this.cacheHash,
             fileMap: Object.fromEntries(this.fileMap),
-            version: require('./package.json').version
+            buildSystemVersion: require('./package.json').version
         };
 
         await fs.writeFile(
@@ -478,6 +589,7 @@ export const serverConfig = {
     async run() {
         try {
             await this.init();
+            await this.setupGameVersion();
             await this.setupServerConfig();
             await this.processJavaScript();
             await this.processCSS();
@@ -486,14 +598,17 @@ export const serverConfig = {
             await this.generateBuildInfo();
             
             this.log(`🎉 Build completed successfully! Output: ${CONFIG.distDir}/`, 'success');
+            this.log(`🏷️  Game Version: ${this.gameVersion}`, 'info');
+            this.log(`📅 Build Time: ${new Date(this.buildTimestamp).toLocaleString()}`, 'info');
             
             if (!CONFIG.isDev) {
                 this.log('🏭 Production optimizations applied:', 'info');
                 this.log('  ✅ JavaScript minified', 'success');
                 this.log('  ✅ Console logs removed', 'success');
                 this.log('  ✅ CSS minified', 'success');
+                this.log('  ✅ Version cache busting applied', 'success');
                 if (CONFIG.addCacheBusting) {
-                    this.log('  ✅ Cache busting applied', 'success');
+                    this.log('  ✅ File hash cache busting applied', 'success');
                 }
             }
             

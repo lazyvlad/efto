@@ -44,8 +44,10 @@ build-and-deploy.bat
 - ✅ **JavaScript Minification**: Reduces file sizes by 60-80%
 - ✅ **Console Log Removal**: All `console.log()` statements removed
 - ✅ **CSS Minification**: Optimized CSS with reduced file sizes
-- ✅ **Cache Busting**: Automatic file versioning for browser cache invalidation
+- ✅ **Semantic Version Cache Busting**: Uses game version for browser cache invalidation
+- ✅ **File Hash Cache Busting**: Additional hash-based cache busting for main files
 - ✅ **Dead Code Elimination**: Removes unused code
+- ✅ **Interactive Game Versioning**: Prompts for version updates and auto-updates timestamps
 - ✅ **Interactive Server Config**: Automatically sets up `serverConfig.js` if missing
 - ✅ **Build Info**: Generates `build-info.json` with build metadata
 
@@ -137,11 +139,80 @@ Would you like to create serverConfig.js now? [y/N]: y
 ✅ Created serverConfig.js in both source and dist directories
 ```
 
+## Interactive Game Versioning
+
+### Automatic Version Management
+When you run `npm run build`, the system reads the current version from `config/gameConfig.js` and prompts you to update it:
+
+```
+🏷️  Checking game version...
+📋 Current game version: 1.3.0
+Do you want to update the game version? (current: 1.3.0) [y/N]: y
+
+🏷️  Game Version Update
+Current version: 1.3.0
+
+Suggested version increments:
+  Patch: 1.3.1 (bug fixes)
+  Minor: 1.4.0 (new features)
+  Major: 2.0.0 (breaking changes)
+
+🏷️  Enter new version: 1.3.1
+✅ Updated game version to: 1.3.1
+```
+
+### Version-Based Cache Busting
+The system automatically updates all resource references with the version:
+
+**Before:**
+```html
+<script type="module" src="game-modular.js?v=1.3.0"></script>
+<link rel="stylesheet" href="styles/base.css?v=1.3.0">
+```
+
+**After:**
+```html
+<script type="module" src="game-modular.abc12345.js?v=1.3.1"></script>
+<link rel="stylesheet" href="styles/base.css?v=1.3.1">
+```
+
+### Automated Updates
+The build system automatically:
+- ✅ **Updates `GAME_VERSION`** in `config/gameConfig.js`
+- ✅ **Updates `BUILD_TIMESTAMP`** with current build time
+- ✅ **Version-tags all resources** (JS, CSS files)
+- ✅ **Preserves semantic versioning** for proper release management
+
+### Version Workflow
+Typical deployment workflow:
+1. **Pull latest code** from repository
+2. **Run build**: `npm run build`
+3. **Update version** when prompted (e.g., 1.3.0 → 1.3.1)
+4. **Deploy** - all browsers will pull fresh resources due to version change
+
 ## Cache Busting
 
-In production builds, main JavaScript files get cache-busting hashes:
-- `game-modular.js` → `game-modular.abc12345.js`
-- HTML files are automatically updated with new filenames
+The build system provides **dual-layer cache busting** for maximum reliability:
+
+### 1. Semantic Version Cache Busting
+**All resources** get version parameters:
+```html
+<!-- All script and CSS files -->
+<script src="game-modular.js?v=1.3.1"></script>
+<link href="styles/base.css?v=1.3.1">
+```
+
+### 2. File Hash Cache Busting  
+**Main files** get additional hash-based filenames:
+```html
+<!-- Main game file gets both hash and version -->
+<script src="game-modular.abc12345.js?v=1.3.1"></script>
+```
+
+### Cache Busting Strategy
+- **Version parameters** (`?v=1.3.1`) - Change when you update the game version
+- **File hashes** (`abc12345`) - Change on every production build
+- **Dual protection** ensures browsers always get the latest code
 
 ## Build Configuration
 
@@ -254,18 +325,29 @@ DEBUG=* npm run build
 
 ## Build Info
 
-Each build generates `build-info.json` with:
+Each build generates `build-info.json` with comprehensive metadata:
 ```json
 {
   "buildTime": "2024-01-01T12:00:00.000Z",
+  "buildTimestamp": 1704067200000,
   "mode": "production",
+  "gameVersion": "1.3.1",
   "cacheHash": "abc12345",
   "fileMap": {
     "game-modular.js": "game-modular.abc12345.js"
   },
-  "version": "1.0.0"
+  "buildSystemVersion": "1.0.0"
 }
 ```
+
+### Build Info Fields
+- **`gameVersion`** - Current game version from gameConfig.js
+- **`buildTime`** - Human-readable build timestamp  
+- **`buildTimestamp`** - Unix timestamp for programmatic use
+- **`mode`** - Build mode (development/production)
+- **`cacheHash`** - Hash used for file renaming
+- **`fileMap`** - Mapping of original → renamed files
+- **`buildSystemVersion`** - Version of the build system itself
 
 ## Contributing
 
