@@ -234,49 +234,6 @@ export const gameConfig = {
         }
     },
     
-    // === GAME MODES ===
-    gameModes: {
-        easy: {
-            name: "Easy Mode",
-            description: "Slower progression, more forgiving gameplay",
-            modifiers: {
-                levelProgressionSpeed: 0.7,     // 30% slower level progression
-                itemSpawnRate: 0.8,             // 20% fewer items
-                projectileSpawnRate: 0.6,       // 40% fewer projectiles
-                projectileSpeed: 0.8,           // 20% slower projectiles
-                healthLossReduction: 0.7,       // 30% less health loss
-                powerUpSpawnRate: 1.3,          // 30% more power-ups
-                critChanceBonus: 0.05           // +5% crit chance
-            }
-        },
-        normal: {
-            name: "Normal Mode", 
-            description: "Standard difficulty and progression",
-            modifiers: {
-                levelProgressionSpeed: 1.0,     // Normal progression
-                itemSpawnRate: 1.0,             // Normal item spawns
-                projectileSpawnRate: 1.0,       // Normal projectiles
-                projectileSpeed: 1.0,           // Normal speed
-                healthLossReduction: 1.0,       // Normal health loss
-                powerUpSpawnRate: 1.0,          // Normal power-ups
-                critChanceBonus: 0.0            // No bonus
-            }
-        },
-        hard: {
-            name: "Hard Mode",
-            description: "Faster progression, more challenging gameplay", 
-            modifiers: {
-                levelProgressionSpeed: 1.4,     // 40% faster level progression
-                itemSpawnRate: 1.3,             // 30% more items
-                projectileSpawnRate: 1.5,       // 50% more projectiles
-                projectileSpeed: 1.2,           // 20% faster projectiles
-                healthLossReduction: 1.3,       // 30% more health loss
-                powerUpSpawnRate: 0.7,          // 30% fewer power-ups
-                critChanceBonus: -0.02          // -2% crit chance
-            }
-        }
-    },
-    
     // === LEVEL PROGRESSION ===
     levels: {
         // === TESTING CONFIGURATION ===

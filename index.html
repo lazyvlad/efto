@@ -148,45 +148,6 @@
         <div class="screen-content settings-expanded">
             <h2>⚙️ Game Settings</h2>
             
-            <!-- Game Mode Settings Section -->
-            <div class="settings-section">
-                <h3>🎮 Game Mode</h3>
-                <p class="section-description">Choose your difficulty level - affects level progression and item spawn rates</p>
-                
-                <div class="setting-item radio-group">
-                    <label class="radio-label">
-                        <input type="radio" name="gameMode" value="easy" id="gameModeEasy">
-                        <span class="radio-custom"></span>
-                        <div class="radio-content">
-                            <strong>🟢 Easy Mode</strong>
-                            <small>Slower level progression, more forgiving gameplay</small>
-                        </div>
-                    </label>
-                </div>
-                
-                <div class="setting-item radio-group">
-                    <label class="radio-label">
-                        <input type="radio" name="gameMode" value="normal" id="gameModeNormal" checked>
-                        <span class="radio-custom"></span>
-                        <div class="radio-content">
-                            <strong>🟡 Normal Mode</strong>
-                            <small>Standard difficulty and progression</small>
-                        </div>
-                    </label>
-                </div>
-                
-                <div class="setting-item radio-group">
-                    <label class="radio-label">
-                        <input type="radio" name="gameMode" value="hard" id="gameModeHard">
-                        <span class="radio-custom"></span>
-                        <div class="radio-content">
-                            <strong>🔴 Hard Mode</strong>
-                            <small>Faster progression, more challenging gameplay</small>
-                        </div>
-                    </label>
-                </div>
-            </div>
-            
             <!-- Panel Appearance Settings Section -->
             <div class="settings-section">
                 <h3>📊 Panel Appearance</h3>
@@ -277,7 +238,7 @@
         <div id="howToPlayContent">
             <div class="guide-section">
                 <h3>🎯 Objective</h3>
-                <p>Collect all 10 Dragonstalker tier set pieces to win! Missing any piece means game over.</p>
+                <p>Collect as many points as you can before you die! This is the ultimate DM Tribute!</p>
             </div>
 
             <div class="guide-section">
@@ -366,35 +327,23 @@
 
             <div class="guide-section">
                 <h3>💥 Critical Hit System</h3>
-                <p>• 10% base chance to double points from any item</p>
-                                    <p>• Complete Dragonstalker sets: +8% crit chance each</p>
-                <p>• Collect Thunder Fury: +1% crit chance each</p>
-                <p>• Maximum crit chance: 25%</p>
+                <div id="critSystemContent">
+                    <!-- Dynamic content will be generated here -->
+                </div>
             </div>
 
             <div class="guide-section">
                 <h3>💨 Dodge Rating System</h3>
-                <p>• 10% base chance to avoid damage from projectiles and item misses</p>
-                <p>• Complete Dragonstalker sets: +1% dodge chance each</p>
-                <p>• Zandalari spell: +5% dodge chance for 15s after spell expires</p>
-                <p>• Aspect of the Monkey power-up: +3% dodge chance for 15 seconds</p>
-                <p>• Evasion power-up: +1% permanent dodge chance</p>
-                <p>• <strong>Area Expansion:</strong> Each HP saved from dodges expands your movable area by 1 pixel</p>
-                <p>• Dodge is checked BEFORE Power Word Shield</p>
-                <p>• Dodge does NOT prevent DOT damage ticks</p>
-                <p>• Maximum dodge chance: 25%</p>
+                <div id="dodgeSystemContent">
+                    <!-- Dynamic content will be generated here -->
+                </div>
             </div>
 
             <div class="guide-section">
                 <h3>🏹 Arrow Combat System</h3>
-                <p>• <strong>Starting Arrows:</strong> Begin with 20 arrows</p>
-                <p>• <strong>Arrow Power-ups:</strong> Bronze (+25), Silver (+50), Thorium (+100)</p>
-                <p>• <strong>Autoshot (E):</strong> Fires 1 arrow straight up (0.5s cooldown, uses 1 arrow)</p>
-                <p>• <strong>Multishot (R):</strong> Fires 5 arrows in wide spread with +5% crit (0.5s cooldown, uses 5 arrows)</p>
-                <p>• Arrows collect items on contact (same as player collision)</p>
-                <p>• Arrows destroy harmful projectiles and gain beneficial effects</p>
-                <p>• Multishot arrows have increased crit chance for collected items</p>
-                <p>• Arrow power-ups display the amount they add below the icon</p>
+                <div id="arrowSystemContent">
+                    <!-- Dynamic content will be generated here -->
+                </div>
             </div>
 
             <div class="guide-section">
@@ -527,7 +476,7 @@
             <div class="player-name" id="playerNameDisplay">Player: aaaa</div>
             <div class="player-score" id="playerScoreDisplay">0</div>
             <div class="player-level" id="playerLevelDisplay">Level 1</div>
-            
+
             <!-- Compact Health Bar -->
             <div class="player-health-bar">
                 <div class="player-health-background">
@@ -546,9 +495,6 @@
             <div id="healthBar" class="compact-health-bar">
                 <div class="player-portrait">
                     <img src="assets/efto.png" alt="Player Portrait">
-                    <button id="itemBonusesDesktopBtn" class="player-bonus-icon desktop-only" title="View Item Bonuses">
-                        ⚡
-                    </button>
                 </div>
                 <div class="health-bar-container">
                     <div class="health-background">

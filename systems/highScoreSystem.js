@@ -52,13 +52,16 @@ export async function saveHighScores(scores) {
 }
 
 // Add a new score to the high scores list
-export async function addHighScore(playerName, score, itemsCollected, level, gameTime = 0) {
+export async function addHighScore(playerName, score, itemsCollected, level, gameTime = 0, dragonstalkerCompletions = 0, finalCritRating = 0, finalDodgeRating = 0) {
     try {
         const newScore = {
             name: playerName.trim() || 'Anonymous',
             score: score,
             level: level,
-            gameTime: gameTime
+            gameTime: gameTime,
+            dragonstalkerCompletions: dragonstalkerCompletions,
+            finalCritRating: Math.round(finalCritRating * 1000) / 10, // Convert to percentage with 1 decimal
+            finalDodgeRating: Math.round(finalDodgeRating * 1000) / 10 // Convert to percentage with 1 decimal
         };
         
         // Send to server
@@ -100,7 +103,10 @@ export async function addHighScore(playerName, score, itemsCollected, level, gam
             itemsCollected: itemsCollected,
             level: level,
             date: new Date().toLocaleDateString(),
-            timestamp: Date.now()
+            timestamp: Date.now(),
+            dragonstalkerCompletions: dragonstalkerCompletions,
+            finalCritRating: Math.round(finalCritRating * 1000) / 10, // Convert to percentage with 1 decimal
+            finalDodgeRating: Math.round(finalDodgeRating * 1000) / 10 // Convert to percentage with 1 decimal
         };
         
         scores.push(newScore);
@@ -160,7 +166,18 @@ function renderHighScoresList(scores) {
         return;
     }
     
-    let html = '';
+    let html = `
+        <div class="score-header">
+            <span class="score-rank">Rank</span>
+            <span class="score-name">Name</span>
+            <span class="score-points">Score</span>
+            <span class="score-level">Level</span>
+            <span class="score-ds">🐉 DS</span>
+            <span class="score-crit">⚡ Crit</span>
+            <span class="score-dodge">💨 Dodge</span>
+            <span class="score-date">Date</span>
+        </div>
+    `;
     scores.slice(0, 20).forEach((score, index) => {
         const isTop3 = index < 3;
         const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
@@ -182,12 +199,23 @@ function renderHighScoresList(scores) {
         // Format level display
         const levelDisplay = score.level ? `Lv.${score.level}` : 'Lv.?';
         
+        // Format dragonstalker completions
+        const dsCompletions = score.dragonstalkerCompletions || 0;
+        const dsDisplay = dsCompletions > 0 ? `🐉${dsCompletions}` : '🐉0';
+        
+        // Format crit and dodge ratings
+        const critDisplay = score.finalCritRating ? `⚡${score.finalCritRating}%` : '⚡0%';
+        const dodgeDisplay = score.finalDodgeRating ? `💨${score.finalDodgeRating}%` : '💨0%';
+        
         html += `
             <div class="score-entry ${isTop3 ? 'top3' : ''}">
                 <span class="score-rank">${rankEmoji} #${index + 1}</span>
                 <span class="score-name">${score.name || 'Anonymous'}</span>
                 <span class="score-points">${score.score || 0} pts</span>
                 <span class="score-level">${levelDisplay}</span>
+                <span class="score-ds">${dsDisplay}</span>
+                <span class="score-crit">${critDisplay}</span>
+                <span class="score-dodge">${dodgeDisplay}</span>
                 <span class="score-date">${displayDate}</span>
             </div>
         `;

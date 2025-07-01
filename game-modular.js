@@ -1,5 +1,5 @@
 // Import all modules
-import { gameConfig } from './config/gameConfig.js';
+import { gameConfig, GAME_VERSION } from './config/gameConfig.js';
 import { gameItems } from './data/gameItems.js';
 import { damageProjectiles } from './data/damageProjectiles.js';
 import { powerUpItems } from './data/powerUpItems.js';
@@ -13,7 +13,7 @@ import { CombatText } from './classes/CombatText.js';
 import { Arrow } from './classes/Arrow.js';
 
 import { tryAutoInitAudio, startBackgroundMusic, playUffSound, playScreamSound, playTotalSound, playFireballImpactSound, playDragonstalkerSound, playThunderSound, playItemSound, audioInitialized, sounds } from './systems/audioSystem.js';
-import { initializeSettings, loadSettings, saveSettings, resetSettings, getSettings, updateSetting, areSoundEffectsEnabled, isBackgroundMusicEnabled, getVolume, getVolumeDecimal, getMasterVolume, getMusicVolume, getEffectsVolume, getMasterVolumeDecimal, getMusicVolumeDecimal, getEffectsVolumeDecimal, getGameMode, getPlayerPanelStyle, getDragonstalkerPanelStyle, getPanelOpacity, refreshPanelStyles } from './systems/settingsSystem.js';
+import { initializeSettings, loadSettings, saveSettings, resetSettings, getSettings, updateSetting, areSoundEffectsEnabled, isBackgroundMusicEnabled, getVolume, getVolumeDecimal, getMasterVolume, getMusicVolume, getEffectsVolume, getMasterVolumeDecimal, getMusicVolumeDecimal, getEffectsVolumeDecimal, getPlayerPanelStyle, getDragonstalkerPanelStyle, getPanelOpacity, refreshPanelStyles } from './systems/settingsSystem.js';
 import { loadHighScores, addHighScore, isHighScore, displayHighScores, displayHighScoresSync } from './systems/highScoreSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState } from './systems/inputSystem.js';
 // drawSettings removed - now using HTML+CSS guide
@@ -43,7 +43,7 @@ let gameState = {
     critRating: 0.10, // 10% base crit chance
     baseCritRating: 0.10, // Store base crit rating for resets
     critMultiplier: 2.0, // Double points on crit
-    critRatingCap: 0.25, // 25% maximum crit chance
+    critRatingCap: 0.35, // 35% maximum crit chance
     
     // Dodge system
     dodgeRating: 0.10, // 10% base dodge chance
@@ -635,6 +635,15 @@ function renderGame() {
     // Old speed panel removed - replaced by superior Speed Analysis Monitor
     
     // Spell UI now rendered via HTML/CSS
+    
+    // Render version number in lower left corner
+    ctx.save();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`v${GAME_VERSION}`, 10, canvas.logicalHeight - 10);
+    ctx.restore();
 }
 
 function renderGameOver() {
@@ -2160,8 +2169,143 @@ function showHowToPlay(fromPause = false) {
     // Store where we came from for the back button
     gameState.howToPlaySource = fromPause ? 'pause' : 'menu';
     
+    // Generate dynamic help content based on current game configuration
+    generateDynamicHelpContent();
+    
     // Update canvas overlay
     updateCanvasOverlay();
+}
+
+// ===== DYNAMIC HELP CONTENT GENERATION =====
+
+// Configuration for Dragonstalker set completion bonuses
+// These values should match the constants in utils/gameUtils.js checkDragonstalkerCompletion()
+const DRAGONSTALKER_BONUSES = {
+    critRatingIncrease: 0.08,    // 8% crit rating per completion
+    dodgeRatingIncrease: 0.01    // 1% dodge rating per completion
+};
+
+// Generate dynamic help content based on actual game data and config
+function generateDynamicHelpContent() {
+    generateCritSystemContent();
+    generateDodgeSystemContent();
+    generateArrowSystemContent();
+}
+
+// Generate Critical Hit System content dynamically
+function generateCritSystemContent() {
+    const container = document.getElementById('critSystemContent');
+    if (!container) return;
+    
+    const baseCritPercent = Math.round(gameState.baseCritRating * 100);
+    const maxCritPercent = Math.round(gameState.critRatingCap * 100);
+    const critMultiplier = gameState.critMultiplier;
+    
+    // Read Dragonstalker completion bonus from configuration
+    const dragonstalkerCritBonus = Math.round(DRAGONSTALKER_BONUSES.critRatingIncrease * 100);
+    
+    let content = `
+        <p>• ${baseCritPercent}% base chance to ${critMultiplier}x points from any item</p>
+        <p>• Complete Dragonstalker sets: +${dragonstalkerCritBonus}% crit chance each</p>
+    `;
+    
+    // Add item-based crit bonuses dynamically
+    const critItems = gameItems.filter(item => item.crit_rating_bonus > 0);
+    if (critItems.length > 0) {
+        // Sort items by type for better organization
+        const sortedCritItems = critItems.sort((a, b) => {
+            const typeOrder = { zee_zgnan: 5, legendary: 4, special: 3, epic: 2, tier_set: 1, regular: 0 };
+            const aPriority = typeOrder[a.type] || 0;
+            const bPriority = typeOrder[b.type] || 0;
+            if (aPriority !== bPriority) return bPriority - aPriority;
+            return a.name.localeCompare(b.name);
+        });
+        
+        sortedCritItems.forEach(item => {
+            const bonusPercent = Math.round(item.crit_rating_bonus * 100);
+            const effectType = item.effect_type === 'permanent' ? 'permanent' : 
+                              `temporary (${Math.round((item.effect_duration || 600) / 60)}s)`;
+            content += `<p>• ${item.name}: +${bonusPercent}% ${effectType} crit chance</p>`;
+        });
+    }
+    
+    // Add spell-based bonuses (Dragon Cry is hardcoded for now)
+    content += `<p>• Dragon Cry spell: +5% crit chance for 10 seconds</p>`;
+    
+    content += `<p>• <strong>Maximum crit chance: ${maxCritPercent}%</strong></p>`;
+    
+    container.innerHTML = content;
+}
+
+// Generate Dodge Rating System content dynamically  
+function generateDodgeSystemContent() {
+    const container = document.getElementById('dodgeSystemContent');
+    if (!container) return;
+    
+    const baseDodgePercent = Math.round(gameState.baseDodgeRating * 100);
+    const maxDodgePercent = Math.round(gameState.dodgeRatingCap * 100);
+    
+    // Read Dragonstalker completion bonus from configuration
+    const dragonstalkerDodgeBonus = Math.round(DRAGONSTALKER_BONUSES.dodgeRatingIncrease * 100);
+    
+    let content = `
+        <p>• ${baseDodgePercent}% base chance to avoid damage from projectiles and item misses</p>
+        <p>• Complete Dragonstalker sets: +${dragonstalkerDodgeBonus}% dodge chance each</p>
+    `;
+    
+    // Add item-based dodge bonuses dynamically
+    const dodgeItems = gameItems.filter(item => item.dodge_rating_bonus > 0);
+    if (dodgeItems.length > 0) {
+        // Sort items by type for better organization
+        const sortedDodgeItems = dodgeItems.sort((a, b) => {
+            const typeOrder = { zee_zgnan: 5, legendary: 4, special: 3, epic: 2, tier_set: 1, regular: 0 };
+            const aPriority = typeOrder[a.type] || 0;
+            const bPriority = typeOrder[b.type] || 0;
+            if (aPriority !== bPriority) return bPriority - aPriority;
+            return a.name.localeCompare(b.name);
+        });
+        
+        sortedDodgeItems.forEach(item => {
+            const bonusPercent = Math.round(item.dodge_rating_bonus * 100);
+            const effectType = item.effect_type === 'permanent' ? 'permanent' : 
+                              `temporary (${Math.round((item.effect_duration || 600) / 60)}s)`;
+            content += `<p>• ${item.name}: +${bonusPercent}% ${effectType} dodge chance</p>`;
+        });
+    }
+    
+    // Add hardcoded spell/power-up bonuses that aren't easily discoverable
+    content += `
+        <p>• Zandalari spell: +5% dodge chance for 15s after spell expires</p>
+        <p>• Aspect of the Monkey power-up: +3% dodge chance for 15 seconds</p>
+        <p>• Evasion power-up: +1% permanent dodge chance</p>
+        <p>• <strong>Area Expansion:</strong> Each HP saved from dodges expands your movable area by 1 pixel</p>
+        <p>• Dodge is checked BEFORE Power Word Shield</p>
+        <p>• Dodge does NOT prevent DOT damage ticks</p>
+        <p>• <strong>Maximum dodge chance: ${maxDodgePercent}%</strong></p>
+    `;
+    
+    container.innerHTML = content;
+}
+
+// Generate Arrow Combat System content dynamically
+function generateArrowSystemContent() {
+    const container = document.getElementById('arrowSystemContent');
+    if (!container) return;
+    
+    const startingArrows = gameState.arrowCount || 20; // Default starting arrows
+    
+    let content = `
+        <p>• <strong>Starting Arrows:</strong> Begin with ${startingArrows} arrows</p>
+        <p>• <strong>Arrow Power-ups:</strong> Bronze (+25), Silver (+50), Thorium (+100)</p>
+        <p>• <strong>Autoshot (E):</strong> Fires 1 arrow straight up (0.5s cooldown, uses 1 arrow)</p>
+        <p>• <strong>Multishot (R):</strong> Fires 5 arrows in wide spread with +5% crit (0.5s cooldown, uses 5 arrows)</p>
+        <p>• Arrows collect items on contact (same as player collision)</p>
+        <p>• Arrows destroy harmful projectiles and gain beneficial effects</p>
+        <p>• Multishot arrows have increased crit chance for collected items</p>
+        <p>• Arrow power-ups display the amount they add below the icon</p>
+    `;
+    
+    container.innerHTML = content;
 }
 
 // Show items/settings screen from menu
@@ -3349,29 +3493,46 @@ function updatePlayerStats(gameState) {
         const permanentCritPercent = Math.round(gameState.critRating * 100);
         const spellCritBonus = spellSystem.getCritRatingBonus();
         const spellCritBonusPercent = Math.round(spellCritBonus * 100);
-        const totalCritRating = Math.min(gameState.critRating + spellCritBonus, gameState.critRatingCap);
+        
+        // Get temporary item crit bonuses
+        let tempItemCritBonus = 0;
+        temporaryStatEffects.critRatingEffects.forEach(effect => {
+            tempItemCritBonus += effect.bonus;
+        });
+        const tempItemCritBonusPercent = Math.round(tempItemCritBonus * 100);
+        
+        const totalCritRating = Math.min(gameState.critRating + spellCritBonus + tempItemCritBonus, gameState.critRatingCap);
         const totalCritPercent = Math.round(totalCritRating * 100);
         const maxCritPercent = Math.round(gameState.critRatingCap * 100);
         
         // Determine display based on bonuses
         const hasPermanentBonus = gameState.critRating > gameState.baseCritRating;
         const hasSpellBonus = spellCritBonus > 0;
+        const hasTempItemBonus = tempItemCritBonus > 0;
         
-        if (hasSpellBonus) {
-            // Show total with spell bonus highlighted
+        if (hasSpellBonus || hasTempItemBonus) {
+            // Show total with active bonuses highlighted
+            const bonuses = [];
+            
             if (hasPermanentBonus) {
                 const permanentBonusPercent = permanentCritPercent - baseCritPercent;
-                critRating.textContent = `${totalCritPercent}% (+${permanentBonusPercent}% +${spellCritBonusPercent}%🐲)`;
-            } else {
-                critRating.textContent = `${totalCritPercent}% (+${spellCritBonusPercent}%🐲)`;
+                bonuses.push(`+${permanentBonusPercent}%`);
             }
-            critRating.style.color = '#FF4500'; // Dragon orange for spell bonus
+            if (hasTempItemBonus) {
+                bonuses.push(`+${tempItemCritBonusPercent}%🔥`); // Fire emoji for temporary item bonuses
+            }
+            if (hasSpellBonus) {
+                bonuses.push(`+${spellCritBonusPercent}%🐲`); // Dragon emoji for spell bonuses
+            }
+            
+            critRating.textContent = `${totalCritPercent}% (${bonuses.join(' ')})`;
+            critRating.style.color = hasTempItemBonus ? '#FFD700' : '#FF4500'; // Gold for temp items, orange for spells
             critRating.style.fontWeight = 'bold';
-            critRating.style.textShadow = '0 0 6px #FF4500';
+            critRating.style.textShadow = hasTempItemBonus ? '0 0 6px #FFD700' : '0 0 6px #FF4500';
             
             // Add special glow if at max
             if (totalCritRating >= gameState.critRatingCap) {
-                critRating.style.textShadow = '0 0 10px #FF4500';
+                critRating.style.textShadow = '0 0 10px #FFD700';
                 critRating.textContent = critRating.textContent.replace(')', ' MAX!)');
             }
         } else if (hasPermanentBonus) {
@@ -3405,7 +3566,15 @@ function updatePlayerStats(gameState) {
         const spellDodgeBonusPercent = Math.round(spellDodgeBonus * 100);
         const tempDodgeBonus = gameState.temporaryDodgeBoost || 0;
         const tempDodgeBonusPercent = Math.round(tempDodgeBonus * 100);
-        const totalDodgeRating = Math.min(gameState.dodgeRating + spellDodgeBonus + tempDodgeBonus, gameState.dodgeRatingCap);
+        
+        // Get temporary item dodge bonuses
+        let tempItemDodgeBonus = 0;
+        temporaryStatEffects.dodgeRatingEffects.forEach(effect => {
+            tempItemDodgeBonus += effect.bonus;
+        });
+        const tempItemDodgeBonusPercent = Math.round(tempItemDodgeBonus * 100);
+        
+        const totalDodgeRating = Math.min(gameState.dodgeRating + spellDodgeBonus + tempDodgeBonus + tempItemDodgeBonus, gameState.dodgeRatingCap);
         const totalDodgePercent = Math.round(totalDodgeRating * 100);
         const maxDodgePercent = Math.round(gameState.dodgeRatingCap * 100);
         
@@ -3413,6 +3582,7 @@ function updatePlayerStats(gameState) {
         const hasPermanentBonus = gameState.dodgeRating > gameState.baseDodgeRating;
         const hasSpellBonus = spellDodgeBonus > 0;
         const hasTempBonus = tempDodgeBonus > 0;
+        const hasTempItemBonus = tempItemDodgeBonus > 0;
         
         // Build display text
         let displayText = '';
@@ -3420,7 +3590,7 @@ function updatePlayerStats(gameState) {
         let fontWeight = 'normal';
         let textShadow = 'none';
         
-        if (hasSpellBonus || hasTempBonus) {
+        if (hasSpellBonus || hasTempBonus || hasTempItemBonus) {
             // Show total with active bonuses highlighted
             displayText = `${totalDodgePercent}%`;
             const bonuses = [];
@@ -3428,6 +3598,9 @@ function updatePlayerStats(gameState) {
             if (hasPermanentBonus) {
                 const permanentBonusPercent = permanentDodgePercent - baseDodgePercent;
                 bonuses.push(`+${permanentBonusPercent}%`);
+            }
+            if (hasTempItemBonus) {
+                bonuses.push(`+${tempItemDodgeBonusPercent}%🔥`); // Fire emoji for temporary item bonuses
             }
             if (hasSpellBonus) {
                 bonuses.push(`+${spellDodgeBonusPercent}%🐲`);
@@ -3440,8 +3613,11 @@ function updatePlayerStats(gameState) {
                 displayText += ` (${bonuses.join(' ')})`;
             }
             
-            // Prioritize temp boost color, then spell, then permanent
-            if (hasTempBonus) {
+            // Prioritize temp item bonus, then temp boost, then spell, then permanent
+            if (hasTempItemBonus) {
+                displayColor = '#87CEEB'; // Sky blue for temp item bonuses
+                textShadow = '0 0 6px #87CEEB';
+            } else if (hasTempBonus) {
                 displayColor = '#00FF00'; // Green for temp boost
                 textShadow = '0 0 6px #00FF00';
             } else if (hasSpellBonus) {
@@ -3944,9 +4120,22 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
 function endGame() {
     gameState.gameRunning = false;
     
-    // Save the high score
+    // Save the high score with enhanced stats
     try {
-        const scorePromise = addHighScore(gameState.playerName, gameState.score, gameState.perfectCollections, gameState.currentLevel);
+        const finalCritRating = getCurrentTotalCritRating();
+        const finalDodgeRating = getCurrentTotalDodgeRating();
+        
+        const scorePromise = addHighScore(
+            gameState.playerName, 
+            gameState.score, 
+            gameState.perfectCollections, 
+            gameState.currentLevel,
+            0, // gameTime (placeholder)
+            gameState.dragonstalkerCompletions,
+            finalCritRating,
+            finalDodgeRating
+        );
+        
         if (scorePromise && typeof scorePromise.then === 'function') {
             scorePromise.then(rank => {
                 // Show new high score message if it's in top 10
@@ -3986,9 +4175,22 @@ function winGame() {
     gameState.gameWon = true;
     gameState.gameRunning = false;
     
-    // Save the high score with special win marker
+    // Save the high score with special win marker and enhanced stats
     try {
-        const scorePromise = addHighScore(gameState.playerName + " 👑", gameState.score, gameState.perfectCollections, gameState.currentLevel);
+        const finalCritRating = getCurrentTotalCritRating();
+        const finalDodgeRating = getCurrentTotalDodgeRating();
+        
+        const scorePromise = addHighScore(
+            gameState.playerName + " 👑", 
+            gameState.score, 
+            gameState.perfectCollections, 
+            gameState.currentLevel,
+            0, // gameTime (placeholder)
+            gameState.dragonstalkerCompletions,
+            finalCritRating,
+            finalDodgeRating
+        );
+        
         if (scorePromise && typeof scorePromise.catch === 'function') {
             scorePromise.catch(console.error);
         }
@@ -4118,7 +4320,6 @@ window.showSettings = showSettings;
 window.closeSettings = closeSettings;
 window.showMainMenu = showMainMenu;
 window.resetSettings = resetSettingsUI;
-window.getGameMode = getGameMode;
 
 // Debug function for checking display quality
 window.checkDisplayQuality = function() {

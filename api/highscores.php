@@ -80,6 +80,9 @@ switch ($method) {
             'score' => (int)$data['score'],
             'level' => isset($data['level']) ? (int)$data['level'] : 1,
             'gameTime' => isset($data['gameTime']) ? (int)$data['gameTime'] : 0,
+            'dragonstalkerCompletions' => isset($data['dragonstalkerCompletions']) ? (int)$data['dragonstalkerCompletions'] : 0,
+            'finalCritRating' => isset($data['finalCritRating']) ? (float)$data['finalCritRating'] : 0.0,
+            'finalDodgeRating' => isset($data['finalDodgeRating']) ? (float)$data['finalDodgeRating'] : 0.0,
             'timestamp' => date('c') // ISO 8601 format
         ];
         

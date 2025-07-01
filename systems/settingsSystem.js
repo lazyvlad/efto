@@ -11,7 +11,6 @@ const defaultSettings = {
         effectsVolume: 80      // Sound effects volume (0-100)
     },
     gameplay: {
-        gameMode: 'normal'  // easy, normal, hard
     },
     ui: {
         playerPanelStyle: 'auto',       // auto, desktop, mobile
@@ -137,13 +136,6 @@ function applySetting(category, key, value) {
             case 'panelOpacity':
                 // Apply panel opacity changes
                 applyPanelOpacity(value);
-                break;
-        }
-    } else if (category === 'gameplay') {
-        switch (key) {
-            case 'gameMode':
-                // Game mode changes will be applied on next game start
-                console.log(`Game mode set to: ${value}`);
                 break;
         }
     }
@@ -407,10 +399,7 @@ export function getVolumeDecimal() {
     return gameSettings.audio.masterVolume / 100;
 }
 
-// Get game mode setting
-export function getGameMode() {
-    return gameSettings.gameplay.gameMode;
-}
+
 
 // Get UI settings
 export function getPlayerPanelStyle() {
