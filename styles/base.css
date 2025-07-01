@@ -91,3 +91,23 @@ button:focus, input:focus {
     outline: #4ECDC4 solid 3px;
     outline-offset: 2px;
 }
+
+/* Sponsor link styling */
+.sponsor-link-class {
+    position: fixed;
+    bottom: 15px;
+    right: 15px;
+    font-size: 12px;
+    color:#f1f1f1
+}
+
+.sponsor-link-class a {
+    color: #4ECDC4;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.sponsor-link-class a:hover {
+    color: #FFD700;
+    text-decoration: underline;
+}
