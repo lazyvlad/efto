@@ -63,7 +63,7 @@ export class PowerUpItem {
                             canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
                             gameConfig.canvas.desktop.width);
         const canvasHeight = canvas.logicalHeight || 
-                            (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.height :
+                            (canvas.deviceType === 'mobile' ? (window.responsiveScaler ? window.responsiveScaler.canvasDimensions.height : 600) :
                              canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.height :
                              gameConfig.canvas.desktop.height);
         

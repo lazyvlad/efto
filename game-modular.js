@@ -13,6 +13,7 @@ import { CombatText } from './classes/CombatText.js';
 import { Arrow } from './classes/Arrow.js';
 
 import { tryAutoInitAudio, startBackgroundMusic, playUffSound, playScreamSound, playTotalSound, playFireballImpactSound, playDragonstalkerSound, playThunderSound, playItemSound, audioInitialized, sounds } from './systems/audioSystem.js';
+import { initializeVisibilitySystem, getVisibilitySystemStatus, updateVisibilityConfig } from './systems/visibilitySystem.js';
 import { initializeSettings, loadSettings, saveSettings, resetSettings, getSettings, updateSetting, areSoundEffectsEnabled, isBackgroundMusicEnabled, getVolume, getVolumeDecimal, getMasterVolume, getMusicVolume, getEffectsVolume, getMasterVolumeDecimal, getMusicVolumeDecimal, getEffectsVolumeDecimal, getPlayerPanelStyle, getDragonstalkerPanelStyle, getPanelOpacity, refreshPanelStyles } from './systems/settingsSystem.js';
 import { loadHighScores, addHighScore, isHighScore, displayHighScores, displayHighScoresSync } from './systems/highScoreSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState } from './systems/inputSystem.js';
@@ -221,7 +222,7 @@ async function init() {
                         canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
                         gameConfig.canvas.desktop.width);
     const canvasHeight = canvas.logicalHeight || 
-                        (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.height :
+                        (canvas.deviceType === 'mobile' ? (responsiveScaler ? responsiveScaler.canvasDimensions.height : 600) :
                          canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.height :
                          gameConfig.canvas.desktop.height);
     
@@ -262,6 +263,10 @@ async function init() {
             window.updateVolumeFromSettings();
         }
     }, 200);
+    
+    // Initialize visibility system for auto-pause/resume of background music
+    // This ensures music pauses when browser loses focus (minimize, tab switch, phone lock)
+    initializeVisibilitySystem();
     updateLoadingProgress(0.85);
     
     // Initialize input system
@@ -278,6 +283,10 @@ async function init() {
     
     // Expose notification system globally for use by other systems
     window.notificationSystem = notificationSystem;
+    
+    // Expose visibility system functions for debugging and configuration
+    window.getVisibilitySystemStatus = getVisibilitySystemStatus;
+    window.updateVisibilityConfig = updateVisibilityConfig;
     
     // Set up spell system notification callback
     spellSystem.setNotificationCallback((message, duration, color) => {

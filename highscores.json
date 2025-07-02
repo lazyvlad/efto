@@ -8,5 +8,25 @@
         "finalCritRating": 30,
         "finalDodgeRating": 21,
         "timestamp": "2025-07-01T00:39:34+00:00"
+    },
+    {
+        "name": "lazyvlad",
+        "score": 222,
+        "level": 7,
+        "gameTime": 0,
+        "dragonstalkerCompletions": 0,
+        "finalCritRating": 24,
+        "finalDodgeRating": 12,
+        "timestamp": "2025-07-02T02:39:38+00:00"
+    },
+    {
+        "name": "aaaa",
+        "score": 14,
+        "level": 2,
+        "gameTime": 0,
+        "dragonstalkerCompletions": 0,
+        "finalCritRating": 10,
+        "finalDodgeRating": 12,
+        "timestamp": "2025-07-01T02:15:35+00:00"
     }
 ]

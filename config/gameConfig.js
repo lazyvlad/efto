@@ -62,18 +62,24 @@ export const gameConfig = {
         
         mobile: {
             width: 360,             // Conservative phone width - guaranteed to fit
-            height: 800,            // Conservative phone height
-            aspectRatio: 360/800,   // Conservative aspect ratio (0.45)
+            height: 'dynamic',      // ✅ FIXED: Dynamic height based on viewport
+            aspectRatio: 360/600,   // Updated aspect ratio based on typical mobile space (0.6)
             playableWidth: 360,     // Full width is playable
-            playableHeight: 800 * 0.6, // 60% playable area (480px)
+            playableHeight: 'dynamic', // ✅ FIXED: Dynamic calculation based on available space
             
-            // Mobile-specific positioning
+            // Mobile-specific positioning and dynamic sizing
             positioning: {
                 centerHorizontally: true,  // Center left/right
                 centerVertically: false,   // Don't center vertically
                 bottomOffset: 100,         // Pixels from bottom (above spell buttons)
                 topOffset: 185,            // Pixels from top (below both panels: 120px + 60px + 5px margin)
-                useCustomPositioning: true // Enable mobile-specific positioning
+                useCustomPositioning: true, // Enable mobile-specific positioning
+                
+                // Dynamic sizing parameters
+                minHeight: 400,            // Minimum canvas height for very small screens
+                maxHeight: 800,            // Maximum canvas height (original fixed value)
+                playableHeightPercent: 0.6, // 60% of available space for playable area
+                safeAreaMargin: 20         // Extra margin for safety
             }
         },
         

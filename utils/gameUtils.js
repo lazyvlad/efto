@@ -402,7 +402,7 @@ export function calculateResolutionScale(canvas) {
                          canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
                          gameConfig.canvas.desktop.width);
     const currentHeight = canvas.logicalHeight || 
-                         (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.height :
+                         (canvas.deviceType === 'mobile' ? (responsiveScaler ? responsiveScaler.canvasDimensions.height : 600) :
                           canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.height :
                           gameConfig.canvas.desktop.height);
     
@@ -867,7 +867,7 @@ export class ResponsiveScaler {
         this.deviceType = this.detectDeviceType();
         this.orientation = this.getOrientation();
         
-        // Get canvas dimensions for current device
+        // Get canvas dimensions for current device (handles dynamic sizing)
         this.canvasDimensions = this.getCanvasDimensions();
         
         // Calculate playable area for current device
@@ -894,7 +894,7 @@ export class ResponsiveScaler {
             Playable Area: ${this.playableArea.width}x${this.playableArea.height}
             Scale: ${this.uniformScale.toFixed(2)}x (${this.scaleX.toFixed(2)}x width, ${this.scaleY.toFixed(2)}x height)`);
             
-        // Listen for orientation changes
+        // Listen for orientation changes (mobile-specific)
         window.addEventListener('orientationchange', () => {
             setTimeout(() => {
                 this.updateScaling();
@@ -957,8 +957,43 @@ export class ResponsiveScaler {
     }
     
     getCanvasDimensions() {
-        // Return canvas dimensions based on device type
-        return this.canvasConfig[this.deviceType];
+        // Get base canvas dimensions for device type
+        const baseConfig = this.canvasConfig[this.deviceType];
+        
+        // For mobile devices with dynamic sizing, calculate based on viewport
+        if (this.deviceType === 'mobile' && baseConfig.height === 'dynamic') {
+            const viewportWidth = window.innerWidth;
+            const viewportHeight = window.innerHeight;
+            const positioning = baseConfig.positioning;
+            
+            // Calculate available height after UI elements
+            const availableHeight = viewportHeight - positioning.topOffset - positioning.bottomOffset - positioning.safeAreaMargin;
+            
+            // Constrain to min/max bounds
+            const constrainedHeight = Math.max(positioning.minHeight, Math.min(positioning.maxHeight, availableHeight));
+            
+            // Calculate playable height as percentage of total canvas height
+            const playableHeight = constrainedHeight * positioning.playableHeightPercent;
+            
+            console.log(`📱 Dynamic Mobile Canvas Sizing:
+                Viewport: ${viewportWidth}x${viewportHeight}
+                UI Space: ${positioning.topOffset + positioning.bottomOffset + positioning.safeAreaMargin}px (top: ${positioning.topOffset}px, bottom: ${positioning.bottomOffset}px, margin: ${positioning.safeAreaMargin}px)
+                Available: ${availableHeight}px
+                Canvas Height: ${constrainedHeight}px (constrained from ${availableHeight}px)
+                Playable Height: ${playableHeight.toFixed(0)}px (${(positioning.playableHeightPercent * 100)}% of canvas)`);
+            
+            return {
+                width: baseConfig.width,
+                height: constrainedHeight,
+                aspectRatio: baseConfig.width / constrainedHeight,
+                playableWidth: baseConfig.width,
+                playableHeight: playableHeight,
+                positioning: baseConfig.positioning
+            };
+        }
+        
+        // For non-mobile or static configurations, return as-is
+        return baseConfig;
     }
     
     applyDeviceScaleAdjustments() {
@@ -1054,14 +1089,23 @@ export class ResponsiveScaler {
     }
     
     updateScaling() {
-        // Re-detect device type and recalculate everything
+        // Re-detect device type and orientation
         const oldDeviceType = this.deviceType;
+        const oldOrientation = this.orientation;
         this.deviceType = this.detectDeviceType();
         this.orientation = this.getOrientation();
         
-        // Only recalculate if device type changed
-        if (oldDeviceType !== this.deviceType) {
+        // For mobile devices with dynamic sizing, always recalculate canvas dimensions
+        // because viewport size changes can affect the available space
+        const shouldRecalculate = oldDeviceType !== this.deviceType || 
+                                 oldOrientation !== this.orientation ||
+                                 (this.deviceType === 'mobile' && this.canvasConfig.mobile.height === 'dynamic');
+        
+        if (shouldRecalculate) {
+            // Recalculate canvas dimensions (handles dynamic sizing for mobile)
             this.canvasDimensions = this.getCanvasDimensions();
+            
+            // Update playable area
             this.playableArea = {
                 width: this.canvasDimensions.playableWidth,
                 height: this.canvasDimensions.playableHeight
@@ -1075,7 +1119,10 @@ export class ResponsiveScaler {
             this.applyDeviceScaleAdjustments();
             this.calculateElementSizes();
             
-            console.log(`🔄 Device type changed from ${oldDeviceType} to ${this.deviceType}, scaling updated`);
+            console.log(`🔄 Scaling updated (${oldDeviceType}→${this.deviceType}):
+                Canvas: ${this.canvasDimensions.width}x${this.canvasDimensions.height}
+                Playable Area: ${this.playableArea.width}x${this.playableArea.height}
+                Scale: ${this.uniformScale.toFixed(2)}x`);
         }
     }
     
