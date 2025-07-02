@@ -268,7 +268,7 @@
     #dragonstalkerProgressPanel .dragonstalker-items-list {
         padding: 0 !important;
         display: grid !important;
-        grid-template-columns: repeat(10, 1fr) !important;
+        grid-template-columns: repeat(5, 2fr) !important;
         gap: 2px !important;
         max-height: 50px !important;
         min-height: 40px !important;
@@ -745,15 +745,16 @@
     .force-mobile-panels #itemsCollectionPanel.force-mobile,
     body.force-mobile-panels #itemsCollectionPanel,
     body.force-mobile-panels #itemsCollectionPanel.force-mobile {
-        height: 90px !important;
+        width: calc(55% - 10px) !important;
+        height: 115px !important;
         max-height: 120px !important;
         display: flex !important;
         align-items: stretch !important;
         position: fixed !important;
-        top: 2px !important;
-        left: 50% !important;
+        top: 8px !important;
+        left: 8px !important;
         right: auto !important;
-        transform: translateX(-50%) !important;
+        transform: none !important;
         border-radius: 8px !important;
         border: none !important;
         border-bottom: 1px solid rgba(78, 205, 196, 0.3) !important;
@@ -770,24 +771,53 @@
     #itemsCollectionPanel.force-mobile .panel-header,
     .force-mobile-panels #itemsCollectionPanel .panel-header,
     body.force-mobile-panels #itemsCollectionPanel .panel-header {
-        flex: 0 0 43px !important;
+        flex: 0 0 50px !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
         border-right: 1px solid rgba(78, 205, 196, 0.3) !important;
-        padding: 8px 15px !important;
+        padding: 4px 8px !important;
         margin: 0 !important;
+        font-size: 10px !important;
+    }
+    
+    #itemsCollectionPanel.force-mobile .player-name,
+    .force-mobile-panels #itemsCollectionPanel .player-name,
+    body.force-mobile-panels #itemsCollectionPanel .player-name {
+        font-size: 11px !important;
+        margin-bottom: 1px !important;
+        line-height: 1 !important;
+    }
+    
+    #itemsCollectionPanel.force-mobile .player-score,
+    .force-mobile-panels #itemsCollectionPanel .player-score,
+    body.force-mobile-panels #itemsCollectionPanel .player-score {
+        font-size: 16px !important;
+        margin-bottom: 1px !important;
+        line-height: 1 !important;
+        font-weight: 700 !important;
+    }
+    
+    #itemsCollectionPanel.force-mobile .player-level,
+    .force-mobile-panels #itemsCollectionPanel .player-level,
+    body.force-mobile-panels #itemsCollectionPanel .player-level {
+        font-size: 9px !important;
+        margin-bottom: 0 !important;
+        line-height: 1 !important;
     }
     
     #itemsCollectionPanel.force-mobile .player-stats,
     .force-mobile-panels #itemsCollectionPanel .player-stats,
     body.force-mobile-panels #itemsCollectionPanel .player-stats {
         flex: 1 !important;
-        gap: 5px !important;
-        padding: 8px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 1px !important;
+        padding: 4px 6px !important;
         background: rgba(255, 215, 0, 0.1) !important;
-        margin: 4px !important;
-        align-content: center !important;
+        margin: 2px !important;
+        justify-content: center !important;
+        font-size: 10px !important;
     }
     
     #itemsCollectionPanel.force-mobile .stat-row,
@@ -797,8 +827,26 @@
         justify-content: space-between !important;
         align-items: center !important;
         margin-bottom: 0 !important;
-        padding: 1px 0 !important;
+        padding: 0px !important;
         white-space: nowrap !important;
+        min-height: 10px !important;
+    }
+    
+    #itemsCollectionPanel.force-mobile .stat-label,
+    .force-mobile-panels #itemsCollectionPanel .stat-label,
+    body.force-mobile-panels #itemsCollectionPanel .stat-label {
+        font-size: 9px !important;
+        color: #ccc !important;
+        font-weight: 400 !important;
+    }
+    
+    #itemsCollectionPanel.force-mobile .stat-value,
+    .force-mobile-panels #itemsCollectionPanel .stat-value,
+    body.force-mobile-panels #itemsCollectionPanel .stat-value {
+        font-size: 9px !important;
+        color: gold !important;
+        font-weight: 700 !important;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8) !important;
     }
     
     #itemsCollectionPanel.force-mobile .collection-summary,
@@ -808,5 +856,30 @@
     body.force-mobile-panels #itemsCollectionPanel .collection-summary,
     body.force-mobile-panels #itemsCollectionPanel .player-health-section {
         display: none !important;
+    }
+    
+    /* Dragonstalker Panel - Side by Side Layout */
+    .force-mobile-panels #dragonstalkerProgressPanel,
+    .force-mobile-panels #dragonstalkerProgressPanel.force-mobile,
+    body.force-mobile-panels #dragonstalkerProgressPanel,
+    body.force-mobile-panels #dragonstalkerProgressPanel.force-mobile {
+        width: calc(43% - 10px) !important;
+        height: 115px !important;
+        max-height: 120px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        position: fixed !important;
+        top: 8px !important;
+        right: 8px !important;
+        left: auto !important;
+        transform: none !important;
+        border-radius: 8px !important;
+        border: none !important;
+        border-bottom: 1px solid rgba(78, 205, 196, 0.3) !important;
+        background: rgba(0, 0, 0, 0.95) !important;
+        backdrop-filter: blur(4px) !important;
+        z-index: 1000 !important;
+        padding: 4px 8px !important;
+        font-size: 12px !important;
     }
 }

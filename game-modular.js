@@ -3350,14 +3350,14 @@ function createMobileIntegratedLayout(gameState, gameItems) {
             </div>
         </div>
         
-        <!-- Hidden sections for mobile -->
-        <div class="player-stats" style="display: none;">
+        <!-- Compact mobile stats - single column -->
+        <div class="player-stats">
             <div class="stat-row">
                 <span class="stat-label">Speed:</span>
                 <span class="stat-value" id="gameSpeed">1.0x</span>
             </div>
             <div class="stat-row">
-                <span class="stat-label">Crit Chance:</span>
+                <span class="stat-label">Crit:</span>
                 <span class="stat-value" id="critRating">10%</span>
             </div>
             <div class="stat-row">
@@ -3378,10 +3378,25 @@ function createMobileIntegratedLayout(gameState, gameItems) {
     // Update panel HTML
     panel.innerHTML = integratedHTML;
     
-    // Hide separate dragonstalker panel on mobile
+    // Show dragonstalker panel on mobile (side by side layout)
     if (dragonstalkerPanel) {
-        dragonstalkerPanel.style.display = 'none';
+        dragonstalkerPanel.style.display = 'flex';
     }
+    
+    // Add hidden elements needed for functionality but not display
+    const hiddenElements = `
+        <!-- Hidden speed boost row (functionality integrated into main speed display) -->
+        <div id="speedBoostRow" style="display: none;">
+            <span id="speedBoostValue"></span>
+        </div>
+        <!-- Hidden dodge stats elements (removed from mobile display as requested) -->
+        <div style="display: none;">
+            <span id="dodgeRating">0%</span>
+            <span id="healthSavedFromDodges">0 HP</span>
+            <span id="dodgeAreaExpansion">+0px</span>
+        </div>
+    `;
+    panel.insertAdjacentHTML('beforeend', hiddenElements);
     
     // Update the stats that are still needed but hidden
     updatePlayerStats(gameState);
@@ -3499,6 +3514,11 @@ function updatePlayerStats(gameState) {
         // levelSpeedMultiplier already includes Dragonstalker reductions, but not cut_time reductions
         const baseSpeed = Math.max(0.2, gameState.levelSpeedMultiplier - (gameState.permanentSpeedReduction || 0));
         let speedText = `${baseSpeed.toFixed(1)}x`;
+        
+        // Add speed boost inline if active (mobile compact view)
+        if (gameState.speedIncreaseActive && gameState.currentSpeedIncreasePercent > 0) {
+            speedText += ` (+${gameState.currentSpeedIncreasePercent}%🔥)`;
+        }
         
         // Show Dragonstalker completion reduction if any (already included in levelSpeedMultiplier)
         if (gameState.permanentSpeedReductionFromSets > 0) {
