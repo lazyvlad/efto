@@ -695,6 +695,45 @@
         font-size: 12px;
         margin-top: 8px;
     }
+    
+    /* Mobile Pause Button */
+    .mobile-pause-btn {
+        position: fixed;
+        top: 50%;
+        right: 20px;
+        transform: translateY(-50%);
+        width: 50px;
+        height: 50px;
+        background: rgba(44, 51, 69, 0.9);
+        border: 2px solid #4CAF50;
+        border-radius: 50%;
+        color: #4CAF50;
+        font-size: 20px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1001;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        user-select: none;
+        -webkit-user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    .mobile-pause-btn:hover,
+    .mobile-pause-btn:active {
+        background: rgba(76, 175, 80, 0.9);
+        color: white;
+        border-color: #66BB6A;
+        transform: translateY(-50%) scale(1.05);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    }
+    
+    .mobile-pause-btn:active {
+        transform: translateY(-50%) scale(0.95);
+    }
 }
 
 /* ===== FORCE MOBILE PANELS OVERRIDES ===== */

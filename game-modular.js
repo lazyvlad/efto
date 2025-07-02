@@ -288,6 +288,9 @@ async function init() {
     window.getVisibilitySystemStatus = getVisibilitySystemStatus;
     window.updateVisibilityConfig = updateVisibilityConfig;
     
+    // Expose mobile pause button visibility function for responsive scaling
+    window.updateMobilePauseButtonVisibility = updateMobilePauseButtonVisibility;
+    
     // Set up spell system notification callback
     spellSystem.setNotificationCallback((message, duration, color) => {
         addNotification(gameState, message, duration, color);
@@ -920,6 +923,9 @@ function startGame() {
     // Warmup assets for level 1
     assetManager.warmupCache(1);
     
+    // Update mobile pause button visibility (show on mobile during gameplay)
+    updateMobilePauseButtonVisibility();
+    
     console.log('Game started');
 }
 
@@ -1126,17 +1132,24 @@ function showPauseMenu() {
     // Enable cursor interaction with pause menu
     canvas.classList.add('show-cursor');
     
+    // Hide mobile pause button when pause menu is shown
+    updateMobilePauseButtonVisibility();
+    
     updateCanvasOverlay();
 }
 
 function hidePauseMenu() {
     gameState.showingPauseMenu = false;
+    gameState.gameRunning = true; // Resume the game when hiding pause menu
     
     // Hide HTML pause menu
     document.getElementById('pauseMenu').style.display = 'none';
     
     // Disable cursor when returning to game
     canvas.classList.remove('show-cursor');
+    
+    // Update mobile pause button visibility when resuming
+    updateMobilePauseButtonVisibility();
     
     updateCanvasOverlay();
 }
@@ -2869,6 +2882,29 @@ function setupUIEventHandlers() {
             showItemBonuses('desktop');
         });
     }
+    
+    // Mobile pause button handler
+    const mobilePauseBtn = document.getElementById('mobilePauseBtn');
+    if (mobilePauseBtn) {
+        mobilePauseBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Mobile pause button clicked');
+            if (gameState.gameRunning && !gameState.showingPauseMenu) {
+                showPauseMenu();
+            }
+        });
+        
+        // Touch event handling for better mobile responsiveness
+        mobilePauseBtn.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Mobile pause button touched');
+            if (gameState.gameRunning && !gameState.showingPauseMenu) {
+                showPauseMenu();
+            }
+        }, { passive: false });
+    }
 }
 
 // ===== ITEM BONUSES WINDOW FUNCTIONS =====
@@ -2909,6 +2945,24 @@ function hideItemBonuses() {
     // If from desktop, just close and return to game
     
     console.log('Item Bonuses window closed, returning to:', source || 'game');
+}
+
+// Mobile pause button visibility management
+function updateMobilePauseButtonVisibility() {
+    const mobilePauseBtn = document.getElementById('mobilePauseBtn');
+    if (!mobilePauseBtn) return;
+    
+    // Show button only on mobile devices during active gameplay
+    const shouldShow = responsiveScaler.deviceType === 'mobile' && 
+                      gameState.gameRunning && 
+                      !gameState.showingPauseMenu &&
+                      gameState.currentScreen === 'game';
+    
+    mobilePauseBtn.style.display = shouldShow ? 'flex' : 'none';
+    
+    if (shouldShow) {
+        console.log('🎮 Mobile pause button shown');
+    }
 }
 
 // Update the Item Bonuses window with current data
@@ -4175,6 +4229,9 @@ function endGame() {
     // Update menu buttons since game is now over
     updateMenuButtons();
     
+    // Hide mobile pause button when game ends
+    updateMobilePauseButtonVisibility();
+    
     // Update canvas overlay
     updateCanvasOverlay();
 }
@@ -4226,6 +4283,9 @@ function winGame() {
     
     // Update menu buttons since game is now over
     updateMenuButtons();
+    
+    // Hide mobile pause button when game ends
+    updateMobilePauseButtonVisibility();
     
     // Update canvas overlay
     updateCanvasOverlay();

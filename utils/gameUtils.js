@@ -898,12 +898,21 @@ export class ResponsiveScaler {
         window.addEventListener('orientationchange', () => {
             setTimeout(() => {
                 this.updateScaling();
+                // Update mobile pause button visibility on orientation change
+                if (window.updateMobilePauseButtonVisibility) {
+                    window.updateMobilePauseButtonVisibility();
+                }
             }, 100);
         });
         
         // Listen for resize events with quality monitoring
         window.addEventListener('resize', () => {
             this.updateScaling();
+            
+            // Update mobile pause button visibility on resize
+            if (window.updateMobilePauseButtonVisibility) {
+                window.updateMobilePauseButtonVisibility();
+            }
             
             // Recalculate AssetManager constraints on significant resize
             if (window.assetManager) {
