@@ -436,7 +436,7 @@ body.force-desktop-panels #itemsCollectionPanel {
 /* Force Mobile Panels */
 .force-mobile-panels #dragonstalkerProgressPanel.force-mobile,
 body.force-mobile-panels #dragonstalkerProgressPanel {
-    width: 100vw !important; /* Full viewport width for mobile responsiveness */
+
     max-width: 100% !important;
     font-size: 14px !important;
     padding: 1px !important;
@@ -448,7 +448,7 @@ body.force-mobile-panels #dragonstalkerProgressPanel {
 
 .force-mobile-panels #itemsCollectionPanel.force-mobile,
 body.force-mobile-panels #itemsCollectionPanel {
-    width: 100vw !important;
+
     max-width: 100% !important;
     font-size: 14px !important;
     padding: 8px !important;
