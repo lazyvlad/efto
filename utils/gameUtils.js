@@ -1035,29 +1035,33 @@ export class ResponsiveScaler {
     }
     
     calculateElementSizes() {
-        // Balanced base sizes for mobile and desktop
-        // These provide good mobile touch interaction without making desktop items too large
-        const basePlayerWidth = 60;      // Reduced from 80
-        const baseItemSize = 70;         // Moderate increase from 55 for mobile visibility  
-        const basePowerUpSize = 80;      // Moderate increase from 65 - balanced for mobile/desktop
-        const baseProjectileSize = 60;   // Moderate increase from 50 for mobile visibility
+        // Responsive border approach - larger boundary for better visibility
+        const elementBorderSize = 155; // Larger boundary for substantial game elements
         
-        // Player aspect ratio is 1:2 (width:height) based on 250x500 original image
-        const playerAspectRatio = 0.5;
+        // Player aspect ratio is now 1:1 (square) for new square icon heads
+        const playerAspectRatio = 1.0;
+        
+        // Calculate base sizes - only player uses 125px boundary, items keep original sizes
+        const basePlayerWidth = Math.min(125, elementBorderSize); // Player fits within 125px border
+        const baseItemSize = 70;         // Keep original item size
+        const basePowerUpSize = 80;      // Keep original power-up size
+        const baseProjectileSize = 60;   // Keep original projectile size
         
         this.sizes = {
-            // Player sizes (maintaining proper aspect ratio)
+            // Player sizes (bound to 65px border)
             player: {
                 width: Math.round(basePlayerWidth * this.uniformScale),
                 height: Math.round((basePlayerWidth / playerAspectRatio) * this.uniformScale),
-                speed: Math.round(12 * this.uniformScale)
+                speed: Math.round(12 * this.uniformScale),
+                maxBorderSize: Math.round(elementBorderSize * this.uniformScale) // Visual boundary
             },
             
-            // Item sizes (all based on playable area scaling)
+            // Item sizes (all bound to 65px border)
             item: {
                 base: Math.round(baseItemSize * this.uniformScale),
                 powerUp: Math.round(basePowerUpSize * this.uniformScale),
-                projectile: Math.round(baseProjectileSize * this.uniformScale)
+                projectile: Math.round(baseProjectileSize * this.uniformScale),
+                maxBorderSize: Math.round(elementBorderSize * this.uniformScale) // Visual boundary
             },
             
             // UI elements (scaled proportionally)
@@ -1074,17 +1078,33 @@ export class ResponsiveScaler {
                 minYSpacing: Math.round(150 * this.uniformScale),
                 borderWidth: Math.max(1, Math.round(2 * this.uniformScale)),
                 padding: Math.round(10 * this.uniformScale)
+            },
+            
+            // Visual boundary for consistent sizing
+            visualBoundary: {
+                size: Math.round(elementBorderSize * this.uniformScale),
+                borderWidth: Math.max(2, Math.round(3 * this.uniformScale))
             }
         };
         
-        // Device-specific final adjustments (reduced)
+        // Device-specific adjustments (maintaining 125px boundary)
         if (this.deviceType === 'mobile') {
-            // Make player smaller on mobile
-            this.sizes.player.width = Math.round(this.sizes.player.width * 0.8); // 20% smaller
-            this.sizes.player.height = Math.round(this.sizes.player.height * 0.8); // 20% smaller
+            // Ensure all elements respect the 125px boundary on mobile
+            const maxMobileSize = Math.round(elementBorderSize * this.uniformScale);
             
-            // Ensure minimum sizes for mobile touch interaction but don't go overboard
-            const minTouchSize = 60; // Reduced from 75
+            // Cap player size to boundary (now square)
+            this.sizes.player.width = Math.min(this.sizes.player.width, maxMobileSize);
+            this.sizes.player.height = Math.min(this.sizes.player.height, maxMobileSize); // Square aspect ratio
+            
+            // Cap player size to boundary (now square)
+            this.sizes.player.width = Math.min(this.sizes.player.width, maxMobileSize);
+            this.sizes.player.height = Math.min(this.sizes.player.height, maxMobileSize); // Square aspect ratio
+            
+            // Items keep their original scaling (no boundary cap)
+            // Only ensure minimum touch size for mobile
+            
+            // Ensure minimum touch size for items (original logic)
+            const minTouchSize = 60; // Back to original minimum
             if (this.sizes.item.base < minTouchSize) {
                 const scaleFactor = minTouchSize / this.sizes.item.base;
                 this.sizes.item.base = minTouchSize;
@@ -1093,12 +1113,13 @@ export class ResponsiveScaler {
             }
             
             // Smaller spell icons for mobile
-            this.sizes.ui.spellIconSize = Math.round(this.sizes.ui.spellIconSize * 0.8); // 20% smaller
+            this.sizes.ui.spellIconSize = Math.round(this.sizes.ui.spellIconSize * 0.8);
         }
         
-        console.log(`📏 Element sizes calculated:
-            Player: ${this.sizes.player.width}x${this.sizes.player.height}
+        console.log(`📏 Element sizes calculated (125px boundary):
+            Player: ${this.sizes.player.width}x${this.sizes.player.height} (max: ${this.sizes.player.maxBorderSize}px)
             Items: ${this.sizes.item.base}px (base), ${this.sizes.item.powerUp}px (power-up), ${this.sizes.item.projectile}px (projectile)
+            Visual Boundary: ${this.sizes.visualBoundary.size}px
             UI: ${this.sizes.ui.spellIconSize}px (spell icons)`);
     }
     

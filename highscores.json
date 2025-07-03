@@ -50,6 +50,16 @@
         "timestamp": "2025-07-02T13:01:42+00:00"
     },
     {
+        "name": "lazyvlax",
+        "score": 156,
+        "level": 6,
+        "gameTime": 0,
+        "dragonstalkerCompletions": 0,
+        "finalCritRating": 15,
+        "finalDodgeRating": 10,
+        "timestamp": "2025-07-03T21:37:24+00:00"
+    },
+    {
         "name": "yooo",
         "score": 133,
         "level": 6,
@@ -100,6 +110,16 @@
         "timestamp": "2025-07-03T20:02:16+00:00"
     },
     {
+        "name": "lazyvlax",
+        "score": 81,
+        "level": 3,
+        "gameTime": 0,
+        "dragonstalkerCompletions": 0,
+        "finalCritRating": 20,
+        "finalDodgeRating": 14,
+        "timestamp": "2025-07-03T20:04:07+00:00"
+    },
+    {
         "name": "yooo",
         "score": 68,
         "level": 3,
@@ -128,6 +148,26 @@
         "finalCritRating": 10,
         "finalDodgeRating": 10,
         "timestamp": "2025-07-02T13:30:14+00:00"
+    },
+    {
+        "name": "lazyvlax",
+        "score": 56,
+        "level": 4,
+        "gameTime": 0,
+        "dragonstalkerCompletions": 0,
+        "finalCritRating": 17,
+        "finalDodgeRating": 12,
+        "timestamp": "2025-07-03T21:54:22+00:00"
+    },
+    {
+        "name": "lazyvlax",
+        "score": 56,
+        "level": 3,
+        "gameTime": 0,
+        "dragonstalkerCompletions": 0,
+        "finalCritRating": 10,
+        "finalDodgeRating": 10,
+        "timestamp": "2025-07-03T22:47:02+00:00"
     },
     {
         "name": "yooo",
@@ -200,6 +240,16 @@
         "timestamp": "2025-07-02T13:17:54+00:00"
     },
     {
+        "name": "aaaa",
+        "score": 32,
+        "level": 2,
+        "gameTime": 0,
+        "dragonstalkerCompletions": 0,
+        "finalCritRating": 10,
+        "finalDodgeRating": 10,
+        "timestamp": "2025-07-03T22:45:35+00:00"
+    },
+    {
         "name": "yooo",
         "score": 30,
         "level": 4,
@@ -258,6 +308,16 @@
         "finalCritRating": 17,
         "finalDodgeRating": 10,
         "timestamp": "2025-07-02T15:16:36+00:00"
+    },
+    {
+        "name": "aaaa",
+        "score": 17,
+        "level": 4,
+        "gameTime": 0,
+        "dragonstalkerCompletions": 0,
+        "finalCritRating": 10,
+        "finalDodgeRating": 10,
+        "timestamp": "2025-07-03T21:20:03+00:00"
     },
     {
         "name": "yooo",
