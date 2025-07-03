@@ -707,6 +707,11 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
 
 // Notification system - updated to use HTML notifications
 export function addNotification(gameState, message, duration = 180, color = '#FFD700') {
+    // Early exit for mobile devices - notifications are disabled for performance
+    if (typeof window !== 'undefined' && window.notificationSystem && window.notificationSystem.isMobile) {
+        return;
+    }
+    
     // Convert frame-based duration to milliseconds (assuming 60fps)
     const durationMs = Math.round((duration / 60) * 1000);
     

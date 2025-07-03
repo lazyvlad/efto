@@ -83,9 +83,9 @@
         right: auto !important;
         transform: translateX(-50%) !important;
         width: auto !important;
-        max-width: 390px !important;
-        height: 120px !important;
-        max-height: 120px !important;
+        max-width: 350px !important;
+        height: 50px !important;
+        max-height: 50px !important;
         min-width: 0 !important;
         border-radius: 0 !important;
         border: none !important;
@@ -186,6 +186,7 @@
         gap: 4px !important;
         margin: 2px 0 !important;
         padding: 0 !important;
+        flex-direction: column !important;
     }
     
     .player-health-background {
@@ -195,6 +196,7 @@
         border-radius: 4px !important;
         overflow: hidden !important;
         border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        min-width: 50px !important;
     }
     
     .player-health-fill {
@@ -202,7 +204,7 @@
         background: linear-gradient(90deg, #0f0, #4f4) !important;
         border-radius: 3px !important;
         transition: width 0.3s !important;
-        width: 100% !important;
+        /* width: 100% !important; */
     }
     
     .player-health-text {
@@ -358,6 +360,28 @@
         font-size: 12px;
         padding: 1px 3px;
     }
+    #itemBonusesWindow:not([style*="display: none"]) {
+        position: fixed !important;
+        top: 50% !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        width: 90vw !important;
+        max-width: 380px !important;
+        max-height: calc(100vh - 180px) !important;
+        background: rgba(0, 0, 0, 0.95) !important;
+        border: 2px solid rgba(78, 205, 196, 0.6) !important;
+        border-radius: 12px !important;
+        box-shadow: 0 0 30px rgba(78, 205, 196, 0.3) !important;
+        backdrop-filter: blur(8px) !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+        z-index: 2000 !important;
+    }
+    #itemBonusesWindow .bonuses-content {
+        min-width: auto !important;
+    }
+    
 }
 
 /* ===== LANDSCAPE MOBILE/TABLET ===== */
@@ -489,24 +513,7 @@
 /* ===== GENERAL MOBILE STYLES ===== */
 @media (max-width: 1024px) {
     
-    /* Name Entry */
-    #nameEntry {
-        width: 95%;
-        max-width: 310px;
-        padding: 20px 15px;
-        font-size: 14px;
-    }
-    
-    #nameEntry h2 {
-        font-size: 24px;
-        margin-bottom: 15px;
-    }
-    
-    #nameEntry p {
-        font-size: 14px;
-        margin-bottom: 15px;
-    }
-    
+    /* Player Name Input */
     #playerNameInput {
         width: 90%;
         max-width: 250px;
@@ -581,8 +588,11 @@
     .screen {
         width: 95%;
         max-width: 350px;
-        max-height: 85vh;
+        max-height: 58vh;
         margin: 0;
+        margin-top: 140px; /* Account for top panels (8px + 115px + 7px gap) */
+        top: 0;
+        transform: translate(-50%, 0);
     }
     
     .screen-content {
@@ -600,6 +610,11 @@
     }
     
     /* Settings */
+    #settingsScreen {
+        max-height: 60vh; /* Allow more height for settings content */
+        overflow-y: auto; /* Ensure scrolling is enabled */
+    }
+    
     .settings-section {
         margin-bottom: 20px;
     }
@@ -763,10 +778,7 @@
         z-index: 1000 !important;
     }
     
-    body #itemsCollectionPanel.hidden,
-    body.force-mobile-panels #itemsCollectionPanel.hidden {
-        display: none !important;
-    }
+
     
     #itemsCollectionPanel.force-mobile .panel-header,
     .force-mobile-panels #itemsCollectionPanel .panel-header,
@@ -882,4 +894,14 @@
         padding: 4px 8px !important;
         font-size: 12px !important;
     }
+
+    body #itemsCollectionPanel.hidden,
+    body.force-mobile-panels #itemsCollectionPanel.hidden {
+        display: none !important;
+    }
+    
+    body #dragonstalkerProgressPanel.hidden,
+    body.force-mobile-panels #dragonstalkerProgressPanel.hidden {
+        display: none !important;
+    }    
 }

@@ -8,6 +8,13 @@ class NotificationSystem {
         this.notificationOrder = []; // Track order of ALL notifications for removal (regular + persistent)
         this.maxNotifications = 4; // Maximum number of notifications allowed at the TOP (total)
         this.nextId = 1;
+        this.isMobile = this.detectMobile();
+    }
+
+    // Detect mobile devices
+    detectMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+               (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
     }
 
     // Initialize the notification system
@@ -17,6 +24,14 @@ class NotificationSystem {
             console.error('Spell notifications container not found');
             return false;
         }
+        
+        // Log mobile detection status
+        if (this.isMobile) {
+            console.log('📱 Mobile device detected - regular notifications disabled for performance. Buff tracker remains active.');
+        } else {
+            console.log('🖥️ Desktop device detected - all notifications enabled.');
+        }
+        
         return true;
     }
 
@@ -25,6 +40,12 @@ class NotificationSystem {
         if (!this.container) {
             console.warn('Notification system not initialized');
             return;
+        }
+
+        // Disable regular notifications on mobile devices to improve performance
+        if (this.isMobile) {
+            console.log(`Mobile device detected - skipping regular notification: "${message}"`);
+            return null;
         }
 
         console.log(`Attempting to show notification: "${message}" (type: ${type}, allowDuplicates: ${allowDuplicates})`);
@@ -157,8 +178,15 @@ class NotificationSystem {
             totalVisible: this.notifications.size + this.persistentNotifications.size,
             maxTotalAllowed: this.maxNotifications,
             orderQueue: this.notificationOrder.length,
-            activeTypes: Array.from(this.activeTypes)
+            activeTypes: Array.from(this.activeTypes),
+            isMobile: this.isMobile,
+            mobileNotificationsDisabled: this.isMobile
         };
+    }
+
+    // Check if regular notifications are enabled (disabled on mobile for performance)
+    areRegularNotificationsEnabled() {
+        return !this.isMobile;
     }
 
     // Show or update a persistent notification for ongoing effects
@@ -298,7 +326,7 @@ class NotificationSystem {
     showSpellNotification(message, duration = 3000, customType = null, options = {}) {
         const type = customType || this.getNotificationType(message);
         
-        // Check if this should be a persistent notification
+        // Check if this should be a persistent notification (buff tracker - always show)
         if (options.persistent) {
             return this.showPersistentNotification(options.effectKey || type, message, type, true);
         }

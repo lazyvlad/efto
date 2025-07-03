@@ -38,6 +38,7 @@
     <link rel="stylesheet" href="styles/spell-bar.css">
     <link rel="stylesheet" href="styles/how-to-play.css">
     <link rel="stylesheet" href="styles/mobile.css">
+    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
 </head>
 <body>
@@ -64,8 +65,7 @@
     <div id="canvasOverlay"></div>
     
     <!-- Game UI Elements -->
-    <div id="gameUI" style="display: none;">
-        
+    <div id="gameUI" style="display: none;">      
         
         
         <!-- Spell Bar -->
@@ -120,277 +120,316 @@
                 <div class="spell-cooldown-overlay" id="spell-multishot-cooldown"></div>
             </div>
         </div>
-
     </div>
     
-    <!-- Name Entry Screen -->
-    <div id="nameEntry" style="display: none;">
-                    <h2>Welcome to DMTribut!</h2>
-        <p style="margin-bottom: 20px; color: #ccc;">Enter your name to start playing</p>
-        <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" />
-        <br>
-        <button id="startGameBtn">Start Game</button>
-        <button id="continueGameBtn" style="display: none;">Continue Game</button>
-        <button id="restartGameBtn" style="display: none;">Restart Game</button>
-        <button id="viewScoresBtn">High Scores</button>
-        <button id="howToPlayBtn">How to Play</button>
-        <button id="settingsBtn">Settings</button>
-    </div>
-
-    <!-- High Scores Screen -->
-    <div id="highScoresScreen" class="screen" style="display: none;">
-        <div class="screen-content">
-            <h2>🏆 High Scores</h2>
-            <div id="highScoresList"></div>
-            <div class="button-group">
-                <button onclick="showMainMenu()" class="menu-btn">Back to Menu</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Settings Screen -->
-    <div id="settingsScreen" class="screen" style="display: none;">
-        <div class="screen-content settings-expanded">
-            <h2>⚙️ Game Settings</h2>
-            
-            <!-- Panel Appearance Settings Section -->
-            <div class="settings-section">
-                <h3>📊 Panel Appearance</h3>
-                <p class="section-description">Control how information panels look and behave</p>
-                
-                <div class="setting-item">
-                    <label for="playerPanelStyle">Player Panel Style:</label>
-                    <select id="playerPanelStyle" class="setting-select">
-                        <option value="auto">Auto (Screen Size Based)</option>
-                        <option value="desktop">Desktop (Full Details)</option>
-                        <option value="mobile">Mobile (Compact)</option>
-                    </select>
-                </div>
-                
-                <div class="setting-item">
-                    <label for="dragonstalkerPanelStyle">Dragonstalker Panel Style:</label>
-                    <select id="dragonstalkerPanelStyle" class="setting-select">
-                        <option value="auto">Auto (Screen Size Based)</option>
-                        <option value="desktop">Desktop (Full Details)</option>
-                        <option value="mobile">Mobile (Compact)</option>
-                    </select>
-                </div>
-                
-                <div class="setting-item">
-                    <label for="panelOpacity">Panel Transparency:</label>
-                    <div class="volume-control">
-                        <input type="range" id="panelOpacity" min="60" max="100" value="80" class="volume-slider">
-                        <span id="panelOpacityValue" class="volume-display">80%</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Audio Settings Section -->
-            <div class="settings-section">
-                <h3>🔊 Audio Settings</h3>
-                
-                <div class="setting-item">
-                    <label for="soundEffectsToggle">Play Sound Effects:</label>
-                    <div class="toggle-switch">
-                        <input type="checkbox" id="soundEffectsToggle" checked>
-                        <span class="toggle-slider"></span>
-                    </div>
-                </div>
-                
-                <div class="setting-item">
-                    <label for="backgroundMusicToggle">Play Background Music:</label>
-                    <div class="toggle-switch">
-                        <input type="checkbox" id="backgroundMusicToggle" checked>
-                        <span class="toggle-slider"></span>
-                    </div>
-                </div>
-                
-                <div class="setting-item">
-                    <label for="masterVolumeSlider">Master Volume:</label>
-                    <div class="volume-control">
-                        <input type="range" id="masterVolumeSlider" min="0" max="100" value="70" class="volume-slider">
-                        <span id="masterVolumeValue" class="volume-display">70%</span>
-                    </div>
-                </div>
-                
-                <div class="setting-item">
-                    <label for="musicVolumeSlider">Music Volume:</label>
-                    <div class="volume-control">
-                        <input type="range" id="musicVolumeSlider" min="0" max="100" value="50" class="volume-slider">
-                        <span id="musicVolumeValue" class="volume-display">50%</span>
-                    </div>
-                </div>
-                
-                <div class="setting-item">
-                    <label for="effectsVolumeSlider">Effects Volume:</label>
-                    <div class="volume-control">
-                        <input type="range" id="effectsVolumeSlider" min="0" max="100" value="80" class="volume-slider">
-                        <span id="effectsVolumeValue" class="volume-display">80%</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="button-group">
-                <button onclick="resetSettings()" class="menu-btn secondary">Reset to Defaults</button>
-                <button id="settingsBackBtn" onclick="closeSettings()" class="menu-btn">Back</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- How to Play Screen -->
-    <div id="howToPlay" style="display: none;">
-        <h2>📖 How to Play 📖</h2>
-        <div id="howToPlayContent">
-            <div class="guide-section">
-                <h3>🎯 Objective</h3>
-                <p>Collect as many points as you can before you die! This is the ultimate DM Tribute!</p>
-            </div>
-
-            <div class="guide-section">
-                <h3>🎮 Controls</h3>
-                <p><strong>Desktop:</strong> Mouse to move your character</p>
-                <p><strong>Mobile:</strong> Touch screen to move your character</p>
-                <p><strong>ESC:</strong> Pause game</p>
-                <p><strong>S:</strong> Open/close settings</p>
-            </div>
-
-            <div class="guide-section">
-                <h3>✨ Beneficial Spells (Collect These!)</h3>
-                <div class="spell-grid">
-                    <div class="spell-item beneficial">
-                        <strong>Power Word Shield</strong> - Grants temporary shield protection
-                    </div>
-                    <div class="spell-item beneficial">
-                        <strong>Frost Nova</strong> - Freezes all projectiles (2 HP damage)
-                    </div>
-                    <div class="spell-item beneficial">
-                        <strong>Speed Boost</strong> - Increases game speed for more points
-                    </div>
-                </div>
-            </div>
-
-            <div class="guide-section">
-                <h3>⚔️ Player Spells</h3>
-                <p style="color: #4ECDC4; font-style: italic; margin-bottom: 15px;">💡 Desktop: Press Q/W/T/E/R keys | Mobile: Touch the spell icons!</p>
-                <div class="spell-grid">
-                    <div class="spell-item player-spell">
-                        <strong>Q - Dragon Cry:</strong> Move anywhere on screen + 5% crit chance (30s cooldown)
-                    </div>
-                    <div class="spell-item player-spell">
-                        <strong>W - Zandalari:</strong> +100% points, slow projectiles and items (45s cooldown)
-                    </div>
-                    <div class="spell-item player-spell">
-                        <strong>T - Flask of Titans:</strong> Remove one missed Dragonstalker (2 min cooldown)
-                    </div>
-                    <div class="spell-item player-spell">
-                        <strong>E - Autoshot:</strong> Fire 1 arrow straight up (0.5s cooldown)
-                    </div>
-                    <div class="spell-item player-spell">
-                        <strong>R - Multishot:</strong> Fire 5 arrows in wide spread + 5% crit (0.5s cooldown)
-                    </div>
-                </div>
-            </div>
-
-            <div class="guide-section">
-                <h3>💀 Dangerous Projectiles (Avoid These!)</h3>
-                <div class="spell-grid">
-                    <div class="spell-item dangerous">
-                        <strong>Fireball</strong> - 8 HP damage
-                    </div>
-                    <div class="spell-item dangerous">
-                        <strong>Frostbolt</strong> - 15 HP damage
-                    </div>
-                    <div class="spell-item dangerous">
-                        <strong>Shadowbolt</strong> - 10 HP damage over 5 seconds
-                    </div>
-                </div>
-            </div>
-
-            <div class="guide-section">
-                <h3>💎 Item Types & Points</h3>
-                <div class="item-grid">
-                    <div class="item-type">
-                        <strong>👑 Zee Zgnan:</strong> 15 points (Ultra Rare)
-                    </div>
-                    <div class="item-type">
-                        <strong>⚡ Legendary:</strong> Thunder Fury - 5 points + Auto-collect all items
-                    </div>
-                    <div class="item-type">
-                        <strong>🛡️ Tier Set:</strong> Dragonstalker pieces - 6 points each (Must collect all 10!)
-                    </div>
-                    <div class="item-type">
-                        <strong>★ Special:</strong> 4-7 points (Rare items)
-                    </div>
-                    <div class="item-type">
-                        <strong>◆ Epic:</strong> 5-10 points (Uncommon items)
-                    </div>
-                    <div class="item-type">
-                        <strong>○ Regular:</strong> 1-4 points (Common items)
-                    </div>
-                </div>
-            </div>
-
-            <div class="guide-section">
-                <h3>💥 Critical Hit System</h3>
-                <div id="critSystemContent">
-                    <!-- Dynamic content will be generated here -->
-                </div>
-            </div>
-
-            <div class="guide-section">
-                <h3>💨 Dodge Rating System</h3>
-                <div id="dodgeSystemContent">
-                    <!-- Dynamic content will be generated here -->
-                </div>
-            </div>
-
-            <div class="guide-section">
-                <h3>🏹 Arrow Combat System</h3>
-                <div id="arrowSystemContent">
-                    <!-- Dynamic content will be generated here -->
-                </div>
-            </div>
-
-            <div class="guide-section">
-                <h3>🏆 Scoring Tips</h3>
-                <p>• Use Zandalari spell for +20% points and to slow down all falling objects</p>
-                <p>• Collect Speed Boost projectiles to increase game speed and scoring</p>
-                <p>• Thunder Fury automatically collects all items on screen AND increases crit chance</p>
-                <p>• Complete multiple Dragonstalker sets to maximize crit chance</p>
-                <p>• Higher game speeds = more items = higher scores</p>
-            </div>
-        </div>
-        <button id="backToMenuBtn2">Back to Menu</button>
-    </div>
-
     <!-- Mobile Pause Button (floating) -->
     <button id="mobilePauseBtn" class="mobile-pause-btn" style="display: none;" title="Pause Game">
         ⏸️
     </button>
 
-    <!-- Pause Menu Screen -->
+    <!-- Unified Pause Menu Screen -->
     <div id="pauseMenu" style="display: none;">
-        <div class="pause-content">
-            <h2>⏸️ GAME PAUSED</h2>
-            <p class="pause-subtitle">Game is temporarily paused</p>
-            <div class="pause-buttons">
-                <button id="continuePauseBtn" class="pause-btn continue-btn">
-                    ▶️ Continue
-                </button>
-                <button id="gameInfoPauseBtn" class="pause-btn info-btn">
-                    📖 Game Info
-                </button>
-                <button id="itemBonusesPauseBtn" class="pause-btn bonuses-btn">
-                    ⚡ Item Bonuses
-                </button>
-                <button id="settingsPauseBtn" class="pause-btn settings-btn">
-                    ⚙️ Settings
-                </button>
-                <button id="restartPauseBtn" class="pause-btn restart-btn">
-                    🔄 Restart
-                </button>
+        <div id="pauseMenuContent" class="pause-content">
+            <!-- Name Entry Content (shown when no game is running) -->
+            <div id="nameEntryContent" style="display: none;">
+                <h2>Welcome to DMTribut!</h2>
+                <p style="margin-bottom: 20px; color: #ccc;">Enter your name to start playing</p>
+                <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" />
+                <br>
+                <div class="pause-buttons">
+                    <button id="startGameBtn" class="pause-btn continue-btn">
+                        🎮 Start Game
+                    </button>
+                    <button id="continueGameBtn" class="pause-btn continue-btn" style="display: none;">
+                        ▶️ Continue Game
+                    </button>
+                    <button id="restartGameBtn" class="pause-btn restart-btn" style="display: none;">
+                        🔄 Restart Game
+                    </button>
+                    <button id="viewScoresBtn" class="pause-btn info-btn">
+                        🏆 High Scores
+                    </button>
+                    <button id="howToPlayBtn" class="pause-btn info-btn">
+                        📖 How to Play
+                    </button>
+                    <button id="settingsBtn" class="pause-btn settings-btn">
+                        ⚙️ Settings
+                    </button>
+                </div>
             </div>
-            <p class="pause-hint">Press ESC to continue or tap pause button</p>
+
+            <!-- Pause Game Content (shown when game is running and paused) -->
+            <div id="pauseGameContent" style="display: none;">
+                <h2>⏸️ GAME PAUSED</h2>
+                <p class="pause-subtitle">Game is temporarily paused</p>
+                <div class="pause-buttons">
+                    <button id="continuePauseBtn" class="pause-btn continue-btn">
+                        ▶️ Continue
+                    </button>
+                    <button id="gameInfoPauseBtn" class="pause-btn info-btn">
+                        📖 Game Info
+                    </button>
+                    <button id="itemBonusesPauseBtn" class="pause-btn bonuses-btn">
+                        ⚡ Item Bonuses
+                    </button>
+                    <button id="settingsPauseBtn" class="pause-btn settings-btn">
+                        ⚙️ Settings
+                    </button>
+                    <button id="restartPauseBtn" class="pause-btn restart-btn">
+                        🔄 Restart
+                    </button>
+                </div>
+                <p class="pause-hint">Press ESC to continue or tap pause button</p>
+            </div>
+        </div>
+
+        <!-- Settings Screen (moved inside pause menu) -->
+        <div id="settingsScreen" class="screen" style="display: none;">
+            <div class="screen-content settings-expanded">
+                <h2>⚙️ Game Settings</h2>
+                
+                <!-- Panel Appearance Settings Section -->
+                <div class="settings-section">
+                    <h3>📊 Panel Appearance</h3>
+                    <p class="section-description">Control how information panels look and behave</p>
+                    
+                    <div class="setting-item">
+                        <label for="playerPanelStyle">Player Panel Style:</label>
+                        <select id="playerPanelStyle" class="setting-select">
+                            <option value="auto">Auto (Screen Size Based)</option>
+                            <option value="desktop">Desktop (Full Details)</option>
+                            <option value="mobile">Mobile (Compact)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label for="dragonstalkerPanelStyle">Dragonstalker Panel Style:</label>
+                        <select id="dragonstalkerPanelStyle" class="setting-select">
+                            <option value="auto">Auto (Screen Size Based)</option>
+                            <option value="desktop">Desktop (Full Details)</option>
+                            <option value="mobile">Mobile (Compact)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label for="panelOpacity">Panel Transparency:</label>
+                        <div class="volume-control">
+                            <input type="range" id="panelOpacity" min="60" max="100" value="80" class="volume-slider">
+                            <span id="panelOpacityValue" class="volume-display">80%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Audio Settings Section -->
+                <div class="settings-section">
+                    <h3>🔊 Audio Settings</h3>
+                    
+                    <!-- iOS Volume Notice -->
+                    <div id="iosVolumeNotice" class="ios-notice" style="display: none;">
+                        <div class="ios-notice-content">
+                            <span class="ios-notice-icon">📱</span>
+                            <div class="ios-notice-text">
+                                <strong>iOS Device Detected</strong><br>
+                                Volume is controlled by your device's hardware buttons
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label for="soundEffectsToggle">Play Sound Effects:</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="soundEffectsToggle" checked>
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label for="backgroundMusicToggle">Play Background Music:</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="backgroundMusicToggle" checked>
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Volume Controls - Hidden on iOS -->
+                    <div id="volumeControls" class="volume-controls-section">
+                        <div class="setting-item">
+                            <label for="masterVolumeSlider">Master Volume:</label>
+                            <div class="volume-control">
+                                <input type="range" id="masterVolumeSlider" min="0" max="100" value="70" class="volume-slider">
+                                <span id="masterVolumeValue" class="volume-display">70%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label for="musicVolumeSlider">Music Volume:</label>
+                            <div class="volume-control">
+                                <input type="range" id="musicVolumeSlider" min="0" max="100" value="50" class="volume-slider">
+                                <span id="musicVolumeValue" class="volume-display">50%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="setting-item">
+                            <label for="effectsVolumeSlider">Effects Volume:</label>
+                            <div class="volume-control">
+                                <input type="range" id="effectsVolumeSlider" min="0" max="100" value="80" class="volume-slider">
+                                <span id="effectsVolumeValue" class="volume-display">80%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="button-group">
+                    <button onclick="resetSettings()" class="menu-btn secondary">Reset to Defaults</button>
+                    <button id="settingsBackBtn" onclick="closeSettings()" class="menu-btn">Back</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- How to Play Screen (moved inside pause menu) -->
+        <div id="howToPlay" style="display: none;">
+            <h2>📖 How to Play 📖</h2>
+            <div id="howToPlayContent">
+                <div class="guide-section">
+                    <h3>🎯 Objective</h3>
+                    <p>Collect as many points as you can before you die! This is the ultimate DM Tribute!</p>
+                </div>
+
+                <div class="guide-section">
+                    <h3>🎮 Controls</h3>
+                    <p><strong>Desktop:</strong> Mouse to move your character</p>
+                    <p><strong>Mobile:</strong> Touch screen to move your character</p>
+                    <p><strong>ESC:</strong> Pause game</p>
+                    <p><strong>S:</strong> Open/close settings</p>
+                </div>
+
+                <div class="guide-section">
+                    <h3>✨ Beneficial Spells (Collect These!)</h3>
+                    <div class="spell-grid">
+                        <div class="spell-item beneficial">
+                            <strong>Power Word Shield</strong> - Grants temporary shield protection
+                        </div>
+                        <div class="spell-item beneficial">
+                            <strong>Frost Nova</strong> - Freezes all projectiles (2 HP damage)
+                        </div>
+                        <div class="spell-item beneficial">
+                            <strong>Speed Boost</strong> - Increases game speed for more points
+                        </div>
+                    </div>
+                </div>
+
+                <div class="guide-section">
+                    <h3>⚔️ Player Spells</h3>
+                    <p style="color: #4ECDC4; font-style: italic; margin-bottom: 15px;">💡 Desktop: Press Q/W/T/E/R keys | Mobile: Touch the spell icons!</p>
+                    <div class="spell-grid">
+                        <div class="spell-item player-spell">
+                            <strong>Q - Dragon Cry:</strong> Move anywhere on screen + 5% crit chance (30s cooldown)
+                        </div>
+                        <div class="spell-item player-spell">
+                            <strong>W - Zandalari:</strong> +100% points, slow projectiles and items (45s cooldown)
+                        </div>
+                        <div class="spell-item player-spell">
+                            <strong>T - Flask of Titans:</strong> Remove one missed Dragonstalker (2 min cooldown)
+                        </div>
+                        <div class="spell-item player-spell">
+                            <strong>E - Autoshot:</strong> Fire 1 arrow straight up (0.5s cooldown)
+                        </div>
+                        <div class="spell-item player-spell">
+                            <strong>R - Multishot:</strong> Fire 5 arrows in wide spread + 5% crit (0.5s cooldown)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="guide-section">
+                    <h3>💀 Dangerous Projectiles (Avoid These!)</h3>
+                    <div class="spell-grid">
+                        <div class="spell-item dangerous">
+                            <strong>Fireball</strong> - 8 HP damage
+                        </div>
+                        <div class="spell-item dangerous">
+                            <strong>Frostbolt</strong> - 15 HP damage
+                        </div>
+                        <div class="spell-item dangerous">
+                            <strong>Shadowbolt</strong> - 10 HP damage over 5 seconds
+                        </div>
+                    </div>
+                </div>
+
+                <div class="guide-section">
+                    <h3>💎 Item Types & Points</h3>
+                    <div class="item-grid">
+                        <div class="item-type">
+                            <strong>👑 Zee Zgnan:</strong> 15 points (Ultra Rare)
+                        </div>
+                        <div class="item-type">
+                            <strong>⚡ Legendary:</strong> Thunder Fury - 5 points + Auto-collect all items
+                        </div>
+                        <div class="item-type">
+                            <strong>🛡️ Tier Set:</strong> Dragonstalker pieces - 6 points each (Must collect all 10!)
+                        </div>
+                        <div class="item-type">
+                            <strong>★ Special:</strong> 4-7 points (Rare items)
+                        </div>
+                        <div class="item-type">
+                            <strong>◆ Epic:</strong> 5-10 points (Uncommon items)
+                        </div>
+                        <div class="item-type">
+                            <strong>○ Regular:</strong> 1-4 points (Common items)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="guide-section">
+                    <h3>💥 Critical Hit System</h3>
+                    <div id="critSystemContent">
+                        <!-- Dynamic content will be generated here -->
+                    </div>
+                </div>
+
+                <div class="guide-section">
+                    <h3>💨 Dodge Rating System</h3>
+                    <div id="dodgeSystemContent">
+                        <!-- Dynamic content will be generated here -->
+                    </div>
+                </div>
+
+                <div class="guide-section">
+                    <h3>🏹 Arrow Combat System</h3>
+                    <div id="arrowSystemContent">
+                        <!-- Dynamic content will be generated here -->
+                    </div>
+                </div>
+
+                <div class="guide-section">
+                    <h3>🏆 Scoring Tips</h3>
+                    <p>• Use Zandalari spell for +20% points and to slow down all falling objects</p>
+                    <p>• Collect Speed Boost projectiles to increase game speed and scoring</p>
+                    <p>• Thunder Fury automatically collects all items on screen AND increases crit chance</p>
+                    <p>• Complete multiple Dragonstalker sets to maximize crit chance</p>
+                    <p>• Higher game speeds = more items = higher scores</p>
+                </div>
+            </div>
+            <button id="backToMenuBtn2">Back to Menu</button>
+        </div>
+
+        <!-- High Scores Screen (moved inside pause menu) -->
+        <div id="highScoresScreen" class="screen" style="display: none;">
+            <div class="screen-content">
+                <h2>🏆 High Scores</h2>
+                <div id="highScoresList"></div>
+                <div class="button-group">
+                    <button id="highScoresBackBtn" class="menu-btn">Back to Menu</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Over Screen (moved inside pause menu) -->
+        <div id="gameOver" style="display: none;">
+            <h2>Game Over!</h2>
+            <p id="finalScore">Final Score: 0</p>
+            <p id="newHighScore" style="display: none; color: #FFD700; font-weight: bold; margin: 10px 0;">🎉 NEW HIGH SCORE! 🎉</p>
+            <button id="restartBtn">Play Again</button>
+            <button id="viewScoresBtn2">View High Scores</button>
         </div>
     </div>
 
@@ -469,14 +508,7 @@
         </div>
     </div>
 
-    <!-- Game Over Screen -->
-    <div id="gameOver" style="display: none;">
-        <h2>Game Over!</h2>
-        <p id="finalScore">Final Score: 0</p>
-        <p id="newHighScore" style="display: none; color: #FFD700; font-weight: bold; margin: 10px 0;">🎉 NEW HIGH SCORE! 🎉</p>
-        <button id="restartBtn">Play Again</button>
-        <button id="viewScoresBtn2">View High Scores</button>
-    </div>
+
 
 
     

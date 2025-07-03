@@ -205,9 +205,10 @@ function handleKeyDown(e, gameState, restartGame, startGame, deprecatedParam, sh
         } else if (gameState.currentScreen === 'menu' && !gameState.gameRunning) {
             // If we're on menu screen and not in game, ESC should return to name entry
             gameState.currentScreen = 'menu';
-            // Show name entry screen
-            const nameEntryElement = document.getElementById('nameEntry');
-            if (nameEntryElement) nameEntryElement.style.display = 'block';
+            // Show name entry screen using the unified system
+            if (typeof showNameEntry === 'function') {
+                showNameEntry();
+            }
             if (updateCanvasOverlay) updateCanvasOverlay();
         }
         return;

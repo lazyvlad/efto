@@ -72,7 +72,7 @@ export const gameConfig = {
                 centerHorizontally: true,  // Center left/right
                 centerVertically: false,   // Don't center vertically
                 bottomOffset: 100,         // Pixels from bottom (above spell buttons)
-                topOffset: 185,            // Pixels from top (below both panels: 120px + 60px + 5px margin)
+                topOffset: 125,            // Pixels from top (below both panels: 8px + 115px + 2px gap)
                 useCustomPositioning: true, // Enable mobile-specific positioning
                 
                 // Dynamic sizing parameters
