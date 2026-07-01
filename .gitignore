@@ -1,5 +1,6 @@
 # Configuration files with sensitive data
 config/serverConfig.js
+config/gameVersion.js
 
 # Python cache files
 __pycache__/

@@ -1,5 +1,6 @@
 // Import all modules
-import { gameConfig, GAME_VERSION } from './config/gameConfig.js';
+import { gameConfig } from './config/gameConfig.js';
+import { GAME_VERSION } from './config/gameVersion.js';
 import { gameItems } from './data/gameItems.js';
 import { damageProjectiles } from './data/damageProjectiles.js';
 import { powerUpItems } from './data/powerUpItems.js';

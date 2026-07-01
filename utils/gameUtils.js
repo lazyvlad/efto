@@ -1,5 +1,6 @@
 import { gameItems } from '../data/gameItems.js';
-import { gameConfig, GAME_VERSION, cacheConfig } from '../config/gameConfig.js';
+import { gameConfig, cacheConfig } from '../config/gameConfig.js';
+import { GAME_VERSION } from '../config/gameVersion.js';
 
 // Calculate level-specific speed multiplier using hybrid progression
 export function calculateLevelSpeedMultiplier(gameState) {

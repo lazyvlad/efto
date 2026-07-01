@@ -138,12 +138,23 @@ class BuildSystem {
     async setupGameVersion() {
         this.log('🏷️  Checking game version...', 'info');
         
-        const gameConfigPath = path.join(CONFIG.srcDir, 'config', 'gameConfig.js');
+        const gameVersionPath = path.join(CONFIG.srcDir, 'config', 'gameVersion.js');
+        const defaultVersion = this.getDefaultGameVersion();
         
-        // Read current version from gameConfig.js
+        // Read current version from gameVersion.js
         try {
-            const gameConfigContent = await fs.readFile(gameConfigPath, 'utf8');
-            const versionMatch = gameConfigContent.match(/export const GAME_VERSION = ["']([^"']+)["']/);
+            let gameVersionContent;
+            if (await fs.pathExists(gameVersionPath)) {
+                gameVersionContent = await fs.readFile(gameVersionPath, 'utf8');
+            } else {
+                this.log('🔧 gameVersion.js missing, generating it for this build', 'info');
+                this.gameVersion = process.env.EFTO_BUILD_VERSION || defaultVersion;
+                await this.writeGameVersionFile(gameVersionPath, this.gameVersion);
+                this.log(`✅ Generated gameVersion.js: ${this.gameVersion}`, 'success');
+                return;
+            }
+
+            const versionMatch = gameVersionContent.match(/export const GAME_VERSION = ["']([^"']+)["']/);
             
             if (versionMatch) {
                 const currentVersion = versionMatch[1];
@@ -155,7 +166,7 @@ class BuildSystem {
                 
                 if (envVersion) {
                     this.gameVersion = envVersion;
-                    await this.updateGameConfig(gameConfigPath, gameConfigContent);
+                    await this.updateGameVersion(gameVersionPath, gameVersionContent);
                     this.log(`✅ Updated game version from EFTO_BUILD_VERSION: ${this.gameVersion}`, 'success');
                     return;
                 }
@@ -171,26 +182,37 @@ class BuildSystem {
                 
                 if (updateVersion) {
                     this.gameVersion = this.promptForNewVersion(currentVersion);
-                    await this.updateGameConfig(gameConfigPath, gameConfigContent);
+                    await this.updateGameVersion(gameVersionPath, gameVersionContent);
                     this.log(`✅ Updated game version to: ${this.gameVersion}`, 'success');
                 } else {
                     this.gameVersion = currentVersion;
                     // Still update the build timestamp
-                    await this.updateGameConfig(gameConfigPath, gameConfigContent, false);
+                    await this.updateGameVersion(gameVersionPath, gameVersionContent, false);
                     this.log(`📋 Keeping current version: ${this.gameVersion}`, 'info');
                 }
             } else {
-                this.log('⚠️  Could not find GAME_VERSION in gameConfig.js', 'warning');
+                this.log('⚠️  Could not find GAME_VERSION in gameVersion.js', 'warning');
                 this.gameVersion = process.env.EFTO_BUILD_VERSION || (
                     process.stdin.isTTY ? readlineSync.question('🏷️  Enter game version: ', {
-                        defaultInput: '1.0.0'
-                    }) : '1.0.0'
+                        defaultInput: defaultVersion
+                    }) : defaultVersion
                 );
-                await this.updateGameConfig(gameConfigPath, gameConfigContent);
+                await this.updateGameVersion(gameVersionPath, gameVersionContent);
             }
         } catch (error) {
-            this.log(`❌ Error reading gameConfig.js: ${error.message}`, 'error');
-            this.gameVersion = '1.0.0';
+            this.log(`❌ Error reading gameVersion.js: ${error.message}`, 'error');
+            this.gameVersion = process.env.EFTO_BUILD_VERSION || defaultVersion;
+            await this.writeGameVersionFile(gameVersionPath, this.gameVersion);
+            this.log(`✅ Recovered by generating gameVersion.js: ${this.gameVersion}`, 'success');
+        }
+    }
+
+    getDefaultGameVersion() {
+        try {
+            const packageJson = require('./package.json');
+            return packageJson.version || '1.0.0';
+        } catch (error) {
+            return '1.0.0';
         }
     }
     
@@ -216,7 +238,7 @@ class BuildSystem {
         });
     }
     
-    async updateGameConfig(gameConfigPath, content, updateVersion = true) {
+    async updateGameVersion(gameVersionPath, content, updateVersion = true) {
         let updatedContent = content;
         
         if (updateVersion) {
@@ -233,7 +255,18 @@ class BuildSystem {
             `export const BUILD_TIMESTAMP = ${this.buildTimestamp}`
         );
         
-        await fs.writeFile(gameConfigPath, updatedContent);
+        await fs.writeFile(gameVersionPath, updatedContent);
+    }
+
+    async writeGameVersionFile(gameVersionPath, version) {
+        const content = `// ===== GAME VERSION & CACHE BUSTING =====
+// Generated by build.js. Do not edit directly; set EFTO_BUILD_VERSION or package.json version.
+export const GAME_VERSION = "${version}";
+export const BUILD_TIMESTAMP = ${this.buildTimestamp}; // Set during build/deployment
+`;
+
+        await fs.ensureDir(path.dirname(gameVersionPath));
+        await fs.writeFile(gameVersionPath, content);
     }
 
     async setupServerConfig() {
@@ -453,7 +486,7 @@ export const serverConfig = {
             
             const srcPath = path.join(CONFIG.srcDir, file);
             
-            // Read file content (gameConfig.js will have updated version/timestamp at this point)
+            // Read file content (gameVersion.js will have updated version/timestamp at this point)
             const content = await fs.readFile(srcPath, 'utf8');
             
             let processedContent = content;

@@ -1,6 +1,6 @@
 {
   "name": "efto-game",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "EFTO Game - Simple Build System",
   "main": "game-modular.js",
   "scripts": {

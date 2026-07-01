@@ -1,10 +1,5 @@
 import { serverConfig } from './serverConfig.js';
 
-// ===== GAME VERSION & CACHE BUSTING =====
-// Update this version number whenever you deploy changes to force cache refresh
-export const GAME_VERSION = "2.0.0";
-export const BUILD_TIMESTAMP = 1782910798654; // Will be set during build/deployment
-
 // Cache busting configuration
 export const cacheConfig = {
     // Enable aggressive cache busting for mobile devices
