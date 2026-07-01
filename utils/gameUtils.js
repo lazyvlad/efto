@@ -960,10 +960,20 @@ export class ResponsiveScaler {
                 // Large touch device - still considered tablet
                 return 'tablet';
             }
-        } else {
-            // No touch - desktop regardless of size
-            return 'desktop';
         }
+
+        // Browser devtools/mobile-preview modes can resize the viewport without exposing touch
+        // APIs. Classify narrow viewports by size so gameplay scaling matches the mobile UI.
+        const minDimension = Math.min(width, height);
+        if (minDimension <= 600 && maxDimension <= detection.mobileMaxWidth) {
+            return 'mobile';
+        }
+
+        if (minDimension <= 900 && maxDimension <= detection.tabletMaxWidth) {
+            return 'tablet';
+        }
+
+        return 'desktop';
     }
     
     getOrientation() {

@@ -2,6 +2,56 @@ import { gameConfig } from '../config/gameConfig.js';
 import { assetManager } from '../utils/AssetManager.js';
 import { checkBoundaryCollision, applyAdvancedBouncePhysics, calculateSpinEffect, applyAirResistance, calculateFallAngle, responsiveScaler } from '../utils/gameUtils.js';
 
+const MOBILE_ITEM_SIZE_BANDS = {
+    regular: { min: 42, max: 52 },
+    green: { min: 46, max: 56 },
+    epic: { min: 60, max: 76 },
+    special: { min: 58, max: 74 },
+    dragonstalker: { min: 54, max: 60 },
+    wide_tier_weapon: { min: 96, max: 104 },
+    tier_set: { min: 62, max: 78 },
+    legendary: { min: 74, max: 84 },
+    zee_zgnan: { min: 78, max: 86 },
+    default: { min: 50, max: 66 }
+};
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function isDragonstalkerItem(itemData) {
+    return itemData.type === 'tier_set' && itemData.setPosition >= 1 && itemData.setPosition <= 8;
+}
+
+function isWideTierWeapon(itemData) {
+    return itemData.type === 'tier_set' && itemData.setPosition >= 9 && itemData.setPosition <= 10;
+}
+
+function getWideTierWeaponCrop(itemData) {
+    const cropByImage = {
+        'items/4.png': { x: 13, y: 105, width: 275, height: 90 },
+        'items/ashkandi.png': { x: 12, y: 104, width: 275, height: 92 }
+    };
+
+    return isWideTierWeapon(itemData) ? cropByImage[itemData.image] : null;
+}
+
+function calculateItemSize(itemData) {
+    const sizeMultiplier = itemData.size_multiplier || 1;
+    const baseItemSize = responsiveScaler.getSize('item', 'base');
+
+    if (responsiveScaler.deviceType !== 'mobile') {
+        return baseItemSize * sizeMultiplier;
+    }
+
+    const bandKey = isDragonstalkerItem(itemData) ? 'dragonstalker' :
+        isWideTierWeapon(itemData) ? 'wide_tier_weapon' :
+        itemData.type;
+    const band = MOBILE_ITEM_SIZE_BANDS[bandKey] || MOBILE_ITEM_SIZE_BANDS.default;
+    const compressedSize = baseItemSize * sizeMultiplier * 0.85;
+    return clamp(compressedSize, band.min, band.max);
+}
+
 export class FallingItem {
     constructor(selectRandomItem, isValidYPosition, recentDropYPositions, gameState, images, canvas) {
         // Get resolution scale for consistent sizing and positioning
@@ -34,10 +84,9 @@ export class FallingItem {
         }
         
         // Apply size multiplier from item data with responsive scaling
-        const sizeMultiplier = this.itemData.size_multiplier || 1;
-        const baseItemSize = responsiveScaler.getSize('item', 'base');
-        this.width = baseItemSize * sizeMultiplier;
-        this.height = baseItemSize * sizeMultiplier;
+        const itemSize = calculateItemSize(this.itemData);
+        this.width = itemSize;
+        this.height = itemSize;
         
         // Random speed variation: 0.8x to 1.3x of base speed for dynamic gameplay
         const speedVariation = 0.8 + Math.random() * 0.5; // Random between 0.8 and 1.3
@@ -330,8 +379,22 @@ export class FallingItem {
             // Smooth rendering for rotating items to prevent visual tearing
             // Only use crisp rendering for non-rotating items
             const isRotating = Math.abs(this.rotationSpeed) > 0.001 || Math.abs(this.rotation) > 0.001;
+            const wideWeaponCrop = responsiveScaler.deviceType === 'mobile' ? getWideTierWeaponCrop(this.itemData) : null;
             
-            if (gameConfig.items.highDPI.crispRendering && !isRotating) {
+            if (wideWeaponCrop) {
+                const weaponDrawHeight = Math.max(drawHeight * 0.48, 46);
+                ctx.drawImage(
+                    this.itemImage,
+                    wideWeaponCrop.x,
+                    wideWeaponCrop.y,
+                    wideWeaponCrop.width,
+                    wideWeaponCrop.height,
+                    -drawWidth / 2,
+                    -weaponDrawHeight / 2,
+                    drawWidth,
+                    weaponDrawHeight
+                );
+            } else if (gameConfig.items.highDPI.crispRendering && !isRotating) {
                 // Use pixel-perfect positioning only for stationary items
                 const pixelPerfectX = Math.round(-drawWidth/2);
                 const pixelPerfectY = Math.round(-drawHeight/2);
@@ -551,9 +614,8 @@ export class FallingItem {
     // Handle window resize with responsive scaling
     repositionOnResize() {
         // Update size based on new scaling
-        const sizeMultiplier = this.itemData.size_multiplier || 1;
-        const baseItemSize = responsiveScaler.getSize('item', 'base');
-        this.width = baseItemSize * sizeMultiplier;
-        this.height = baseItemSize * sizeMultiplier;
+        const itemSize = calculateItemSize(this.itemData);
+        this.width = itemSize;
+        this.height = itemSize;
     }
 } 

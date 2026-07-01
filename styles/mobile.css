@@ -39,6 +39,59 @@
     }
 }
 
+@media (max-width: 600px) {
+    #settingsScreen,
+    #howToPlay,
+    #highScoresScreen,
+    #gameOver,
+    #pauseMenuContent.pause-content {
+        box-sizing: border-box !important;
+        width: 94vw !important;
+        max-width: 94vw !important;
+        min-width: 0 !important;
+        height: calc(100vh - 148px) !important;
+        max-height: calc(100vh - 148px) !important;
+        top: 140px !important;
+        left: 50% !important;
+        transform: translate(-50%, 0) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow-y: auto !important;
+    }
+
+    #settingsScreen .screen-content,
+    #highScoresScreen .screen-content {
+        box-sizing: border-box !important;
+        min-height: 100% !important;
+        padding: 18px 14px !important;
+    }
+
+    #howToPlay,
+    #gameOver,
+    #pauseMenuContent.pause-content {
+        padding: 18px 14px !important;
+    }
+
+    #pauseMenuContent.pause-content {
+        position: absolute !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: 2px solid #4ecdc4 !important;
+        box-shadow: 0 0 24px rgba(78, 205, 196, 0.16) !important;
+        background: rgba(0, 0, 0, 0.95) !important;
+    }
+
+    #nameEntryContent,
+    #pauseGameContent {
+        width: min(320px, 100%) !important;
+    }
+
+    #gameOver {
+        justify-content: center !important;
+    }
+}
+
 /* ===== MOBILE LANDSCAPE ===== */
 @media (max-width: 1024px) and (orientation: landscape) {
     
@@ -573,6 +626,90 @@
         min-width: 40px;
         font-size: 12px;
     }
+
+    .score-header {
+        display: none;
+    }
+
+    .score-entry {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr) 72px;
+        grid-template-areas:
+            "rank name points"
+            "rank level level"
+            "rank ds crit"
+            "rank dodge dodge";
+        gap: 4px 8px;
+        align-items: center;
+        padding: 10px 12px;
+    }
+
+    .score-rank {
+        grid-area: rank;
+        align-self: start;
+        min-width: 0;
+        text-align: left;
+    }
+
+    .score-name {
+        grid-area: name;
+        min-width: 0;
+        margin-left: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .score-points {
+        grid-area: points;
+        min-width: 0;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .score-level {
+        grid-area: level;
+        min-width: 0;
+        margin-left: 0;
+        text-align: left;
+    }
+
+    .score-ds {
+        grid-area: ds;
+    }
+
+    .score-crit {
+        grid-area: crit;
+    }
+
+    .score-dodge {
+        grid-area: dodge;
+    }
+
+    .score-ds,
+    .score-crit,
+    .score-dodge {
+        min-width: 0;
+        margin-left: 0;
+        text-align: left;
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .score-ds::before {
+        content: 'DS ';
+        color: #aaa;
+    }
+
+    .score-crit::before {
+        content: 'Crit ';
+        color: #aaa;
+    }
+
+    .score-dodge::before {
+        content: 'Dodge ';
+        color: #aaa;
+    }
     
     /* Game Over */
     #gameOver {
@@ -709,6 +846,18 @@
         font-size: 16px;
         min-width: 160px;
         border-radius: 10px;
+        gap: 8px;
+    }
+
+    .menu-button-icon {
+        width: 20px;
+        height: 20px;
+        flex-basis: 20px;
+    }
+
+    .mobile-pause-icon {
+        width: 20px;
+        height: 20px;
     }
     
     .pause-hint {

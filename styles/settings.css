@@ -17,7 +17,13 @@
 }
 
 .ios-notice-icon {
-    font-size: 24px;
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+    border: 1px solid rgba(255, 193, 7, 0.65);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.35);
+    padding: 3px;
     flex-shrink: 0;
 }
 
@@ -50,4 +56,42 @@
     opacity: 0.3;
     transform: scale(0.98);
     pointer-events: none;
+}
+
+.settings-heading-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin-right: 10px;
+    border: 1px solid rgba(78, 205, 196, 0.65);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.45);
+    padding: 3px;
+    box-shadow: 0 0 10px rgba(78, 205, 196, 0.18);
+}
+
+.settings-expanded h2 .settings-heading-icon {
+    width: 40px;
+    height: 40px;
+    border-color: rgba(255, 215, 0, 0.7);
+    box-shadow: 0 0 14px rgba(255, 215, 0, 0.18);
+}
+
+@media (max-width: 600px) {
+    .settings-heading-icon {
+        width: 26px;
+        height: 26px;
+        margin-right: 8px;
+    }
+
+    .settings-expanded h2 .settings-heading-icon {
+        width: 32px;
+        height: 32px;
+    }
+
+    .ios-notice-icon {
+        width: 28px;
+        height: 28px;
+    }
 }

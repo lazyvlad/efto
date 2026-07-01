@@ -11,15 +11,27 @@ function gaussianRandom(mean = 0, stdDev = 1) {
     return z * stdDev + mean;
 }
 
+function calculateProjectileSize(projectileData) {
+    const sizeMultiplier = projectileData.size_multiplier || 1;
+    const baseProjectileSize = responsiveScaler.getSize('item', 'projectile');
+    let size = baseProjectileSize * sizeMultiplier;
+
+    if (responsiveScaler.deviceType === 'mobile') {
+        size *= 0.82;
+        size = Math.max(40, Math.min(52, size));
+    }
+
+    return size;
+}
+
 export class DamageProjectile {
     constructor(projectileData, isValidYPosition, recentDropYPositions, gameState, canvas) {
         this.data = projectileData;
         
         // Use responsive scaling for projectiles with size multiplier (like PowerUpItem)
-        const sizeMultiplier = projectileData.size_multiplier || 1;
-        const baseProjectileSize = responsiveScaler.getSize('item', 'projectile');
-        this.width = baseProjectileSize * sizeMultiplier;
-        this.height = baseProjectileSize * sizeMultiplier;
+        const projectileSize = calculateProjectileSize(projectileData);
+        this.width = projectileSize;
+        this.height = projectileSize;
         
         // Gaussian randomized horizontal position (centered with some spread)
         // Use logical width instead of physical canvas width (fixes high-DPI scaling issues)
@@ -219,6 +231,7 @@ export class DamageProjectile {
         let drawWidth = this.width;
         let drawHeight = this.height;
         let glowIntensity = 1.0;
+        const mobileVisualScale = responsiveScaler.deviceType === 'mobile' ? 0.58 : 1;
         
         if (this.data.id === "fireball") {
             // Fireball: Subtle flickering like real fire with size variation (matched to frostbolt)
@@ -229,7 +242,7 @@ export class DamageProjectile {
             glowIntensity = Math.sin(this.glowAnimation * 4) * 0.6 + 0.8; // Intense glow variation
             
             ctx.shadowColor = '#FF4500';
-            ctx.shadowBlur = 35 * glowIntensity;
+            ctx.shadowBlur = 35 * glowIntensity * mobileVisualScale;
         } else if (this.data.id === "frostbolt") {
             // Frostbolt: Crystalline shimmer with subtle pulsing
             const shimmer = Math.sin(this.pulseAnimation * 1.5) * 0.08 + 1.0; // Subtle shimmer
@@ -239,7 +252,7 @@ export class DamageProjectile {
             glowIntensity = crystalPulse;
             
             ctx.shadowColor = this.data.color;
-            ctx.shadowBlur = 25 * glowIntensity;
+            ctx.shadowBlur = 25 * glowIntensity * mobileVisualScale;
         } else if (this.data.id === "shadowbolt") {
             // Shadowbolt: Dark corruption with wispy tendrils
             const corruption = Math.sin(this.pulseAnimation * 0.8) * 0.1 + Math.sin(this.flickerAnimation * 2) * 0.05; // Slow corruption pulse
@@ -249,12 +262,12 @@ export class DamageProjectile {
             glowIntensity = darkPulse;
             
             ctx.shadowColor = this.data.color;
-            ctx.shadowBlur = 30 * glowIntensity;
+            ctx.shadowBlur = 30 * glowIntensity * mobileVisualScale;
         } else {
             // Default glow for other projectiles
             const glow = Math.sin(this.glowAnimation) * 0.4 + 0.6;
             ctx.shadowColor = this.data.color || '#FFFFFF';
-            ctx.shadowBlur = 20 * glow;
+            ctx.shadowBlur = 20 * glow * mobileVisualScale;
         }
         
         // Apply conservative high-DPI scaling if enabled (focused on quality, not size)
@@ -287,7 +300,7 @@ export class DamageProjectile {
                 }
             }
         }
-        const borderPadding = 8; // Padding for border around projectiles with variable values
+        const borderPadding = responsiveScaler.deviceType === 'mobile' ? 4 : 8; // Padding for border around projectiles with variable values
         
         // Draw scary borders for shadowbolt and fireball (but not frostbolt)
         if (this.data.id === "fireball" || this.data.id === "shadowbolt") {
@@ -307,7 +320,7 @@ export class DamageProjectile {
                 ctx.strokeStyle = `rgba(75, 0, 130, ${pulseIntensity})`;
                 ctx.lineWidth = borderSize;
                 ctx.shadowColor = '#4B0082';
-                ctx.shadowBlur = 15 * pulseIntensity;
+                ctx.shadowBlur = 15 * pulseIntensity * mobileVisualScale;
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
                 ctx.stroke();
@@ -315,7 +328,7 @@ export class DamageProjectile {
                 // Inner darker purple border circle for more definition
                 ctx.strokeStyle = `rgba(47, 0, 79, ${pulseIntensity + 0.2})`;
                 ctx.lineWidth = Math.max(1, borderSize - 1); // Thinner inner border
-                ctx.shadowBlur = 6 * pulseIntensity;
+                ctx.shadowBlur = 6 * pulseIntensity * mobileVisualScale;
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
                 ctx.stroke();
@@ -324,7 +337,7 @@ export class DamageProjectile {
                 ctx.strokeStyle = `rgba(255, 69, 0, ${pulseIntensity})`;
                 ctx.lineWidth = borderSize;
                 ctx.shadowColor = '#FF4500';
-                ctx.shadowBlur = 15 * pulseIntensity;
+                ctx.shadowBlur = 15 * pulseIntensity * mobileVisualScale;
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, outerRadius, 0, Math.PI * 2);
                 ctx.stroke();
@@ -332,7 +345,7 @@ export class DamageProjectile {
                 // Inner darker orange border circle for more definition
                 ctx.strokeStyle = `rgba(255, 140, 0, ${pulseIntensity + 0.2})`;
                 ctx.lineWidth = Math.max(1, borderSize - 1); // Thinner inner border
-                ctx.shadowBlur = 6 * pulseIntensity;
+                ctx.shadowBlur = 6 * pulseIntensity * mobileVisualScale;
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
                 ctx.stroke();
@@ -687,10 +700,9 @@ export class DamageProjectile {
     // Handle window resize with responsive scaling
     repositionOnResize() {
         // Update size based on new scaling with size multiplier (like PowerUpItem)
-        const sizeMultiplier = this.data.size_multiplier || 1;
-        const baseProjectileSize = responsiveScaler.getSize('item', 'projectile');
-        this.width = baseProjectileSize * sizeMultiplier;
-        this.height = baseProjectileSize * sizeMultiplier;
+        const projectileSize = calculateProjectileSize(this.data);
+        this.width = projectileSize;
+        this.height = projectileSize;
     }
 }
 

@@ -124,7 +124,7 @@
     
     <!-- Mobile Pause Button (floating) -->
     <button id="mobilePauseBtn" class="mobile-pause-btn" style="display: none;" title="Pause Game">
-        ⏸️
+        <img src="assets/alchemy.png" alt="" class="mobile-pause-icon">
     </button>
 
     <!-- Unified Pause Menu Screen -->
@@ -138,22 +138,22 @@
                 <br>
                 <div class="pause-buttons">
                     <button id="startGameBtn" class="pause-btn continue-btn">
-                        🎮 Start Game
+                        <img src="assets/efto.png" alt="" class="menu-button-icon"> Start Game
                     </button>
                     <button id="continueGameBtn" class="pause-btn continue-btn" style="display: none;">
-                        ▶️ Continue Game
+                        <img src="assets/sprint.webp" alt="" class="menu-button-icon"> Continue Game
                     </button>
                     <button id="restartGameBtn" class="pause-btn restart-btn" style="display: none;">
-                        🔄 Restart Game
+                        <img src="assets/reverse_gravity.webp" alt="" class="menu-button-icon"> Restart Game
                     </button>
                     <button id="viewScoresBtn" class="pause-btn info-btn">
-                        🏆 High Scores
+                        <img src="items/zee.png" alt="" class="menu-button-icon"> High Scores
                     </button>
                     <button id="howToPlayBtn" class="pause-btn info-btn">
-                        📖 How to Play
+                        <img src="assets/efto-win.png" alt="" class="menu-button-icon"> How to Play
                     </button>
                     <button id="settingsBtn" class="pause-btn settings-btn">
-                        ⚙️ Settings
+                        <img src="assets/alchemy.png" alt="" class="menu-button-icon"> Settings
                     </button>
                 </div>
             </div>
@@ -164,19 +164,19 @@
                 <p class="pause-subtitle">Game is temporarily paused</p>
                 <div class="pause-buttons">
                     <button id="continuePauseBtn" class="pause-btn continue-btn">
-                        ▶️ Continue
+                        <img src="assets/sprint.webp" alt="" class="menu-button-icon"> Continue
                     </button>
                     <button id="gameInfoPauseBtn" class="pause-btn info-btn">
-                        📖 Game Info
+                        <img src="assets/efto-win.png" alt="" class="menu-button-icon"> Game Info
                     </button>
                     <button id="itemBonusesPauseBtn" class="pause-btn bonuses-btn">
-                        ⚡ Item Bonuses
+                        <img src="items/quick-strike-ring.png" alt="" class="menu-button-icon"> Item Bonuses
                     </button>
                     <button id="settingsPauseBtn" class="pause-btn settings-btn">
-                        ⚙️ Settings
+                        <img src="assets/alchemy.png" alt="" class="menu-button-icon"> Settings
                     </button>
                     <button id="restartPauseBtn" class="pause-btn restart-btn">
-                        🔄 Restart
+                        <img src="assets/reverse_gravity.webp" alt="" class="menu-button-icon"> Restart
                     </button>
                 </div>
                 <p class="pause-hint">Press ESC to continue or tap pause button</p>
@@ -186,11 +186,11 @@
         <!-- Settings Screen (moved inside pause menu) -->
         <div id="settingsScreen" class="screen" style="display: none;">
             <div class="screen-content settings-expanded">
-                <h2>⚙️ Game Settings</h2>
+                <h2><img src="assets/alchemy.png" alt="" class="settings-heading-icon"> Game Settings</h2>
                 
                 <!-- Panel Appearance Settings Section -->
                 <div class="settings-section">
-                    <h3>📊 Panel Appearance</h3>
+                    <h3><img src="items/dshelm.png" alt="" class="settings-heading-icon"> Panel Appearance</h3>
                     <p class="section-description">Control how information panels look and behave</p>
                     
                     <div class="setting-item">
@@ -222,12 +222,12 @@
                 
                 <!-- Audio Settings Section -->
                 <div class="settings-section">
-                    <h3>🔊 Audio Settings</h3>
+                    <h3><img src="assets/mana_potion.png" alt="" class="settings-heading-icon"> Audio Settings</h3>
                     
                     <!-- iOS Volume Notice -->
                     <div id="iosVolumeNotice" class="ios-notice" style="display: none;">
                         <div class="ios-notice-content">
-                            <span class="ios-notice-icon">📱</span>
+                            <img src="assets/mana_potion.png" alt="" class="ios-notice-icon">
                             <div class="ios-notice-text">
                                 <strong>iOS Device Detected</strong><br>
                                 Volume is controlled by your device's hardware buttons
@@ -288,15 +288,15 @@
 
         <!-- How to Play Screen (moved inside pause menu) -->
         <div id="howToPlay" style="display: none;">
-            <h2>📖 How to Play 📖</h2>
+            <h2><img src="assets/efto-win.png" alt="" class="guide-heading-icon"> How to Play</h2>
             <div id="howToPlayContent">
                 <div class="guide-section">
-                    <h3>🎯 Objective</h3>
+                    <h3><img src="assets/efto-win.png" alt="" class="guide-heading-icon"> Objective</h3>
                     <p>Collect as many points as you can before you die! This is the ultimate DM Tribute!</p>
                 </div>
 
                 <div class="guide-section">
-                    <h3>🎮 Controls</h3>
+                    <h3><img src="assets/efto.png" alt="" class="guide-heading-icon"> Controls</h3>
                     <p><strong>Desktop:</strong> Mouse to move your character</p>
                     <p><strong>Mobile:</strong> Touch screen to move your character</p>
                     <p><strong>ESC:</strong> Pause game</p>
@@ -304,7 +304,7 @@
                 </div>
 
                 <div class="guide-section">
-                    <h3>✨ Beneficial Spells (Collect These!)</h3>
+                    <h3><img src="assets/powerwordshield.jpg" alt="" class="guide-heading-icon"> Beneficial Spells (Collect These!)</h3>
                     <div class="spell-grid">
                         <div class="spell-item beneficial">
                             <strong>Power Word Shield</strong> - Grants temporary shield protection
@@ -319,8 +319,8 @@
                 </div>
 
                 <div class="guide-section">
-                    <h3>⚔️ Player Spells</h3>
-                    <p style="color: #4ECDC4; font-style: italic; margin-bottom: 15px;">💡 Desktop: Press Q/W/T/E/R keys | Mobile: Touch the spell icons!</p>
+                    <h3><img src="assets/dragon-cry.webp" alt="" class="guide-heading-icon"> Player Spells</h3>
+                    <p style="color: #4ECDC4; font-style: italic; margin-bottom: 15px;">Desktop: Press Q/W/T/E/R keys | Mobile: Touch the spell icons!</p>
                     <div class="spell-grid">
                         <div class="spell-item player-spell">
                             <strong>Q - Dragon Cry:</strong> Move anywhere on screen + 5% crit chance (30s cooldown)
@@ -341,7 +341,7 @@
                 </div>
 
                 <div class="guide-section">
-                    <h3>💀 Dangerous Projectiles (Avoid These!)</h3>
+                    <h3><img src="assets/fireball.png" alt="" class="guide-heading-icon"> Dangerous Projectiles (Avoid These!)</h3>
                     <div class="spell-grid">
                         <div class="spell-item dangerous">
                             <strong>Fireball</strong> - 8 HP damage
@@ -356,52 +356,58 @@
                 </div>
 
                 <div class="guide-section">
-                    <h3>💎 Item Types & Points</h3>
+                    <h3><img src="items/tunder.png" alt="" class="guide-heading-icon"> Item Types & Points</h3>
                     <div class="item-grid">
                         <div class="item-type">
-                            <strong>👑 Zee Zgnan:</strong> 15 points (Ultra Rare)
+                            <img src="items/zee.png" alt="Zee Zgnan" class="guide-item-icon">
+                            <span><strong>Zee Zgnan:</strong> 15 points (Ultra Rare)</span>
                         </div>
                         <div class="item-type">
-                            <strong>⚡ Legendary:</strong> Thunder Fury - 5 points + Auto-collect all items
+                            <img src="items/tunder.png" alt="Thunder Fury" class="guide-item-icon">
+                            <span><strong>Legendary:</strong> Thunder Fury - 5 points + Auto-collect all items</span>
                         </div>
                         <div class="item-type">
-                            <strong>🛡️ Tier Set:</strong> Dragonstalker pieces - 6 points each (Must collect all 10!)
+                            <img src="items/dshelm.png" alt="Dragonstalker helm" class="guide-item-icon">
+                            <span><strong>Tier Set:</strong> Dragonstalker pieces - 6 points each (Must collect all 10!)</span>
                         </div>
                         <div class="item-type">
-                            <strong>★ Special:</strong> 4-7 points (Rare items)
+                            <img src="items/DFT.png" alt="Drake Fang Talisman" class="guide-item-icon">
+                            <span><strong>Special:</strong> 4-7 points (Rare items)</span>
                         </div>
                         <div class="item-type">
-                            <strong>◆ Epic:</strong> 5-10 points (Uncommon items)
+                            <img src="items/maladath.png" alt="Maladath" class="guide-item-icon">
+                            <span><strong>Epic:</strong> 5-10 points (Uncommon items)</span>
                         </div>
                         <div class="item-type">
-                            <strong>○ Regular:</strong> 1-4 points (Common items)
+                            <img src="items/gold.png" alt="Gold" class="guide-item-icon">
+                            <span><strong>Regular:</strong> 1-4 points (Common items)</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="guide-section">
-                    <h3>💥 Critical Hit System</h3>
+                    <h3><img src="items/quick-strike-ring.png" alt="" class="guide-heading-icon"> Critical Hit System</h3>
                     <div id="critSystemContent">
                         <!-- Dynamic content will be generated here -->
                     </div>
                 </div>
 
                 <div class="guide-section">
-                    <h3>💨 Dodge Rating System</h3>
+                    <h3><img src="assets/evasion.jpg" alt="" class="guide-heading-icon"> Dodge Rating System</h3>
                     <div id="dodgeSystemContent">
                         <!-- Dynamic content will be generated here -->
                     </div>
                 </div>
 
                 <div class="guide-section">
-                    <h3>🏹 Arrow Combat System</h3>
+                    <h3><img src="assets/arrows.webp" alt="" class="guide-heading-icon"> Arrow Combat System</h3>
                     <div id="arrowSystemContent">
                         <!-- Dynamic content will be generated here -->
                     </div>
                 </div>
 
                 <div class="guide-section">
-                    <h3>🏆 Scoring Tips</h3>
+                    <h3><img src="items/zee.png" alt="" class="guide-heading-icon"> Scoring Tips</h3>
                     <p>• Use Zandalari spell for +20% points and to slow down all falling objects</p>
                     <p>• Collect Speed Boost projectiles to increase game speed and scoring</p>
                     <p>• Thunder Fury automatically collects all items on screen AND increases crit chance</p>
@@ -415,7 +421,7 @@
         <!-- High Scores Screen (moved inside pause menu) -->
         <div id="highScoresScreen" class="screen" style="display: none;">
             <div class="screen-content">
-                <h2>🏆 High Scores</h2>
+                <h2>High Scores</h2>
                 <div id="highScoresList"></div>
                 <div class="button-group">
                     <button id="highScoresBackBtn" class="menu-btn">Back to Menu</button>
@@ -457,13 +463,13 @@
                 
                 <div class="bonuses-tabs">
                     <button id="permanentBonusesTab" class="bonus-tab active">
-                        📌 Permanent Bonuses
+                        <img src="items/circle-of-applied-force.png" alt="" class="menu-button-icon"> Permanent Bonuses
                     </button>
                     <button id="temporaryBonusesTab" class="bonus-tab">
-                        ⏱️ Temporary Bonuses
+                        <img src="assets/black-lotuses.webp" alt="" class="menu-button-icon"> Temporary Bonuses
                     </button>
                     <button id="allItemsTab" class="bonus-tab">
-                        📋 All Items
+                        <img src="items/DFT.png" alt="" class="menu-button-icon"> All Items
                     </button>
                 </div>
                 
@@ -502,7 +508,7 @@
             
             <div class="bonuses-footer">
                 <button id="closeBonusesBtn" class="bonuses-btn close-btn">
-                    ❌ Close
+                    Close
                 </button>
             </div>
         </div>

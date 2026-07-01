@@ -275,6 +275,13 @@ function getUiScale(canvas) {
     return Math.max(1, Math.min(xScale, yScale));
 }
 
+function getHudScale(canvas) {
+    const baseScale = getUiScale(canvas);
+    const isCompact = canvas.deviceType === 'mobile' || canvas.logicalWidth <= 768 || canvas.logicalHeight <= 640;
+
+    return isCompact ? baseScale * 0.72 : baseScale;
+}
+
 function drawNotifications(ctx, canvas, uiScale) {
     pruneExpiredHudNotifications();
 
@@ -378,7 +385,7 @@ function drawBuffs(ctx, canvas, uiScale) {
 export function renderCanvasHud(ctx, canvas) {
     if (!ctx || !canvas || !canvas.logicalWidth || !canvas.logicalHeight) return;
 
-    const uiScale = getUiScale(canvas);
+    const uiScale = getHudScale(canvas);
 
     drawNotifications(ctx, canvas, uiScale);
     drawBuffs(ctx, canvas, uiScale);

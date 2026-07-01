@@ -172,15 +172,15 @@ function renderHighScoresList(scores) {
             <span class="score-name">Name</span>
             <span class="score-points">Score</span>
             <span class="score-level">Level</span>
-            <span class="score-ds">🐉 DS</span>
-            <span class="score-crit">⚡ Crit</span>
-            <span class="score-dodge">💨 Dodge</span>
+            <span class="score-ds">DS</span>
+            <span class="score-crit">Crit</span>
+            <span class="score-dodge">Dodge</span>
             <span class="score-date">Date</span>
         </div>
     `;
     scores.slice(0, 20).forEach((score, index) => {
         const isTop3 = index < 3;
-        const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+        const rankClass = index === 0 ? 'rank-first' : index === 1 ? 'rank-second' : index === 2 ? 'rank-third' : '';
         
         // Handle both server format (timestamp) and localStorage format (date)
         let displayDate = 'undefined';
@@ -201,15 +201,15 @@ function renderHighScoresList(scores) {
         
         // Format dragonstalker completions
         const dsCompletions = score.dragonstalkerCompletions || 0;
-        const dsDisplay = dsCompletions > 0 ? `🐉${dsCompletions}` : '🐉0';
+        const dsDisplay = `${dsCompletions}`;
         
         // Format crit and dodge ratings
-        const critDisplay = score.finalCritRating ? `⚡${score.finalCritRating}%` : '⚡0%';
-        const dodgeDisplay = score.finalDodgeRating ? `💨${score.finalDodgeRating}%` : '💨0%';
+        const critDisplay = score.finalCritRating ? `${score.finalCritRating}%` : '0%';
+        const dodgeDisplay = score.finalDodgeRating ? `${score.finalDodgeRating}%` : '0%';
         
         html += `
             <div class="score-entry ${isTop3 ? 'top3' : ''}">
-                <span class="score-rank">${rankEmoji} #${index + 1}</span>
+                <span class="score-rank ${rankClass}">#${index + 1}</span>
                 <span class="score-name">${score.name || 'Anonymous'}</span>
                 <span class="score-points">${score.score || 0} pts</span>
                 <span class="score-level">${levelDisplay}</span>

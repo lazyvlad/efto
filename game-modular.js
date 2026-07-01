@@ -28,6 +28,9 @@ import { showLoadingScreen, updateLoadingProgress, hideLoadingScreen } from './u
 import { generateDynamicHelpContent as renderDynamicHelpContent } from './ui/helpContent.js';
 import { updateSpellBar, updateHealthBar } from './ui/statusBars.js';
 import { updateCanvasOverlayVisibility } from './ui/canvasOverlay.js';
+import { menuScreenManager } from './ui/menuScreenManager.js';
+import { initializeScreenNavigation, updateScreenNavigation } from './ui/screenNavigation.js';
+import { bindSettingsScreen, resetSettingsScreen, setSettingsBackLabel, updateSettingsScreen } from './ui/settingsScreen.js';
 import { getDragonstalkerItemIconData, getShortenedDragonstalkerName } from './utils/dragonstalkerDisplay.js';
 import { addBuff, removeBuff, updateBuffTracker, clearAllBuffs } from './systems/buffTrackerSystem.js';
 import { shouldCrit as calculateShouldCrit, shouldDodge as calculateShouldDodge, showDodgeText as createDodgeText, trackDodge as recordDodge, applyItemStatBonuses as applyItemStatBonusesToState, updateTemporaryStatEffects as updateTemporaryStatEffectsState, getCurrentTotalCritRating as calculateCurrentTotalCritRating, getCurrentTotalDodgeRating as calculateCurrentTotalDodgeRating, getTemporaryStatEffects, clearTemporaryStatEffects } from './systems/statEffectsSystem.js';
@@ -177,6 +180,10 @@ let combatTexts = []; // For crit damage numbers and other combat feedback
 let images = { items: [], spells: {} };
 let recentDropYPositions = [];
 
+const NAVIGABLE_SCREENS = new Set(['settings', 'howToPlay', 'highScores', 'gameOver']);
+const screenNavigationHistory = [];
+let isScreenNavigationRestore = false;
+
 // Make arrows array globally available for spell system
 window.arrows = arrows;
 
@@ -319,6 +326,11 @@ async function init() {
     
     // Set up UI event handlers with asset manager debugging
     setupUIEventHandlers();
+    initializeScreenNavigation({
+        onBack: navigateBackFromScreen,
+        onNavigate: navigateToOverlayScreen,
+        onClose: closeActiveOverlayScreen
+    });
     updateLoadingProgress(0.95);
     
     // Warmup cache with common assets
@@ -360,19 +372,7 @@ async function init() {
 
 // Helper function to hide all UI elements during loading
 function hideAllUIElements() {
-    const elements = [
-        'pauseMenu',
-        'highScores'
-        // Note: settingsScreen, howToPlay, highScoresScreen, gameOver are now inside pauseMenu
-        // so they don't need to be hidden here - they're controlled by pauseMenu visibility
-    ];
-    
-    elements.forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.style.display = 'none';
-        }
-    });
+    menuScreenManager.hideAll();
 }
 
 // Handle window resize to maintain fullscreen and reposition all game objects
@@ -985,9 +985,6 @@ function showPauseMenu() {
     gameState.gameRunning = false;
     gameState.gamePaused = true;
     
-    // Show HTML pause menu instead of canvas-based one
-    document.getElementById('pauseMenu').style.display = 'flex';
-    
     // Update pause menu content to show appropriate view
     updatePauseMenuContent();
     
@@ -1006,7 +1003,7 @@ function hidePauseMenu() {
     gameState.gamePaused = false;
     
     // Hide HTML pause menu
-    document.getElementById('pauseMenu').style.display = 'none';
+    menuScreenManager.hideShell();
     
     // Disable cursor when returning to game
     canvas.classList.remove('show-cursor');
@@ -1229,6 +1226,144 @@ document.addEventListener('DOMContentLoaded', init);
 
 // ===== UI NAVIGATION FUNCTIONS =====
 
+function getCurrentScreenNavigationState() {
+    if (NAVIGABLE_SCREENS.has(gameState.currentScreen)) {
+        return {
+            screen: gameState.currentScreen,
+            settingsSource: gameState.settingsSource || 'menu',
+            howToPlaySource: gameState.howToPlaySource || 'menu',
+            highScoresSource: gameState.highScoresSource || 'menu'
+        };
+    }
+
+    if (gameState.showingPauseMenu) {
+        return { screen: 'pause' };
+    }
+
+    return { screen: gameState.currentScreen === 'game' ? 'game' : 'menu' };
+}
+
+function getBackLabelForSource() {
+    return 'Back';
+}
+
+function rememberCurrentScreenForNavigation(fromScreen = null) {
+    if (isScreenNavigationRestore) {
+        return;
+    }
+
+    const sourceState = fromScreen && NAVIGABLE_SCREENS.has(fromScreen)
+        ? {
+            screen: fromScreen,
+            settingsSource: gameState.settingsSource || 'menu',
+            howToPlaySource: gameState.howToPlaySource || 'menu',
+            highScoresSource: gameState.highScoresSource || 'menu'
+        }
+        : getCurrentScreenNavigationState();
+
+    if (sourceState.screen !== gameState.currentScreen || NAVIGABLE_SCREENS.has(sourceState.screen)) {
+        screenNavigationHistory.push(sourceState);
+    }
+}
+
+function restoreScreenNavigationState(state) {
+    const target = typeof state === 'string' ? { screen: state } : (state || { screen: 'menu' });
+    isScreenNavigationRestore = true;
+
+    try {
+        switch (target.screen) {
+            case 'settings':
+                showSettings(target.settingsSource || 'menu');
+                break;
+            case 'howToPlay':
+                showHowToPlay(target.howToPlaySource === 'pause', { source: target.howToPlaySource || 'menu' });
+                break;
+            case 'highScores':
+                showHighScores(target.highScoresSource === 'pause', target.highScoresSource === 'gameOver', { source: target.highScoresSource || 'menu' });
+                break;
+            case 'gameOver':
+                menuScreenManager.backToGameOver();
+                gameState.currentScreen = 'gameOver';
+                updateScreenNavigation('gameOver', { backLabel: getBackLabelForSource('menu') });
+                break;
+            case 'pause':
+                menuScreenManager.backToPauseMenu();
+                gameState.currentScreen = 'menu';
+                gameState.showingPauseMenu = true;
+                break;
+            case 'game':
+                hidePauseMenu();
+                gameState.currentScreen = 'game';
+                break;
+            case 'menu':
+            default:
+                showNameEntry();
+                break;
+        }
+    } finally {
+        isScreenNavigationRestore = false;
+    }
+}
+
+function navigateBackFromScreen() {
+    const fallbackSource = gameState.currentScreen === 'settings'
+        ? gameState.settingsSource
+        : gameState.currentScreen === 'howToPlay'
+            ? gameState.howToPlaySource
+            : gameState.currentScreen === 'highScores'
+                ? gameState.highScoresSource
+                : 'menu';
+
+    restoreScreenNavigationState(screenNavigationHistory.pop() || fallbackSource || 'menu');
+    updateCanvasOverlay();
+}
+
+function navigateToOverlayScreen(targetScreen, fromScreen = null) {
+    rememberCurrentScreenForNavigation(fromScreen);
+
+    switch (targetScreen) {
+        case 'settings':
+            showSettings(fromScreen || getCurrentScreenNavigationState().screen);
+            break;
+        case 'howToPlay':
+            showHowToPlay(false, { source: fromScreen || getCurrentScreenNavigationState().screen });
+            break;
+        case 'highScores':
+            showHighScores(false, false, { source: fromScreen || getCurrentScreenNavigationState().screen });
+            break;
+        default:
+            break;
+    }
+}
+
+function closeActiveOverlayScreen() {
+    screenNavigationHistory.length = 0;
+
+    const source = gameState.currentScreen === 'settings'
+        ? gameState.settingsSource
+        : gameState.currentScreen === 'howToPlay'
+            ? gameState.howToPlaySource
+            : gameState.currentScreen === 'highScores'
+                ? gameState.highScoresSource
+                : null;
+
+    const canResumeGame = gameState.health > 0 && (gameState.showingPauseMenu || source === 'pause' || source === 'game');
+
+    if (canResumeGame) {
+        hidePauseMenu();
+        menuScreenManager.hideAll();
+        gameState.currentScreen = 'game';
+        updateMobilePauseButtonVisibility();
+    } else {
+        gameState.showingPauseMenu = false;
+        gameState.gameRunning = false;
+        gameState.gamePaused = false;
+        showNameEntry();
+    }
+
+    updateCanvasOverlay();
+}
+
 // Show main menu (unified pause menu with name entry content)
 function showNameEntry() {
     console.log('Showing main menu - game is ready for player interaction');
@@ -1240,13 +1375,7 @@ function showNameEntry() {
     gameState.currentScreen = 'menu';
     
     // Show the pause menu container with name entry content
-    document.getElementById('pauseMenu').style.display = 'flex';
-    
-    // Explicitly ensure pause menu content is visible and other screens are hidden
-    document.getElementById('pauseMenuContent').style.display = 'block';
-    document.getElementById('settingsScreen').style.display = 'none';
-    document.getElementById('howToPlay').style.display = 'none';
-    document.getElementById('highScoresScreen').style.display = 'none';
+    menuScreenManager.showNameEntry();
     
     updatePauseMenuContent();
     
@@ -1271,21 +1400,14 @@ function showNameEntry() {
 
 // Dynamic function to update pause menu content based on game state
 function updatePauseMenuContent() {
-    const nameEntryContent = document.getElementById('nameEntryContent');
-    const pauseGameContent = document.getElementById('pauseGameContent');
-    
     // Check if there's a game in progress (running or paused) similar to updateMenuButtons logic
     const gameInProgress = gameState.gameRunning || gameState.showingPauseMenu || 
                           (gameState.currentScreen === 'game' && gameState.health > 0);
     
     if (gameInProgress) {
-        // Show pause content - there's an active game
-        nameEntryContent.style.display = 'none';
-        pauseGameContent.style.display = 'block';
+        menuScreenManager.showPauseMenu();
     } else {
-        // Show name entry content - no active game
-        nameEntryContent.style.display = 'block';
-        pauseGameContent.style.display = 'none';
+        menuScreenManager.showNameEntry();
     }
 }
 
@@ -1299,42 +1421,24 @@ function updateMenuButtons() {
     const gameInProgress = gameState.gameRunning || gameState.showingPauseMenu || 
                           (gameState.currentScreen === 'game' && gameState.health > 0);
     
-    if (gameInProgress) {
-        // Game is in progress - show continue/restart, hide start
-        if (startBtn) startBtn.style.display = 'none';
-        if (continueBtn) continueBtn.style.display = 'inline-block';
-        if (restartGameBtn) restartGameBtn.style.display = 'inline-block';
-    } else {
-        // No game in progress - show start, hide continue/restart
-        if (startBtn) startBtn.style.display = 'inline-block';
-        if (continueBtn) continueBtn.style.display = 'none';
-        if (restartGameBtn) restartGameBtn.style.display = 'none';
-    }
+    menuScreenManager.setMenuButtonsForGameProgress(gameInProgress);
 }
 
 // Show high scores screen
-function showHighScores(fromPause = false, fromGameOver = false) {
+function showHighScores(fromPause = false, fromGameOver = false, options = {}) {
     console.log('Showing high scores screen');
     
-    if (fromPause || fromGameOver) {
-        // Coming from pause menu or game over - hide pause content, show highScores within pause menu
-        document.getElementById('pauseMenuContent').style.display = 'none';
-        if (fromGameOver) {
-            document.getElementById('gameOver').style.display = 'none';
-        }
-        document.getElementById('highScoresScreen').style.display = 'block';
-    } else {
-        // Coming from main menu - show high scores in pause menu
+    if (!fromPause && !fromGameOver) {
         hideAllUIElements();
-        document.getElementById('pauseMenu').style.display = 'flex';
-        document.getElementById('pauseMenuContent').style.display = 'none';
-        document.getElementById('highScoresScreen').style.display = 'block';
     }
+    menuScreenManager.showHighScores({ fromGameOver });
     
     gameState.currentScreen = 'highScores';
     
     // Store where we came from for the back button
-    if (fromGameOver) {
+    if (options.source) {
+        gameState.highScoresSource = options.source;
+    } else if (fromGameOver) {
         gameState.highScoresSource = 'gameOver';
     } else {
         gameState.highScoresSource = fromPause ? 'pause' : 'menu';
@@ -1343,14 +1447,9 @@ function showHighScores(fromPause = false, fromGameOver = false) {
     // Update back button text based on source
     const backBtn = document.getElementById('highScoresBackBtn');
     if (backBtn) {
-        if (gameState.highScoresSource === 'gameOver') {
-            backBtn.textContent = 'Back to Game Over';
-        } else if (gameState.highScoresSource === 'pause') {
-            backBtn.textContent = 'Back to Pause Menu';
-        } else {
-            backBtn.textContent = 'Back to Menu';
-        }
+        backBtn.textContent = getBackLabelForSource(gameState.highScoresSource);
     }
+    updateScreenNavigation('highScores', { backLabel: getBackLabelForSource(gameState.highScoresSource) });
     
     safeDisplayHighScores();
     
@@ -1359,25 +1458,19 @@ function showHighScores(fromPause = false, fromGameOver = false) {
 }
 
 // Show how to play screen
-function showHowToPlay(fromPause = false) {
+function showHowToPlay(fromPause = false, options = {}) {
     console.log('Showing how to play screen');
     
-    if (fromPause) {
-        // Coming from pause menu - hide pause content, show howToPlay within pause menu
-        document.getElementById('pauseMenuContent').style.display = 'none';
-        document.getElementById('howToPlay').style.display = 'block';
-    } else {
-        // Coming from main menu - hide all UI elements and show howToPlay in pause menu
+    if (!fromPause) {
         hideAllUIElements();
-        document.getElementById('pauseMenu').style.display = 'flex';
-        document.getElementById('pauseMenuContent').style.display = 'none';
-        document.getElementById('howToPlay').style.display = 'block';
     }
+    menuScreenManager.showHowToPlay();
     
     gameState.currentScreen = 'howToPlay';
     
     // Store where we came from for the back button
-    gameState.howToPlaySource = fromPause ? 'pause' : 'menu';
+    gameState.howToPlaySource = options.source || (fromPause ? 'pause' : 'menu');
+    updateScreenNavigation('howToPlay', { backLabel: getBackLabelForSource(gameState.howToPlaySource) });
     
     // Generate dynamic help content based on current game configuration
     generateDynamicHelpContent();
@@ -1419,283 +1512,35 @@ function showSettings(source = null) {
         gameState.gamePaused = true;
     }
     
-    if (gameState.settingsSource === 'pause') {
-        // Coming from pause menu - hide pause content, show settings within pause menu
-        document.getElementById('pauseMenuContent').style.display = 'none';
-        document.getElementById('settingsScreen').style.display = 'block';
-    } else {
-        // Coming from main menu - show settings in pause menu
+    if (gameState.settingsSource !== 'pause') {
         hideAllUIElements();
-        document.getElementById('pauseMenu').style.display = 'flex';
-        document.getElementById('pauseMenuContent').style.display = 'none';
-        document.getElementById('settingsScreen').style.display = 'block';
     }
+    menuScreenManager.showSettings();
     
     gameState.currentScreen = 'settings';
     
     console.log('Settings screen displayed');
     
-    // Update back button text based on source
-    const backBtn = document.getElementById('settingsBackBtn');
-    if (backBtn) {
-        if (gameState.settingsSource === 'game') {
-            backBtn.textContent = 'Continue Game';
-        } else if (gameState.settingsSource === 'pause') {
-            backBtn.textContent = 'Back to Pause Menu';
-        } else {
-            backBtn.textContent = 'Back to Menu';
-        }
-    }
+    setSettingsBackLabel(gameState.settingsSource);
+    updateScreenNavigation('settings', { backLabel: getBackLabelForSource(gameState.settingsSource) });
     
     // Update UI elements with current settings
     console.log('Updating settings UI...');
-    updateSettingsUI();
+    updateSettingsScreen();
     
     // Set up event handlers for settings controls (do this each time settings opens)
     console.log('Setting up event handlers...');
-    setupSettingsEventHandlers();
+    bindSettingsScreen();
     console.log('showSettings() complete');
 }
 
 function closeSettings() {
-    document.getElementById('settingsScreen').style.display = 'none';
-    
-    if (gameState.settingsSource === 'game') {
-        // Return to game
-        gameState.gamePaused = false;
-        gameState.currentScreen = 'game';
-        updateCanvasOverlay();
-    } else if (gameState.settingsSource === 'pause') {
-        // Return to pause menu - show pause content, keep pause menu visible
-        document.getElementById('pauseMenuContent').style.display = 'block';
-    } else {
-        // Return to main menu - ensure proper state clearing
-        gameState.showingPauseMenu = false;
-        gameState.gameRunning = false;
-        showNameEntry();
-    }
+    navigateBackFromScreen();
 }
 
 function showMainMenu() {
     hideAllUIElements();
     showNameEntry();
-}
-
-function updateSettingsUI() {
-    const settings = getSettings();
-    
-    // Update audio toggles
-    document.getElementById('soundEffectsToggle').checked = settings.audio.soundEffects;
-    document.getElementById('backgroundMusicToggle').checked = settings.audio.backgroundMusic;
-    
-    // Update volume sliders
-    document.getElementById('masterVolumeSlider').value = settings.audio.masterVolume || settings.audio.volume || 70;
-    document.getElementById('masterVolumeValue').textContent = (settings.audio.masterVolume || settings.audio.volume || 70) + '%';
-    
-    document.getElementById('musicVolumeSlider').value = settings.audio.musicVolume || 50;
-    document.getElementById('musicVolumeValue').textContent = (settings.audio.musicVolume || 50) + '%';
-    
-    document.getElementById('effectsVolumeSlider').value = settings.audio.effectsVolume || 80;
-    document.getElementById('effectsVolumeValue').textContent = (settings.audio.effectsVolume || 80) + '%';
-    
-    // Update game mode radio buttons
-    const gameModeValue = settings.gameplay?.gameMode || 'normal';
-    const gameModeRadio = document.querySelector(`input[name="gameMode"][value="${gameModeValue}"]`);
-    if (gameModeRadio) {
-        gameModeRadio.checked = true;
-    }
-    
-    // Update panel style dropdowns
-    const playerPanelStyle = settings.ui?.playerPanelStyle || 'auto';
-    const playerPanelSelect = document.getElementById('playerPanelStyle');
-    if (playerPanelSelect) {
-        playerPanelSelect.value = playerPanelStyle;
-    }
-    
-    const dragonstalkerPanelStyle = settings.ui?.dragonstalkerPanelStyle || 'auto';
-    const dragonstalkerPanelSelect = document.getElementById('dragonstalkerPanelStyle');
-    if (dragonstalkerPanelSelect) {
-        dragonstalkerPanelSelect.value = dragonstalkerPanelStyle;
-    }
-    
-    // Update panel opacity slider
-    const panelOpacity = settings.ui?.panelOpacity || 80;
-    const panelOpacitySlider = document.getElementById('panelOpacity');
-    const panelOpacityValue = document.getElementById('panelOpacityValue');
-    if (panelOpacitySlider) {
-        panelOpacitySlider.value = panelOpacity;
-    }
-    if (panelOpacityValue) {
-        panelOpacityValue.textContent = panelOpacity + '%';
-    }
-}
-
-function resetSettingsUI() {
-    const defaultSettings = resetSettings();
-    updateSettingsUI();
-    
-    // Show confirmation
-    alert('Settings have been reset to defaults!');
-}
-
-function setupSettingsEventHandlers() {
-    console.log('Setting up settings event handlers...');
-    // Settings screen event handlers
-    const soundEffectsToggle = document.getElementById('soundEffectsToggle');
-    const backgroundMusicToggle = document.getElementById('backgroundMusicToggle');
-    
-    console.log('Toggle elements found:', {
-        soundEffectsToggle: !!soundEffectsToggle,
-        backgroundMusicToggle: !!backgroundMusicToggle
-    });
-    
-    if (soundEffectsToggle) {
-        console.log('Setting up sound effects toggle event handler');
-        // Remove existing listeners to avoid duplicates
-        soundEffectsToggle.replaceWith(soundEffectsToggle.cloneNode(true));
-        const newSoundEffectsToggle = document.getElementById('soundEffectsToggle');
-        
-        console.log('New sound effects toggle element:', newSoundEffectsToggle);
-        
-        // Get the toggle slider (the visible part)
-        const toggleSlider = newSoundEffectsToggle.parentElement.querySelector('.toggle-slider');
-        console.log('Toggle slider element:', toggleSlider);
-        
-        // Add click listener to the visible slider
-        if (toggleSlider) {
-            toggleSlider.addEventListener('click', function() {
-                console.log('Sound effects slider CLICKED!');
-                // Toggle the checkbox state
-                newSoundEffectsToggle.checked = !newSoundEffectsToggle.checked;
-                // Trigger change event manually
-                newSoundEffectsToggle.dispatchEvent(new Event('change'));
-            });
-        }
-        
-        // Add both click and change event listeners for debugging
-        newSoundEffectsToggle.addEventListener('click', function() {
-            console.log('Sound effects toggle CLICKED!');
-        });
-        
-        newSoundEffectsToggle.addEventListener('change', function() {
-            console.log('Sound effects toggle changed to:', this.checked);
-            console.log('Current settings before update:', getSettings());
-            updateSetting('audio', 'soundEffects', this.checked);
-            console.log('Current settings after update:', getSettings());
-        });
-        
-        console.log('Sound effects toggle event handler attached');
-    } else {
-        console.warn('Sound effects toggle element not found!');
-    }
-    
-    if (backgroundMusicToggle) {
-        console.log('Setting up background music toggle event handler');
-        // Remove existing listeners to avoid duplicates
-        backgroundMusicToggle.replaceWith(backgroundMusicToggle.cloneNode(true));
-        const newBackgroundMusicToggle = document.getElementById('backgroundMusicToggle');
-        
-        console.log('New background music toggle element:', newBackgroundMusicToggle);
-        
-        // Get the toggle slider (the visible part)
-        const toggleSlider = newBackgroundMusicToggle.parentElement.querySelector('.toggle-slider');
-        console.log('Background music toggle slider element:', toggleSlider);
-        
-        // Add click listener to the visible slider
-        if (toggleSlider) {
-            toggleSlider.addEventListener('click', function() {
-                console.log('Background music slider CLICKED!');
-                // Toggle the checkbox state
-                newBackgroundMusicToggle.checked = !newBackgroundMusicToggle.checked;
-                // Trigger change event manually
-                newBackgroundMusicToggle.dispatchEvent(new Event('change'));
-            });
-        }
-        
-        // Add both click and change event listeners for debugging
-        newBackgroundMusicToggle.addEventListener('click', function() {
-            console.log('Background music toggle CLICKED!');
-        });
-        
-        newBackgroundMusicToggle.addEventListener('change', function() {
-            console.log('Background music toggle changed to:', this.checked);
-            console.log('Current settings before update:', getSettings());
-            updateSetting('audio', 'backgroundMusic', this.checked);
-            console.log('Current settings after update:', getSettings());
-        });
-        
-        console.log('Background music toggle event handler attached');
-    } else {
-        console.warn('Background music toggle element not found!');
-    }
-    
-    // Master Volume Slider
-    const masterVolumeSlider = document.getElementById('masterVolumeSlider');
-    if (masterVolumeSlider) {
-        masterVolumeSlider.addEventListener('input', function() {
-            const volume = parseInt(this.value);
-            document.getElementById('masterVolumeValue').textContent = volume + '%';
-            updateSetting('audio', 'masterVolume', volume);
-        });
-    }
-    
-    // Music Volume Slider
-    const musicVolumeSlider = document.getElementById('musicVolumeSlider');
-    if (musicVolumeSlider) {
-        musicVolumeSlider.addEventListener('input', function() {
-            const volume = parseInt(this.value);
-            document.getElementById('musicVolumeValue').textContent = volume + '%';
-            updateSetting('audio', 'musicVolume', volume);
-        });
-    }
-    
-    // Effects Volume Slider
-    const effectsVolumeSlider = document.getElementById('effectsVolumeSlider');
-    if (effectsVolumeSlider) {
-        effectsVolumeSlider.addEventListener('input', function() {
-            const volume = parseInt(this.value);
-            document.getElementById('effectsVolumeValue').textContent = volume + '%';
-            updateSetting('audio', 'effectsVolume', volume);
-        });
-    }
-
-    // Game Mode Settings
-    const gameModeRadios = document.querySelectorAll('input[name="gameMode"]');
-    gameModeRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            if (this.checked) {
-                console.log('Game mode changed to:', this.value);
-                updateSetting('gameplay', 'gameMode', this.value);
-            }
-        });
-    });
-
-    // Panel Style Settings
-    const playerPanelStyleSelect = document.getElementById('playerPanelStyle');
-    if (playerPanelStyleSelect) {
-        playerPanelStyleSelect.addEventListener('change', function() {
-            console.log('Player panel style changed to:', this.value);
-            updateSetting('ui', 'playerPanelStyle', this.value);
-        });
-    }
-
-    const dragonstalkerPanelStyleSelect = document.getElementById('dragonstalkerPanelStyle');
-    if (dragonstalkerPanelStyleSelect) {
-        dragonstalkerPanelStyleSelect.addEventListener('change', function() {
-            console.log('Dragonstalker panel style changed to:', this.value);
-            updateSetting('ui', 'dragonstalkerPanelStyle', this.value);
-        });
-    }
-
-    // Panel Opacity Setting
-    const panelOpacitySlider = document.getElementById('panelOpacity');
-    if (panelOpacitySlider) {
-        panelOpacitySlider.addEventListener('input', function() {
-            const opacity = parseInt(this.value);
-            document.getElementById('panelOpacityValue').textContent = opacity + '%';
-            updateSetting('ui', 'panelOpacity', opacity);
-        });
-    }
 }
 
 // Start the game with the entered name
@@ -1716,7 +1561,7 @@ function startGameFromUI() {
     console.log('Saved player name to localStorage:', playerName);
     
     // Hide the pause menu (which contains the name entry content)
-    document.getElementById('pauseMenu').style.display = 'none';
+    menuScreenManager.hideShell();
     
     // Start the actual game
     startGame();
@@ -1727,10 +1572,7 @@ function restartGameFromUI() {
     const currentPlayerName = gameState.playerName;
     
     // Hide game over screen and pause menu container
-    document.getElementById('gameOver').style.display = 'none';
-    document.getElementById('pauseMenu').style.display = 'none';
-    // Reset pause menu content visibility for next time
-    document.getElementById('pauseMenuContent').style.display = 'block';
+    menuScreenManager.hideAll();
     
     // Pre-fill the name input with the current player name
     document.getElementById('playerNameInput').value = currentPlayerName;
@@ -1826,7 +1668,7 @@ function setupUIEventHandlers() {
     if (continueBtn) {
         continueBtn.addEventListener('click', function() {
             // Hide menu and continue the paused game
-            document.getElementById('pauseMenu').style.display = 'none';
+            menuScreenManager.hideShell();
             gameState.gameRunning = true;
             gameState.gamePaused = false;
             gameState.currentScreen = 'game';
@@ -1845,35 +1687,27 @@ function setupUIEventHandlers() {
     
     if (viewScoresBtn) {
         console.log('Setting up High Scores button handler');
-        viewScoresBtn.addEventListener('click', showHighScores);
+        viewScoresBtn.addEventListener('click', () => showHighScores());
     } else {
         console.warn('viewScoresBtn not found!');
     }
     
     if (howToPlayBtn) {
         console.log('Setting up How to Play button handler');
-        howToPlayBtn.addEventListener('click', showHowToPlay);
+        howToPlayBtn.addEventListener('click', () => showHowToPlay());
     } else {
         console.warn('howToPlayBtn not found!');
     }
     
     if (backToMenuBtn) {
         backToMenuBtn.addEventListener('click', function() {
-            showNameEntry();
+            navigateBackFromScreen();
         });
     }
     
     if (backToMenuBtn2) {
         backToMenuBtn2.addEventListener('click', function() {
-            // Check if we came from pause menu
-            if (gameState.howToPlaySource === 'pause') {
-                // Return to pause menu content (howToPlay is now inside pause menu)
-                document.getElementById('howToPlay').style.display = 'none';
-                document.getElementById('pauseMenuContent').style.display = 'block';
-            } else {
-                // Return to main menu
-                showNameEntry();
-            }
+            navigateBackFromScreen();
         });
     }
     
@@ -1881,19 +1715,7 @@ function setupUIEventHandlers() {
     const highScoresBackBtn = document.getElementById('highScoresBackBtn');
     if (highScoresBackBtn) {
         highScoresBackBtn.addEventListener('click', function() {
-            // Check where we came from
-            if (gameState.highScoresSource === 'pause') {
-                // Return to pause menu content (highScores is now inside pause menu)
-                document.getElementById('highScoresScreen').style.display = 'none';
-                document.getElementById('pauseMenuContent').style.display = 'block';
-            } else if (gameState.highScoresSource === 'gameOver') {
-                // Return to game over screen
-                document.getElementById('highScoresScreen').style.display = 'none';
-                document.getElementById('gameOver').style.display = 'block';
-            } else {
-                // Return to main menu
-                showNameEntry();
-            }
+            navigateBackFromScreen();
         });
     }
     
@@ -1912,13 +1734,13 @@ function setupUIEventHandlers() {
     // Settings button (main menu)
     const settingsBtn = document.getElementById('settingsBtn');
     if (settingsBtn) {
-        settingsBtn.addEventListener('click', showSettings);
+        settingsBtn.addEventListener('click', () => showSettings('menu'));
     }
     
     // In-game settings button
     const gameSettingsBtn = document.getElementById('gameSettingsBtn');
     if (gameSettingsBtn) {
-        gameSettingsBtn.addEventListener('click', showSettings);
+        gameSettingsBtn.addEventListener('click', () => showSettings('game'));
     }
     
     // Settings screen event handlers are set up in showSettings() function
@@ -3316,9 +3138,9 @@ function endGame() {
     }
     
     // Show pause menu container and hide pause content to display game over screen
-    document.getElementById('pauseMenu').style.display = 'flex';
-    document.getElementById('pauseMenuContent').style.display = 'none';
-    document.getElementById('gameOver').style.display = 'block';
+    menuScreenManager.showGameOver();
+    gameState.currentScreen = 'gameOver';
+    updateScreenNavigation('gameOver', { backLabel: getBackLabelForSource('menu') });
     
     // Update menu buttons since game is now over
     updateMenuButtons();
@@ -3374,9 +3196,9 @@ function winGame() {
     }
     
     // Show pause menu container and hide pause content to display game over screen
-    document.getElementById('pauseMenu').style.display = 'flex';
-    document.getElementById('pauseMenuContent').style.display = 'none';
-    document.getElementById('gameOver').style.display = 'block';
+    menuScreenManager.showGameOver();
+    gameState.currentScreen = 'gameOver';
+    updateScreenNavigation('gameOver', { backLabel: getBackLabelForSource('menu') });
     
     // Update menu buttons since game is now over
     updateMenuButtons();
@@ -3405,7 +3227,7 @@ function preloadLevelAssets(level) {
 window.showSettings = showSettings;
 window.closeSettings = closeSettings;
 window.showMainMenu = showMainMenu;
-window.resetSettings = resetSettingsUI;
+window.resetSettings = resetSettingsScreen;
 
 // Debug function for checking display quality
 window.checkDisplayQuality = function() {

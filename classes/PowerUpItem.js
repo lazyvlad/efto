@@ -2,6 +2,37 @@ import { gameConfig } from '../config/gameConfig.js';
 import { addNotification, checkBoundaryCollision, applyAdvancedBouncePhysics, calculateSpinEffect, applyAirResistance, calculateFallAngle, responsiveScaler } from '../utils/gameUtils.js';
 import { assetManager } from '../utils/AssetManager.js';
 
+const MOBILE_POWER_UP_SIZE_BANDS = {
+    potion: { min: 70, max: 74 },
+    heal: { min: 70, max: 78 },
+    utility: { min: 64, max: 74 },
+    epic: { min: 72, max: 80 },
+    legendary: { min: 76, max: 84 },
+    default: { min: 66, max: 78 }
+};
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function isPotionPowerUp(powerUpData) {
+    return powerUpData.id === 'health_potion' || powerUpData.id === 'mana_potion';
+}
+
+function calculatePowerUpSize(powerUpData) {
+    const sizeMultiplier = powerUpData.size_multiplier || 1;
+    const basePowerUpSize = responsiveScaler.getSize('item', 'powerUp');
+
+    if (responsiveScaler.deviceType !== 'mobile') {
+        return basePowerUpSize * sizeMultiplier;
+    }
+
+    const bandKey = isPotionPowerUp(powerUpData) ? 'potion' : powerUpData.type;
+    const band = MOBILE_POWER_UP_SIZE_BANDS[bandKey] || MOBILE_POWER_UP_SIZE_BANDS.default;
+    const compressedSize = basePowerUpSize * sizeMultiplier * 0.92;
+    return clamp(compressedSize, band.min, band.max);
+}
+
 export class PowerUpItem {
     constructor(powerUpData, isValidYPosition, recentDropYPositions, gameState) {
         this.data = powerUpData;
@@ -24,10 +55,9 @@ export class PowerUpItem {
         recentDropYPositions.push(this.y);
         
         // Use responsive scaling for power-up items with size multiplier
-        const sizeMultiplier = this.data.size_multiplier || 1;
-        const basePowerUpSize = responsiveScaler.getSize('item', 'powerUp');
-        this.width = basePowerUpSize * sizeMultiplier;
-        this.height = basePowerUpSize * sizeMultiplier;
+        const powerUpSize = calculatePowerUpSize(this.data);
+        this.width = powerUpSize;
+        this.height = powerUpSize;
         
         // Slower speed for power-ups (easier to collect)
         const speedVariation = 0.6 + Math.random() * 0.8; // Slower than regular items
@@ -283,8 +313,10 @@ export class PowerUpItem {
                 baseHeight = Math.max(baseHeight, minPixelSize);
             }
             
-            // Apply AssetManager scaling constraints to prevent quality degradation
-            if (this.powerUpImage && this.data.image && window.assetManager) {
+            // Apply AssetManager scaling constraints to prevent quality degradation.
+            // Potion assets need a readable mobile size even when their source images are small.
+            const shouldApplyAssetConstraints = !(responsiveScaler.deviceType === 'mobile' && isPotionPowerUp(this.data));
+            if (shouldApplyAssetConstraints && this.powerUpImage && this.data.image && window.assetManager) {
                 const safeSize = window.assetManager.getMaxSafeSize(this.data.image, baseWidth, baseHeight);
                 if (safeSize.wasConstrained) {
                     baseWidth = safeSize.width;
@@ -686,9 +718,8 @@ export class PowerUpItem {
     // Handle window resize with responsive scaling
     repositionOnResize() {
         // Update size based on new scaling with size multiplier
-        const sizeMultiplier = this.data.size_multiplier || 1;
-        const basePowerUpSize = responsiveScaler.getSize('item', 'powerUp');
-        this.width = basePowerUpSize * sizeMultiplier;
-        this.height = basePowerUpSize * sizeMultiplier;
+        const powerUpSize = calculatePowerUpSize(this.data);
+        this.width = powerUpSize;
+        this.height = powerUpSize;
     }
 } 
