@@ -6,25 +6,35 @@ import { powerUpItems } from './data/powerUpItems.js';
 
 import { Player } from './classes/Player.js';
 import { FallingItem } from './classes/FallingItem.js';
-import { DamageProjectile, Fireball } from './classes/DamageProjectile.js';
+import { DamageProjectile } from './classes/DamageProjectile.js';
 import { PowerUpItem } from './classes/PowerUpItem.js';
-import { Particle } from './classes/Particle.js';
-import { CombatText } from './classes/CombatText.js';
 import { Arrow } from './classes/Arrow.js';
 
-import { tryAutoInitAudio, startBackgroundMusic, playUffSound, playScreamSound, playTotalSound, playFireballImpactSound, playDragonstalkerSound, playThunderSound, playItemSound, audioInitialized, sounds } from './systems/audioSystem.js';
+import { tryAutoInitAudio, startBackgroundMusic, playUffSound, playScreamSound, playTotalSound, playFireballImpactSound, audioInitialized, sounds } from './systems/audioSystem.js';
 import { initializeVisibilitySystem, getVisibilitySystemStatus, updateVisibilityConfig } from './systems/visibilitySystem.js';
 import { initializeSettings, loadSettings, saveSettings, resetSettings, getSettings, updateSetting, areSoundEffectsEnabled, isBackgroundMusicEnabled, getVolume, getVolumeDecimal, getMasterVolume, getMusicVolume, getEffectsVolume, getMasterVolumeDecimal, getMusicVolumeDecimal, getEffectsVolumeDecimal, getPlayerPanelStyle, getDragonstalkerPanelStyle, getPanelOpacity, refreshPanelStyles } from './systems/settingsSystem.js';
 import { loadHighScores, addHighScore, isHighScore, displayHighScores, displayHighScoresSync } from './systems/highScoreSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState } from './systems/inputSystem.js';
 // drawSettings removed - now using HTML+CSS guide
 
-import { calculateLevelSpeedMultiplier, isValidYPosition, cleanupRecentDropPositions, calculateDeltaTimeMultiplier, calculateUniversalMultiplier, updateGameStateTimers, addNotification, updateNotifications, responsiveScaler, trackActivity, getLevelProgress, checkDragonstalkerCompletion, checkGameVersion, clearGameCache } from './utils/gameUtils.js';
-import { selectRandomItem, selectRandomProjectile, selectRandomPowerUp, shouldSpawnPowerUp, createCollectionParticles, createImpactParticles, createShadowParticles, calculateProjectileProbability } from './utils/spawning.js';
+import { calculateLevelSpeedMultiplier, isValidYPosition, cleanupRecentDropPositions, calculateDeltaTimeMultiplier, calculateUniversalMultiplier, updateGameStateTimers, addNotification, updateNotifications, responsiveScaler, trackActivity, getLevelProgress, checkGameVersion, clearGameCache } from './utils/gameUtils.js';
+import { selectRandomItem, selectRandomProjectile, selectRandomPowerUp, shouldSpawnPowerUp, calculateProjectileProbability } from './utils/spawning.js';
 import { spellSystem } from './systems/spellSystem.js';
 import { notificationSystem } from './systems/notificationSystem.js';
 import { assetManager } from './utils/AssetManager.js';
 import { getAssetsByLevel, assetRegistry } from './data/assetRegistry.js';
+import { handleIOSAudioSettings } from './utils/platform.js';
+import { showLoadingScreen, updateLoadingProgress, hideLoadingScreen } from './ui/loadingScreen.js';
+import { generateDynamicHelpContent as renderDynamicHelpContent } from './ui/helpContent.js';
+import { updateSpellBar, updateHealthBar } from './ui/statusBars.js';
+import { updateCanvasOverlayVisibility } from './ui/canvasOverlay.js';
+import { getDragonstalkerItemIconData, getShortenedDragonstalkerName } from './utils/dragonstalkerDisplay.js';
+import { addBuff, removeBuff, updateBuffTracker, clearAllBuffs } from './systems/buffTrackerSystem.js';
+import { shouldCrit as calculateShouldCrit, shouldDodge as calculateShouldDodge, showDodgeText as createDodgeText, trackDodge as recordDodge, applyItemStatBonuses as applyItemStatBonusesToState, updateTemporaryStatEffects as updateTemporaryStatEffectsState, getCurrentTotalCritRating as calculateCurrentTotalCritRating, getCurrentTotalDodgeRating as calculateCurrentTotalDodgeRating, getTemporaryStatEffects, clearTemporaryStatEffects } from './systems/statEffectsSystem.js';
+import { updateBulletTime as updateBulletTimeState, renderBulletTimeEffects as renderBulletTimeVisuals } from './systems/bulletTimeSystem.js';
+import { renderFrame, setupHighDPICanvas as setupHighDPICanvasSystem } from './systems/renderSystem.js';
+import { checkCollisions as checkCollisionSystem } from './systems/collisionSystem.js';
+import { clearHudNotifications } from './systems/hudNotificationSystem.js';
 
 // Make AssetManager globally available for quality assessment
 window.assetManager = assetManager;
@@ -348,46 +358,6 @@ async function init() {
     }
 }
 
-// iOS Detection Function
-function isIOS() {
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-}
-
-// Handle iOS-specific audio settings UI
-function handleIOSAudioSettings() {
-    if (isIOS()) {
-        console.log('iOS device detected - adjusting audio settings UI');
-        
-        // Show iOS notice
-        const iosNotice = document.getElementById('iosVolumeNotice');
-        if (iosNotice) {
-            iosNotice.style.display = 'block';
-        }
-        
-        // Hide volume controls and add visual indication
-        const volumeControls = document.getElementById('volumeControls');
-        if (volumeControls) {
-            volumeControls.classList.add('ios-hidden');
-        }
-        
-        // Add iOS-specific message to settings
-        const audioSection = document.querySelector('.settings-section h3');
-        if (audioSection && audioSection.textContent.includes('Audio Settings')) {
-            const iosMessage = document.createElement('div');
-            iosMessage.style.cssText = `
-                color: #ffc107;
-                font-size: 12px;
-                text-align: center;
-                margin-top: 10px;
-                font-style: italic;
-            `;
-            iosMessage.textContent = 'Use device volume buttons to control audio level';
-            audioSection.parentNode.appendChild(iosMessage);
-        }
-    }
-}
-
 // Helper function to hide all UI elements during loading
 function hideAllUIElements() {
     const elements = [
@@ -454,26 +424,13 @@ window.addEventListener('resize', () => {
 
 // Update canvas overlay visibility based on game state
 function updateCanvasOverlay() {
-    const overlay = document.getElementById('canvasOverlay');
-    const gameUI = document.getElementById('gameUI');
-    
-    if (gameState.gameRunning && !gameState.showingPauseMenu) {
-        // Game is running - hide overlay, show game UI
-        overlay.style.display = 'none';
-        if (gameUI) gameUI.style.display = 'block';
-        
-        // Update spell bar and health bar
-        updateSpellBarHTML();
-        updateHealthBarHTML();
-    } else if (gameState.showingPauseMenu || gameState.currentScreen === 'settings' || gameState.currentScreen === 'howToPlay' || gameState.currentScreen === 'highScores') {
-        // Game is paused or showing overlays - show overlay to prevent canvas interaction, hide game UI
-        overlay.style.display = 'block';
-        if (gameUI) gameUI.style.display = 'none';
-    } else {
-        // On menu screens or game over - hide overlay to allow canvas visibility, hide game UI
-        overlay.style.display = 'none';
-        if (gameUI) gameUI.style.display = 'none';
-    }
+    updateCanvasOverlayVisibility({
+        gameState,
+        onGameVisible: () => {
+            updateSpellBar(spellSystem);
+            updateHealthBar(gameState);
+        }
+    });
 }
 
 // Main game loop
@@ -580,170 +537,23 @@ function update(deltaTimeMultiplier, universalMultiplier) {
 
 // Render everything
 function render() {
-    // Ensure consistent image smoothing quality for rotation
-    if (canvas.setupImageSmoothing) {
-        canvas.setupImageSmoothing();
-    }
-    
-    // Clear canvas using logical dimensions
-    ctx.clearRect(0, 0, canvas.logicalWidth, canvas.logicalHeight);
-    
-    if (gameState.gameRunning) {
-        renderGame();
-    } else if (gameState.gameWon) {
-        renderVictory();
-    } else if (gameState.health <= 0) {
-        renderGameOver();
-    } else {
-        // renderHighScores();
-    }
+    renderFrame({
+        ctx,
+        canvas,
+        gameState,
+        responsiveScaler,
+        player,
+        particles,
+        fallingItems,
+        fireballs,
+        powerUps,
+        combatTexts,
+        gameItems,
+        gameVersion: GAME_VERSION,
+        updateDOMItemsPanel,
+        renderBulletTimeEffects
+    });
 }
-
-// Simple implementations for now - these would be expanded
-
-function renderGame() {
-    // Draw movable area border if enabled (now responsive)
-    const movableAreaConfig = responsiveScaler.getMovableAreaConfig();
-    if (movableAreaConfig.enabled && movableAreaConfig.showBorder) {
-        const baseMovableHeight = canvas.logicalHeight * movableAreaConfig.heightPercent;
-        const dodgeExpansion = gameState.dodgeAreaExpansion || 0;
-        const totalMovableHeight = baseMovableHeight + dodgeExpansion;
-        
-        const baseBorderY = canvas.logicalHeight - baseMovableHeight;
-        const expandedBorderY = canvas.logicalHeight - totalMovableHeight;
-        
-        ctx.save();
-        
-        // Draw base movable area border (normal color)
-        ctx.strokeStyle = movableAreaConfig.borderColor;
-        ctx.globalAlpha = movableAreaConfig.borderOpacity;
-        ctx.lineWidth = movableAreaConfig.borderWidth;
-        
-        ctx.beginPath();
-        ctx.moveTo(0, baseBorderY);
-        ctx.lineTo(canvas.logicalWidth, baseBorderY);
-        ctx.stroke();
-        
-        // Draw dodge-expanded area if present
-        if (dodgeExpansion > 0) {
-            // Fill the dodge area with a subtle background
-            ctx.fillStyle = '#00FF88';
-            ctx.globalAlpha = 0.1;
-            ctx.fillRect(0, expandedBorderY, canvas.logicalWidth, dodgeExpansion);
-            
-            // Draw dodge area border (bright green)
-            ctx.strokeStyle = '#00FF88';
-            ctx.globalAlpha = 0.8;
-            ctx.lineWidth = movableAreaConfig.borderWidth + 1;
-            
-            ctx.beginPath();
-            ctx.moveTo(0, expandedBorderY);
-            ctx.lineTo(canvas.logicalWidth, expandedBorderY);
-            ctx.stroke();
-            
-            // Add dodge label
-            ctx.fillStyle = '#00FF88';
-            ctx.globalAlpha = 1.0;
-            ctx.font = 'bold 16px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText(`💨 Dodge Area: +${Math.round(dodgeExpansion)}px`, 10, expandedBorderY - 5);
-        }
-        
-        // Draw side borders for both areas
-        ctx.strokeStyle = movableAreaConfig.borderColor;
-        ctx.globalAlpha = movableAreaConfig.borderOpacity;
-        ctx.lineWidth = movableAreaConfig.borderWidth;
-        
-        ctx.beginPath();
-        ctx.moveTo(0, expandedBorderY);
-        ctx.lineTo(0, canvas.logicalHeight);
-        ctx.moveTo(canvas.logicalWidth, expandedBorderY);
-        ctx.lineTo(canvas.logicalWidth, canvas.logicalHeight);
-        ctx.stroke();
-        
-        ctx.restore();
-    }
-    
-    // Render game elements
-    particles.forEach(particle => particle.draw(ctx));
-    fallingItems.forEach(item => item.draw(ctx, gameConfig));
-    fireballs.forEach(projectile => projectile.draw(ctx));
-    powerUps.forEach(powerUp => powerUp.draw(ctx));
-    window.arrows.forEach(arrow => arrow.draw(ctx));
-    combatTexts.forEach(text => text.draw(ctx));
-    player.draw(ctx, gameState.shieldActive);
-    
-    // Power-up status now handled by HTML+CSS persistent notifications
-    
-    // Update DOM-based items panel (throttled for performance)
-    // Only update every 10 frames to reduce DOM manipulation overhead
-    if (!gameState.domUpdateCounter) gameState.domUpdateCounter = 0;
-    gameState.domUpdateCounter++;
-    if (gameState.domUpdateCounter % 10 === 0) {
-        updateDOMItemsPanel(gameState, gameItems);
-    }
-    
-    // Render bullet time visual effects
-    renderBulletTimeEffects();
-    
-    // Notifications now handled by HTML+CSS notification system
-    
-    // Health bar now rendered via HTML/CSS
-    
-    // Old speed panel removed - replaced by superior Speed Analysis Monitor
-    
-    // Spell UI now rendered via HTML/CSS
-    
-    // Render version number in lower left corner
-    ctx.save();
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-    ctx.font = '14px Arial';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText(`v${GAME_VERSION}`, 10, canvas.logicalHeight - 10);
-    ctx.restore();
-}
-
-function renderGameOver() {
-    ctx.fillStyle = 'white';
-    ctx.font = '48px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('GAME OVER', canvas.logicalWidth/2, canvas.logicalHeight/2 - 50);
-    
-    ctx.font = '24px Arial';
-    ctx.fillText(`Score: ${gameState.score}`, canvas.logicalWidth/2, canvas.logicalHeight/2 + 20);
-
-}
-
-function renderVictory() {
-    ctx.fillStyle = 'gold';
-    ctx.textAlign = 'center';
-    ctx.font = '24px Arial';
-    ctx.fillText(`Score: ${gameState.score}`, canvas.logicalWidth/2, canvas.logicalHeight/2 + 20);
-
-}
-
-// function renderHighScores() {
-//     ctx.fillStyle = 'white';
-//     ctx.font = '36px Arial';
-//     ctx.textAlign = 'center';
-//     ctx.fillText('HIGH SCORES', canvas.logicalWidth/2, 100);
-    
-//     ctx.font = '16px Arial';
-
-// }
-
-
-
-// renderSpellUI function removed - spells now rendered via HTML/CSS
-
-// renderSpeedAnalysisMonitor function removed - no longer needed
-
-// createSpeedMonitor function removed - no longer needed
-
-// updateSpeedMonitor function removed - no longer needed
-
-// hideSpeedMonitor function removed - no longer needed
 
 // Load spell icons
 function loadSpellIcons() {
@@ -936,6 +746,7 @@ function startGame() {
     
     // Clear buffs and arrays
     clearAllBuffs();
+    clearHudNotifications();
     fallingItems = [];
     fireballs = [];
     powerUps = [];
@@ -1138,6 +949,7 @@ function restartGame() {
     
     // Clear buffs and all game objects
     clearAllBuffs();
+    clearHudNotifications();
     fallingItems = [];
     fireballs = [];
     powerUps = [];
@@ -1171,6 +983,7 @@ function restartGame() {
 function showPauseMenu() {
     gameState.showingPauseMenu = true;
     gameState.gameRunning = false;
+    gameState.gamePaused = true;
     
     // Show HTML pause menu instead of canvas-based one
     document.getElementById('pauseMenu').style.display = 'flex';
@@ -1190,6 +1003,7 @@ function showPauseMenu() {
 function hidePauseMenu() {
     gameState.showingPauseMenu = false;
     gameState.gameRunning = true; // Resume the game when hiding pause menu
+    gameState.gamePaused = false;
     
     // Hide HTML pause menu
     document.getElementById('pauseMenu').style.display = 'none';
@@ -1361,630 +1175,23 @@ function updateCombatTexts(deltaTimeMultiplier) {
     combatTexts = combatTexts.filter(text => text.update(deltaTimeMultiplier));
 }
 
-// Special effect for Thunderfury: Auto-collect all falling items on screen
-function triggerThunderfuryEffect(thunderfuryX, thunderfuryY) {
-    let itemsCollected = 0;
-    let totalPoints = 0;
-    
-    // Create lightning effect particles from Thunderfury position
-    for (let i = 0; i < 15; i++) {
-        particles.push(new Particle(thunderfuryX, thunderfuryY, '#FFD700')); // Golden lightning particles
-    }
-    
-    // Auto-collect all remaining falling items (but not power-ups or projectiles)
-    fallingItems = fallingItems.filter(otherItem => {
-        if (otherItem.itemData) {
-            // Create lightning bolt effect from Thunderfury to each item
-            createLightningEffect(thunderfuryX, thunderfuryY, otherItem.x + otherItem.width/2, otherItem.y + otherItem.height/2);
-            
-            // Collect the item
-            otherItem.itemData.collected++;
-            
-            // Trigger items list update
-            onItemCollected(otherItem.itemData);
-            
-            // Apply spell point multipliers
-            const pointMultiplier = spellSystem.getPointMultiplier();
-            const basePoints = otherItem.itemData.value;
-            let finalPoints = Math.round(basePoints * pointMultiplier);
-            
-            // Check for critical hit (include spell crit rating bonus)
-            const critRoll = Math.random();
-            const spellCritBonus = spellSystem.getCritRatingBonus();
-            const totalCritRating = Math.min(gameState.critRating + spellCritBonus, gameState.critRatingCap);
-            const isCrit = critRoll < totalCritRating;
-            
-            if (isCrit) {
-                finalPoints = Math.round(finalPoints * gameState.critMultiplier);
-                
-                // Create crit combat text for Thunderfury auto-collection
-                const critText = new CombatText(
-                    otherItem.x + otherItem.width/2, 
-                    otherItem.y + otherItem.height/2,
-                    `+${finalPoints} CRIT!`,
-                    '#FF6B00', // Orange crit color
-                    true // is crit
-                );
-                combatTexts.push(critText);
-            } else {
-                // Create normal combat text for non-crit
-                const normalText = new CombatText(
-                    otherItem.x + otherItem.width/2, 
-                    otherItem.y + otherItem.height/2,
-                    `+${finalPoints}`,
-                    '#FFD700', // Gold normal color
-                    false // not crit
-                );
-                combatTexts.push(normalText);
-            }
-            
-            gameState.score += finalPoints;
-            totalPoints += finalPoints;
-            
-            gameState.perfectCollections++;
-            itemsCollected++;
-            
-            // Create collection particles at item location
-            createCollectionParticles(otherItem.x + otherItem.width/2, otherItem.y + otherItem.height/2, particles);
-            
-            // Handle tier set items
-            if (otherItem.itemData.type === "tier_set" && otherItem.itemData.collected === 1) {
-                gameState.tierSetCollected++;
-            }
-        }
-        
-        return false; // Remove all items (they were auto-collected)
-    });
-    
-    // Play special thunder sound and show notification
-    playThunderSound();
-    if (itemsCollected > 0) {
-        addNotification(gameState, `⚡ THUNDERFURY: ${itemsCollected} items collected! (+${totalPoints} pts)`, 300, '#FFD700');
-    } else {
-        addNotification(gameState, `⚡ THUNDERFURY: Lightning strikes!`, 180, '#FFD700');
-    }
-}
-
-// Create lightning bolt effect between two points
-function createLightningEffect(startX, startY, endX, endY) {
-    const steps = 8;
-    const stepX = (endX - startX) / steps;
-    const stepY = (endY - startY) / steps;
-    
-    for (let i = 0; i <= steps; i++) {
-        const x = startX + (stepX * i) + (Math.random() - 0.5) * 20;
-        const y = startY + (stepY * i) + (Math.random() - 0.5) * 20;
-        particles.push(new Particle(x, y, '#FFFF00')); // Yellow lightning particles
-    }
-}
-
 function checkCollisions() {
-    // Check item collisions
-    fallingItems.forEach((item, itemIndex) => {
-        if (item.checkCollision && item.checkCollision(player)) {
-            // Update item data and score
-            if (item.itemData) {
-                item.itemData.collected++;
-                
-                // Trigger items list update
-                onItemCollected(item.itemData);
-                
-                // Apply spell point multipliers
-                const pointMultiplier = spellSystem.getPointMultiplier();
-                const basePoints = item.itemData.value;
-                let finalPoints = Math.round(basePoints * pointMultiplier);
-                
-                // Check for critical hit (include spell crit rating bonus)
-                const critRoll = Math.random();
-                const spellCritBonus = spellSystem.getCritRatingBonus();
-                const totalCritRating = Math.min(gameState.critRating + spellCritBonus, gameState.critRatingCap);
-                const isCrit = critRoll < totalCritRating;
-                
-                if (isCrit) {
-                    finalPoints = Math.round(finalPoints * gameState.critMultiplier);
-                    
-                    // Create crit combat text
-                    const critText = new CombatText(
-                        item.x + item.width/2, 
-                        item.y + item.height/2,
-                        `+${finalPoints} CRIT!`,
-                        '#FF6B00', // Orange crit color
-                        true // is crit
-                    );
-                    combatTexts.push(critText);
-                    
-                    // Add crit notification
-                    addNotification(gameState, `💥 CRITICAL HIT! +${finalPoints} points`, 120, '#FF6B00');
-                } else {
-                    // Create normal combat text for non-crit
-                    const normalText = new CombatText(
-                        item.x + item.width/2, 
-                        item.y + item.height/2,
-                        `+${finalPoints}`,
-                        '#FFD700', // Gold normal color
-                        false // not crit
-                    );
-                    combatTexts.push(normalText);
-                }
-                
-                gameState.score += finalPoints;
-                
-                // Show bonus points notification if spell multiplier is active (but not for crits to avoid spam)
-                if (pointMultiplier > 1.0 && !isCrit) {
-                    const bonusPercent = Math.round((pointMultiplier - 1.0) * 100);
-                    addNotification(gameState, `💰 +${bonusPercent}% Points (${finalPoints})`, 120, '#FFD700');
-                }
-                
-                gameState.perfectCollections++;
-                
-                // Track activity for hybrid progression
-                trackActivity(gameState, 'collection', 1);
-                
-                // Create particles
-                createCollectionParticles(item.x + item.width/2, item.y + item.height/2, particles);
-                
-                // Special effect for Thunderfury: Auto-collect all falling items
-                if (item.itemData.id === "ThunderFury") {
-                    triggerThunderfuryEffect(item.x + item.width/2, item.y + item.height/2);
-                }
-                
-                // Apply configurable stat bonuses (crit rating, dodge rating)
-                applyItemStatBonuses(item.itemData);
-                
-                // Play sounds and handle tier set collection
-                if (item.itemData.type === "tier_set") {
-                    playDragonstalkerSound();
-                    
-                    // Debug logging for tier set collection
-                    console.log(`Tier set item collected: ${item.itemData.name} (${item.itemData.id})`);
-                    console.log(`Player celebration method exists:`, !!player.onTierSetCollected);
-                    
-                    // Only increment if this is the first time collecting this specific piece
-                    if (item.itemData.collected === 1) { // collected was incremented above, so 1 means first time
-                        gameState.tierSetCollected++;
-                    }
-                    
-                    // Check if this is an Ashkandi item for special celebration
-                    if (item.itemData.id === "ashjrethul" || item.itemData.id === "ashkandi2") {
-                        // Trigger special sando celebration for Ashkandi items
-                        if (player.onAshkandiCollected) {
-                            console.log(`Triggering sando celebration for: ${item.itemData.name}`);
-                            player.onAshkandiCollected();
-                        }
-                    } else {
-                        // Trigger regular player celebration for other tier set items
-                        if (player.onTierSetCollected) {
-                            console.log(`Triggering celebration for: ${item.itemData.name}`);
-                            player.onTierSetCollected();
-                        }
-                    }
-                    
-                    // Add notification for tier set collection
-                    // Use actual unique count for display
-                    const dragonstalkerItems = gameItems.filter(item => item.type === "tier_set");
-                    const uniquePiecesCollected = dragonstalkerItems.filter(item => item.collected > 0).length;
-                    addNotification(gameState, `🏆 ${item.itemData.name} (${uniquePiecesCollected}/10)`, 240, '#FFD700');
-                    
-                    // Check if Dragonstalker set is complete
-                    const setCompleted = checkDragonstalkerCompletion(gameState, gameItems);
-                    if (setCompleted) {
-                        playTotalSound(); // Play total sound for Dragonstalker completion
-                    }
-                } else {
-                    playItemSound(item.itemData);
-                }
-                
-                // Voice sound now played for specific items only
-                
-                // Total sound now played when Dragonstalker set is completed
-                
-                // Start background music
-                if (gameState.perfectCollections === gameConfig.audio.backgroundMusicStart) {
-                    startBackgroundMusic();
-                }
-            }
-            
-            // Remove collected item
-            fallingItems.splice(itemIndex, 1);
-        }
+    checkCollisionSystem({
+        gameState,
+        player,
+        fallingItems,
+        fireballs,
+        powerUps,
+        particles,
+        combatTexts,
+        gameItems,
+        spellSystem,
+        onItemCollected,
+        applyItemStatBonuses,
+        shouldDodge,
+        showDodgeText,
+        trackDodge
     });
-    
-    // Check projectile collisions
-    fireballs.forEach((projectile, projectileIndex) => {
-        if (projectile.checkCollision && projectile.checkCollision(player)) {
-            // Apply projectile effects
-            if (projectile.data) {
-                if (projectile.data.effects === "speed_increase") {
-                    // Apply speed boost
-                    const increasePercent = projectile.speedIncreasePercent || 20;
-                    gameState.speedIncreaseActive = true;
-                    gameState.speedIncreaseTimer = 600; // 10 seconds
-                    gameState.currentSpeedIncreasePercent += increasePercent;
-                    gameState.speedIncreaseMultiplier = 1 + (gameState.currentSpeedIncreasePercent / 100);
-                    
-                    // Cap at 100%
-                    if (gameState.currentSpeedIncreasePercent > 100) {
-                        gameState.currentSpeedIncreasePercent = 100;
-                        gameState.speedIncreaseMultiplier = 2.0;
-                    }
-                    
-                    // UPDATE EXISTING ITEMS' SPEED - Apply speed boost to all items currently on screen
-                    fallingItems.forEach(item => {
-                        if (item.speed && item.baseSpeed) {
-                            // If item has stored base speed, recalculate from base
-                            item.speed = item.baseSpeed * gameState.speedIncreaseMultiplier;
-                        } else {
-                            // Otherwise, multiply current speed by the boost ratio
-                            const previousMultiplier = 1 + ((gameState.currentSpeedIncreasePercent - increasePercent) / 100);
-                            const boostRatio = gameState.speedIncreaseMultiplier / Math.max(previousMultiplier, 1);
-                            item.speed *= boostRatio;
-                        }
-                    });
-                    
-                    // Update power-up items too
-                    powerUps.forEach(powerUp => {
-                        if (powerUp.speed && powerUp.baseSpeed) {
-                            powerUp.speed = powerUp.baseSpeed * gameState.speedIncreaseMultiplier;
-                        } else {
-                            const previousMultiplier = 1 + ((gameState.currentSpeedIncreasePercent - increasePercent) / 100);
-                            const boostRatio = gameState.speedIncreaseMultiplier / Math.max(previousMultiplier, 1);
-                            powerUp.speed *= boostRatio;
-                        }
-                    });
-                    
-                    // Update projectiles too (they should also be affected by speed boost)
-                    fireballs.forEach(projectile => {
-                        if (projectile.speed && projectile.baseSpeed) {
-                            projectile.speed = projectile.baseSpeed * gameState.speedIncreaseMultiplier;
-                        } else {
-                            const previousMultiplier = 1 + ((gameState.currentSpeedIncreasePercent - increasePercent) / 100);
-                            const boostRatio = gameState.speedIncreaseMultiplier / Math.max(previousMultiplier, 1);
-                            projectile.speed *= boostRatio;
-                        }
-                    });
-                    
-                    // Add notification for speed boost
-                    const totalSpeedPercent = Math.round(gameState.currentSpeedIncreasePercent);
-                    addNotification(gameState, `⚡ Speed Boost +${increasePercent}% (Total: ${totalSpeedPercent}%)`, 180, '#FF0000');
-                } else if (projectile.data.effects === "freeze_time") {
-                    // Apply freeze effect
-                    gameState.freezeTimeActive = true;
-                    gameState.freezeTimeTimer = projectile.freezeDuration || gameConfig.powerUps.freezeTime.duration;
-                    
-                    // Add notification for freeze/shield effect
-                    const freezeSeconds = Math.round((projectile.freezeDuration || gameConfig.powerUps.freezeTime.duration) / 60);
-                    addNotification(gameState, `❄️ All Items Frozen ${freezeSeconds}s`, 120, '#87CEEB');
-                    
-                    // Special case: Frost Nova damages player despite beneficial effect
-                    if (projectile.data.id === "frost_nova" && projectile.data.damage > 0) {
-                        // Check dodge first, then shield
-                        if (shouldDodge()) {
-                            // Player dodged the Frost Nova damage
-                            showDodgeText(player.x + player.width/2, player.y);
-                            trackDodge(projectile.data.damage); // Track HP saved from dodging Frost Nova
-                            addNotification(gameState, `💨 Dodged Frost Nova!`, 120, '#00FF00');
-                        } else if (gameState.shieldActive) {
-                            // Shield blocks the damage (only if dodge failed)
-                            addNotification(gameState, `🛡️ Damage Blocked!`, 120, '#FFD700');
-                        } else {
-                            // Track damage for hybrid progression
-                            trackActivity(gameState, 'damage', projectile.data.damage);
-                            
-                            gameState.health = Math.max(0, gameState.health - projectile.data.damage);
-                            addNotification(gameState, `❄️ Frost Nova -${projectile.data.damage} HP`, 120, '#00BFFF');
-                            
-                            // Trigger player impact reaction
-                            if (player.onHit) {
-                                player.onHit();
-                            }
-                        }
-                    }
-                    
-                    createCollectionParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles);
-                    fireballs.splice(projectileIndex, 1);
-                    return;
-                } else if (projectile.data.effects === "shield") {
-                    // Apply shield effect
-                    gameState.shieldActive = true;
-                    gameState.shieldTimer = projectile.shieldDuration || 300; // Default 5 seconds
-                    
-                    // Add notification for shield effect
-                    const shieldSeconds = Math.round((projectile.shieldDuration || 300) / 60);
-                    addNotification(gameState, `🛡️ Shield Active ${shieldSeconds}s`, 120, '#FFD700');
-                    
-                    // Don't damage player for beneficial projectiles
-                    createCollectionParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles);
-                    fireballs.splice(projectileIndex, 1);
-                    return;
-                } else {
-                    // Handle different types of harmful projectiles
-                    if (projectile.data.effects === "damage_over_time") {
-                        // Shadowbolt - damage over time effect
-                        if (shouldDodge()) {
-                            // Player dodged the shadowbolt
-                            showDodgeText(player.x + player.width/2, player.y);
-                            trackDodge(0); // Track dodge but no immediate HP saved (prevents DOT application)
-                            addNotification(gameState, `💨 Dodged Shadowbolt!`, 120, '#00FF00');
-                        } else if (gameState.shieldActive) {
-                            // Shield blocks shadowbolt application (only if dodge failed)
-                            addNotification(gameState, `🛡️ Shadow Effect Blocked!`, 120, '#FFD700');
-                        } else {
-                            // Add a new shadowbolt DOT using projectile data
-                            if (!gameState.shadowboltDots) {
-                                gameState.shadowboltDots = [];
-                            }
-                            gameState.shadowboltDots.push({
-                                remainingDuration: projectile.data.dotDuration || 300, // Use data or fallback to 5 seconds
-                                appliedAt: Date.now()
-                            });
-                            
-                            // Reset timer to start ticking immediately if this is the first DOT
-                            if (gameState.shadowboltDots.length === 1) {
-                                gameState.shadowboltTimer = gameState.shadowboltTickRate;
-                            }
-                            
-                            // Show shadowbolt application notification
-                            addNotification(gameState, `🌑 Shadowbolt Applied! (${gameState.shadowboltDots.length} stacks)`, 120, '#4B0082');
-                            
-                            // Trigger player impact reaction
-                            if (player.onHit) {
-                                player.onHit();
-                            }
-                        }
-                        
-                        // Create dark shadow particles for shadowbolt
-                        createShadowParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles);
-                    } else {
-                        // Regular harmful projectiles (fireball, frostbolt, etc.)
-                        if (shouldDodge()) {
-                            // Player dodged the projectile
-                            showDodgeText(player.x + player.width/2, player.y);
-                            const damage = projectile.data.damage || 5;
-                            trackDodge(damage); // Track HP saved from dodging projectile
-                            const dodgeMessage = `💨 Dodged ${projectile.data.name || 'Attack'}!`;
-                            addNotification(gameState, dodgeMessage, 120, '#00FF00');
-                            
-                            // Create dodge particles for visual feedback
-                            createCollectionParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles, '#00FF00');
-                        } else if (gameState.shieldActive) {
-                            // Shield blocks the damage (only if dodge failed)
-                            addNotification(gameState, `🛡️ Damage Blocked!`, 120, '#FFD700');
-                            
-                            // Still create particles and play sound for feedback
-                            createCollectionParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles, '#FFD700');
-                        } else {
-                            // Apply immediate damage for harmful projectiles
-                            const damage = projectile.data.damage || 5;
-                            
-                            // Track damage for hybrid progression
-                            trackActivity(gameState, 'damage', damage);
-                            
-                            gameState.health = Math.max(0, gameState.health - damage);
-                            
-                            // Add damage notification
-                            let damageIcon = '💥';
-                            let damageColor = '#FF4500';
-                            if (projectile.data.id === 'frostbolt') {
-                                damageIcon = '❄️';
-                                damageColor = '#00BFFF';
-                            }
-                            addNotification(gameState, `${damageIcon} ${projectile.data.name || 'Damage'} -${damage} HP`, 120, damageColor);
-                            
-                            // Trigger player impact reaction
-                            if (player.onHit) {
-                                player.onHit();
-                            }
-                            
-                            // Create menacing impact particles for harmful projectiles
-                            createImpactParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles, projectile.data);
-                        }
-                    }
-                }
-            }
-            
-            // Play impact sound
-            if (projectile.playImpactSound) {
-                projectile.playImpactSound();
-            }
-            
-            // For beneficial projectiles, still use gentle collection particles
-            if (projectile.data && (projectile.data.effects === "speed_increase" || projectile.data.effects === "freeze_time" || projectile.data.effects === "shield")) {
-                const particleColor = projectile.data.color || '#FFD700';
-                createCollectionParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles, particleColor);
-            }
-            
-            // Remove projectile
-            fireballs.splice(projectileIndex, 1);
-        }
-    });
-    
-    // Check power-up collisions
-    powerUps.forEach((powerUp, powerUpIndex) => {
-        if (powerUp.checkCollision && powerUp.checkCollision(player)) {
-            // Track activity for hybrid progression
-            trackActivity(gameState, 'powerUp', 1);
-            
-            // Apply power-up effect
-            if (powerUp.applyEffect) {
-                powerUp.applyEffect(gameState, {
-                    fallingItems: fallingItems,
-                    powerUps: powerUps,
-                    fireballs: fireballs
-                });
-            }
-            
-            createCollectionParticles(powerUp.x + powerUp.width/2, powerUp.y + powerUp.height/2, particles);
-            powerUps.splice(powerUpIndex, 1);
-        }
-    });
-    
-    // Check arrow collisions (iterate backwards to safely remove items)
-    for (let arrowIndex = window.arrows.length - 1; arrowIndex >= 0; arrowIndex--) {
-        const arrow = window.arrows[arrowIndex];
-        let arrowRemoved = false;
-        
-        // Check arrow vs falling items (collectibles)
-        for (let itemIndex = fallingItems.length - 1; itemIndex >= 0 && !arrowRemoved; itemIndex--) {
-            const item = fallingItems[itemIndex];
-            if (arrow.checkCollision(item)) {
-                // Collect the item with potential crit bonus from multishot
-                if (item.itemData) {
-                    item.itemData.collected++;
-                    
-                    // Trigger items list update
-                    onItemCollected(item.itemData);
-                    
-                    // Apply spell point multipliers
-                    const pointMultiplier = spellSystem.getPointMultiplier();
-                    const basePoints = item.itemData.value;
-                    let finalPoints = Math.round(basePoints * pointMultiplier);
-                    
-                    // Check for critical hit (include spell crit rating bonus and current multishot bonus if active)
-                    const critRoll = Math.random();
-                    const spellCritBonus = spellSystem.getCritRatingBonus();
-                    const arrowCritBonus = arrow.critBonus || 0; // Multishot arrows have +5% crit
-                    const totalCritRating = Math.min(gameState.critRating + spellCritBonus + arrowCritBonus, gameState.critRatingCap);
-                    const isCrit = critRoll < totalCritRating;
-                    
-                    if (isCrit) {
-                        finalPoints = Math.round(finalPoints * gameState.critMultiplier);
-                        
-                        // Create crit combat text
-                        const critText = new CombatText(
-                            item.x + item.width/2, 
-                            item.y + item.height/2,
-                            `+${finalPoints} CRIT!`,
-                            '#FF6B00', // Orange crit color
-                            true // is crit
-                        );
-                        combatTexts.push(critText);
-                    } else {
-                        // Create normal combat text for non-crit
-                        const normalText = new CombatText(
-                            item.x + item.width/2, 
-                            item.y + item.height/2,
-                            `+${finalPoints}`,
-                            '#FFD700', // Gold normal color
-                            false // not crit
-                        );
-                        combatTexts.push(normalText);
-                    }
-                    
-                    gameState.score += finalPoints;
-                    gameState.perfectCollections++;
-                    
-                    // Track activity for hybrid progression
-                    trackActivity(gameState, 'collection', 1);
-                    
-                    // Create collection particles
-                    createCollectionParticles(item.x + item.width/2, item.y + item.height/2, particles);
-                    
-                    // Handle special item effects (Thunderfury, tier sets, etc.)
-                    if (item.itemData.id === "ThunderFury") {
-                        triggerThunderfuryEffect(item.x + item.width/2, item.y + item.height/2);
-                    }
-                    
-                    // Apply configurable stat bonuses (crit rating, dodge rating)
-                    applyItemStatBonuses(item.itemData);
-                    
-                    // Handle tier set items
-                    if (item.itemData.type === "tier_set") {
-                        playDragonstalkerSound();
-                        
-                        // Only increment if this is the first time collecting this specific piece
-                        if (item.itemData.collected === 1) {
-                            gameState.tierSetCollected++;
-                        }
-                        
-                        // Check if this is an Ashkandi item for special celebration
-                        if (item.itemData.id === "ashjrethul" || item.itemData.id === "ashkandi2") {
-                            if (player.onAshkandiCollected) {
-                                player.onAshkandiCollected();
-                            }
-                        } else {
-                            if (player.onTierSetCollected) {
-                                player.onTierSetCollected();
-                            }
-                        }
-                        
-                        // Add notification for tier set collection
-                        const dragonstalkerItems = gameItems.filter(item => item.type === "tier_set");
-                        const uniquePiecesCollected = dragonstalkerItems.filter(item => item.collected > 0).length;
-                        addNotification(gameState, `🏹 ${item.itemData.name} (${uniquePiecesCollected}/10)`, 240, '#FFD700');
-                        
-                        // Check if Dragonstalker set is complete
-                        const setCompleted = checkDragonstalkerCompletion(gameState, gameItems);
-                        if (setCompleted) {
-                            playTotalSound();
-                        }
-                    } else {
-                        playItemSound(item.itemData);
-                    }
-                }
-                
-                // Create arrow impact particles
-                arrow.createImpactParticles(particles);
-                
-                // Remove both arrow and item
-                fallingItems.splice(itemIndex, 1);
-                window.arrows.splice(arrowIndex, 1);
-                arrowRemoved = true; // Mark arrow as removed
-                break; // Exit item loop
-            }
-        }
-        
-        // Only check other collisions if arrow still exists
-        if (!arrowRemoved && window.arrows[arrowIndex]) {
-            // Check arrow vs projectiles (destroy them)
-            for (let projectileIndex = fireballs.length - 1; projectileIndex >= 0 && !arrowRemoved; projectileIndex--) {
-                const projectile = fireballs[projectileIndex];
-                if (arrow.checkCollision(projectile)) {
-                    // Create impact particles for destroyed projectile
-                    arrow.createImpactParticles(particles);
-                    createImpactParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles, projectile.data);
-                    
-                    // If it's a beneficial projectile, apply its effect
-                    if (projectile.data && (projectile.data.effects === "speed_increase" || projectile.data.effects === "freeze_time" || projectile.data.effects === "shield")) {
-                        // Apply beneficial projectile effects
-                        if (projectile.data.effects === "speed_increase") {
-                            const increasePercent = projectile.speedIncreasePercent || 20;
-                            gameState.speedIncreaseActive = true;
-                            gameState.speedIncreaseTimer = 600; // 10 seconds
-                            gameState.currentSpeedIncreasePercent += increasePercent;
-                            gameState.speedIncreaseMultiplier = 1 + (gameState.currentSpeedIncreasePercent / 100);
-                            
-                            // Cap at 100%
-                            if (gameState.currentSpeedIncreasePercent > 100) {
-                                gameState.currentSpeedIncreasePercent = 100;
-                                gameState.speedIncreaseMultiplier = 2.0;
-                            }
-                            
-                            addNotification(gameState, `🏹⚡ Arrow Speed Boost +${increasePercent}%`, 180, '#FFD700');
-                        } else if (projectile.data.effects === "freeze_time") {
-                            gameState.freezeTimeActive = true;
-                            gameState.freezeTimeTimer = 600; // 10 seconds
-                            
-                            addNotification(gameState, `🏹❄️ Arrow Freeze All Items!`, 180, '#87CEEB');
-                        } else if (projectile.data.effects === "shield") {
-                            gameState.shieldActive = true;
-                            gameState.shieldTimer = 600; // 10 seconds
-                            
-                            addNotification(gameState, `🏹🛡️ Arrow Shield!`, 180, '#FFD700');
-                        }
-                    } else {
-                        // Add notification for destroying harmful projectile
-                        addNotification(gameState, `🏹💥 Projectile Destroyed!`, 120, '#FFD700');
-                    }
-                    
-                    // Remove both arrow and projectile
-                    fireballs.splice(projectileIndex, 1);
-                    window.arrows.splice(arrowIndex, 1);
-                    arrowRemoved = true; // Mark arrow as removed
-                    break; // Exit projectile loop
-                }
-            }
-        }
-    }
 }
 
 function checkGameEndConditions() {
@@ -2021,111 +1228,6 @@ function checkGameEndConditions() {
 document.addEventListener('DOMContentLoaded', init);
 
 // ===== UI NAVIGATION FUNCTIONS =====
-
-// Loading screen functions
-function showLoadingScreen() {
-    // Create loading screen if it doesn't exist
-    let loadingScreen = document.getElementById('loadingScreen');
-    if (!loadingScreen) {
-        loadingScreen = document.createElement('div');
-        loadingScreen.id = 'loadingScreen';
-        loadingScreen.innerHTML = `
-            <div class="loading-content">
-                <h2>Loading DMTribut...</h2>
-                <div class="loading-bar">
-                    <div class="loading-progress" id="loadingProgress"></div>
-                </div>
-                <p id="loadingText">Loading critical assets...</p>
-            </div>
-        `;
-        document.body.appendChild(loadingScreen);
-        
-        // Add CSS styles
-        const style = document.createElement('style');
-        style.textContent = `
-            #loadingScreen {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.95);
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                z-index: 1000;
-                color: white;
-                font-family: Arial, sans-serif;
-            }
-            .loading-content {
-                text-align: center;
-                max-width: 400px;
-                padding: 40px;
-            }
-            .loading-content h2 {
-                color: #4ECDC4;
-                margin-bottom: 30px;
-                font-size: 28px;
-            }
-            .loading-bar {
-                width: 100%;
-                height: 8px;
-                background: rgba(255, 255, 255, 0.2);
-                border-radius: 4px;
-                overflow: hidden;
-                margin: 20px 0;
-            }
-            .loading-progress {
-                height: 100%;
-                background: linear-gradient(90deg, #4ECDC4, #26d0ce);
-                width: 0%;
-                transition: width 0.3s ease;
-            }
-            #loadingText {
-                color: #ccc;
-                font-size: 14px;
-                margin-top: 15px;
-            }
-        `;
-        document.head.appendChild(style);
-    }
-    loadingScreen.style.display = 'flex';
-}
-
-function updateLoadingProgress(progress) {
-    const progressBar = document.getElementById('loadingProgress');
-    const loadingText = document.getElementById('loadingText');
-    
-    if (progressBar) {
-        progressBar.style.width = `${progress * 100}%`;
-    }
-    
-    if (loadingText) {
-        const percentage = Math.round(progress * 100);
-        
-        // Show descriptive loading messages based on progress
-        if (percentage < 70) {
-            loadingText.textContent = `Loading critical assets... ${percentage}%`;
-        } else if (percentage < 80) {
-            loadingText.textContent = `Initializing player systems... ${percentage}%`;
-        } else if (percentage < 90) {
-            loadingText.textContent = `Setting up game systems... ${percentage}%`;
-        } else if (percentage < 95) {
-            loadingText.textContent = `Preparing user interface... ${percentage}%`;
-        } else if (percentage < 100) {
-            loadingText.textContent = `Finalizing initialization... ${percentage}%`;
-        } else {
-            loadingText.textContent = 'Ready to play!';
-        }
-    }
-}
-
-function hideLoadingScreen() {
-    const loadingScreen = document.getElementById('loadingScreen');
-    if (loadingScreen) {
-        loadingScreen.style.display = 'none';
-    }
-}
 
 // Show main menu (unified pause menu with name entry content)
 function showNameEntry() {
@@ -2286,134 +1388,9 @@ function showHowToPlay(fromPause = false) {
 
 // ===== DYNAMIC HELP CONTENT GENERATION =====
 
-// Configuration for Dragonstalker set completion bonuses
-// These values should match the constants in utils/gameUtils.js checkDragonstalkerCompletion()
-const DRAGONSTALKER_BONUSES = {
-    critRatingIncrease: 0.08,    // 8% crit rating per completion
-    dodgeRatingIncrease: 0.01    // 1% dodge rating per completion
-};
-
 // Generate dynamic help content based on actual game data and config
 function generateDynamicHelpContent() {
-    generateCritSystemContent();
-    generateDodgeSystemContent();
-    generateArrowSystemContent();
-}
-
-// Generate Critical Hit System content dynamically
-function generateCritSystemContent() {
-    const container = document.getElementById('critSystemContent');
-    if (!container) return;
-    
-    const baseCritPercent = Math.round(gameState.baseCritRating * 100);
-    const maxCritPercent = Math.round(gameState.critRatingCap * 100);
-    const critMultiplier = gameState.critMultiplier;
-    
-    // Read Dragonstalker completion bonus from configuration
-    const dragonstalkerCritBonus = Math.round(DRAGONSTALKER_BONUSES.critRatingIncrease * 100);
-    
-    let content = `
-        <p>• ${baseCritPercent}% base chance to ${critMultiplier}x points from any item</p>
-        <p>• Complete Dragonstalker sets: +${dragonstalkerCritBonus}% crit chance each</p>
-    `;
-    
-    // Add item-based crit bonuses dynamically
-    const critItems = gameItems.filter(item => item.crit_rating_bonus > 0);
-    if (critItems.length > 0) {
-        // Sort items by type for better organization
-        const sortedCritItems = critItems.sort((a, b) => {
-            const typeOrder = { zee_zgnan: 5, legendary: 4, special: 3, epic: 2, tier_set: 1, regular: 0 };
-            const aPriority = typeOrder[a.type] || 0;
-            const bPriority = typeOrder[b.type] || 0;
-            if (aPriority !== bPriority) return bPriority - aPriority;
-            return a.name.localeCompare(b.name);
-        });
-        
-        sortedCritItems.forEach(item => {
-            const bonusPercent = Math.round(item.crit_rating_bonus * 100);
-            const effectType = item.effect_type === 'permanent' ? 'permanent' : 
-                              `temporary (${Math.round((item.effect_duration || 600) / 60)}s)`;
-            content += `<p>• ${item.name}: +${bonusPercent}% ${effectType} crit chance</p>`;
-        });
-    }
-    
-    // Add spell-based bonuses (Dragon Cry is hardcoded for now)
-    content += `<p>• Dragon Cry spell: +5% crit chance for 10 seconds</p>`;
-    
-    content += `<p>• <strong>Maximum crit chance: ${maxCritPercent}%</strong></p>`;
-    
-    container.innerHTML = content;
-}
-
-// Generate Dodge Rating System content dynamically  
-function generateDodgeSystemContent() {
-    const container = document.getElementById('dodgeSystemContent');
-    if (!container) return;
-    
-    const baseDodgePercent = Math.round(gameState.baseDodgeRating * 100);
-    const maxDodgePercent = Math.round(gameState.dodgeRatingCap * 100);
-    
-    // Read Dragonstalker completion bonus from configuration
-    const dragonstalkerDodgeBonus = Math.round(DRAGONSTALKER_BONUSES.dodgeRatingIncrease * 100);
-    
-    let content = `
-        <p>• ${baseDodgePercent}% base chance to avoid damage from projectiles and item misses</p>
-        <p>• Complete Dragonstalker sets: +${dragonstalkerDodgeBonus}% dodge chance each</p>
-    `;
-    
-    // Add item-based dodge bonuses dynamically
-    const dodgeItems = gameItems.filter(item => item.dodge_rating_bonus > 0);
-    if (dodgeItems.length > 0) {
-        // Sort items by type for better organization
-        const sortedDodgeItems = dodgeItems.sort((a, b) => {
-            const typeOrder = { zee_zgnan: 5, legendary: 4, special: 3, epic: 2, tier_set: 1, regular: 0 };
-            const aPriority = typeOrder[a.type] || 0;
-            const bPriority = typeOrder[b.type] || 0;
-            if (aPriority !== bPriority) return bPriority - aPriority;
-            return a.name.localeCompare(b.name);
-        });
-        
-        sortedDodgeItems.forEach(item => {
-            const bonusPercent = Math.round(item.dodge_rating_bonus * 100);
-            const effectType = item.effect_type === 'permanent' ? 'permanent' : 
-                              `temporary (${Math.round((item.effect_duration || 600) / 60)}s)`;
-            content += `<p>• ${item.name}: +${bonusPercent}% ${effectType} dodge chance</p>`;
-        });
-    }
-    
-    // Add hardcoded spell/power-up bonuses that aren't easily discoverable
-    content += `
-        <p>• Zandalari spell: +5% dodge chance for 15s after spell expires</p>
-        <p>• Aspect of the Monkey power-up: +3% dodge chance for 15 seconds</p>
-        <p>• Evasion power-up: +1% permanent dodge chance</p>
-        <p>• <strong>Area Expansion:</strong> Each HP saved from dodges expands your movable area by 1 pixel</p>
-        <p>• Dodge is checked BEFORE Power Word Shield</p>
-        <p>• Dodge does NOT prevent DOT damage ticks</p>
-        <p>• <strong>Maximum dodge chance: ${maxDodgePercent}%</strong></p>
-    `;
-    
-    container.innerHTML = content;
-}
-
-// Generate Arrow Combat System content dynamically
-function generateArrowSystemContent() {
-    const container = document.getElementById('arrowSystemContent');
-    if (!container) return;
-    
-    const startingArrows = gameState.arrowCount || 20; // Default starting arrows
-    
-    let content = `
-        <p>• <strong>Starting Arrows:</strong> Begin with ${startingArrows} arrows</p>
-        <p>• <strong>Arrow Power-ups:</strong> Bronze (+25), Silver (+50), Thorium (+100)</p>
-        <p>• <strong>Autoshot (E):</strong> Fires 1 arrow straight up (0.5s cooldown, uses 1 arrow)</p>
-        <p>• <strong>Multishot (R):</strong> Fires 5 arrows in wide spread with +5% crit (0.5s cooldown, uses 5 arrows)</p>
-        <p>• Arrows collect items on contact (same as player collision)</p>
-        <p>• Arrows destroy harmful projectiles and gain beneficial effects</p>
-        <p>• Multishot arrows have increased crit chance for collected items</p>
-        <p>• Arrow power-ups display the amount they add below the icon</p>
-    `;
-    
-    container.innerHTML = content;
+    renderDynamicHelpContent(gameState, gameItems);
 }
 
 // Show items/settings screen from menu
@@ -2851,6 +1828,7 @@ function setupUIEventHandlers() {
             // Hide menu and continue the paused game
             document.getElementById('pauseMenu').style.display = 'none';
             gameState.gameRunning = true;
+            gameState.gamePaused = false;
             gameState.currentScreen = 'game';
             updateCanvasOverlay();
             updateMobilePauseButtonVisibility();
@@ -2955,6 +1933,7 @@ function setupUIEventHandlers() {
         continuePauseBtn.addEventListener('click', function() {
             hidePauseMenu();
             gameState.gameRunning = true;
+            gameState.gamePaused = false;
             gameState.currentScreen = 'game';
             updateMobilePauseButtonVisibility();
         });
@@ -3139,6 +2118,7 @@ function updatePermanentBonusesTab() {
 function updateTemporaryBonusesTab() {
     const container = document.getElementById('temporaryBonusesList');
     const noItemsMsg = document.getElementById('noTemporaryBonuses');
+    const temporaryStatEffects = getTemporaryStatEffects();
     
     // Get active temporary effects
     const hasTempEffects = temporaryStatEffects.critRatingEffects.length > 0 || 
@@ -3526,7 +2506,7 @@ function createMobileIntegratedLayout(gameState, gameItems) {
     updatePlayerStats(gameState);
     
     // Update health bar specifically for integrated layout
-    updateHealthBarHTML();
+    updateHealthBar(gameState);
 }
 
 // Update values in existing mobile integrated layout
@@ -3696,6 +2676,7 @@ function updatePlayerStats(gameState) {
     
     // Update crit rating display
     if (critRating) {
+        const temporaryStatEffects = getTemporaryStatEffects();
         const baseCritPercent = Math.round(gameState.baseCritRating * 100);
         const permanentCritPercent = Math.round(gameState.critRating * 100);
         const spellCritBonus = spellSystem.getCritRatingBonus();
@@ -3767,6 +2748,7 @@ function updatePlayerStats(gameState) {
     
     // Update dodge rating display
     if (dodgeRating) {
+        const temporaryStatEffects = getTemporaryStatEffects();
         const baseDodgePercent = Math.round(gameState.baseDodgeRating * 100);
         const permanentDodgePercent = Math.round(gameState.dodgeRating * 100);
         const spellDodgeBonus = spellSystem.getDodgeRatingBonus ? spellSystem.getDodgeRatingBonus() : 0;
@@ -4025,42 +3007,6 @@ function updateItemsList(sortedItems) {
     }
 }
 
-// Helper function to get Dragonstalker item icons for mobile display
-function getDragonstalkerItemIcon(itemId) {
-    const iconMap = {
-        'ds_helm': '⛑️',      // Helm
-        'ds_shoulders': '👔',  // Shoulders/Spaulders
-        'ds_chest': '🛡️',     // Chest/Breastplate
-        'ds_bracers': '🔗',   // Bracers
-        'ds_gloves': '🧤',    // Gloves/Gauntlets
-        'ds_belt': '🎀',      // Belt
-        'ds_legs': '👖',      // Legs/Legguards
-        'ds_boots': '👢',     // Boots/Greaves
-        'ashjrethul': '🏹',   // Crossbow
-        'ashkandi2': '⚔️'     // Sword
-    };
-    
-    return iconMap[itemId] || '🛡️'; // Default to shield icon
-}
-
-// Helper function to get shortened Dragonstalker item names for mobile display
-function getShortenedDragonstalkerName(itemId, originalName) {
-    const shortNameMap = {
-        'ds_helm': 'Head',
-        'ds_shoulders': 'Shoulders', 
-        'ds_chest': 'Chest',
-        'ds_bracers': 'Bracers',
-        'ds_gloves': 'Hands',
-        'ds_belt': 'Belt',
-        'ds_legs': 'Legs',
-        'ds_boots': 'Boots',
-        'ashjrethul': 'Crossbow',
-        'ashkandi2': 'Weapon'
-    };
-    
-    return shortNameMap[itemId] || originalName;
-}
-
 // Cache for tracking changes to avoid unnecessary DOM updates
 let dragonstalkerCache = {
     lastUpdate: 0,
@@ -4151,11 +3097,8 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
         return;
     }
     
-    // Update panel styling based on status
-    panel.className = '';
-    if (gameState.gameWon) {
-        panel.classList.add('victory');
-    }
+    // Update panel styling based on status without wiping responsive/settings classes.
+    panel.classList.toggle('victory', Boolean(gameState.gameWon));
     
     // Update progress bar
     const progressFill = document.getElementById('dragonstalkerProgressFill');
@@ -4289,21 +3232,25 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
             
             // Only update if something actually changed or if this is initial load
             if (collectedChanged || missedChanged || statusChanged || nameChanged || !itemDiv.innerHTML) {
-                const itemIcon = getDragonstalkerItemIcon(item.id);
-                itemDiv.setAttribute('data-icon', itemIcon);
+                const itemIcon = getDragonstalkerItemIconData(item);
+                itemDiv.className = `dragonstalker-item ${statusClass}`;
                 
                 // Create layouts for mobile vs desktop (both show icons now)
                 if (isCompactView) {
                     // Mobile: Compact layout with icon and status overlay
                     itemDiv.innerHTML = `
-                        <div class="dragonstalker-item-icon">${itemIcon}</div>
+                        <div class="dragonstalker-item-icon">
+                            <img src="${itemIcon.src}" alt="${itemIcon.alt}" title="${itemIcon.alt}">
+                        </div>
                         <div class="dragonstalker-item-status ${statusClass}">${status}</div>
                         <div class="dragonstalker-item-name ${nameClass}">${displayName}</div>
                     `;
                 } else {
                     // Desktop: Traditional layout with icons
                     itemDiv.innerHTML = `
-                        <div class="dragonstalker-item-icon">${itemIcon}</div>
+                        <div class="dragonstalker-item-icon">
+                            <img src="${itemIcon.src}" alt="${itemIcon.alt}" title="${itemIcon.alt}">
+                        </div>
                         <div class="dragonstalker-item-status ${statusClass}">${status}</div>
                         <div class="dragonstalker-item-name ${nameClass}">${displayName}</div>
                     `;
@@ -4454,86 +3401,6 @@ function preloadLevelAssets(level) {
     }
 }
 
-// Update HTML-based spell bar
-function updateSpellBarHTML() {
-    const currentTime = Date.now();
-    
-    const spells = [
-        { id: 'dragon_cry', elementId: 'spell-dragon-cry' },
-        { id: 'zandalari', elementId: 'spell-zandalari' },
-        { id: 'flask_of_titans', elementId: 'spell-flask-of-titans' },
-        { id: 'autoshot', elementId: 'spell-autoshot' },
-        { id: 'multishot', elementId: 'spell-multishot' }
-    ];
-    
-    spells.forEach(spell => {
-        const element = document.getElementById(spell.elementId);
-        const timerElement = document.getElementById(`${spell.elementId}-timer`);
-        const cooldownOverlay = document.getElementById(`${spell.elementId}-cooldown`);
-        
-        if (!element || !timerElement || !cooldownOverlay) return;
-        
-        const cooldownRemaining = spellSystem.getCooldownRemaining(spell.id, currentTime);
-        const durationRemaining = spellSystem.getDurationRemaining(spell.id, currentTime);
-        const isActive = spellSystem.isSpellActive(spell.id);
-        const isOnCooldown = cooldownRemaining > 0;
-        
-        // Update spell slot classes
-        element.className = 'spell-slot';
-        if (isActive) {
-            element.classList.add('active');
-        } else if (isOnCooldown) {
-            element.classList.add('cooldown');
-        }
-        
-        // Update timer display
-        if (isActive && durationRemaining > 0) {
-            timerElement.textContent = `${durationRemaining}s`;
-            timerElement.className = 'spell-timer active';
-        } else if (isOnCooldown) {
-            timerElement.textContent = `${cooldownRemaining}s`;
-            timerElement.className = 'spell-timer cooldown';
-        } else {
-            timerElement.textContent = '';
-            timerElement.className = 'spell-timer';
-        }
-        
-        // Update cooldown overlay
-        if (isOnCooldown) {
-            cooldownOverlay.classList.add('active');
-        } else {
-            cooldownOverlay.classList.remove('active');
-        }
-    });
-}
-
-// Update HTML-based health bar
-function updateHealthBarHTML() {
-    const healthFill = document.getElementById('healthFill');
-    const healthText = document.getElementById('healthText');
-    
-    if (!healthFill || !healthText) return;
-    
-    const healthPercentage = Math.max(0, gameState.health / gameState.maxHealth);
-    const healthPercent = Math.ceil(healthPercentage * 100);
-    
-    // Update health fill width
-    healthFill.style.width = `${healthPercentage * 100}%`;
-    
-    // Update health fill color based on health level
-    healthFill.className = 'health-fill';
-    if (healthPercentage <= 0.25) {
-        healthFill.classList.add('low');
-    } else if (healthPercentage <= 0.6) {
-        healthFill.classList.add('medium');
-    } else {
-        healthFill.classList.add('high');
-    }
-    
-    // Update health text
-    healthText.textContent = `${healthPercent}%`;
-}
-
 // Make global functions available for HTML onclick handlers
 window.showSettings = showSettings;
 window.closeSettings = closeSettings;
@@ -4566,338 +3433,12 @@ console.log('💡 Type checkDisplayQuality() in console to check your current di
 
 // High-DPI canvas setup function with device-specific dimensions and playable-area scaling
 function setupHighDPICanvas() {
-    // Get current viewport dimensions
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    
-    // Get device-specific canvas dimensions from ResponsiveScaler
-    const deviceCanvasDimensions = responsiveScaler.getCanvasDimensionsForDevice();
-    const playableArea = responsiveScaler.getPlayableAreaDimensions();
-    
-    // Select canvas dimensions based on device type
-    const targetWidth = deviceCanvasDimensions.width;
-    const targetHeight = deviceCanvasDimensions.height;
-    const targetAspectRatio = deviceCanvasDimensions.aspectRatio;
-    
-    console.log(`🎮 Setting up canvas for ${responsiveScaler.deviceType}:
-        Canvas: ${targetWidth}x${targetHeight} (${targetAspectRatio.toFixed(2)} aspect ratio)
-        Playable Area: ${playableArea.width}x${playableArea.height}
-        Viewport: ${viewportWidth}x${viewportHeight}`);
-    
-    // Store current device type and mode for other systems to access
-    canvas.deviceType = responsiveScaler.deviceType;
-    canvas.isPortraitMode = responsiveScaler.deviceType === 'mobile'; // Mobile uses portrait-style canvas
-    
-    // Calculate scaling to fit the canvas in the viewport while maintaining aspect ratio
-    // IMPORTANT: Never exceed the target dimensions (1440x810 max)
-    let displayWidth, displayHeight;
-    let scaleX, scaleY, scale;
-    
-    if (gameConfig.canvas.scaling.enabled && gameConfig.canvas.scaling.scaleToFit) {
-        // Calculate the scale needed to fit the canvas in the viewport
-        scaleX = viewportWidth / targetWidth;
-        scaleY = viewportHeight / targetHeight;
-        
-        if (gameConfig.canvas.scaling.maintainAspectRatio) {
-            // Use the smaller scale to ensure the entire canvas fits
-            scale = Math.min(scaleX, scaleY);
-            
-            // CRITICAL: Never scale above 1.0 to maintain exact target dimensions
-            // This ensures we never exceed 1440x810 pixels
-            scale = Math.min(scale, 1.0);
-            
-            displayWidth = targetWidth * scale;
-            displayHeight = targetHeight * scale;
-        } else {
-            // Stretch to fill (not recommended for games)
-            scale = Math.min(scaleX, scaleY, 1.0);
-            displayWidth = Math.min(viewportWidth, targetWidth);
-            displayHeight = Math.min(viewportHeight, targetHeight);
-        }
-    } else {
-        // Use fixed dimensions without scaling
-        displayWidth = targetWidth;
-        displayHeight = targetHeight;
-        scale = 1;
-    }
-    
-    // Set up high-DPI support
-    let pixelRatio = 1;
-    if (gameConfig.canvas.highDPI.enabled) {
-        pixelRatio = gameConfig.canvas.highDPI.autoDetect ? 
-            (window.devicePixelRatio || 1) : 1;
-        
-        // Limit pixel ratio to prevent performance issues
-        if (gameConfig.canvas.highDPI.maxPixelRatio) {
-            pixelRatio = Math.min(pixelRatio, gameConfig.canvas.highDPI.maxPixelRatio);
-        }
-    }
-    
-    // Set canvas dimensions
-    // Internal resolution (what the game logic sees)
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-    
-    // Display size (how big it appears on screen)
-    canvas.style.width = displayWidth + 'px';
-    canvas.style.height = displayHeight + 'px';
-    
-    // Handle positioning - mobile-optimized for touch devices
-    if (gameConfig.canvas.scaling.centerCanvas) {
-        const deviceDimensions = responsiveScaler.getCanvasDimensionsForDevice();
-        const isMobilePortrait = responsiveScaler.deviceType === 'mobile' && 
-                                responsiveScaler.orientation === 'portrait' &&
-                                deviceDimensions.positioning?.useCustomPositioning;
-        
-        let leftOffset, topOffset;
-        
-        if (isMobilePortrait) {
-            // Mobile portrait: Horizontal center, positioned between combined panel and spell buttons
-            leftOffset = deviceDimensions.positioning.centerHorizontally ? 
-                (viewportWidth - displayWidth) / 2 : 0;
-            
-            // Calculate positioning between top panel and bottom spell buttons
-            const topOffset_setting = deviceDimensions.positioning.topOffset || 90; // Below combined panel
-            const bottomOffset = deviceDimensions.positioning.bottomOffset || 100; // Above spell buttons
-            
-            // Calculate available space for canvas
-            const availableHeight = viewportHeight - topOffset_setting - bottomOffset;
-            
-            // Center canvas in available space or position at top offset if it doesn't fit
-            if (displayHeight <= availableHeight) {
-                // Canvas fits - center it in available space
-                const extraSpace = availableHeight - displayHeight;
-                topOffset = topOffset_setting + (extraSpace / 2);
-            } else {
-                // Canvas too tall - position at minimum top offset
-                topOffset = topOffset_setting;
-            }
-            
-            // Ensure we don't go above the panel or below the buttons
-            topOffset = Math.max(topOffset_setting, Math.min(topOffset, viewportHeight - displayHeight - bottomOffset));
-            
-            console.log(`📱 Mobile Portrait Canvas Positioning:
-                Canvas: ${displayWidth}x${displayHeight}
-                Viewport: ${viewportWidth}x${viewportHeight}  
-                Position: left=${leftOffset}px, top=${topOffset}px
-                Top offset: ${topOffset_setting}px, Bottom offset: ${bottomOffset}px
-                Available space: ${availableHeight}px`);
-        } else {
-            // Desktop/landscape: Standard centering
-            leftOffset = (viewportWidth - displayWidth) / 2;
-            topOffset = (viewportHeight - displayHeight) / 2;
-        }
-        
-        canvas.style.position = 'fixed';
-        canvas.style.left = leftOffset + 'px';
-        canvas.style.top = topOffset + 'px';
-        
-        // Update CSS custom properties for letterboxing
-        document.documentElement.style.setProperty('--letterbox-left', leftOffset + 'px');
-        document.documentElement.style.setProperty('--letterbox-top', topOffset + 'px');
-        document.documentElement.style.setProperty('--letterbox-width', displayWidth + 'px');
-        document.documentElement.style.setProperty('--letterbox-height', displayHeight + 'px');
-    }
-    
-    // Apply high-DPI scaling to canvas context
-    if (pixelRatio > 1) {
-        const actualWidth = canvas.width * pixelRatio;
-        const actualHeight = canvas.height * pixelRatio;
-        
-        // Set the actual canvas size in memory
-        canvas.width = actualWidth;
-        canvas.height = actualHeight;
-        
-        // Scale the context back down
-        ctx.scale(pixelRatio, pixelRatio);
-        
-        // Set the display size back to what we want
-        canvas.style.width = displayWidth + 'px';
-        canvas.style.height = displayHeight + 'px';
-    }
-    
-    // Optimize image rendering quality for rotation and scaling
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    
-    // Additional settings to prevent visual tearing during rotation
-    if (ctx.textRenderingOptimizeSpeed !== undefined) {
-        ctx.textRenderingOptimizeSpeed = false; // Prioritize quality over speed
-    }
-    
-    // Store the enhanced image smoothing function for use during rendering
-    canvas.setupImageSmoothing = function() {
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-    };
-    
-    // Ensure image smoothing is maintained throughout the game loop
-    canvas.setupImageSmoothing();
-    
-    // Store important values for game logic
-    canvas.dpr = pixelRatio;
-    canvas.logicalWidth = targetWidth;
-    canvas.logicalHeight = targetHeight;
-    canvas.displayWidth = displayWidth;
-    canvas.displayHeight = displayHeight;
-    canvas.scale = scale;
-    
-    // Update body background for letterboxing
-    if (gameConfig.canvas.scaling.enabled) {
-        document.body.style.backgroundColor = gameConfig.canvas.scaling.letterboxColor;
-    }
-    
-    console.log(`👑 Playable-Area-Based Canvas Setup Complete:
-        Device: ${responsiveScaler.deviceType}
-        Logical: ${targetWidth}x${targetHeight}
-        Display: ${displayWidth}x${displayHeight} 
-        Scale: ${scale.toFixed(2)}x
-        DPR: ${pixelRatio}
-        Viewport: ${viewportWidth}x${viewportHeight}
-        Playable Area: ${playableArea.width}x${playableArea.height}
-        Item Scale: ${responsiveScaler.uniformScale.toFixed(2)}x
-        
-`);
-    
-    // Debug info for letterboxing
-    if (gameConfig.canvas.scaling.showLetterboxInfo) {
-        const viewportAspectRatio = viewportWidth / viewportHeight;
-        console.log(`Letterbox Info:
-            Viewport AR: ${viewportAspectRatio.toFixed(2)}
-            Target AR: ${targetAspectRatio.toFixed(2)}
-            Letterbox: ${Math.abs(viewportAspectRatio - targetAspectRatio) > 0.01 ? 'Yes' : 'No'}
-            Device Type: ${responsiveScaler.deviceType}`);
-    }
-    
-    // Refresh panel styles when canvas dimensions change
-    // Small delay to ensure canvas properties are fully set
-    setTimeout(() => {
-        refreshPanelStyles();
-    }, 50);
-}
-
-// Utility function to check if an action should crit
-function shouldCrit() {
-    return Math.random() < getCurrentTotalCritRating();
-}
-
-// Utility function to check if the player should dodge an attack
-function shouldDodge() {
-    const spellDodgeBonus = spellSystem.getDodgeRatingBonus ? spellSystem.getDodgeRatingBonus() : 0;
-    const tempDodgeBonus = gameState.temporaryDodgeBoost || 0;
-    const itemBasedDodgeRating = getCurrentTotalDodgeRating(); // Includes permanent + temporary from items
-    const totalDodgeRating = Math.min(itemBasedDodgeRating + spellDodgeBonus + tempDodgeBonus, gameState.dodgeRatingCap);
-    return Math.random() < totalDodgeRating;
-}
-
-// Utility function to show combat text with dodge feedback
-function showDodgeText(x, y) {
-    const dodgeText = new CombatText(x, y, "DODGE!", '#00FF00', false); // Green text at correct position
-    combatTexts.push(dodgeText);
-}
-
-// Utility function to track dodge statistics
-function trackDodge(healthSaved = 0) {
-    gameState.totalDodges++;
-    gameState.healthSavedFromDodges += healthSaved;
-    // Expand movable area by 1 pixel per HP saved from dodges
-    gameState.dodgeAreaExpansion += healthSaved;
-}
-
-// ===== BUFF TRACKER SYSTEM =====
-
-// Active buffs tracking
-let activeBuffs = new Map();
-
-// Add or update a buff in the tracker
-function addBuff(id, name, effect, timer, type = 'default') {
-    const buffContainer = document.getElementById('buffTracker');
-    if (!buffContainer) return;
-    
-    const timeInSeconds = Math.ceil(timer / 60); // Convert frames to seconds
-    
-    // Check if buff already exists
-    let buffElement = document.getElementById(`buff-${id}`);
-    
-    if (buffElement) {
-        // Update existing buff
-        const timerElement = buffElement.querySelector('.buff-timer');
-        if (timerElement) {
-            timerElement.textContent = `${timeInSeconds}s`;
-        }
-        activeBuffs.set(id, { name, effect, timer, type, element: buffElement });
-    } else {
-        // Create new buff element
-        buffElement = document.createElement('div');
-        buffElement.className = `buff-item ${type}`;
-        buffElement.id = `buff-${id}`;
-        
-        buffElement.innerHTML = `
-            <div class="buff-info">
-                <div class="buff-name">${name}</div>
-                <div class="buff-effect">${effect}</div>
-            </div>
-            <div class="buff-timer">${timeInSeconds}s</div>
-        `;
-        
-        buffContainer.appendChild(buffElement);
-        activeBuffs.set(id, { name, effect, timer, type, element: buffElement });
-        
-        // Trigger slide-in animation
-        setTimeout(() => {
-            buffElement.style.opacity = '1';
-            buffElement.style.transform = 'translateX(0)';
-        }, 10);
-    }
-}
-
-// Remove a buff from the tracker
-function removeBuff(id) {
-    const buffData = activeBuffs.get(id);
-    if (buffData && buffData.element) {
-        buffData.element.classList.add('fade-out');
-        setTimeout(() => {
-            if (buffData.element.parentNode) {
-                buffData.element.parentNode.removeChild(buffData.element);
-            }
-            activeBuffs.delete(id);
-        }, 200);
-    }
-}
-
-// Update all buff timers
-function updateBuffTracker(deltaTimeMultiplier) {
-    for (const [id, buffData] of activeBuffs) {
-        buffData.timer -= deltaTimeMultiplier;
-        const timeInSeconds = Math.ceil(buffData.timer / 60);
-        
-        if (timeInSeconds <= 0) {
-            removeBuff(id);
-        } else {
-            const timerElement = buffData.element.querySelector('.buff-timer');
-            if (timerElement) {
-                timerElement.textContent = `${timeInSeconds}s`;
-                
-                // Add visual warning when time is running low
-                if (timeInSeconds <= 3) {
-                    timerElement.style.color = '#FF6B6B';
-                    timerElement.style.animation = 'pulse 0.5s infinite alternate';
-                } else {
-                    timerElement.style.color = 'white';
-                    timerElement.style.animation = 'none';
-                }
-            }
-        }
-    }
-}
-
-// Clear all buffs (for game restart)
-function clearAllBuffs() {
-    const buffContainer = document.getElementById('buffTracker');
-    if (buffContainer) {
-        buffContainer.innerHTML = '';
-    }
-    activeBuffs.clear();
+    setupHighDPICanvasSystem({
+        canvas,
+        ctx,
+        responsiveScaler,
+        refreshPanelStyles
+    });
 }
 
 // Make buff functions globally available for other modules
@@ -4906,256 +3447,44 @@ window.removeBuff = removeBuff;
 window.clearAllBuffs = clearAllBuffs;
 
 // ===== CONFIGURABLE STAT BONUS SYSTEM =====
+// Thin wrappers keep existing call sites stable while the logic lives in statEffectsSystem.
+function shouldCrit() {
+    return calculateShouldCrit(gameState);
+}
 
-// Temporary stat effects tracking
-let temporaryStatEffects = {
-    critRatingEffects: [], // { bonus, remainingFrames, itemName }
-    dodgeRatingEffects: [] // { bonus, remainingFrames, itemName }
-};
+function shouldDodge() {
+    return calculateShouldDodge(gameState, spellSystem);
+}
 
-// Apply stat bonuses from collected items (crit rating, dodge rating)
+function showDodgeText(x, y) {
+    createDodgeText(x, y, combatTexts);
+}
+
+function trackDodge(healthSaved = 0) {
+    recordDodge(gameState, healthSaved);
+}
+
 function applyItemStatBonuses(itemData) {
-    // Performance optimization: skip if no bonuses defined
-    const hasCritBonus = itemData.crit_rating_bonus && itemData.crit_rating_bonus > 0;
-    const hasDodgeBonus = itemData.dodge_rating_bonus && itemData.dodge_rating_bonus > 0;
-    
-    if (!hasCritBonus && !hasDodgeBonus) {
-        return; // No bonuses to apply
-    }
-    
-    // Handle crit rating bonus
-    if (hasCritBonus) {
-        if (itemData.effect_type === "permanent") {
-            applyPermanentCritBonus(itemData.crit_rating_bonus, itemData.name);
-        } else if (itemData.effect_type === "temporary") {
-            applyTemporaryCritBonus(itemData.crit_rating_bonus, itemData.effect_duration || 600, itemData.name);
-        }
-    }
-    
-    // Handle dodge rating bonus
-    if (hasDodgeBonus) {
-        if (itemData.effect_type === "permanent") {
-            applyPermanentDodgeBonus(itemData.dodge_rating_bonus, itemData.name);
-        } else if (itemData.effect_type === "temporary") {
-            applyTemporaryDodgeBonus(itemData.dodge_rating_bonus, itemData.effect_duration || 600, itemData.name);
-        }
-    }
+    applyItemStatBonusesToState(itemData, gameState);
 }
 
-// Apply permanent crit rating bonus
-function applyPermanentCritBonus(bonus, itemName) {
-    const oldCritRating = gameState.critRating;
-    gameState.critRating = Math.min(gameState.critRating + bonus, gameState.critRatingCap);
-    const actualIncrease = gameState.critRating - oldCritRating;
-    
-    if (actualIncrease > 0) {
-        const critPercent = Math.round(actualIncrease * 100);
-        const newCritPercent = Math.round(gameState.critRating * 100);
-        addNotification(gameState, `⚡ ${itemName}! Crit +${critPercent}% (Now: ${newCritPercent}%)`, 240, '#FF6B00');
-        console.log(`⚡ ${itemName} increased permanent crit rating by ${critPercent}% to ${newCritPercent}%`);
-    } else {
-        const maxCritPercent = Math.round(gameState.critRatingCap * 100);
-        addNotification(gameState, `⚡ ${itemName}! Crit already maxed (${maxCritPercent}%)`, 180, '#FF6B00');
-    }
-}
-
-// Apply permanent dodge rating bonus
-function applyPermanentDodgeBonus(bonus, itemName) {
-    const oldDodgeRating = gameState.dodgeRating;
-    gameState.dodgeRating = Math.min(gameState.dodgeRating + bonus, gameState.dodgeRatingCap);
-    const actualIncrease = gameState.dodgeRating - oldDodgeRating;
-    
-    if (actualIncrease > 0) {
-        const dodgePercent = Math.round(actualIncrease * 100);
-        const newDodgePercent = Math.round(gameState.dodgeRating * 100);
-        addNotification(gameState, `💨 ${itemName}! Dodge +${dodgePercent}% (Now: ${newDodgePercent}%)`, 240, '#00FF00');
-        console.log(`💨 ${itemName} increased permanent dodge rating by ${dodgePercent}% to ${newDodgePercent}%`);
-    } else {
-        const maxDodgePercent = Math.round(gameState.dodgeRatingCap * 100);
-        addNotification(gameState, `💨 ${itemName}! Dodge already maxed (${maxDodgePercent}%)`, 180, '#00FF00');
-    }
-}
-
-// Apply temporary crit rating bonus
-function applyTemporaryCritBonus(bonus, durationFrames, itemName) {
-    // Add to temporary effects list
-    temporaryStatEffects.critRatingEffects.push({
-        bonus: bonus,
-        remainingFrames: durationFrames,
-        itemName: itemName
-    });
-    
-    const critPercent = Math.round(bonus * 100);
-    const durationSeconds = Math.round(durationFrames / 60);
-    addNotification(gameState, `⚡ ${itemName}! Temp Crit +${critPercent}% (${durationSeconds}s)`, 180, '#FFD700');
-    console.log(`⚡ ${itemName} applied temporary crit bonus: +${critPercent}% for ${durationSeconds} seconds`);
-}
-
-// Apply temporary dodge rating bonus
-function applyTemporaryDodgeBonus(bonus, durationFrames, itemName) {
-    // Add to temporary effects list
-    temporaryStatEffects.dodgeRatingEffects.push({
-        bonus: bonus,
-        remainingFrames: durationFrames,
-        itemName: itemName
-    });
-    
-    const dodgePercent = Math.round(bonus * 100);
-    const durationSeconds = Math.round(durationFrames / 60);
-    addNotification(gameState, `💨 ${itemName}! Temp Dodge +${dodgePercent}% (${durationSeconds}s)`, 180, '#87CEEB');
-    console.log(`💨 ${itemName} applied temporary dodge bonus: +${dodgePercent}% for ${durationSeconds} seconds`);
-}
-
-// Update temporary stat effects (call each frame)
 function updateTemporaryStatEffects(deltaTimeMultiplier) {
-    let effectsChanged = false;
-    
-    // Update crit rating effects
-    for (let i = temporaryStatEffects.critRatingEffects.length - 1; i >= 0; i--) {
-        const effect = temporaryStatEffects.critRatingEffects[i];
-        effect.remainingFrames -= deltaTimeMultiplier;
-        
-        if (effect.remainingFrames <= 0) {
-            // Effect expired
-            const critPercent = Math.round(effect.bonus * 100);
-            addNotification(gameState, `⚡ ${effect.itemName} crit bonus expired (-${critPercent}%)`, 120, '#888888');
-            temporaryStatEffects.critRatingEffects.splice(i, 1);
-            effectsChanged = true;
-        }
-    }
-    
-    // Update dodge rating effects
-    for (let i = temporaryStatEffects.dodgeRatingEffects.length - 1; i >= 0; i--) {
-        const effect = temporaryStatEffects.dodgeRatingEffects[i];
-        effect.remainingFrames -= deltaTimeMultiplier;
-        
-        if (effect.remainingFrames <= 0) {
-            // Effect expired
-            const dodgePercent = Math.round(effect.bonus * 100);
-            addNotification(gameState, `💨 ${effect.itemName} dodge bonus expired (-${dodgePercent}%)`, 120, '#888888');
-            temporaryStatEffects.dodgeRatingEffects.splice(i, 1);
-            effectsChanged = true;
-        }
-    }
-    
-    // Update Item Bonuses window if it's open and effects changed
-    const itemBonusesWindow = document.getElementById('itemBonusesWindow');
-    if (itemBonusesWindow && itemBonusesWindow.style.display === 'flex') {
-        // Update every 30 frames to show timer countdown
-        if (!gameState.bonusesUpdateCounter) gameState.bonusesUpdateCounter = 0;
-        gameState.bonusesUpdateCounter++;
-        
-        if (gameState.bonusesUpdateCounter % 30 === 0 || effectsChanged) {
-            updateItemBonusesWindow();
-        }
-    }
+    updateTemporaryStatEffectsState(deltaTimeMultiplier, gameState, updateItemBonusesWindow);
 }
 
-// Get current total crit rating (permanent + temporary)
 function getCurrentTotalCritRating() {
-    let totalBonus = 0;
-    temporaryStatEffects.critRatingEffects.forEach(effect => {
-        totalBonus += effect.bonus;
-    });
-    return Math.min(gameState.critRating + totalBonus, gameState.critRatingCap);
+    return calculateCurrentTotalCritRating(gameState);
 }
 
-// Get current total dodge rating (permanent + temporary)
 function getCurrentTotalDodgeRating() {
-    let totalBonus = 0;
-    temporaryStatEffects.dodgeRatingEffects.forEach(effect => {
-        totalBonus += effect.bonus;
-    });
-    return Math.min(gameState.dodgeRating + totalBonus, gameState.dodgeRatingCap);
-}
-
-// Clear all temporary stat effects (call on game restart)
-function clearTemporaryStatEffects() {
-    temporaryStatEffects.critRatingEffects = [];
-    temporaryStatEffects.dodgeRatingEffects = [];
+    return calculateCurrentTotalDodgeRating(gameState);
 }
 
 // === BULLET TIME SYSTEM ===
 function updateBulletTime(deltaTimeMultiplier) {
-    // Check if bullet time should be active
-    const config = gameConfig.bulletTime;
-    if (!config.enabled) {
-        gameState.bulletTimeActive = false;
-        gameState.bulletTimeMultiplier = 1.0;
-        return;
-    }
-    
-    // Calculate effective speed (levelSpeedMultiplier includes Dragonstalker reductions, subtract cut_time reductions)
-    const effectiveSpeed = Math.max(0.2, gameState.levelSpeedMultiplier - (gameState.permanentSpeedReduction || 0));
-    
-    // Activate bullet time at trigger speed
-    const shouldActivate = effectiveSpeed >= config.triggerSpeed;
-    
-    if (shouldActivate && !gameState.bulletTimeActive) {
-        // Activate bullet time
-        gameState.bulletTimeActive = true;
-        gameState.bulletTimeMultiplier = config.timeDilation;
-        gameState.bulletTimeVisualTimer = 0;
-        
-        // Add focus mode notification
-        if (config.visualEffects.focusIndicator) {
-            addNotification(gameState, '🎯 FOCUS MODE', 3000, config.visualEffects.glowColor);
-        }
-        
-        console.log(`🎯 Bullet time activated at ${effectiveSpeed.toFixed(1)}x speed (${Math.round((1 - config.timeDilation) * 100)}% time dilation)`);
-    } else if (!shouldActivate && gameState.bulletTimeActive) {
-        // Deactivate bullet time
-        gameState.bulletTimeActive = false;
-        gameState.bulletTimeMultiplier = 1.0;
-        
-        console.log(`⏰ Bullet time deactivated`);
-    }
-    
-    // Update visual timer
-    if (gameState.bulletTimeActive) {
-        gameState.bulletTimeVisualTimer += deltaTimeMultiplier;
-    }
+    updateBulletTimeState(gameState, deltaTimeMultiplier);
 }
 
-// Render bullet time visual effects
 function renderBulletTimeEffects() {
-    if (!gameState.bulletTimeActive || !gameConfig.bulletTime.visualEffects.enabled) return;
-    
-    const config = gameConfig.bulletTime.visualEffects;
-    const timer = gameState.bulletTimeVisualTimer;
-    
-    ctx.save();
-    
-    // Pulsating blue border glow effect
-    if (config.borderGlow && config.glowIntensity > 0) {
-        const pulseFactor = 0.5 + 0.5 * Math.sin(timer * config.pulseSpeed); // Smooth pulse from 0.5 to 1.0
-        const glowOpacity = config.glowIntensity * pulseFactor;
-        const borderWidth = 8 + (4 * pulseFactor); // Border width pulses from 8 to 12px
-        
-        // Set up glow effect
-        ctx.strokeStyle = config.glowColor;
-        ctx.lineWidth = borderWidth;
-        ctx.globalAlpha = glowOpacity;
-        ctx.shadowColor = config.glowColor;
-        ctx.shadowBlur = 20 * pulseFactor;
-        
-        // Draw border around the playable area
-        ctx.beginPath();
-        ctx.rect(borderWidth / 2, borderWidth / 2, 
-                canvas.logicalWidth - borderWidth, 
-                canvas.logicalHeight - borderWidth);
-        ctx.stroke();
-        
-        // Add inner glow effect
-        ctx.lineWidth = Math.max(2, borderWidth - 4);
-        ctx.globalAlpha = glowOpacity * 0.7;
-        ctx.shadowBlur = 12 * pulseFactor;
-        ctx.beginPath();
-        ctx.rect(borderWidth, borderWidth, 
-                canvas.logicalWidth - (borderWidth * 2), 
-                canvas.logicalHeight - (borderWidth * 2));
-        ctx.stroke();
-    }
-    
-    ctx.restore();
+    renderBulletTimeVisuals(ctx, canvas, gameState);
 }

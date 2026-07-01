@@ -20,6 +20,7 @@ const CONFIG = {
         'game-modular.js',
         'classes/**/*.js',
         'systems/**/*.js',
+        'ui/**/*.js',
         'utils/**/*.js',
         'data/**/*.js',
         'config/**/*.js'
@@ -148,10 +149,25 @@ class BuildSystem {
                 const currentVersion = versionMatch[1];
                 this.log(`📋 Current game version: ${currentVersion}`, 'info');
                 
-                // Ask user if they want to update the version
-                const updateVersion = readlineSync.keyInYNStrict(
-                    `Do you want to update the game version? (current: ${currentVersion})`
-                );
+                const envVersion = process.env.EFTO_BUILD_VERSION;
+                const canPrompt = Boolean(process.stdin.isTTY);
+                let updateVersion = false;
+                
+                if (envVersion) {
+                    this.gameVersion = envVersion;
+                    await this.updateGameConfig(gameConfigPath, gameConfigContent);
+                    this.log(`✅ Updated game version from EFTO_BUILD_VERSION: ${this.gameVersion}`, 'success');
+                    return;
+                }
+                
+                if (canPrompt) {
+                    // Ask user if they want to update the version
+                    updateVersion = readlineSync.keyInYNStrict(
+                        `Do you want to update the game version? (current: ${currentVersion})`
+                    );
+                } else {
+                    this.log('📋 Non-interactive build detected, keeping current version', 'info');
+                }
                 
                 if (updateVersion) {
                     this.gameVersion = this.promptForNewVersion(currentVersion);
@@ -165,9 +181,11 @@ class BuildSystem {
                 }
             } else {
                 this.log('⚠️  Could not find GAME_VERSION in gameConfig.js', 'warning');
-                this.gameVersion = readlineSync.question('🏷️  Enter game version: ', {
-                    defaultInput: '1.0.0'
-                });
+                this.gameVersion = process.env.EFTO_BUILD_VERSION || (
+                    process.stdin.isTTY ? readlineSync.question('🏷️  Enter game version: ', {
+                        defaultInput: '1.0.0'
+                    }) : '1.0.0'
+                );
                 await this.updateGameConfig(gameConfigPath, gameConfigContent);
             }
         } catch (error) {

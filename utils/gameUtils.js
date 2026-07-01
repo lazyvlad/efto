@@ -503,7 +503,7 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
     if (gameState.timeSlowActive && gameState.timeSlowTimer > 0) {
         // Add/update buff in tracker
         if (typeof window.addBuff === 'function') {
-            window.addBuff('timeSlow', '🐉 Zandalari Blessing', 'Time Slowed & +20% Points', gameState.timeSlowTimer, 'slow');
+            window.addBuff('timeSlow', 'Zandalari Blessing', 'Time Slowed & +20% Points', gameState.timeSlowTimer, 'slow');
         }
         
         gameState.timeSlowTimer -= deltaTimeMultiplier;
@@ -517,7 +517,7 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
     if (gameState.freezeTimeActive && gameState.freezeTimeTimer > 0) {
         // Add/update buff in tracker
         if (typeof window.addBuff === 'function') {
-            window.addBuff('freezeTime', '❄️ Freeze Time', 'All Items Frozen', gameState.freezeTimeTimer, 'freeze');
+            window.addBuff('freezeTime', 'Freeze Time', 'All Items Frozen', gameState.freezeTimeTimer, 'freeze');
         }
         
         gameState.freezeTimeTimer -= deltaTimeMultiplier;
@@ -531,7 +531,7 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
         // Add/update buff in tracker
         if (typeof window.addBuff === 'function') {
             const speedPercent = Math.min(gameState.currentSpeedIncreasePercent, 100);
-            window.addBuff('speedBoost', '⚡ Speed Boost', `+${speedPercent}% Game Speed`, gameState.speedIncreaseTimer, 'speed');
+            window.addBuff('speedBoost', 'Speed Boost', `+${speedPercent}% Game Speed`, gameState.speedIncreaseTimer, 'speed');
         }
         
         gameState.speedIncreaseTimer -= deltaTimeMultiplier;
@@ -550,7 +550,7 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
     if (gameState.shieldActive && gameState.shieldTimer > 0) {
         // Add/update buff in tracker
         if (typeof window.addBuff === 'function') {
-            window.addBuff('shield', '🛡️ Shield', 'Blocks All Damage', gameState.shieldTimer, 'shield');
+            window.addBuff('shield', 'Shield', 'Blocks All Damage', gameState.shieldTimer, 'shield');
         }
         
         gameState.shieldTimer -= deltaTimeMultiplier;
@@ -565,7 +565,7 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
         // Add/update buff in tracker
         if (typeof window.addBuff === 'function') {
             const tempDodgePercent = Math.round((gameState.temporaryDodgeBoost || 0) * 100);
-            window.addBuff('dodgeBoost', '🐒 Aspect of the Monkey', `+${tempDodgePercent}% Dodge`, gameState.dodgeBoostTimer, 'dodge');
+            window.addBuff('dodgeBoost', 'Aspect of the Monkey', `+${tempDodgePercent}% Dodge`, gameState.dodgeBoostTimer, 'dodge');
         }
         
         gameState.dodgeBoostTimer -= deltaTimeMultiplier;
@@ -610,7 +610,7 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
         if (typeof window.addBuff === 'function') {
             const activeDots = gameState.shadowboltDots.length;
             const maxDuration = Math.max(...gameState.shadowboltDots.map(dot => dot.remainingDuration));
-            window.addBuff('shadowboltDot', '🌑 Shadowbolt DOT', `${activeDots} stack${activeDots > 1 ? 's' : ''} active`, maxDuration, 'damage');
+            window.addBuff('shadowboltDot', 'Shadowbolt DOT', `${activeDots} stack${activeDots > 1 ? 's' : ''} active`, maxDuration, 'damage');
         }
         
         gameState.shadowboltTimer -= deltaTimeMultiplier;
@@ -656,7 +656,7 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
         if (typeof window.addBuff === 'function') {
             const activeHots = gameState.chickenFoodHots.length;
             const maxDuration = Math.max(...gameState.chickenFoodHots.map(hot => hot.remainingDuration));
-            window.addBuff('chickenFoodHot', '🐔 Chicken Food HOT', `${activeHots} stack${activeHots > 1 ? 's' : ''} active`, maxDuration, 'food');
+            window.addBuff('chickenFoodHot', 'Chicken Food HOT', `${activeHots} stack${activeHots > 1 ? 's' : ''} active`, maxDuration, 'food');
         }
         
         gameState.chickenFoodTimer -= deltaTimeMultiplier;
@@ -693,7 +693,7 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
     if (gameState.reverseGravityActive && gameState.reverseGravityTimer > 0) {
         // Add/update buff in tracker
         if (typeof window.addBuff === 'function') {
-            window.addBuff('reverseGravity', '🔄 Reverse Gravity', 'Items Fall Upward', gameState.reverseGravityTimer, 'gravity');
+            window.addBuff('reverseGravity', 'Reverse Gravity', 'Items Fall Upward', gameState.reverseGravityTimer, 'gravity');
         }
         
         gameState.reverseGravityTimer -= deltaTimeMultiplier;

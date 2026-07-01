@@ -359,17 +359,48 @@
     font-size: 10px;
     min-height: 24px;
     position: relative;
+    border-radius: 6px;
+    transition: filter 0.2s, box-shadow 0.2s, opacity 0.2s;
 }
 
 .dragonstalker-item-icon {
-    font-size: 16px;
-    line-height: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 2px;
-    color: #fff;
+    border: 1px solid rgba(255, 215, 0, 0.45);
+    border-radius: 5px;
+    background: radial-gradient(circle at 35% 25%, rgba(255, 215, 0, 0.18), rgba(0, 0, 0, 0.75));
+    box-shadow: inset 0 0 8px rgba(255, 215, 0, 0.15), 0 0 6px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+}
+
+.dragonstalker-item-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.dragonstalker-item.pending .dragonstalker-item-icon img {
+    filter: grayscale(0.75) brightness(0.65);
+    opacity: 0.72;
+}
+
+.dragonstalker-item.collected .dragonstalker-item-icon {
+    border-color: #00ff66;
+    box-shadow: inset 0 0 8px rgba(0, 255, 102, 0.25), 0 0 8px rgba(0, 255, 102, 0.45);
+}
+
+.dragonstalker-item.missed .dragonstalker-item-icon {
+    border-color: #ff3333;
+    box-shadow: inset 0 0 8px rgba(255, 0, 0, 0.25), 0 0 8px rgba(255, 0, 0, 0.35);
+}
+
+.dragonstalker-item.missed .dragonstalker-item-icon img {
+    filter: grayscale(1) brightness(0.45);
 }
 
 .dragonstalker-item-name {

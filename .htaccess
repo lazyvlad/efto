@@ -1,7 +1,9 @@
 # EFTO Game - Cache Control for Mobile Browsers
+DirectoryIndex index.php index.html
+
 <IfModule mod_headers.c>
     # Force no-cache for HTML files
-    <FilesMatch "\.(html|htm)$">
+    <FilesMatch "\.(html|htm|php)$">
         Header set Cache-Control "no-cache, no-store, must-revalidate"
         Header set Pragma "no-cache"
         Header set Expires 0
