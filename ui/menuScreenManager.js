@@ -9,7 +9,8 @@ const MENU_IDS = {
     settings: 'settingsScreen',
     howToPlay: 'howToPlay',
     highScores: 'highScoresScreen',
-    gameOver: 'gameOver'
+    gameOver: 'gameOver',
+    itemBonuses: 'itemBonusesScreen'
 };
 
 function byId(id) {
@@ -28,6 +29,7 @@ function hideNestedScreens() {
     setDisplay(MENU_IDS.howToPlay, 'none');
     setDisplay(MENU_IDS.highScores, 'none');
     setDisplay(MENU_IDS.gameOver, 'none');
+    setDisplay(MENU_IDS.itemBonuses, 'none');
 }
 
 function showShell() {
@@ -66,6 +68,7 @@ export const menuScreenManager = {
         setDisplay(MENU_IDS.howToPlay, 'none');
         setDisplay(MENU_IDS.highScores, 'none');
         setDisplay(MENU_IDS.gameOver, 'none');
+        setDisplay(MENU_IDS.itemBonuses, 'none');
         setDisplay(MENU_IDS.settings, 'block');
     },
 
@@ -75,6 +78,7 @@ export const menuScreenManager = {
         setDisplay(MENU_IDS.settings, 'none');
         setDisplay(MENU_IDS.highScores, 'none');
         setDisplay(MENU_IDS.gameOver, 'none');
+        setDisplay(MENU_IDS.itemBonuses, 'none');
         setDisplay(MENU_IDS.howToPlay, 'block');
     },
 
@@ -84,6 +88,7 @@ export const menuScreenManager = {
         setDisplay(MENU_IDS.settings, 'none');
         setDisplay(MENU_IDS.howToPlay, 'none');
         setDisplay(MENU_IDS.gameOver, fromGameOver ? 'none' : 'none');
+        setDisplay(MENU_IDS.itemBonuses, 'none');
         setDisplay(MENU_IDS.highScores, 'block');
     },
 
@@ -93,7 +98,18 @@ export const menuScreenManager = {
         setDisplay(MENU_IDS.settings, 'none');
         setDisplay(MENU_IDS.howToPlay, 'none');
         setDisplay(MENU_IDS.highScores, 'none');
+        setDisplay(MENU_IDS.itemBonuses, 'none');
         setDisplay(MENU_IDS.gameOver, 'block');
+    },
+
+    showItemBonuses() {
+        showShell();
+        setDisplay(MENU_IDS.content, 'none');
+        setDisplay(MENU_IDS.settings, 'none');
+        setDisplay(MENU_IDS.howToPlay, 'none');
+        setDisplay(MENU_IDS.highScores, 'none');
+        setDisplay(MENU_IDS.gameOver, 'none');
+        setDisplay(MENU_IDS.itemBonuses, 'block');
     },
 
     backToPauseMenu() {

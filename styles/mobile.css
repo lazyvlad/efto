@@ -44,6 +44,7 @@
     #howToPlay,
     #highScoresScreen,
     #gameOver,
+    #itemBonusesScreen,
     #pauseMenuContent.pause-content {
         box-sizing: border-box !important;
         width: 94vw !important;
@@ -60,7 +61,8 @@
     }
 
     #settingsScreen .screen-content,
-    #highScoresScreen .screen-content {
+    #highScoresScreen .screen-content,
+    #itemBonusesScreen .screen-content {
         box-sizing: border-box !important;
         min-height: 100% !important;
         padding: 18px 14px !important;
@@ -68,6 +70,7 @@
 
     #howToPlay,
     #gameOver,
+    #itemBonusesScreen,
     #pauseMenuContent.pause-content {
         padding: 18px 14px !important;
     }
@@ -418,28 +421,6 @@
         font-size: 12px;
         padding: 1px 3px;
     }
-    #itemBonusesWindow:not([style*="display: none"]) {
-        position: fixed !important;
-        top: 50% !important;
-        left: 50% !important;
-        transform: translate(-50%, -50%) !important;
-        width: 90vw !important;
-        max-width: 380px !important;
-        max-height: calc(100vh - 180px) !important;
-        background: rgba(0, 0, 0, 0.95) !important;
-        border: 2px solid rgba(78, 205, 196, 0.6) !important;
-        border-radius: 12px !important;
-        box-shadow: 0 0 30px rgba(78, 205, 196, 0.3) !important;
-        backdrop-filter: blur(8px) !important;
-        overflow: hidden !important;
-        display: flex !important;
-        flex-direction: column !important;
-        z-index: 2000 !important;
-    }
-    #itemBonusesWindow .bonuses-content {
-        min-width: auto !important;
-    }
-    
 }
 
 /* ===== LANDSCAPE MOBILE/TABLET ===== */
@@ -863,6 +844,31 @@
     .pause-hint {
         font-size: 12px;
         margin-top: 8px;
+    }
+
+    #pauseGameContent .pause-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    #pauseGameContent .pause-btn {
+        min-width: 0;
+        width: 100%;
+        font-size: 14px;
+        padding: 10px 8px;
+    }
+
+    #continuePauseBtn {
+        grid-column: 1 / -1;
+    }
+
+    .menu-button-label-short {
+        display: inline;
+    }
+
+    .menu-button-label-full {
+        display: none;
     }
     
     /* Mobile Pause Button */

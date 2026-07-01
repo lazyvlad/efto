@@ -181,7 +181,7 @@ let combatTexts = []; // For crit damage numbers and other combat feedback
 let images = { items: [], spells: {} };
 let recentDropYPositions = [];
 
-const NAVIGABLE_SCREENS = new Set(['settings', 'howToPlay', 'highScores', 'gameOver']);
+const NAVIGABLE_SCREENS = new Set(['settings', 'howToPlay', 'highScores', 'gameOver', 'itemBonuses']);
 const screenNavigationHistory = [];
 let isScreenNavigationRestore = false;
 
@@ -1233,7 +1233,8 @@ function getCurrentScreenNavigationState() {
             screen: gameState.currentScreen,
             settingsSource: gameState.settingsSource || 'menu',
             howToPlaySource: gameState.howToPlaySource || 'menu',
-            highScoresSource: gameState.highScoresSource || 'menu'
+            highScoresSource: gameState.highScoresSource || 'menu',
+            itemBonusesSource: gameState.itemBonusesSource || 'pause'
         };
     }
 
@@ -1258,7 +1259,8 @@ function rememberCurrentScreenForNavigation(fromScreen = null) {
             screen: fromScreen,
             settingsSource: gameState.settingsSource || 'menu',
             howToPlaySource: gameState.howToPlaySource || 'menu',
-            highScoresSource: gameState.highScoresSource || 'menu'
+            highScoresSource: gameState.highScoresSource || 'menu',
+            itemBonusesSource: gameState.itemBonusesSource || 'pause'
         }
         : getCurrentScreenNavigationState();
 
@@ -1281,6 +1283,9 @@ function restoreScreenNavigationState(state) {
                 break;
             case 'highScores':
                 showHighScores(target.highScoresSource === 'pause', target.highScoresSource === 'gameOver', { source: target.highScoresSource || 'menu' });
+                break;
+            case 'itemBonuses':
+                showItemBonuses(target.itemBonusesSource || 'pause');
                 break;
             case 'gameOver':
                 menuScreenManager.backToGameOver();
@@ -1313,7 +1318,9 @@ function navigateBackFromScreen() {
             ? gameState.howToPlaySource
             : gameState.currentScreen === 'highScores'
                 ? gameState.highScoresSource
-                : 'menu';
+                : gameState.currentScreen === 'itemBonuses'
+                    ? gameState.itemBonusesSource
+                    : 'menu';
 
     restoreScreenNavigationState(screenNavigationHistory.pop() || fallbackSource || 'menu');
     updateCanvasOverlay();
@@ -1332,6 +1339,9 @@ function navigateToOverlayScreen(targetScreen, fromScreen = null) {
         case 'highScores':
             showHighScores(false, false, { source: fromScreen || getCurrentScreenNavigationState().screen });
             break;
+        case 'itemBonuses':
+            showItemBonuses(fromScreen || getCurrentScreenNavigationState().screen);
+            break;
         default:
             break;
     }
@@ -1346,7 +1356,9 @@ function closeActiveOverlayScreen() {
             ? gameState.howToPlaySource
             : gameState.currentScreen === 'highScores'
                 ? gameState.highScoresSource
-                : null;
+                : gameState.currentScreen === 'itemBonuses'
+                    ? gameState.itemBonusesSource
+                    : null;
 
     const canResumeGame = gameState.health > 0 && (gameState.showingPauseMenu || source === 'pause' || source === 'game');
 
@@ -1780,9 +1792,14 @@ function setupUIEventHandlers() {
     const itemBonusesPauseBtn = document.getElementById('itemBonusesPauseBtn');
     if (itemBonusesPauseBtn) {
         itemBonusesPauseBtn.addEventListener('click', function() {
-            // Hide pause menu and show item bonuses
-            hidePauseMenu();
             showItemBonuses('pause');
+        });
+    }
+
+    const itemBonusesMenuBtn = document.getElementById('itemBonusesMenuBtn');
+    if (itemBonusesMenuBtn) {
+        itemBonusesMenuBtn.addEventListener('click', function() {
+            showItemBonuses('menu');
         });
     }
     
@@ -1835,42 +1852,40 @@ function setupUIEventHandlers() {
 
 // ===== ITEM BONUSES WINDOW FUNCTIONS =====
 
-// Show the Item Bonuses window
+// Show the Item Bonuses screen
 function showItemBonuses(source = null) {
-    const itemBonusesWindow = document.getElementById('itemBonusesWindow');
-    if (!itemBonusesWindow) return;
-    
-    // Show the window
-    itemBonusesWindow.style.display = 'flex';
-    
-    // Store source for back navigation
-    gameState.itemBonusesSource = source;
-    
-    // Populate with current data
+    const resolvedSource = source === 'pause' || source === 'menu' || source === 'game'
+        ? source
+        : (gameState.showingPauseMenu || gameState.settingsSource === 'pause' || gameState.howToPlaySource === 'pause'
+            ? 'pause'
+            : (gameState.gameRunning && gameState.health > 0 ? 'game' : 'menu'));
+    gameState.itemBonusesSource = resolvedSource;
+
+    if (gameState.gameRunning) {
+        gameState.gamePaused = true;
+    }
+
+    if (resolvedSource !== 'pause') {
+        hideAllUIElements();
+    }
+
+    menuScreenManager.showItemBonuses();
+    gameState.currentScreen = 'itemBonuses';
+    gameState.showingPauseMenu = resolvedSource === 'pause';
+
+    canvas.classList.add('show-cursor');
+    updateScreenNavigation('itemBonuses', { backLabel: getBackLabelForSource() });
     updateItemBonusesWindow();
-    
-    // Set up event handlers if not already done
     setupItemBonusesEventHandlers();
-    
-    console.log('Item Bonuses window opened from:', source);
+    updateMobilePauseButtonVisibility();
+    updateCanvasOverlay();
+
+    console.log('Item Bonuses screen opened from:', resolvedSource);
 }
 
-// Hide the Item Bonuses window
+// Hide the Item Bonuses screen (delegates to unified back navigation)
 function hideItemBonuses() {
-    const itemBonusesWindow = document.getElementById('itemBonusesWindow');
-    if (!itemBonusesWindow) return;
-    
-    itemBonusesWindow.style.display = 'none';
-    
-    // Handle back navigation
-    const source = gameState.itemBonusesSource;
-    if (source === 'pause') {
-        // Return to pause menu
-        showPauseMenu();
-    }
-    // If from desktop, just close and return to game
-    
-    console.log('Item Bonuses window closed, returning to:', source || 'game');
+    navigateBackFromScreen();
 }
 
 // Mobile pause button visibility management
@@ -2081,13 +2096,6 @@ function createTemporaryEffectElement(effect, type) {
 
 // Set up event handlers for the Item Bonuses window
 function setupItemBonusesEventHandlers() {
-    // Close button
-    const closeBonusesBtn = document.getElementById('closeBonusesBtn');
-    if (closeBonusesBtn && !closeBonusesBtn.hasEventListener) {
-        closeBonusesBtn.addEventListener('click', hideItemBonuses);
-        closeBonusesBtn.hasEventListener = true;
-    }
-    
     // Tab switching
     const permanentTab = document.getElementById('permanentBonusesTab');
     const temporaryTab = document.getElementById('temporaryBonusesTab');

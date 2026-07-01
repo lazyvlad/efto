@@ -164,9 +164,9 @@ export function updateTemporaryStatEffects(deltaTimeMultiplier, gameState, updat
         }
     }
     
-    // Update Item Bonuses window if it's open and effects changed
-    const itemBonusesWindow = document.getElementById('itemBonusesWindow');
-    if (itemBonusesWindow && itemBonusesWindow.style.display === 'flex') {
+    // Update Item Bonuses screen if it's open and effects changed
+    const itemBonusesScreen = document.getElementById('itemBonusesScreen');
+    if (itemBonusesScreen && itemBonusesScreen.style.display !== 'none') {
         // Update every 30 frames to show timer countdown
         if (!gameState.bonusesUpdateCounter) gameState.bonusesUpdateCounter = 0;
         gameState.bonusesUpdateCounter++;

@@ -3,7 +3,8 @@
 #settingsScreen,
 #howToPlay,
 #highScoresScreen,
-#gameOver {
+#gameOver,
+#itemBonusesScreen {
     box-sizing: border-box;
     width: min(920px, 92vw);
     min-width: 0;
@@ -44,7 +45,8 @@
 
 #settingsScreen,
 #highScoresScreen,
-#gameOver {
+#gameOver,
+#itemBonusesScreen {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -55,7 +57,8 @@
 }
 
 #settingsScreen .screen-content,
-#highScoresScreen .screen-content {
+#highScoresScreen .screen-content,
+#itemBonusesScreen .screen-content {
     box-sizing: border-box;
     min-height: 100%;
     padding: 32px;
