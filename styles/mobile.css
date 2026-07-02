@@ -61,18 +61,45 @@
     }
 
     #settingsScreen .screen-content,
-    #highScoresScreen .screen-content,
-    #itemBonusesScreen .screen-content {
+    #highScoresScreen .screen-content {
         box-sizing: border-box !important;
         min-height: 100% !important;
         padding: 18px 14px !important;
     }
 
+    #itemBonusesScreen .screen-content {
+        box-sizing: border-box !important;
+        min-height: 0 !important;
+        height: auto !important;
+        padding: 18px 14px !important;
+        overflow: visible !important;
+    }
+
     #howToPlay,
     #gameOver,
-    #itemBonusesScreen,
     #pauseMenuContent.pause-content {
         padding: 18px 14px !important;
+    }
+
+    #itemBonusesScreen {
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    #itemBonusesScreen .bonuses-list-container {
+        max-height: none !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
+
+    #itemBonusesScreen .screen-navigation {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        margin-top: -4px;
+        background: rgba(0, 0, 0, 0.94);
     }
 
     #pauseMenuContent.pause-content {
@@ -716,6 +743,22 @@
         margin-top: 140px; /* Account for top panels (8px + 115px + 7px gap) */
         top: 0;
         transform: translate(-50%, 0);
+    }
+
+    #itemBonusesScreen.screen {
+        width: 94vw !important;
+        max-width: 94vw !important;
+        height: calc(100vh - 148px) !important;
+        max-height: calc(100vh - 148px) !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    #itemBonusesScreen .bonuses-list-container {
+        max-height: none !important;
+        overflow: visible !important;
     }
     
     .screen-content {

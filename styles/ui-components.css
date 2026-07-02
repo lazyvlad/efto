@@ -454,9 +454,16 @@
 }
 
 .bonuses-list-container {
-    min-height: 180px;
-    max-height: 360px;
-    overflow-y: auto;
+    min-height: 0;
+    overflow: visible;
+}
+
+@media (min-width: 769px) {
+    .bonuses-list-container {
+        min-height: 180px;
+        max-height: 360px;
+        overflow-y: auto;
+    }
 }
 
 .bonuses-list {
@@ -545,10 +552,6 @@
     .bonus-values {
         text-align: left;
         min-width: 0;
-    }
-
-    .bonuses-list-container {
-        max-height: 280px;
     }
 }
 
