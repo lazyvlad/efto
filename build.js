@@ -45,7 +45,6 @@ const CONFIG = {
         'android-chrome-192x192.png',
         'android-chrome-512x512.png',
         'site.webmanifest',
-        'highscores.json',
         'requirements.txt',
         'server.py',
         'start_server.sh',

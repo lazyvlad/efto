@@ -5,7 +5,6 @@ header('Content-Type: application/json');
 header('X-Content-Type-Options: nosniff');
 
 // Configuration
-const HIGHSCORES_FILE = __DIR__ . '/../highscores.json';
 const MAX_SCORES = 100;
 const MAX_NAME_LENGTH = 20;          // Matches maxlength on the name input
 const MAX_BODY_BYTES = 2048;
@@ -15,6 +14,32 @@ const MAX_GAME_TIME = 86400;         // Seconds
 const MAX_DS_COMPLETIONS = 1000;
 const RATE_LIMIT_WINDOW = 60;        // Seconds
 const RATE_LIMIT_MAX_POSTS = 6;      // Score submissions allowed per IP per window
+
+// Where scores are stored.
+// - EFTO_HIGHSCORES_FILE (environment or .env) wins if set.
+// - When this script runs from a build inside a project checkout (<project>/dist/api/), scores
+//   live in the project root, so rebuilding dist/ never touches them and development and
+//   production modes share one file.
+// - Otherwise (standalone upload) they sit next to the api/ folder.
+function highScoresFile(): string
+{
+    static $file = null;
+    if ($file !== null) {
+        return $file;
+    }
+
+    $configured = envSetting('EFTO_HIGHSCORES_FILE');
+    if ($configured !== '') {
+        return $file = $configured;
+    }
+
+    $projectRoot = dirname(__DIR__, 2);
+    if (basename(dirname(__DIR__)) === 'dist' && is_file($projectRoot . '/build.js')) {
+        return $file = $projectRoot . '/highscores.json';
+    }
+
+    return $file = __DIR__ . '/../highscores.json';
+}
 
 function respond(int $status, array $body): void
 {
@@ -79,11 +104,11 @@ function sortScores(array &$scores): void
 
 function loadHighScores(): array
 {
-    if (!is_file(HIGHSCORES_FILE)) {
+    if (!is_file(highScoresFile())) {
         return [];
     }
 
-    $handle = fopen(HIGHSCORES_FILE, 'r');
+    $handle = fopen(highScoresFile(), 'r');
     if ($handle === false) {
         return [];
     }
@@ -101,7 +126,7 @@ function loadHighScores(): array
 // Returns the updated list, or null if the file could not be written.
 function addHighScore(array $newScore): ?array
 {
-    $handle = fopen(HIGHSCORES_FILE, 'c+');
+    $handle = fopen(highScoresFile(), 'c+');
     if ($handle === false) {
         return null;
     }
