@@ -151,6 +151,21 @@ export function displayHighScoresSync() {
     renderHighScoresList(scores);
 }
 
+// Scores come from other players (via the server) and from localStorage, so never trust them as HTML
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function toNumber(value) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : 0;
+}
+
 // Helper function to render the scores list
 function renderHighScoresList(scores) {
     // Try both old and new element IDs for compatibility
@@ -197,26 +212,26 @@ function renderHighScoresList(scores) {
         }
         
         // Format level display
-        const levelDisplay = score.level ? `Lv.${score.level}` : 'Lv.?';
+        const levelDisplay = score.level ? `Lv.${toNumber(score.level)}` : 'Lv.?';
         
         // Format dragonstalker completions
-        const dsCompletions = score.dragonstalkerCompletions || 0;
+        const dsCompletions = toNumber(score.dragonstalkerCompletions);
         const dsDisplay = `${dsCompletions}`;
         
         // Format crit and dodge ratings
-        const critDisplay = score.finalCritRating ? `${score.finalCritRating}%` : '0%';
-        const dodgeDisplay = score.finalDodgeRating ? `${score.finalDodgeRating}%` : '0%';
+        const critDisplay = `${toNumber(score.finalCritRating)}%`;
+        const dodgeDisplay = `${toNumber(score.finalDodgeRating)}%`;
         
         html += `
             <div class="score-entry ${isTop3 ? 'top3' : ''}">
                 <span class="score-rank ${rankClass}">#${index + 1}</span>
-                <span class="score-name">${score.name || 'Anonymous'}</span>
-                <span class="score-points">${score.score || 0} pts</span>
+                <span class="score-name">${escapeHtml(score.name || 'Anonymous')}</span>
+                <span class="score-points">${toNumber(score.score)} pts</span>
                 <span class="score-level">${levelDisplay}</span>
                 <span class="score-ds">${dsDisplay}</span>
                 <span class="score-crit">${critDisplay}</span>
                 <span class="score-dodge">${dodgeDisplay}</span>
-                <span class="score-date">${displayDate}</span>
+                <span class="score-date">${escapeHtml(displayDate)}</span>
             </div>
         `;
     });

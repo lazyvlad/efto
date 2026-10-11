@@ -1,6 +1,15 @@
 import { gameConfig } from '../config/gameConfig.js';
 import { assetManager } from '../utils/AssetManager.js';
-import { responsiveScaler } from '../utils/gameUtils.js';
+import { getLogicalCanvasWidth, responsiveScaler } from '../utils/gameUtils.js';
+import { FallingObject } from './FallingObject.js';
+import { drawImageGlow } from '../utils/glow.js';
+import { getSprite } from '../utils/spriteCache.js';
+
+const REVERSE_GRAVITY = {
+    angleRange: 45,          // Narrower than items for projectile balance
+    speedFactor: 0.5,        // Slowed to 50% - faster than items for more challenge
+    bounceRestitution: 0.7   // More energy loss than items when bouncing off the top and sides
+};
 
 // Gaussian random number generator (Box-Muller transform)
 function gaussianRandom(mean = 0, stdDev = 1) {
@@ -24,8 +33,9 @@ function calculateProjectileSize(projectileData) {
     return size;
 }
 
-export class DamageProjectile {
+export class DamageProjectile extends FallingObject {
     constructor(projectileData, isValidYPosition, recentDropYPositions, gameState, canvas) {
+        super();
         this.data = projectileData;
         
         // Use responsive scaling for projectiles with size multiplier (like PowerUpItem)
@@ -34,24 +44,11 @@ export class DamageProjectile {
         this.height = projectileSize;
         
         // Gaussian randomized horizontal position (centered with some spread)
-        // Use logical width instead of physical canvas width (fixes high-DPI scaling issues)
-        const canvasLogicalWidth = canvas.logicalWidth || 
-                                  (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
-                                   canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
-                                   gameConfig.canvas.desktop.width);
+        const canvasLogicalWidth = getLogicalCanvasWidth(canvas);
         const centerX = canvasLogicalWidth / 2;
         const gaussianX = gaussianRandom(centerX, canvasLogicalWidth * 0.25);
         this.x = Math.max(0, Math.min(canvasLogicalWidth - this.width, gaussianX));
-        
-        // Find valid Y position with spacing
-        let attemptY = -this.height;
-        let attempts = 0;
-        while (!isValidYPosition(attemptY, recentDropYPositions) && attempts < 10) {
-            attemptY -= 100;
-            attempts++;
-        }
-        this.y = attemptY;
-        recentDropYPositions.push(this.y);
+        this.y = this.findSpawnY(-this.height, isValidYPosition, recentDropYPositions);
         
         // Random speed variation based on projectile data
         const speedVariation = projectileData.speed.min + Math.random() * (projectileData.speed.max - projectileData.speed.min);
@@ -99,116 +96,14 @@ export class DamageProjectile {
     }
 
     update(deltaTimeMultiplier, canvas, gameState) {
-        // Get logical width for boundary calculations
-        const canvasLogicalWidth = canvas.logicalWidth || 
-                                  (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
-                                   canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
-                                   gameConfig.canvas.desktop.width);
-        
-        // Apply reverse gravity effect if active 
-        if (gameState.reverseGravityActive) {
-            // Projectiles that haven't been individually exempted get reverse gravity
-            if (this.wasReversed !== false) {
-                // First time being affected by reverse gravity - apply dramatic angle change
-                if (this.wasReversed !== true) {
-                    // REVERSE GRAVITY: Always move upward, but with dramatic angle variation
-                    // Generate dramatic horizontal angles: up to 45 degrees from straight up (less than items for projectile balance)
-                    const dramaticAngleRange = 45; // Maximum deviation from straight up
-                    const baseVerticalAngle = 270; // 270° = straight up in standard coordinates
-                    
-                    // Random angle within the dramatic range for horizontal variation
-                    const angleDeviation = (Math.random() - 0.5) * 2 * dramaticAngleRange; // -45 to +45
-                    this.reverseGravityAngle = baseVerticalAngle + angleDeviation; // 225° to 315°
-                    
-                    // Calculate movement vectors - ALWAYS upward with horizontal variation
-                    const angleRad = this.reverseGravityAngle * Math.PI / 180;
-                    this.reverseGravityVerticalSpeed = Math.sin(angleRad) * this.speed; // Upward movement
-                    this.reverseGravityHorizontalSpeed = Math.cos(angleRad) * this.speed; // Horizontal variation
-                    
-                    // Ensure vertical speed is always negative (upward)
-                    this.reverseGravityVerticalSpeed = -Math.abs(this.reverseGravityVerticalSpeed);
-                    
-                    // DECREASE speed to give players more time during reverse gravity (but less than items)
-                    const speedReduction = 0.5; // Reduce speed to 50% (50% slower, faster than items for more challenge)
-                    this.reverseGravityVerticalSpeed *= speedReduction;
-                    this.reverseGravityHorizontalSpeed *= speedReduction;
-                }
-                
-                // Apply dramatic movement with the calculated angles
-                this.y += this.reverseGravityVerticalSpeed * deltaTimeMultiplier;
-                this.x += this.reverseGravityHorizontalSpeed * deltaTimeMultiplier;
-                this.wasReversed = true; // Mark as affected by reverse gravity
-                
-                // MANUAL BOUNDARY CHECK: Bounce off top boundary while preserving angle momentum
-                if (this.y <= 0) {
-                    this.y = 0; // Clamp to top boundary
-                    
-                    // PRESERVE THE ANGLE MOMENTUM - just flip vertical direction
-                    // Keep the same horizontal speed and angle, but make vertical speed positive (downward)
-                    this.reverseGravityVerticalSpeed = Math.abs(this.reverseGravityVerticalSpeed) * 0.7; // Bounce with more energy loss than items
-                    // Keep horizontal speed unchanged to maintain the dramatic angle
-                    // this.reverseGravityHorizontalSpeed stays the same
-                    // this.reverseGravityAngle stays the same
-                    
-                    // Mark that this projectile bounced off top but keep it affected by reverse gravity
-                    this.bouncedOffTopDuringReverse = true;
-                }
-                
-                // Handle horizontal screen boundaries during reverse gravity - BOUNCE instead of wrap
-                if (this.x < 0) {
-                    this.x = 0; // Clamp to left boundary
-                    this.reverseGravityHorizontalSpeed = -this.reverseGravityHorizontalSpeed * 0.7; // Reverse and reduce speed (more energy loss)
-                } else if (this.x > canvasLogicalWidth - this.width) {
-                    this.x = canvasLogicalWidth - this.width; // Clamp to right boundary
-                    this.reverseGravityHorizontalSpeed = -this.reverseGravityHorizontalSpeed * 0.7; // Reverse and reduce speed (more energy loss)
-                }
-            } else {
-                // Projectile has bounced off top during this reverse gravity session - make it fall normally
-                this.y += this.speed * deltaTimeMultiplier; // Normal downward movement
-            }
-        } else {
-            // When reverse gravity is not active, reset all projectiles to be eligible for future reverse gravity
-            if (this.wasReversed === false) {
-                // Reset previously bounced projectiles to be eligible again
-                this.wasReversed = undefined;
-            }
-            
-            // If reverse gravity just ended and this projectile was reversed, reset its movement
-            if (this.wasReversed) {
-                this.wasReversed = false;
-                this.bouncedOffTopDuringReverse = false; // Reset bounce flag
-                
-                // Clear reverse gravity movement vectors
-                this.reverseGravityVerticalSpeed = 0;
-                this.reverseGravityHorizontalSpeed = 0;
-                this.reverseGravityAngle = 0;
-                
-                // Ensure the projectile is moving downward by forcing positive vertical speed
-                if (this.speed < 0) {
-                    this.speed = Math.abs(this.speed);
-                }
-            }
-            this.y += this.speed * deltaTimeMultiplier; // Normal downward movement
-        }
-        
-        // Update horizontal position (always needed for both normal and reverse gravity)
-        if (gameState.reverseGravityActive && this.wasReversed === true) {
-            // Horizontal movement already handled above during reverse gravity
-        } else {
-            // No horizontal movement during normal gravity for projectiles
-        }
+        // Projectiles fall straight down; they only move sideways during reverse gravity
+        this.applyGravity(deltaTimeMultiplier, getLogicalCanvasWidth(canvas), gameState, REVERSE_GRAVITY);
         
         this.glowAnimation += 0.2 * deltaTimeMultiplier;
         this.pulseAnimation += 0.12 * deltaTimeMultiplier;
         this.flickerAnimation += 0.25 * deltaTimeMultiplier;
         
-        // Only remove projectiles that go off the bottom during normal gravity
-        if (!gameState.reverseGravityActive && this.y > canvas.height + this.height) {
-            return false;
-        }
-        
-        // During reverse gravity, projectiles should NEVER disappear off the top - they should bounce back!
-        return true;
+        return !this.hasLeftScreen(canvas, gameState);
     }
 
     draw(ctx) {
@@ -231,6 +126,9 @@ export class DamageProjectile {
         let drawWidth = this.width;
         let drawHeight = this.height;
         let glowIntensity = 1.0;
+        // Glow behind the projectile image (cleared again below for projectiles that get a border instead)
+        let glowColor;
+        let glowBlur;
         const mobileVisualScale = responsiveScaler.deviceType === 'mobile' ? 0.58 : 1;
         
         if (this.data.id === "fireball") {
@@ -241,8 +139,8 @@ export class DamageProjectile {
             drawHeight *= (1.0 + flicker) * sizePulse;
             glowIntensity = Math.sin(this.glowAnimation * 4) * 0.6 + 0.8; // Intense glow variation
             
-            ctx.shadowColor = '#FF4500';
-            ctx.shadowBlur = 35 * glowIntensity * mobileVisualScale;
+            glowColor = '#FF4500';
+            glowBlur = 35 * glowIntensity * mobileVisualScale;
         } else if (this.data.id === "frostbolt") {
             // Frostbolt: Crystalline shimmer with subtle pulsing
             const shimmer = Math.sin(this.pulseAnimation * 1.5) * 0.08 + 1.0; // Subtle shimmer
@@ -251,8 +149,8 @@ export class DamageProjectile {
             drawHeight *= shimmer;
             glowIntensity = crystalPulse;
             
-            ctx.shadowColor = this.data.color;
-            ctx.shadowBlur = 25 * glowIntensity * mobileVisualScale;
+            glowColor = this.data.color;
+            glowBlur = 25 * glowIntensity * mobileVisualScale;
         } else if (this.data.id === "shadowbolt") {
             // Shadowbolt: Dark corruption with wispy tendrils
             const corruption = Math.sin(this.pulseAnimation * 0.8) * 0.1 + Math.sin(this.flickerAnimation * 2) * 0.05; // Slow corruption pulse
@@ -261,13 +159,13 @@ export class DamageProjectile {
             drawHeight *= (1.0 + corruption);
             glowIntensity = darkPulse;
             
-            ctx.shadowColor = this.data.color;
-            ctx.shadowBlur = 30 * glowIntensity * mobileVisualScale;
+            glowColor = this.data.color;
+            glowBlur = 30 * glowIntensity * mobileVisualScale;
         } else {
             // Default glow for other projectiles
             const glow = Math.sin(this.glowAnimation) * 0.4 + 0.6;
-            ctx.shadowColor = this.data.color || '#FFFFFF';
-            ctx.shadowBlur = 20 * glow * mobileVisualScale;
+            glowColor = this.data.color || '#FFFFFF';
+            glowBlur = 20 * glow * mobileVisualScale;
         }
         
         // Apply conservative high-DPI scaling if enabled (focused on quality, not size)
@@ -352,6 +250,7 @@ export class DamageProjectile {
             }
             
             ctx.shadowBlur = 0; // Reset shadow
+            glowBlur = 0; // Bordered projectiles don't get an image glow
         }
         
         // Draw colored border for projectiles with variable values
@@ -359,27 +258,19 @@ export class DamageProjectile {
         const offsetX = (drawWidth - this.width) / 2;
         const offsetY = (drawHeight - this.height) / 2;
         
-        if (this.data.effects === "speed_increase" && this.speedIncreasePercent) {
-            ctx.strokeStyle = '#FF0000';
+        const effectBorderColor =
+            (this.data.effects === "speed_increase" && this.speedIncreasePercent) ? '#FF0000' :
+            (this.data.effects === "freeze_time" && this.freezeDuration) ? '#87CEEB' :
+            (this.data.effects === "shield" && this.shieldDuration) ? '#FFD700' : null;
+        
+        if (effectBorderColor) {
+            ctx.strokeStyle = effectBorderColor;
             ctx.lineWidth = 3;
-            ctx.shadowColor = '#FF0000';
+            ctx.shadowColor = effectBorderColor;
             ctx.shadowBlur = 8;
             ctx.strokeRect(this.x - offsetX - borderPadding, this.y - offsetY - borderPadding, drawWidth + (borderPadding * 2), drawHeight + (borderPadding * 2));
             ctx.shadowBlur = 0; // Reset shadow
-        } else if (this.data.effects === "freeze_time" && this.freezeDuration) {
-            ctx.strokeStyle = '#87CEEB';
-            ctx.lineWidth = 3;
-            ctx.shadowColor = '#87CEEB';
-            ctx.shadowBlur = 8;
-            ctx.strokeRect(this.x - offsetX - borderPadding, this.y - offsetY - borderPadding, drawWidth + (borderPadding * 2), drawHeight + (borderPadding * 2));
-            ctx.shadowBlur = 0; // Reset shadow
-        } else if (this.data.effects === "shield" && this.shieldDuration) {
-            ctx.strokeStyle = '#FFD700';
-            ctx.lineWidth = 3;
-            ctx.shadowColor = '#FFD700';
-            ctx.shadowBlur = 8;
-            ctx.strokeRect(this.x - offsetX - borderPadding, this.y - offsetY - borderPadding, drawWidth + (borderPadding * 2), drawHeight + (borderPadding * 2));
-            ctx.shadowBlur = 0; // Reset shadow
+            glowBlur = 0; // Bordered projectiles don't get an image glow
         }
         
         // Use the specific projectile image from AssetManager
@@ -389,9 +280,21 @@ export class DamageProjectile {
             const offsetY = (drawHeight - this.height) / 2;
             
             // Smooth rendering for all projectiles (they usually don't rotate but may pulse)
-            ctx.drawImage(this.projectileImage, this.x - offsetX, this.y - offsetY, drawWidth, drawHeight);
+            // Pre-rendered at its resting size, trimmed so the visible artwork fills the projectile's
+            // box (and its hitbox); the flicker/pulse just scales it
+            const sprite = getSprite(ctx, this.projectileImage, this.width, this.height);
+            const spriteWidth = sprite.width * (drawWidth / this.width);
+            const spriteHeight = sprite.height * (drawHeight / this.height);
+            const spriteX = this.x - offsetX + (drawWidth - spriteWidth) / 2;
+            const spriteY = this.y - offsetY + (drawHeight - spriteHeight) / 2;
+            drawImageGlow(ctx, sprite.canvas, spriteX, spriteY, spriteWidth, spriteHeight, glowColor, glowBlur);
+            ctx.drawImage(sprite.canvas, spriteX, spriteY, spriteWidth, spriteHeight);
         } else {
             // Draw placeholder based on projectile type with pulsating size
+            if (glowBlur > 0) {
+                ctx.shadowColor = glowColor;
+                ctx.shadowBlur = glowBlur;
+            }
             this.drawPlaceholder(ctx, drawWidth, drawHeight, glowIntensity);
         }
         
@@ -657,14 +560,6 @@ export class DamageProjectile {
         }
     }
 
-    checkCollision(player) {
-        const playerBounds = player.getCollisionBounds();
-        return this.x < playerBounds.x + playerBounds.width &&
-               this.x + this.width > playerBounds.x &&
-               this.y < playerBounds.y + playerBounds.height &&
-               this.y + this.height > playerBounds.y;
-    }
-    
     playImpactSound() {
         if (this.data.sound) {
             // Use AssetManager to get the audio asset

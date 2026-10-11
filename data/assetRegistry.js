@@ -74,7 +74,7 @@ export const assetRegistry = {
         speedboost: 'assets/speedboost.wav',
         shieldCast: 'assets/shield_cast.mp3',
         frostbolt: 'assets/frostbolt.mp3',
-        shadowImpact: 'assets/shadow_impact.mp3',
+        shadowImpact: 'assets/shadow-bolt.mp3',
         chickenEat: 'assets/neka_krka_peto.mp3',
         reverseGravity: 'assets/reverse_gravity.mp3'
     },

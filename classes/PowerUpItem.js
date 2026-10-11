@@ -1,6 +1,9 @@
 import { gameConfig } from '../config/gameConfig.js';
-import { addNotification, checkBoundaryCollision, applyAdvancedBouncePhysics, calculateSpinEffect, applyAirResistance, calculateFallAngle, responsiveScaler } from '../utils/gameUtils.js';
+import { addNotification, calculateFallAngle, getLogicalCanvasWidth, responsiveScaler } from '../utils/gameUtils.js';
 import { assetManager } from '../utils/AssetManager.js';
+import { FallingObject } from './FallingObject.js';
+import { drawImageGlow } from '../utils/glow.js';
+import { getSprite } from '../utils/spriteCache.js';
 
 const MOBILE_POWER_UP_SIZE_BANDS = {
     potion: { min: 70, max: 74 },
@@ -10,6 +13,13 @@ const MOBILE_POWER_UP_SIZE_BANDS = {
     legendary: { min: 76, max: 84 },
     default: { min: 66, max: 78 }
 };
+
+const REVERSE_GRAVITY = {
+    angleRange: 65,          // Maximum deviation from straight up, in degrees
+    speedFactor: 0.4,        // Slowed to 40% to give players more time to collect power-ups
+    bounceRestitution: 0.8   // Speed kept when bouncing off the top and sides
+};
+const WALL_RESTITUTION = 0.8; // Power-ups retain more energy than items when bouncing off the side walls
 
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -33,31 +43,23 @@ function calculatePowerUpSize(powerUpData) {
     return clamp(compressedSize, band.min, band.max);
 }
 
-export class PowerUpItem {
+export class PowerUpItem extends FallingObject {
     constructor(powerUpData, isValidYPosition, recentDropYPositions, gameState) {
+        super();
         this.data = powerUpData;
         
-        // Get resolution scale for consistent sizing and positioning
+        // Get resolution scale for consistent speed across resolutions
         const resolutionScale = gameState.universalMultiplier?.resolution || { average: 1 };
-        const margin = 120 * resolutionScale.average;
-        // Use canvas width instead of window.innerWidth for consistency
-        const canvasWidth = gameState.canvasWidth || window.innerWidth;
-        this.x = Math.random() * (canvasWidth - margin);
-        
-        // Find valid Y position with spacing
-        let attemptY = -120;
-        let attempts = 0;
-        while (!isValidYPosition(attemptY, recentDropYPositions) && attempts < 10) {
-            attemptY -= 100;
-            attempts++;
-        }
-        this.y = attemptY;
-        recentDropYPositions.push(this.y);
         
         // Use responsive scaling for power-up items with size multiplier
         const powerUpSize = calculatePowerUpSize(this.data);
         this.width = powerUpSize;
         this.height = powerUpSize;
+        
+        // Spawn anywhere across the full width of the canvas
+        const canvasWidth = gameState.canvasWidth || window.innerWidth;
+        this.x = Math.random() * Math.max(0, canvasWidth - this.width);
+        this.y = this.findSpawnY(-120, isValidYPosition, recentDropYPositions);
         
         // Slower speed for power-ups (easier to collect)
         const speedVariation = 0.6 + Math.random() * 0.8; // Slower than regular items
@@ -86,185 +88,25 @@ export class PowerUpItem {
 
     update(gameState, deltaTimeMultiplier, canvas) {
         const effectiveDelta = gameState.timeSlowMultiplier * deltaTimeMultiplier;
+        const canvasWidth = getLogicalCanvasWidth(canvas);
         
-        // Get current canvas dimensions (supports portrait mode)
-        const canvasWidth = canvas.logicalWidth || 
-                           (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
-                            canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
-                            gameConfig.canvas.desktop.width);
-        const canvasHeight = canvas.logicalHeight || 
-                            (canvas.deviceType === 'mobile' ? (window.responsiveScaler ? window.responsiveScaler.canvasDimensions.height : 600) :
-                             canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.height :
-                             gameConfig.canvas.desktop.height);
+        this.applyDriftPhysics(effectiveDelta, canvasWidth, WALL_RESTITUTION);
         
-        // Performance optimization: Skip expensive physics for items far from edges
-        const needsPhysics = this.x < 100 || this.x > canvasWidth - 100 || Math.abs(this.horizontalSpeed) > 1;
-        
-        if (needsPhysics) {
-            // Apply physics effects only when needed
-            if (Math.abs(this.rotationSpeed) > 0.001) {
-                calculateSpinEffect(this, effectiveDelta);
-            }
-            // Only apply air resistance if item has significant horizontal movement or high speed
-            if (Math.abs(this.horizontalSpeed) > 0.5 || this.speed > 5) {
-                applyAirResistance(this, effectiveDelta);
-            }
-            
-            // Check for boundary collisions - detect when item is actually at or past boundaries
-            const collisions = checkBoundaryCollision(this, canvas);
-            
-            // DEBUG: Log boundary info when close to top during reverse gravity
-            if (gameState.reverseGravityActive && this.y <= 50) {
-                console.log(`PowerUp near top: y=${this.y}, canvas.height=${canvasHeight}, canvas.width=${canvasWidth}, collisions=`, collisions);
-            }
-            
-            if (collisions.left || collisions.right || collisions.top) {
-                // Handle top bouncing during reverse gravity specially
-                if (collisions.top && gameState.reverseGravityActive) {
-                    // DEBUG: Log when hitting top during reverse gravity
-                    console.log(`PowerUp hit top during reverse gravity: y=${this.y}, speed=${this.speed}, horizontalSpeed=${this.horizontalSpeed}, canvas dimensions: ${canvas.width}x${canvas.height}`);
-                    
-                    // When hitting top during reverse gravity, remove reverse gravity effect from this item
-                    // and apply normal bounce physics
-                    this.wasReversed = false; // Remove reverse gravity effect from this item
-                    this.bouncedOffTopDuringReverse = false; // Clear any bounce flags
-                    
-                    // Reset to normal downward movement
-                    this.fallAngle = Math.random() * (gameState.fallAngleMax - gameState.fallAngleMin) + gameState.fallAngleMin;
-                    this.horizontalSpeed = Math.sin(this.fallAngle * Math.PI / 180) * this.speed * (gameState.horizontalSpeedReduction || 0.3);
-                    
-                    // Ensure positive (downward) speed
-                    if (this.speed < 0) {
-                        this.speed = Math.abs(this.speed);
-                    }
-                    
-                    // Apply normal bounce physics for top collision
-                    applyAdvancedBouncePhysics(this, collisions, canvas, {
-                        restitution: 0.8,        // Power-ups retain more energy
-                        friction: 0.95,          // Less friction for power-ups
-                        spinTransfer: 0.03,      // Much less spin from collisions
-                        spinDamping: 0.85,       // More aggressive spin loss
-                        angularRestitution: 0.4, // Less spin retention
-                        minBounceSpeed: 0.8      // Lower threshold for bouncing
-                    });
-                    
-                    // DEBUG: Log after bounce
-                    console.log(`PowerUp after bounce: y=${this.y}, speed=${this.speed}, horizontalSpeed=${this.horizontalSpeed}, wasReversed=${this.wasReversed}`);
-                } else {
-                    applyAdvancedBouncePhysics(this, collisions, canvas, {
-                        restitution: 0.8,        // Power-ups retain more energy
-                        friction: 0.95,          // Less friction for power-ups
-                        spinTransfer: 0.03,      // Much less spin from collisions (was 0.15)
-                        spinDamping: 0.85,       // More aggressive spin loss (was 0.97)
-                        angularRestitution: 0.4, // Less spin retention (was 0.8)
-                        minBounceSpeed: 0.8      // Lower threshold for bouncing
-                    });
-                }
-            }
+        if (this.applyGravity(effectiveDelta, canvasWidth, gameState, REVERSE_GRAVITY)) {
+            // Reverse gravity just ended for this power-up - pick a fresh downward drift
+            this.resetFallDirection(gameState);
         }
         
-        // Update position (always needed)
-        // Apply reverse gravity effect if active 
-        if (gameState.reverseGravityActive) {
-            // Items that haven't been individually exempted get reverse gravity
-            if (this.wasReversed !== false) {
-                // First time being affected by reverse gravity - apply dramatic angle change
-                if (this.wasReversed !== true) {
-                    // REVERSE GRAVITY: Always move upward, but with dramatic angle variation
-                    // Generate dramatic horizontal angles: up to 65 degrees from straight up
-                    const dramaticAngleRange = 65; // Maximum deviation from straight up
-                    const baseVerticalAngle = 270; // 270° = straight up in standard coordinates
-                    
-                    // Random angle within the dramatic range for horizontal variation
-                    const angleDeviation = (Math.random() - 0.5) * 2 * dramaticAngleRange; // -65 to +65
-                    this.reverseGravityAngle = baseVerticalAngle + angleDeviation; // 205° to 335°
-                    
-                    // Calculate movement vectors - ALWAYS upward with horizontal variation
-                    const angleRad = this.reverseGravityAngle * Math.PI / 180;
-                    this.reverseGravityVerticalSpeed = Math.sin(angleRad) * this.speed; // Upward movement
-                    this.reverseGravityHorizontalSpeed = Math.cos(angleRad) * this.speed; // Horizontal variation
-                    
-                    // Ensure vertical speed is always negative (upward)
-                    this.reverseGravityVerticalSpeed = -Math.abs(this.reverseGravityVerticalSpeed);
-                    
-                    // DECREASE speed to give players more time to collect items during reverse gravity
-                    const speedReduction = 0.4; // Reduce speed to 40% (60% slower)
-                    this.reverseGravityVerticalSpeed *= speedReduction;
-                    this.reverseGravityHorizontalSpeed *= speedReduction;
-                }
-                
-                // Apply dramatic movement with the calculated angles
-                this.y += this.reverseGravityVerticalSpeed * effectiveDelta;
-                this.x += this.reverseGravityHorizontalSpeed * effectiveDelta;
-                this.wasReversed = true; // Mark as affected by reverse gravity
-                
-                // MANUAL BOUNDARY CHECK: Bounce off top boundary while preserving angle momentum
-                if (this.y <= 0) {
-                    this.y = 0; // Clamp to top boundary
-                    
-                    // PRESERVE THE ANGLE MOMENTUM - just flip vertical direction
-                    // Keep the same horizontal speed and angle, but make vertical speed positive (downward)
-                    this.reverseGravityVerticalSpeed = Math.abs(this.reverseGravityVerticalSpeed) * 0.8; // Bounce with slight energy loss
-                    // Keep horizontal speed unchanged to maintain the dramatic angle
-                    // this.reverseGravityHorizontalSpeed stays the same
-                    // this.reverseGravityAngle stays the same
-                    
-                    // Mark that this item bounced off top but keep it affected by reverse gravity
-                    this.bouncedOffTopDuringReverse = true;
-                }
-                
-                // Handle horizontal screen boundaries during reverse gravity - BOUNCE instead of wrap
-                if (this.x < 0) {
-                    this.x = 0; // Clamp to left boundary
-                    this.reverseGravityHorizontalSpeed = -this.reverseGravityHorizontalSpeed * 0.8; // Reverse and reduce speed
-                        } else if (this.x > canvasWidth - this.width) {
-            this.x = canvasWidth - this.width; // Clamp to right boundary
-                    this.reverseGravityHorizontalSpeed = -this.reverseGravityHorizontalSpeed * 0.8; // Reverse and reduce speed
-                }
-            } else {
-                // Item has bounced off top during this reverse gravity session - make it fall normally
-                this.y += this.speed * effectiveDelta; // Normal downward movement
-            }
-        } else {
-            // When reverse gravity is not active, reset all items to be eligible for future reverse gravity
-            if (this.wasReversed === false) {
-                // Reset previously bounced items to be eligible again
-                this.wasReversed = undefined;
-            }
-            
-            // If reverse gravity just ended and this item was reversed, reset its movement
-            if (this.wasReversed) {
-                this.wasReversed = false;
-                this.bouncedOffTopDuringReverse = false; // Reset bounce flag
-                // Reset to normal downward movement - ensure angles are downward
-                this.fallAngle = Math.random() * (gameState.fallAngleMax - gameState.fallAngleMin) + gameState.fallAngleMin;
-                this.horizontalSpeed = Math.sin(this.fallAngle * Math.PI / 180) * this.speed * (gameState.horizontalSpeedReduction || 0.3);
-                
-                // Clear reverse gravity movement vectors
-                this.reverseGravityVerticalSpeed = 0;
-                this.reverseGravityHorizontalSpeed = 0;
-                this.reverseGravityAngle = 0;
-                
-                // Ensure the power-up is moving downward by forcing positive vertical speed
-                // This fixes power-ups that might have upward momentum from bouncing during reverse gravity
-                if (this.speed < 0) {
-                    this.speed = Math.abs(this.speed);
-                }
-            }
-            this.y += this.speed * effectiveDelta; // Normal downward movement
-        }
         this.x += this.horizontalSpeed * effectiveDelta;
         this.rotation += this.rotationSpeed * deltaTimeMultiplier;
         this.glowAnimation += 0.15 * deltaTimeMultiplier;
         this.pulseAnimation += 0.1 * deltaTimeMultiplier;
         
-        // Only remove items that go off the bottom during normal gravity
-        if (!gameState.reverseGravityActive && this.y > canvasHeight + this.height) {
+        if (this.hasLeftScreen(canvas, gameState)) {
             this.missed = true;
             return false;
         }
         
-        // During reverse gravity, items should NEVER disappear off the top - they should bounce back!
         return true;
     }
 
@@ -286,8 +128,7 @@ export class PowerUpItem {
         
         // Glow effect
         const glow = Math.sin(this.glowAnimation) * 0.4 + 0.6;
-        ctx.shadowColor = this.data.color;
-        ctx.shadowBlur = 30 * glow;
+        const glowBlur = 30 * glow;
         
         // Pulse effect
         const pulse = Math.sin(this.pulseAnimation) * 0.1 + 1.0;
@@ -337,23 +178,16 @@ export class PowerUpItem {
         
         // Use the specific power-up image from AssetManager
         if (this.powerUpImage && this.powerUpImage.complete && this.powerUpImage.naturalWidth > 0) {
-            // Smooth rendering for rotating items to prevent visual tearing
-            // Only use crisp rendering for non-rotating items
-            const isRotating = Math.abs(this.rotationSpeed) > 0.001 || Math.abs(this.rotation) > 0.001;
-            
-            if (gameConfig.items.highDPI.crispRendering && !isRotating) {
-                // Use pixel-perfect positioning only for stationary items
-                const pixelPerfectX = Math.round(-drawWidth/2);
-                const pixelPerfectY = Math.round(-drawHeight/2);
-                const pixelPerfectWidth = Math.round(drawWidth);
-                const pixelPerfectHeight = Math.round(drawHeight);
-                ctx.drawImage(this.powerUpImage, pixelPerfectX, pixelPerfectY, pixelPerfectWidth, pixelPerfectHeight);
-            } else {
-                // Smooth rendering for rotating items or when crisp rendering is disabled
-                ctx.drawImage(this.powerUpImage, -drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
-            }
+            // Pre-rendered at its resting size (trimmed, undistorted); the pulse just scales it
+            const sprite = getSprite(ctx, this.powerUpImage, baseWidth, baseHeight);
+            const spriteWidth = sprite.width * pulse;
+            const spriteHeight = sprite.height * pulse;
+            drawImageGlow(ctx, sprite.canvas, -spriteWidth / 2, -spriteHeight / 2, spriteWidth, spriteHeight, this.data.color, glowBlur);
+            ctx.drawImage(sprite.canvas, -spriteWidth / 2, -spriteHeight / 2, spriteWidth, spriteHeight);
         } else {
             // Draw placeholder based on power-up type with consistent size
+            ctx.shadowColor = this.data.color;
+            ctx.shadowBlur = glowBlur;
             ctx.fillStyle = this.data.color;
             ctx.beginPath();
             ctx.arc(0, 0, drawWidth/2, 0, Math.PI * 2);
@@ -420,14 +254,6 @@ export class PowerUpItem {
         }
     }
 
-    checkCollision(player) {
-        const playerBounds = player.getCollisionBounds();
-        return this.x < playerBounds.x + playerBounds.width &&
-               this.x + this.width > playerBounds.x &&
-               this.y < playerBounds.y + playerBounds.height &&
-               this.y + this.height > playerBounds.y;
-    }
-    
     applyEffect(gameState, gameObjects = {}) {
         // Play power-up sound using optimized audio system
         if (this.data.sound) {

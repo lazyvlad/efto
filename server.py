@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import json
+import re
 import os
 from datetime import datetime
 
@@ -52,19 +53,31 @@ def add_high_score():
         data = request.get_json()
         
         # Validate required fields
-        if not data or 'name' not in data or 'score' not in data:
+        if not isinstance(data, dict) or 'name' not in data or 'score' not in data:
             return jsonify({'error': 'Name and score are required'}), 400
+        
+        if not isinstance(data['name'], str):
+            return jsonify({'error': 'Invalid data format'}), 400
+        
+        # Drop markup and control characters from the name, limit its length
+        name = re.sub(r'<[^>]*>|[\x00-\x1f\x7f<>]', '', data['name']).strip()[:20] or 'Anonymous'
+        
+        score = int(data['score'])
+        level = int(data.get('level', 1))
+        game_time = int(data.get('gameTime', 0))
+        if not (0 <= score <= 10000000 and 0 <= level <= 999 and 0 <= game_time <= 86400):
+            return jsonify({'error': 'Invalid data format'}), 400
         
         # Load existing scores
         scores = load_high_scores()
         
         # Create new score entry
         new_score = {
-            'name': data['name'][:20],  # Limit name length
-            'score': int(data['score']),
+            'name': name,
+            'score': score,
             'timestamp': datetime.now().isoformat(),
-            'level': data.get('level', 1),
-            'gameTime': data.get('gameTime', 0)
+            'level': level,
+            'gameTime': game_time
         }
         
         # Add new score
@@ -96,4 +109,5 @@ if __name__ == '__main__':
     print("Starting DMTribut game server...")
     print("Game will be available at: http://localhost:8080")
     print("High scores will be stored in: highscores.json")
-    app.run(host='0.0.0.0', port=8080, debug=True) 
+    # Never enable debug mode here: the Werkzeug debugger allows remote code execution
+    app.run(host='0.0.0.0', port=8080, debug=False) 

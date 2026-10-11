@@ -3,8 +3,8 @@ export class CombatText {
     constructor(x, y, text, color = '#FFD700', isCrit = false) {
         // Get canvas dimensions for boundary checking
         const canvas = document.getElementById('gameCanvas');
-        const canvasWidth = canvas ? canvas.width : 1600;
-        const canvasHeight = canvas ? canvas.height : 900;
+        const canvasWidth = canvas ? (canvas.logicalWidth || canvas.width) : 1600;
+        const canvasHeight = canvas ? (canvas.logicalHeight || canvas.height) : 900;
         
         // Define safe boundaries with padding for text visibility
         const padding = 40; // Space from edges for text to be fully visible

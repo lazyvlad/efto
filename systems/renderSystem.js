@@ -17,7 +17,8 @@ export function renderFrame({
     gameItems,
     gameVersion,
     updateDOMItemsPanel,
-    renderBulletTimeEffects
+    renderBulletTimeEffects,
+    alpha = 1
 }) {
     // Ensure consistent image smoothing quality for rotation
     if (canvas.setupImageSmoothing) {
@@ -42,7 +43,8 @@ export function renderFrame({
             gameItems,
             gameVersion,
             updateDOMItemsPanel,
-            renderBulletTimeEffects
+            renderBulletTimeEffects,
+            alpha
         });
     } else if (gameState.gameWon) {
         renderVictory(ctx, canvas, gameState);
@@ -67,7 +69,8 @@ function renderGame({
     gameItems,
     gameVersion,
     updateDOMItemsPanel,
-    renderBulletTimeEffects
+    renderBulletTimeEffects,
+    alpha = 1
 }) {
     // Draw movable area border if enabled (now responsive)
     const movableAreaConfig = responsiveScaler.getMovableAreaConfig();
@@ -132,12 +135,27 @@ function renderGame({
     }
     
     // Render game elements
-    particles.forEach(particle => particle.draw(ctx));
-    fallingItems.forEach(item => item.draw(ctx, gameConfig));
-    fireballs.forEach(projectile => projectile.draw(ctx));
-    powerUps.forEach(powerUp => powerUp.draw(ctx));
-    window.arrows.forEach(arrow => arrow.draw(ctx));
-    combatTexts.forEach(text => text.draw(ctx));
+    // The simulation runs at a fixed 60 steps per second, so draw everything at a position
+    // interpolated between its last two steps to stay smooth at any display refresh rate.
+    const drawEntity = (entity, ...drawArgs) => {
+        if (alpha >= 1 || entity.prevX === undefined) {
+            entity.draw(ctx, ...drawArgs);
+            return;
+        }
+        const { x, y } = entity;
+        entity.x = entity.prevX + (x - entity.prevX) * alpha;
+        entity.y = entity.prevY + (y - entity.prevY) * alpha;
+        entity.draw(ctx, ...drawArgs);
+        entity.x = x;
+        entity.y = y;
+    };
+    
+    particles.forEach(particle => drawEntity(particle));
+    fallingItems.forEach(item => drawEntity(item, gameConfig));
+    fireballs.forEach(projectile => drawEntity(projectile));
+    powerUps.forEach(powerUp => drawEntity(powerUp));
+    window.arrows.forEach(arrow => drawEntity(arrow));
+    combatTexts.forEach(text => drawEntity(text));
     player.draw(ctx, gameState.shieldActive);
     
     // Update DOM-based items panel (throttled for performance)

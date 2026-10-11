@@ -2,6 +2,7 @@ import { gameConfig } from '../config/gameConfig.js';
 import { assetManager } from '../utils/AssetManager.js';
 import { assetRegistry } from '../data/assetRegistry.js';
 import { responsiveScaler } from '../utils/gameUtils.js';
+import { getSprite } from '../utils/spriteCache.js';
 
 // Player Class - Encapsulates all player functionality
 export class Player {
@@ -76,26 +77,7 @@ export class Player {
         this.celebrationTimer = 0;
     }
     
-    // Update player state
-    update(targetX, targetY, canvasWidth, canvasHeight, deltaTimeMultiplier) {
-        // Smooth mouse following (frame rate normalized)
-        const normalizedSmoothing = gameConfig.player.moveSmoothing * deltaTimeMultiplier;
-        
-        // Update both X and Y positions with smooth following
-        const distanceX = targetX - this.x;
-        const distanceY = targetY - this.y;
-        this.x += distanceX * Math.min(normalizedSmoothing, 1.0); // Cap at 1.0 to prevent overshooting
-        this.y += distanceY * Math.min(normalizedSmoothing, 1.0);
-        
-        // Keep player within bounds
-        this.x = Math.max(0, Math.min(canvasWidth - this.width, this.x));
-        this.y = Math.max(0, Math.min(canvasHeight - this.height, this.y));
-        
-        // Update timers
-        this.updateTimers(deltaTimeMultiplier);
-    }
-    
-    // Update only timers and visual states (used when position is handled elsewhere)
+    // Update timers and visual states (position is handled by the input system)
     updateTimers(deltaTimeMultiplier) {
         // Convert deltaTimeMultiplier to milliseconds (assuming 60fps = 16.67ms per frame)
         const deltaTimeMs = deltaTimeMultiplier * (1000 / 60);
@@ -178,7 +160,8 @@ export class Player {
         
         // Check if image is loaded and draw
         if (imageToUse && imageToUse.complete && imageToUse.naturalWidth > 0) {
-            ctx.drawImage(imageToUse, this.x, this.y, this.width, this.height);
+            const sprite = getSprite(ctx, imageToUse, this.width, this.height);
+            ctx.drawImage(sprite.canvas, this.x + (this.width - sprite.width) / 2, this.y + (this.height - sprite.height) / 2, sprite.width, sprite.height);
         } else {
             // Fallback: draw a simple rectangle with different colors for states
             let fillColor = '#4ECDC4'; // Normal (efto.png equivalent)

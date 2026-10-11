@@ -18,9 +18,10 @@ import { loadHighScores, addHighScore, isHighScore, displayHighScores, displayHi
 import { initializeInputSystem, updatePlayerPosition, resetInputState } from './systems/inputSystem.js';
 // drawSettings removed - now using HTML+CSS guide
 
-import { calculateLevelSpeedMultiplier, isValidYPosition, cleanupRecentDropPositions, calculateDeltaTimeMultiplier, calculateUniversalMultiplier, updateGameStateTimers, addNotification, updateNotifications, responsiveScaler, trackActivity, getLevelProgress, checkGameVersion, clearGameCache } from './utils/gameUtils.js';
+import { calculateLevelSpeedMultiplier, isValidYPosition, cleanupRecentDropPositions, calculateUniversalMultiplier, getLogicalCanvasWidth, getLogicalCanvasHeight, updateGameStateTimers, addNotification, updateNotifications, responsiveScaler, trackActivity, getLevelProgress, checkGameVersion, clearGameCache } from './utils/gameUtils.js';
 import { selectRandomItem, selectRandomProjectile, selectRandomPowerUp, shouldSpawnPowerUp, calculateProjectileProbability } from './utils/spawning.js';
 import { spellSystem } from './systems/spellSystem.js';
+import { gameClock } from './utils/gameClock.js';
 import { notificationSystem } from './systems/notificationSystem.js';
 import { assetManager } from './utils/AssetManager.js';
 import { getAssetsByLevel, assetRegistry } from './data/assetRegistry.js';
@@ -236,14 +237,8 @@ async function init() {
     
     // Initialize player with logical canvas dimensions (supports portrait mode)
     // Get correct canvas dimensions with device-specific fallback
-    const canvasWidth = canvas.logicalWidth || 
-                       (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
-                        canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
-                        gameConfig.canvas.desktop.width);
-    const canvasHeight = canvas.logicalHeight || 
-                        (canvas.deviceType === 'mobile' ? (responsiveScaler ? responsiveScaler.canvasDimensions.height : 600) :
-                         canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.height :
-                         gameConfig.canvas.desktop.height);
+    const canvasWidth = getLogicalCanvasWidth(canvas);
+    const canvasHeight = getLogicalCanvasHeight(canvas);
     
     player = new Player(canvasWidth, canvasHeight);
     gameState.player = player;
@@ -434,17 +429,32 @@ function updateCanvasOverlay() {
     });
 }
 
+// Fraction of a simulation step the display is ahead by, used to interpolate rendering
+let renderAlpha = 1;
+
 // Main game loop
-function gameLoop() {
-    const deltaTimeMultiplier = calculateDeltaTimeMultiplier();
-    const universalMultiplier = calculateUniversalMultiplier(canvas);
+function gameLoop(now = performance.now()) {
+    const frameMs = gameClock.beginFrame(now);
+    // Real elapsed time expressed in 60fps frames, for things that follow input rather than the simulation
+    const frameDelta = frameMs / (1000 / 60);
     
-    // Update
-    if (gameState.gameRunning && !gameState.showingPauseMenu) {
-        update(deltaTimeMultiplier, universalMultiplier);
-    } else if (gameState.gameRunning) {
-        // Update player position even when paused/in settings
-        updatePlayerPosition(player, canvas, deltaTimeMultiplier, gameConfig, gameState);
+    if (gameState.gameRunning && !gameState.showingPauseMenu && !gameState.gamePaused) {
+        // Player follows input every display frame (not affected by bullet time - player should still be responsive)
+        updatePlayerPosition(player, canvas, frameDelta, gameConfig, gameState);
+        
+        const universalMultiplier = calculateUniversalMultiplier(canvas);
+        const steps = gameClock.takeSteps(frameMs);
+        for (let i = 0; i < steps; i++) {
+            update(1, universalMultiplier);
+        }
+        renderAlpha = gameClock.alpha;
+    } else {
+        gameClock.discardPending();
+        renderAlpha = 1;
+        if (gameState.gameRunning && gameState.showingPauseMenu) {
+            // Update player position even when paused/in settings
+            updatePlayerPosition(player, canvas, frameDelta, gameConfig, gameState);
+        }
     }
     
     // Update canvas overlay visibility
@@ -456,9 +466,23 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
+// Remember where everything was before a simulation step so rendering can interpolate
+function storePreviousPositions() {
+    const lists = [fallingItems, fireballs, powerUps, window.arrows, particles, combatTexts];
+    for (const list of lists) {
+        for (const entity of list) {
+            entity.prevX = entity.x;
+            entity.prevY = entity.y;
+        }
+    }
+}
+
 // Update game state
 function update(deltaTimeMultiplier, universalMultiplier) {
     if (!gameState.gameRunning || gameState.gamePaused) return;
+    
+    gameClock.tick();
+    storePreviousPositions();
     
     // Store universal multiplier and logical canvas dimensions in game state for use by other systems
     gameState.universalMultiplier = universalMultiplier;
@@ -466,7 +490,7 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     gameState.canvasHeight = canvas.logicalHeight;
     
     // Update spell system first
-    spellSystem.update(Date.now(), player, canvas, gameConfig);
+    spellSystem.update(gameClock.now(), player, canvas, gameConfig);
     
     // Update game state timers
     updateGameStateTimers(gameState, deltaTimeMultiplier);
@@ -492,24 +516,11 @@ function update(deltaTimeMultiplier, universalMultiplier) {
         addNotification(gameState, `Level ${gameState.currentLevel + 1}!`, 2000, '#FFD700');
     }
     
-    // Debug: Log current score and level every 60 frames (1 second) for testing
-    if (typeof gameState.debugFrameCounter === 'undefined') gameState.debugFrameCounter = 0;
-    // Speed monitor removed - no longer needed
-    gameState.debugFrameCounter++;
-    // Reduce debug logging frequency to every 10 seconds for better performance
-    if (gameState.debugFrameCounter % 600 === 0) { // Every 10 seconds instead of 5
-        const effectiveSpeed = Math.max(0.2, gameState.levelSpeedMultiplier - (gameState.permanentSpeedReduction || 0));
-        console.log(`🔍 LEVEL SPEED DEBUG: Score ${gameState.score}, Level ${gameState.currentLevel + 1}, Level Speed: ${gameState.levelSpeedMultiplier.toFixed(2)}x, Effective Speed: ${effectiveSpeed.toFixed(2)}x, DS Reduction: ${gameState.permanentSpeedReductionFromSets.toFixed(1)}x, CT Reduction: ${(gameState.permanentSpeedReduction || 0).toFixed(1)}x`);
-    }
-    
     // === BULLET TIME SYSTEM ===
     updateBulletTime(deltaTimeMultiplier);
     
     // Apply bullet time to delta time multiplier for all game objects
     const bulletTimeAdjustedDelta = deltaTimeMultiplier * gameState.bulletTimeMultiplier;
-    
-    // Update player position (not affected by bullet time - player should still be responsive)
-    updatePlayerPosition(player, canvas, deltaTimeMultiplier, gameConfig, gameState);
     
     // Spawn new items, projectiles, and power-ups (affected by bullet time)
     spawnItems(bulletTimeAdjustedDelta);
@@ -552,7 +563,8 @@ function render() {
         gameItems,
         gameVersion: GAME_VERSION,
         updateDOMItemsPanel,
-        renderBulletTimeEffects
+        renderBulletTimeEffects,
+        alpha: renderAlpha
     });
 }
 
@@ -666,7 +678,7 @@ function startGame() {
     gameState.permanentSpeedReduction = 0.0;
     
     // Reset hybrid progression tracking
-    gameState.levelStartTime = Date.now() / 1000;
+    gameState.levelStartTime = gameClock.now() / 1000;
     gameState.timeRequiredForNextLevel = gameConfig.levels.baseTimePerLevel;
     gameState.levelActivity = {
         collections: 0,
@@ -875,7 +887,7 @@ function restartGame() {
     gameState.permanentSpeedReduction = 0;
     
     // Reset hybrid progression tracking
-    gameState.levelStartTime = Date.now() / 1000;
+    gameState.levelStartTime = gameClock.now() / 1000;
     gameState.timeRequiredForNextLevel = gameConfig.levels.baseTimePerLevel;
     gameState.levelActivity = {
         collections: 0,

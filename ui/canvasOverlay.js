@@ -1,5 +1,10 @@
 // Canvas overlay visibility helper.
 
+// Called every frame, so only write styles that actually change.
+function setDisplay(element, value) {
+    if (element && element.style.display !== value) element.style.display = value;
+}
+
 export function updateCanvasOverlayVisibility({ gameState, onGameVisible }) {
     const overlay = document.getElementById('canvasOverlay');
     const gameUI = document.getElementById('gameUI');
@@ -7,8 +12,8 @@ export function updateCanvasOverlayVisibility({ gameState, onGameVisible }) {
     if (!overlay) return;
 
     if (gameState.gameRunning && !gameState.showingPauseMenu) {
-        overlay.style.display = 'none';
-        if (gameUI) gameUI.style.display = 'block';
+        setDisplay(overlay, 'none');
+        setDisplay(gameUI, 'block');
         if (onGameVisible) onGameVisible();
         return;
     }
@@ -19,11 +24,11 @@ export function updateCanvasOverlayVisibility({ gameState, onGameVisible }) {
         gameState.currentScreen === 'howToPlay' ||
         gameState.currentScreen === 'highScores'
     ) {
-        overlay.style.display = 'block';
-        if (gameUI) gameUI.style.display = 'none';
+        setDisplay(overlay, 'block');
+        setDisplay(gameUI, 'none');
         return;
     }
 
-    overlay.style.display = 'none';
-    if (gameUI) gameUI.style.display = 'none';
+    setDisplay(overlay, 'none');
+    setDisplay(gameUI, 'none');
 }
