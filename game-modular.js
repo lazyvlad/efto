@@ -11,7 +11,7 @@ import { DamageProjectile } from './classes/DamageProjectile.js';
 import { PowerUpItem } from './classes/PowerUpItem.js';
 import { Arrow } from './classes/Arrow.js';
 
-import { tryAutoInitAudio, startBackgroundMusic, playUffSound, playScreamSound, playTotalSound, playFireballImpactSound, audioInitialized, sounds } from './systems/audioSystem.js';
+import { tryAutoInitAudio, startBackgroundMusic, playUffSound, playScreamSound, playTotalSound, playFireballImpactSound, sounds } from './systems/audioSystem.js';
 import { initializeVisibilitySystem, getVisibilitySystemStatus, updateVisibilityConfig } from './systems/visibilitySystem.js';
 import { initializeSettings, loadSettings, saveSettings, resetSettings, getSettings, updateSetting, areSoundEffectsEnabled, isBackgroundMusicEnabled, getVolume, getVolumeDecimal, getMasterVolume, getMusicVolume, getEffectsVolume, getMasterVolumeDecimal, getMusicVolumeDecimal, getEffectsVolumeDecimal, getPlayerPanelStyle, getDragonstalkerPanelStyle, getPanelOpacity, refreshPanelStyles } from './systems/settingsSystem.js';
 import { loadHighScores, addHighScore, isHighScore, displayHighScores, displayHighScoresSync } from './systems/highScoreSystem.js';

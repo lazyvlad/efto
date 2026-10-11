@@ -1,411 +1,314 @@
+// Audio system.
+//
+// Sound effects go through the Web Audio API: every effect is fetched and decoded once, up
+// front, into memory, and playing one just schedules it on the browser's audio thread. Nothing
+// is loaded, decoded or seeked on the main thread while the game is running, so a sound starting
+// or changing can't stall a frame. (Audio can't be moved into a Web Worker - workers have no
+// audio output - the audio thread behind Web Audio is the browser's equivalent.)
+//
+// Background music is a long file, so it stays a streaming <audio> element.
+
 import { gameConfig } from '../config/gameConfig.js';
 import { assetManager } from '../utils/AssetManager.js';
 import { assetRegistry } from '../data/assetRegistry.js';
 
-// Audio system state
+const MAX_VOICES = 8;            // Effects that may play at the same time
+const SAME_SOUND_COOLDOWN_MS = 100;
+
+// Whether the audio system has been set up (kept for callers that check it)
 export let audioInitialized = false;
-export let audioInitAttempted = false;
 
-// Add retry limiting
-let audioInitRetryCount = 0;
-const MAX_AUDIO_INIT_RETRIES = 3;
+let audioContext = null;
+let effectsBus = null;           // All effects pass through this gain node (the effects volume)
+const buffers = new Map();       // path -> { buffer, promise }
+const voices = new Set();        // Effects currently playing: { source, priority }
+const lastPlayed = new Map();    // key -> time last started (ms)
+const fallbackElements = new Map();
 
-// Audio playback tracking to prevent overlapping sounds
-const activeSounds = new Map();
-const soundCooldowns = new Map();
-
-// Performance settings
-const audioSettings = {
-    maxConcurrentSounds: 3,      // Maximum concurrent effect sounds
-    soundCooldownMs: 100,        // Minimum time between same sound plays
-    prioritySounds: ['scream', 'total', 'wegotit2'], // High priority sounds that can interrupt others
-    backgroundSounds: ['voice'],  // Sounds that shouldn't interrupt gameplay
-};
-
-// Audio objects - now managed by AssetManager
+// Only the music is an <audio> element now
 export const sounds = {
-    get voice() { return assetManager.getAudio(assetRegistry.audio.voice); },
-    get scream() { return assetManager.getAudio(assetRegistry.audio.scream); },
-    get uff() { return assetManager.getAudio(assetRegistry.audio.uff); },
-    get total() { return assetManager.getAudio(assetRegistry.audio.total); },
-    get background() { return assetManager.getAudio(assetRegistry.audio.background); },
-    get smukajte() { return assetManager.getAudio(assetRegistry.audio.smukajte); },
-    get ohoo() { return assetManager.getAudio(assetRegistry.audio.ohoo); },
-    get nakoj() { return assetManager.getAudio(assetRegistry.audio.nakoj); },
-    get roll() { return assetManager.getAudio(assetRegistry.audio.roll); },
-    get fireballimpact() { return assetManager.getAudio(assetRegistry.audio.fireballimpact); },
-    get wegotit2() { return assetManager.getAudio(assetRegistry.audio.wegotit2); }
+    get background() { return assetManager.getAudio(assetRegistry.audio.background); }
 };
 
-// Volume settings - now fully managed by settings system
-export let volumeSettings = {
-    background: gameConfig.audio.volumes.background,
-    effects: gameConfig.audio.volumes.effects
-};
+// ----- Settings -----
 
-// Update volume settings from settings system
-export function updateVolumeFromSettings() {
-    if (window.gameSettings) {
-        // Get separate volume controls
-        const musicVolume = typeof window.gameSettings.getMusicVolumeDecimal === 'function' ? 
-            window.gameSettings.getMusicVolumeDecimal() : 
-            (typeof window.gameSettings.getVolumeDecimal === 'function' ? window.gameSettings.getVolumeDecimal() : gameConfig.audio.volumes.background);
-            
-        const effectsVolume = typeof window.gameSettings.getEffectsVolumeDecimal === 'function' ? 
-            window.gameSettings.getEffectsVolumeDecimal() : 
-            (typeof window.gameSettings.getVolumeDecimal === 'function' ? window.gameSettings.getVolumeDecimal() : gameConfig.audio.volumes.effects);
-        
-        volumeSettings.background = musicVolume;
-        volumeSettings.effects = effectsVolume;
-        
-        console.log('Updated volumes from settings:', { music: musicVolume, effects: effectsVolume });
-        
-        // Update background music volume immediately
-        if (sounds.background) {
-            sounds.background.volume = musicVolume;
-        }
-    }
+function soundEffectsEnabled() {
+    const settings = window.gameSettings;
+    return settings && typeof settings.areSoundEffectsEnabled === 'function' ? settings.areSoundEffectsEnabled() : true;
 }
 
-// Initialize audio - now uses AssetManager and respects settings
-export async function initializeAudio() {
-    if (audioInitialized || audioInitAttempted || audioInitRetryCount >= MAX_AUDIO_INIT_RETRIES) return;
-    audioInitAttempted = true;
-    audioInitRetryCount++;
-    
-    console.log(`Initializing audio system with settings integration... (attempt ${audioInitRetryCount}/${MAX_AUDIO_INIT_RETRIES})`);
-    
-    try {
-        // Use AssetManager's audio initialization with timeout
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Audio initialization timeout')), 5000)
-        );
-        
-        const success = await Promise.race([
-            assetManager.initializeAudioSystem(),
-            timeoutPromise
-        ]);
-        
-        if (success) {
-            // Set up background music properties but don't start automatically
-            const backgroundAudio = sounds.background;
-            if (backgroundAudio) {
-                backgroundAudio.loop = true;
-                // Volume will be set when/if music starts
-                console.log('Background music configured but not started (respecting settings)');
-            }
-            
-            // Update volumes from settings
-            updateVolumeFromSettings();
-            
-            // Test sound effects setup (but don't play them)
-            const testSounds = ['voice', 'uff', 'total', 'fireballimpact'];
-            for (const soundKey of testSounds) {
-                const audio = sounds[soundKey];
-                if (audio && audio.readyState >= 3) {
-                    // Set volume based on settings
-                    if (soundKey === 'fireballimpact') {
-                        audio.volume = gameConfig.audio.volumes.fireballImpact;
-                    } else {
-                        audio.volume = volumeSettings.effects;
-                    }
-                    console.log(`✓ ${soundKey} audio ready and configured`);
-                }
-            }
-            
-            audioInitialized = true;
-            console.log('🔊 Audio initialization complete with settings integration!');
-        } else {
-            console.warn(`Audio initialization failed (attempt ${audioInitRetryCount}/${MAX_AUDIO_INIT_RETRIES}), falling back to on-demand loading`);
-            audioInitialized = false;
-            // Only allow retry if we haven't exceeded max attempts
-            if (audioInitRetryCount < MAX_AUDIO_INIT_RETRIES) {
-                audioInitAttempted = false; // Allow retry later
-            } else {
-                console.log('🔇 Max audio initialization attempts reached, disabling further attempts');
-            }
-        }
-    } catch (error) {
-        console.error(`Audio initialization error (attempt ${audioInitRetryCount}/${MAX_AUDIO_INIT_RETRIES}):`, error);
-        audioInitialized = false;
-        // Only allow retry if we haven't exceeded max attempts
-        if (audioInitRetryCount < MAX_AUDIO_INIT_RETRIES) {
-            audioInitAttempted = false; // Allow retry later
-        } else {
-            console.log('🔇 Max audio initialization attempts reached, disabling further attempts');
-        }
-    }
+function backgroundMusicEnabled() {
+    const settings = window.gameSettings;
+    return settings && typeof settings.isBackgroundMusicEnabled === 'function' ? settings.isBackgroundMusicEnabled() : true;
 }
 
-// Performance-optimized audio playback function
-function playAudioOptimized(soundKey, audioElement, options = {}) {
-    if (!audioElement) return false;
-    
-    // Check if sound effects are disabled in settings (primary control)
-    const soundEffectsEnabled = window.gameSettings && typeof window.gameSettings.areSoundEffectsEnabled === 'function' ? 
-        window.gameSettings.areSoundEffectsEnabled() : true;
-    
-    if (!soundEffectsEnabled) {
-        console.log(`Audio blocked by settings: Sound effects disabled for ${soundKey}`);
-        return false;
-    }
-    
-    const now = Date.now();
-    const { 
-        priority = false, 
-        volume = volumeSettings.effects, 
-        forcePlay = false,
-        allowOverlap = false 
-    } = options;
-    
-    // Check cooldown for this specific sound
-    const lastPlayed = soundCooldowns.get(soundKey) || 0;
-    if (!forcePlay && (now - lastPlayed) < audioSettings.soundCooldownMs) {
-        console.log(`Audio cooldown active for ${soundKey}`);
-        return false;
-    }
-    
-    // Check if too many sounds are playing
-    const activeSoundCount = activeSounds.size;
-    if (!priority && !allowOverlap && activeSoundCount >= audioSettings.maxConcurrentSounds) {
-        console.log(`Too many sounds playing (${activeSoundCount}), skipping ${soundKey}`);
-        return false;
-    }
-    
-    // If this is a priority sound, stop non-priority sounds
-    if (priority && audioSettings.prioritySounds.includes(soundKey)) {
-        for (const [activeKey, activeAudio] of activeSounds.entries()) {
-            if (!audioSettings.prioritySounds.includes(activeKey)) {
-                try {
-                    activeAudio.pause();
-                    activeSounds.delete(activeKey);
-                } catch (e) {
-                    console.log(`Failed to pause ${activeKey}:`, e.message);
-                }
-            }
-        }
-    }
-    
-    // Play the sound asynchronously to avoid blocking
+function clampVolume(value) {
+    return Math.max(0, Math.min(1, Number(value) || 0));
+}
+
+function getEffectsVolume() {
+    const settings = window.gameSettings;
+    if (settings && typeof settings.getEffectsVolumeDecimal === 'function') return clampVolume(settings.getEffectsVolumeDecimal());
+    if (settings && typeof settings.getVolumeDecimal === 'function') return clampVolume(settings.getVolumeDecimal());
+    return gameConfig.audio.volumes.effects;
+}
+
+function getMusicVolume() {
+    const settings = window.gameSettings;
+    if (settings && typeof settings.getMusicVolumeDecimal === 'function') return clampVolume(settings.getMusicVolumeDecimal());
+    if (settings && typeof settings.getVolumeDecimal === 'function') return clampVolume(settings.getVolumeDecimal());
+    return gameConfig.audio.volumes.background;
+}
+
+// ----- Sound effects -----
+
+function getAudioContext() {
+    if (audioContext) return audioContext;
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return null;
+
     try {
-        // Use settings-based volume with proper conversion - use effects volume
-        const settingsVolume = window.gameSettings && typeof window.gameSettings.getEffectsVolumeDecimal === 'function' ? 
-            window.gameSettings.getEffectsVolumeDecimal() : 
-            (window.gameSettings && typeof window.gameSettings.getVolumeDecimal === 'function' ? window.gameSettings.getVolumeDecimal() : volume);
-        
-        audioElement.volume = Math.max(0, Math.min(1, settingsVolume));
-        audioElement.currentTime = 0;
-        
-        // Use async play to avoid blocking the main thread
-        const playPromise = audioElement.play();
-        
-        if (playPromise && playPromise.then) {
-            playPromise
-                .then(() => {
-                    activeSounds.set(soundKey, audioElement);
-                    soundCooldowns.set(soundKey, now);
-                    
-                    // Set up cleanup when sound ends
-                    const cleanup = () => {
-                        activeSounds.delete(soundKey);
-                        audioElement.removeEventListener('ended', cleanup);
-                        audioElement.removeEventListener('pause', cleanup);
-                    };
-                    
-                    audioElement.addEventListener('ended', cleanup);
-                    audioElement.addEventListener('pause', cleanup);
-                })
-                .catch(e => {
-                    console.log(`Audio play failed for ${soundKey}:`, e.message);
-                });
-        }
-        
-        return true;
+        audioContext = new AudioContextClass({ latencyHint: 'interactive' });
+        effectsBus = audioContext.createGain();
+        effectsBus.gain.value = getEffectsVolume();
+        effectsBus.connect(audioContext.destination);
     } catch (e) {
-        console.log(`Audio error for ${soundKey}:`, e.message);
+        audioContext = null;
+    }
+    return audioContext;
+}
+
+// Fetch and decode one effect. Decoding happens off the main thread.
+function loadBuffer(path) {
+    let entry = buffers.get(path);
+    if (entry) return entry.promise;
+
+    const context = getAudioContext();
+    if (!context) return Promise.resolve(null);
+
+    entry = { buffer: null, promise: null };
+    entry.promise = fetch(path)
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.arrayBuffer();
+        })
+        // Callback form: older Safari doesn't return a promise from decodeAudioData
+        .then(data => new Promise((resolve, reject) => context.decodeAudioData(data, resolve, reject)))
+        .then(buffer => {
+            entry.buffer = buffer;
+            return buffer;
+        })
+        .catch(() => null); // Missing or undecodable file: that sound simply never plays
+    buffers.set(path, entry);
+    return entry.promise;
+}
+
+// Decode every effect the game can play, so none is ever loaded mid-game
+function preloadSoundEffects() {
+    const paths = new Set(Object.values(assetRegistry.audio));
+    paths.delete(assetRegistry.audio.background);
+    return Promise.all([...paths].map(loadBuffer));
+}
+
+// Browsers keep audio suspended until the player interacts with the page
+function unlockAudio() {
+    const context = getAudioContext();
+    if (context && context.state === 'suspended') {
+        context.resume().catch(() => {});
+    }
+}
+
+['pointerdown', 'touchend', 'keydown', 'click'].forEach(type => {
+    document.addEventListener(type, unlockAudio, { capture: true, passive: true });
+});
+
+// Stay silent while the tab is in the background
+document.addEventListener('visibilitychange', () => {
+    if (!audioContext) return;
+    if (document.hidden) {
+        audioContext.suspend().catch(() => {});
+    } else {
+        audioContext.resume().catch(() => {});
+    }
+});
+
+// Used only where Web Audio isn't available at all
+function playWithAudioElement(path) {
+    let element = fallbackElements.get(path);
+    if (!element) {
+        element = new Audio(path);
+        fallbackElements.set(path, element);
+    }
+    element.volume = getEffectsVolume();
+    element.currentTime = 0;
+    element.play().catch(() => {});
+    return true;
+}
+
+/**
+ * Play a sound effect.
+ * @param {string} path      Audio file, as listed in the asset registry
+ * @param {object} options
+ *   key       groups plays for the repeat cooldown (defaults to the file)
+ *   volume    0..1, relative to the effects volume setting
+ *   priority  true for the few sounds that should cut through: they silence ordinary effects
+ *             and are never dropped when a lot is playing
+ * @returns {boolean} whether the sound was started
+ */
+export function playSoundEffect(path, { key = path, volume = 1, priority = false } = {}) {
+    if (!path || !soundEffectsEnabled()) return false;
+
+    const now = performance.now();
+    if (now - (lastPlayed.get(key) ?? -Infinity) < SAME_SOUND_COOLDOWN_MS) return false;
+
+    const context = getAudioContext();
+    if (!context) {
+        lastPlayed.set(key, now);
+        return playWithAudioElement(path);
+    }
+
+    // Not decoded yet (or never will be): start loading and skip this one rather than wait
+    const entry = buffers.get(path);
+    if (!entry || !entry.buffer) {
+        loadBuffer(path);
         return false;
     }
-}
 
-// Cleanup function to clear stuck audio references
-function cleanupAudioTracking() {
-    for (const [soundKey, audioElement] of activeSounds.entries()) {
-        if (audioElement.ended || audioElement.paused) {
-            activeSounds.delete(soundKey);
-        }
+    // Still locked by the browser: don't queue sounds up to burst out later
+    if (context.state !== 'running') {
+        unlockAudio();
+        return false;
     }
+
+    if (priority) {
+        for (const voice of voices) {
+            if (!voice.priority) {
+                try { voice.source.stop(); } catch (e) { /* already stopped */ }
+            }
+        }
+    } else if (voices.size >= MAX_VOICES) {
+        return false;
+    }
+
+    const source = context.createBufferSource();
+    const gain = context.createGain();
+    source.buffer = entry.buffer;
+    gain.gain.value = clampVolume(volume);
+    source.connect(gain);
+    gain.connect(effectsBus);
+    effectsBus.gain.value = getEffectsVolume();
+
+    const voice = { source, priority };
+    voices.add(voice);
+    source.onended = () => {
+        voices.delete(voice);
+        source.disconnect();
+        gain.disconnect();
+    };
+
+    source.start();
+    lastPlayed.set(key, now);
+    return true;
 }
 
-// Periodically cleanup audio tracking
-setInterval(cleanupAudioTracking, 5000);
-
-// Export optimized audio function globally for use by other classes
-window.playAudioOptimized = playAudioOptimized;
-
-// Export volume update function globally
-window.updateVolumeFromSettings = updateVolumeFromSettings;
-
-// Audio playback functions
 export function playVoiceSound() {
-    // Voice sound now used for specific items (arcane crystal, black lotus)
-    playAudioOptimized('voice', sounds.voice, { 
-        allowOverlap: true,  // Allow overlap for multiple collections
-        volume: volumeSettings.effects 
-    });
+    playSoundEffect(assetRegistry.audio.voice);
 }
 
 export function playUffSound() {
-    playAudioOptimized('uff', sounds.uff, { 
-        volume: volumeSettings.effects 
-    });
+    playSoundEffect(assetRegistry.audio.uff);
 }
 
 export function playScreamSound() {
-    playAudioOptimized('scream', sounds.scream, { 
-        priority: true,  // High priority sound
-        volume: volumeSettings.effects 
-    });
+    playSoundEffect(assetRegistry.audio.scream, { priority: true });
 }
 
 export function playTotalSound() {
-    playAudioOptimized('total', sounds.total, { 
-        priority: true,  // High priority sound
-        volume: volumeSettings.effects 
-    });
+    playSoundEffect(assetRegistry.audio.total, { priority: true });
 }
 
 export function playFireballImpactSound() {
-    playAudioOptimized('fireballimpact', sounds.fireballimpact, { 
-        volume: gameConfig.audio.volumes.fireballImpact,
-        allowOverlap: true  // Allow multiple fireball sounds
-    });
+    playSoundEffect(assetRegistry.audio.fireballimpact);
 }
 
 export function playDragonstalkerSound() {
-    playAudioOptimized('wegotit2', sounds.wegotit2, { 
-        priority: true,  // High priority celebration sound
-        volume: volumeSettings.effects 
-    });
+    playSoundEffect(assetRegistry.audio.wegotit2, { priority: true });
 }
 
 export function playThunderSound() {
-    // Use the "total" sound as thunder effect (dramatic and fitting)
-    playAudioOptimized('thunder', sounds.total, { 
-        priority: true,  // Thunder is important for spell feedback
-        volume: volumeSettings.effects 
-    });
-}
-
-export function startBackgroundMusic() {
-    console.log('startBackgroundMusic called');
-    
-    // Check if background music is disabled in settings
-    if (window.gameSettings && typeof window.gameSettings.isBackgroundMusicEnabled === 'function' && !window.gameSettings.isBackgroundMusicEnabled()) {
-        console.log('Background music disabled in settings');
-        return;
-    }
-    
-    if (!sounds.background) {
-        console.log('Background music not available');
-        return;
-    }
-    
-    // Set volume from settings - use music volume
-    const volume = (window.gameSettings && typeof window.gameSettings.getMusicVolumeDecimal === 'function') ? 
-        window.gameSettings.getMusicVolumeDecimal() : 
-        volumeSettings.background;
-    
-    console.log('Setting background music volume to:', volume);
-    sounds.background.volume = volume;
-    
-    // Only start if not already playing
-    if (sounds.background.paused) {
-        console.log('Starting background music...');
-        sounds.background.play().catch(e => console.log('Background music failed to play:', e.message));
-    } else {
-        console.log('Background music already playing');
-    }
-}
-
-export function updateBackgroundVolume() {
-    if (sounds.background) {
-        // Use music volume if available, otherwise fall back to volumeSettings
-        const volume = (window.gameSettings && typeof window.gameSettings.getMusicVolumeDecimal === 'function') ? 
-            window.gameSettings.getMusicVolumeDecimal() : 
-            volumeSettings.background;
-        sounds.background.volume = volume;
-    }
+    // Uses the "total" sound as the thunder effect (dramatic and fitting)
+    playSoundEffect(assetRegistry.audio.total, { key: 'thunder', priority: true });
 }
 
 export function playItemSound(item) {
     if (item.sound) {
-        // Use AssetManager to get the audio asset
-        const itemAudio = assetManager.getAudio(item.sound);
-        if (itemAudio) {
-            // Use unique key for each item sound to allow different item sounds to overlap
-            const soundKey = `item_${item.id || 'generic'}`;
-            playAudioOptimized(soundKey, itemAudio, { 
-                volume: volumeSettings.effects,
-                allowOverlap: true  // Allow multiple item collection sounds
-            });
-        }
+        // Keyed per item so different items collected together can both be heard
+        playSoundEffect(item.sound, { key: `item_${item.id || 'generic'}` });
     }
 }
 
-// Auto-initialization functions
+// ----- Background music -----
+
+export function startBackgroundMusic() {
+    const music = sounds.background;
+    if (!music || !backgroundMusicEnabled()) return;
+
+    music.loop = true;
+    music.volume = getMusicVolume();
+    if (music.paused) {
+        music.play().catch(() => { /* blocked until the player interacts */ });
+    }
+}
+
+export function updateBackgroundVolume() {
+    const music = sounds.background;
+    if (music) music.volume = getMusicVolume();
+}
+
+// Apply the volume settings to everything that is currently set up
+export function updateVolumeFromSettings() {
+    updateBackgroundVolume();
+    if (effectsBus) effectsBus.gain.value = getEffectsVolume();
+}
+
+// Settings and startup code call this through the window
+window.updateVolumeFromSettings = updateVolumeFromSettings;
+
+// ----- Setup -----
+
+export async function initializeAudio() {
+    if (audioInitialized) return;
+    audioInitialized = true;
+
+    const music = sounds.background;
+    if (music) music.loop = true;
+    updateVolumeFromSettings();
+
+    await preloadSoundEffects();
+}
+
 export function tryAutoInitAudio() {
-    // Small delay to ensure DOM is ready
+    // Small delay to ensure the settings system is ready
     setTimeout(() => {
         initializeAudio();
-        
-        // Set up fallback to start background music on first user interaction
-        const startBackgroundOnInteraction = () => {
-            // Check if background music is disabled in settings
-            if (window.gameSettings && typeof window.gameSettings.isBackgroundMusicEnabled === 'function' && !window.gameSettings.isBackgroundMusicEnabled()) {
-                console.log('Background music disabled in settings - removing interaction listeners');
-                // Remove listeners and exit if background music is disabled
-                document.removeEventListener('click', startBackgroundOnInteraction);
-                document.removeEventListener('keydown', startBackgroundOnInteraction);
-                document.removeEventListener('touchstart', startBackgroundOnInteraction);
-                return;
-            }
-            
-            if (sounds.background && sounds.background.paused) {
-                console.log('Starting background music on user interaction...');
-                const volume = (window.gameSettings && typeof window.gameSettings.getMusicVolumeDecimal === 'function') ? 
-                    window.gameSettings.getMusicVolumeDecimal() : 
-                    volumeSettings.background;
-                sounds.background.volume = volume;
-                sounds.background.play().catch(e => console.log('Background music still failed:', e.message));
-            }
-            // Remove listeners after first attempt
-            document.removeEventListener('click', startBackgroundOnInteraction);
-            document.removeEventListener('keydown', startBackgroundOnInteraction);
-            document.removeEventListener('touchstart', startBackgroundOnInteraction);
+
+        // Music can only start once the player has interacted with the page
+        const startMusicOnInteraction = () => {
+            document.removeEventListener('click', startMusicOnInteraction);
+            document.removeEventListener('keydown', startMusicOnInteraction);
+            document.removeEventListener('touchstart', startMusicOnInteraction);
+            startBackgroundMusic();
         };
-        
-        // Listen for user interactions to start background music
-        document.addEventListener('click', startBackgroundOnInteraction);
-        document.addEventListener('keydown', startBackgroundOnInteraction);
-        document.addEventListener('touchstart', startBackgroundOnInteraction);
+
+        document.addEventListener('click', startMusicOnInteraction);
+        document.addEventListener('keydown', startMusicOnInteraction);
+        document.addEventListener('touchstart', startMusicOnInteraction);
     }, 100);
 }
 
-// Fallback: Initialize audio on user interaction if auto-init failed
+// Called on player input: makes sure audio is set up and unlocked
 export function fallbackAudioInit() {
-    if (!audioInitialized && !audioInitAttempted && audioInitRetryCount < MAX_AUDIO_INIT_RETRIES) {
-        console.log('Fallback audio initialization triggered');
-        initializeAudio();
-    } else if (audioInitRetryCount >= MAX_AUDIO_INIT_RETRIES) {
-        // Silently skip if max retries reached
-        return;
-    }
+    initializeAudio();
+    unlockAudio();
 }
-
-// Reset audio initialization state (useful for testing or settings changes)
-export function resetAudioInitialization() {
-    audioInitialized = false;
-    audioInitAttempted = false;
-    audioInitRetryCount = 0;
-    console.log('🔄 Audio initialization state reset');
-} 

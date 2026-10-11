@@ -63,15 +63,20 @@ export class AssetManager {
     }
     
     createAssetManifest() {
+        // The registry's tier lists also name sound files. Those are loaded by the audio system;
+        // putting them through the image loader here only downloaded every one of them a second
+        // time (including the music) to throw the result away.
+        const imagesOnly = paths => paths.filter(path => /\.(png|jpe?g|webp|gif|svg)$/i.test(path));
+        
         return {
             // Tier 1: Critical assets from centralized registry
-            tier1: assetCategories.critical,
+            tier1: imagesOnly(assetCategories.critical),
             
             // Tier 2: Important assets from centralized registry
-            tier2: assetCategories.important,
+            tier2: imagesOnly(assetCategories.important),
             
             // Tier 3: Optional assets from centralized registry
-            tier3: assetCategories.optional
+            tier3: imagesOnly(assetCategories.optional)
         };
     }
     
@@ -102,12 +107,10 @@ export class AssetManager {
     async startLoading() {
         this.loadStartTime = performance.now();
         
-        // Calculate total assets for progress tracking (images + audio)
-        const audioAssets = Object.values(assetRegistry.audio);
+        // Calculate total assets for progress tracking (sound effects load separately, in the audio system)
         this.totalAssetsToLoad = 
             this.assetManifest.tier1.length + 
-            this.assetManifest.tier2.length +
-            audioAssets.length;
+            this.assetManifest.tier2.length;
         
         // Load Tier 1 (critical assets) with timing
         const tier1Start = performance.now();
@@ -842,29 +845,13 @@ export class AssetManager {
         if (this.audioInitialized || this.audioInitAttempted) return;
         this.audioInitAttempted = true;
         
-        // Get essential audio assets from registry
-        const essentialAudio = [
-            assetRegistry.audio.background,
-            assetRegistry.audio.voice,
-            assetRegistry.audio.uff,
-            assetRegistry.audio.total,
-            assetRegistry.audio.fireballimpact
-        ];
-        
+        // Sound effects are decoded by the audio system (Web Audio); only the music is an
+        // <audio> element. It is started by the audio system once the player interacts.
         try {
-            // Preload essential audio
-            await this.preloadAudioAssets(essentialAudio, true);
-            
-            // Set up background music properties
             const backgroundMusic = this.getAudio(assetRegistry.audio.background);
             if (backgroundMusic) {
                 backgroundMusic.loop = true;
                 backgroundMusic.volume = gameConfig.audio.volumes.background;
-                
-                // Try to start background music immediately
-                backgroundMusic.play().catch(e => {
-                    // Background music autoplay blocked, will start on user interaction
-                });
             }
             
             this.audioInitialized = true;

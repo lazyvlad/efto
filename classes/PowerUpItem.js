@@ -2,6 +2,7 @@ import { gameConfig } from '../config/gameConfig.js';
 import { addNotification, calculateFallAngle, getLogicalCanvasWidth, responsiveScaler } from '../utils/gameUtils.js';
 import { assetManager } from '../utils/AssetManager.js';
 import { FallingObject } from './FallingObject.js';
+import { playSoundEffect } from '../systems/audioSystem.js';
 import { drawImageGlow } from '../utils/glow.js';
 import { getSprite } from '../utils/spriteCache.js';
 
@@ -255,35 +256,7 @@ export class PowerUpItem extends FallingObject {
     }
 
     applyEffect(gameState, gameObjects = {}) {
-        // Play power-up sound using optimized audio system
-        if (this.data.sound) {
-            // Use AssetManager to get the audio asset (consistent with DamageProjectile)
-            const powerUpAudio = assetManager.getAudio(this.data.sound);
-            if (powerUpAudio && window.playAudioOptimized) {
-                // Use optimized audio system - volume is handled internally by playAudioOptimized
-                const soundKey = `powerup_${this.data.id || this.data.effect || 'generic'}`;
-                window.playAudioOptimized(soundKey, powerUpAudio, { 
-                    // Removed allowOverlap to prevent audio overlapping
-                });
-            } else if (powerUpAudio) {
-                // Fallback to direct play if optimized function not available
-                // Check if sound effects are enabled before playing
-                const soundEffectsEnabled = window.gameSettings && typeof window.gameSettings.areSoundEffectsEnabled === 'function' ? window.gameSettings.areSoundEffectsEnabled() : true;
-                
-                if (soundEffectsEnabled) {
-                    // Get volume from settings system - use effects volume
-                    const volume = (window.gameSettings && typeof window.gameSettings.getEffectsVolumeDecimal === 'function') ? 
-                        window.gameSettings.getEffectsVolumeDecimal() : 
-                        (window.gameSettings && typeof window.gameSettings.getVolumeDecimal === 'function' ? window.gameSettings.getVolumeDecimal() : gameConfig.audio.volumes.effects);
-                        
-                    powerUpAudio.volume = volume;
-                    powerUpAudio.currentTime = 0;
-                    powerUpAudio.play().catch(e => console.log(`Power-up sound ${this.data.sound} not available`));
-                } else {
-                    console.log(`Power-up sound ${this.data.sound} blocked by settings (fallback)`);
-                }
-            }
-        }
+        playSoundEffect(this.data.sound, { key: `powerup_${this.data.id || this.data.effect || 'generic'}` });
         
         this.applyEffectLogic(gameState, gameObjects);
     }

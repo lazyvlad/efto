@@ -2,6 +2,7 @@ import { gameConfig } from '../config/gameConfig.js';
 import { assetManager } from '../utils/AssetManager.js';
 import { getLogicalCanvasWidth, responsiveScaler } from '../utils/gameUtils.js';
 import { FallingObject } from './FallingObject.js';
+import { playSoundEffect } from '../systems/audioSystem.js';
 import { drawImageGlow } from '../utils/glow.js';
 import { getSprite } from '../utils/spriteCache.js';
 
@@ -561,35 +562,7 @@ export class DamageProjectile extends FallingObject {
     }
 
     playImpactSound() {
-        if (this.data.sound) {
-            // Use AssetManager to get the audio asset
-            const projectileAudio = assetManager.getAudio(this.data.sound);
-            if (projectileAudio && window.playAudioOptimized) {
-                // Use optimized audio system - volume is handled internally by playAudioOptimized
-                const soundKey = `projectile_${this.data.id || 'generic'}`;
-                window.playAudioOptimized(soundKey, projectileAudio, { 
-                    allowOverlap: true  // Allow multiple projectile impact sounds
-                });
-            } else if (projectileAudio) {
-                // Fallback to direct play if optimized function not available
-                // Check if sound effects are enabled before playing
-                const soundEffectsEnabled = window.gameSettings && typeof window.gameSettings.areSoundEffectsEnabled === 'function' ? window.gameSettings.areSoundEffectsEnabled() : true;
-                
-                if (soundEffectsEnabled) {
-                    // Get volume from settings system - use effects volume
-                    const volume = (window.gameSettings && typeof window.gameSettings.getEffectsVolumeDecimal === 'function') ? 
-                        window.gameSettings.getEffectsVolumeDecimal() : 
-                        (window.gameSettings && typeof window.gameSettings.getVolumeDecimal === 'function' ? window.gameSettings.getVolumeDecimal() : 
-                        (this.data.id === "fireball" ? gameConfig.audio.volumes.fireballImpact : gameConfig.audio.volumes.effects));
-                        
-                    projectileAudio.volume = volume;
-                    projectileAudio.currentTime = 0;
-                    projectileAudio.play().catch(e => console.log(`Projectile sound ${this.data.sound} not available`));
-                } else {
-                    console.log(`Projectile sound ${this.data.sound} blocked by settings (fallback)`);
-                }
-            }
-        }
+        playSoundEffect(this.data.sound, { key: `projectile_${this.data.id || 'generic'}` });
     }
     
     // Handle window resize with responsive scaling
