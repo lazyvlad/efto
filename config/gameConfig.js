@@ -188,21 +188,13 @@ export const gameConfig = {
         
         // Resolution and frame rate independence settings
         independence: {
-            enabled: true,              // Enable resolution/frame rate independence
+            enabled: true,              // Enable resolution independence
             referenceWidth: 1920,       // Reference screen width for scaling calculations
             referenceHeight: 810,       // Reference screen height for scaling calculations
             scaleWithResolution: true,  // Scale speeds/sizes based on resolution
             minResolutionScale: 0.7,    // Minimum resolution scaling factor (increased from 0.5)
             maxResolutionScale: 1.3,    // Maximum resolution scaling factor (reduced from 2.0 for playability)
             normalizeToReference: true  // Normalize all measurements to reference resolution
-        },
-        
-        // Mobile-specific optimizations for high refresh rate devices
-        mobile: {
-            maxRefreshRateMultiplier: 1.2,  // Maximum speed boost allowed from high refresh rates
-            refreshRateSmoothing: 0.8,      // How much to smooth delta time (0-1, higher = more smoothing)
-            minDeltaTime: 8,                // Minimum delta time in ms (prevents too-fast updates)
-            maxDeltaTime: 33                // Maximum delta time in ms (prevents stutter)
         },
         
         // === FALL ANGLE SETTINGS ===

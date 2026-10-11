@@ -297,7 +297,9 @@ export class AssetManager {
         // Calculate maximum safe scaling factors with display size awareness
         // Consider both image size and display characteristics
         const viewportWidth = window.innerWidth;
-        const displayScale = Math.min(viewportWidth / 1920, 2.5); // Cap at 2.5x for ultra-wide displays
+        // Never below 1: this is a limit on upscaling for large displays. Letting it follow narrow
+        // viewports turned it into a cap of roughly half native size on phones.
+        const displayScale = Math.max(1, Math.min(viewportWidth / 1920, 2.5)); // Cap at 2.5x for ultra-wide displays
         
         let maxScaleFactor;
         const minDimension = Math.min(originalWidth, originalHeight);

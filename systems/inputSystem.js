@@ -1,6 +1,7 @@
 import { fallbackAudioInit } from './audioSystem.js';
 import { spellSystem } from './spellSystem.js';
 import { responsiveScaler } from '../utils/gameUtils.js';
+import { gameClock } from '../utils/gameClock.js';
 
 // Input system state
 export let inputState = {
@@ -16,6 +17,30 @@ export let inputState = {
     playerInitialized: false // Track if player has been given an initial position
 };
 
+// Convert a mouse/touch position on the page to logical canvas coordinates
+function toCanvasCoords(canvas, clientX, clientY) {
+    const rect = canvas.getBoundingClientRect();
+    const rawX = clientX - rect.left;
+    const rawY = clientY - rect.top;
+    
+    if (canvas.logicalWidth && canvas.logicalHeight && canvas.displayWidth && canvas.displayHeight) {
+        // Use the stored display dimensions for accurate scaling
+        return {
+            x: rawX * (canvas.logicalWidth / canvas.displayWidth),
+            y: rawY * (canvas.logicalHeight / canvas.displayHeight)
+        };
+    }
+    if (canvas.logicalWidth && canvas.logicalHeight) {
+        // Fallback to rect dimensions if display dimensions not available
+        return {
+            x: rawX * (canvas.logicalWidth / rect.width),
+            y: rawY * (canvas.logicalHeight / rect.height)
+        };
+    }
+    // Scaling system isn't initialized yet
+    return { x: rawX, y: rawY };
+}
+
 // Initialize input event listeners
 export function initializeInputSystem(canvas, gameState, player, restartGame, startGame, deprecatedParam, showPauseMenu, displayHighScores, updateCanvasOverlay) {
     // Detect if this is a touch device on initialization
@@ -25,30 +50,10 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
     }
     // Track mouse movement
     canvas.addEventListener('mousemove', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        
-        // Get raw mouse coordinates relative to the displayed canvas
-        const rawMouseX = e.clientX - rect.left;
-        const rawMouseY = e.clientY - rect.top;
-        
-        // Scale mouse coordinates from display size to logical size using canvas scale properties
-        if (canvas.logicalWidth && canvas.logicalHeight && canvas.displayWidth && canvas.displayHeight) {
-            // Use the stored display dimensions for accurate scaling
-            inputState.mouseX = rawMouseX * (canvas.logicalWidth / canvas.displayWidth);
-            inputState.mouseY = rawMouseY * (canvas.logicalHeight / canvas.displayHeight);
-        } else if (canvas.logicalWidth && canvas.logicalHeight) {
-            // Fallback to rect dimensions if display dimensions not available
-            inputState.mouseX = rawMouseX * (canvas.logicalWidth / rect.width);
-            inputState.mouseY = rawMouseY * (canvas.logicalHeight / rect.height);
-        } else {
-            // Fallback for when scaling system isn't initialized yet
-            inputState.mouseX = rawMouseX;
-            inputState.mouseY = rawMouseY;
-        }
-        
+        const position = toCanvasCoords(canvas, e.clientX, e.clientY);
+        inputState.mouseX = position.x;
+        inputState.mouseY = position.y;
         inputState.hasMouseMoved = true;
-        
-
     });
 
     // Mouse click events
@@ -72,57 +77,23 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
         e.preventDefault();
         fallbackAudioInit(); // Try to initialize audio on user interaction
         
-        const rect = canvas.getBoundingClientRect();
         const touch = e.touches[0];
-        const rawTouchX = touch.clientX - rect.left;
-        const rawTouchY = touch.clientY - rect.top;
-        
-        // Convert screen coordinates to logical canvas coordinates (same as mouse)
-        let touchX, touchY;
-        if (canvas.logicalWidth && canvas.logicalHeight && canvas.displayWidth && canvas.displayHeight) {
-            // Convert screen coordinates to logical canvas coordinates
-            touchX = rawTouchX * (canvas.logicalWidth / canvas.displayWidth);
-            touchY = rawTouchY * (canvas.logicalHeight / canvas.displayHeight);
-        } else if (canvas.logicalWidth && canvas.logicalHeight) {
-            // Fallback coordinate conversion
-            touchX = rawTouchX * (canvas.logicalWidth / rect.width);
-            touchY = rawTouchY * (canvas.logicalHeight / rect.height);
-        } else {
-            // No conversion needed
-            touchX = rawTouchX;
-            touchY = rawTouchY;
-        }
+        const { x: touchX, y: touchY } = toCanvasCoords(canvas, touch.clientX, touch.clientY);
         
         inputState.touchActive = true;
         inputState.lastTouchX = touchX;
         inputState.lastTouchY = touchY;
         inputState.isTouchDevice = true; // Mark as touch device
-        console.log('Touch device detected on touchstart');
         
         handleMouseClick(touchX, touchY, gameState, restartGame, startGame, displayHighScores, updateCanvasOverlay);
     });
 
     canvas.addEventListener('touchmove', (e) => {
         e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
         const touch = e.touches[0];
-        const rawTouchX = touch.clientX - rect.left;
-        const rawTouchY = touch.clientY - rect.top;
-        
-        // Convert screen coordinates to logical canvas coordinates (same as mouse)
-        if (canvas.logicalWidth && canvas.logicalHeight && canvas.displayWidth && canvas.displayHeight) {
-            // Convert screen coordinates to logical canvas coordinates
-            inputState.lastTouchX = rawTouchX * (canvas.logicalWidth / canvas.displayWidth);
-            inputState.lastTouchY = rawTouchY * (canvas.logicalHeight / canvas.displayHeight);
-        } else if (canvas.logicalWidth && canvas.logicalHeight) {
-            // Fallback coordinate conversion
-            inputState.lastTouchX = rawTouchX * (canvas.logicalWidth / rect.width);
-            inputState.lastTouchY = rawTouchY * (canvas.logicalHeight / rect.height);
-        } else {
-            // No conversion needed
-            inputState.lastTouchX = rawTouchX;
-            inputState.lastTouchY = rawTouchY;
-        }
+        const position = toCanvasCoords(canvas, touch.clientX, touch.clientY);
+        inputState.lastTouchX = position.x;
+        inputState.lastTouchY = position.y;
     });
 
     canvas.addEventListener('touchend', (e) => {
@@ -192,6 +163,7 @@ function handleKeyDown(e, gameState, restartGame, startGame, deprecatedParam, sh
             canvas.classList.remove('show-cursor');
             gameState.showingPauseMenu = false;
             gameState.gameRunning = true;
+            gameState.gamePaused = false;
             if (updateCanvasOverlay) updateCanvasOverlay();
         } else if (gameState.gameRunning) {
             // During gameplay, ESC should show pause menu, not settings
@@ -276,7 +248,7 @@ function handleKeyDown(e, gameState, restartGame, startGame, deprecatedParam, sh
     // Spell casting keys (Q, W, T, E, R) - only during gameplay
     if (gameState.gameRunning && ['q', 'w', 't', 'e', 'r'].includes(e.key.toLowerCase())) {
         e.preventDefault();
-        spellSystem.castSpellByKey(e.key, Date.now());
+        spellSystem.castSpellByKey(e.key, gameClock.now());
         return;
     }
 }
@@ -304,7 +276,7 @@ function initializeSpellTouchHandlers(gameState) {
             if (!gameState.gameRunning) return;
             
             // Cast the spell
-            spellSystem.castSpellByKey(spell.key, Date.now());
+            spellSystem.castSpellByKey(spell.key, gameClock.now());
             
             // Add visual feedback for touch
             element.classList.add('spell-touched');
@@ -334,7 +306,7 @@ function initializeSpellTouchHandlers(gameState) {
             fallbackAudioInit();
             
             // Cast the spell
-            spellSystem.castSpellByKey(spell.key, Date.now());
+            spellSystem.castSpellByKey(spell.key, gameClock.now());
             
             // Add touch feedback animation
             element.classList.add('spell-touched');
@@ -427,8 +399,8 @@ export function updatePlayerPosition(player, canvas, deltaTimeMultiplier, gameCo
         targetX = Math.max(minX, Math.min(maxX, targetX));
         targetY = Math.max(minY, Math.min(maxY, targetY));
         
-        // Smooth movement
-        const smoothingFactor = 0.15 * deltaTimeMultiplier;
+        // Smooth movement (exponential, so the feel is the same at any refresh rate)
+        const smoothingFactor = 1 - Math.pow(1 - 0.15, deltaTimeMultiplier);
         player.x += (targetX - player.x) * smoothingFactor;
         player.y += (targetY - player.y) * smoothingFactor;
     } else {

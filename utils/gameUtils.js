@@ -1,6 +1,7 @@
 import { gameItems } from '../data/gameItems.js';
 import { gameConfig, cacheConfig } from '../config/gameConfig.js';
 import { GAME_VERSION } from '../config/gameVersion.js';
+import { gameClock } from './gameClock.js';
 
 // Calculate level-specific speed multiplier using hybrid progression
 export function calculateLevelSpeedMultiplier(gameState) {
@@ -40,7 +41,7 @@ export function calculateLevelSpeedMultiplier(gameState) {
 function calculateTimeBasedLevel(gameState) {
     // Initialize level tracking if not present
     if (typeof gameState.levelStartTime === 'undefined') {
-        gameState.levelStartTime = Date.now() / 1000; // Convert to seconds
+        gameState.levelStartTime = gameClock.now() / 1000; // Convert to seconds
         gameState.timeRequiredForNextLevel = gameConfig.levels.baseTimePerLevel;
         gameState.levelActivity = {
             collections: 0,
@@ -50,7 +51,7 @@ function calculateTimeBasedLevel(gameState) {
         };
     }
     
-    const currentTime = Date.now() / 1000;
+    const currentTime = gameClock.now() / 1000;
     const timeInCurrentLevel = currentTime - gameState.levelStartTime;
     
     // Check if enough time has passed for next level
@@ -345,7 +346,7 @@ export function getLevelProgress(gameState) {
     if (progressionType === "hybrid" || progressionType === "time") {
         if (!gameState.levelStartTime) return { progress: 0, timeRemaining: 45 };
         
-        const currentTime = Date.now() / 1000;
+        const currentTime = gameClock.now() / 1000;
         const timeInLevel = currentTime - gameState.levelStartTime;
         const timeRequired = gameState.timeRequiredForNextLevel;
         const progress = Math.min(timeInLevel / timeRequired, 1.0);
@@ -391,6 +392,22 @@ export function cleanupRecentDropPositions(recentDropYPositions) {
     }
 }
 
+// Canvas size in game (logical) units. canvas.width/height are physical pixels and are larger
+// than this on high-DPI screens, so game logic must never use them directly.
+export function getLogicalCanvasWidth(canvas) {
+    return canvas.logicalWidth || 
+           (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
+            canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
+            gameConfig.canvas.desktop.width);
+}
+
+export function getLogicalCanvasHeight(canvas) {
+    return canvas.logicalHeight || 
+           (canvas.deviceType === 'mobile' ? (responsiveScaler ? responsiveScaler.canvasDimensions.height : 600) :
+            canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.height :
+            gameConfig.canvas.desktop.height);
+}
+
 // Calculate resolution scaling factor for consistent gameplay across different screen sizes
 export function calculateResolutionScale(canvas) {
     if (!gameConfig?.gameplay?.independence?.enabled) {
@@ -398,14 +415,8 @@ export function calculateResolutionScale(canvas) {
     }
     
     const config = gameConfig.gameplay.independence;
-    const currentWidth = canvas.logicalWidth || 
-                        (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
-                         canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
-                         gameConfig.canvas.desktop.width);
-    const currentHeight = canvas.logicalHeight || 
-                         (canvas.deviceType === 'mobile' ? (responsiveScaler ? responsiveScaler.canvasDimensions.height : 600) :
-                          canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.height :
-                          gameConfig.canvas.desktop.height);
+    const currentWidth = getLogicalCanvasWidth(canvas);
+    const currentHeight = getLogicalCanvasHeight(canvas);
     
     // Calculate scaling factors based on reference resolution
     let scaleX = currentWidth / config.referenceWidth;
@@ -429,67 +440,20 @@ export function calculateResolutionScale(canvas) {
     };
 }
 
-// Calculate comprehensive scaling multiplier that combines frame rate and resolution independence
-export function calculateUniversalMultiplier(canvas, targetFPS = 60) {
-    const frameMultiplier = calculateDeltaTimeMultiplier(targetFPS);
+// Resolution scaling for speeds, sizes and spawn coordinates.
+// Frame rate independence is handled by the fixed-timestep loop (see gameClock.js).
+export function calculateUniversalMultiplier(canvas) {
     const resolutionScale = calculateResolutionScale(canvas);
     
     return {
-        frame: frameMultiplier,
         resolution: resolutionScale,
-        // Combined multiplier for speeds (frame rate * resolution)
-        speed: frameMultiplier * resolutionScale.average,
-        // Size multiplier (resolution only, not frame rate dependent)
+        // Multiplier for speeds
+        speed: resolutionScale.average,
+        // Size multiplier
         size: resolutionScale.average,
         // Position multiplier for spawn coordinates
         position: resolutionScale
     };
-}
-
-// Calculate delta time multiplier for frame rate normalization
-export function calculateDeltaTimeMultiplier(targetFPS = 60) {
-    const currentTime = performance.now();
-    let deltaTime = currentTime - (calculateDeltaTimeMultiplier.lastTime || currentTime);
-    calculateDeltaTimeMultiplier.lastTime = currentTime;
-    
-    // Import mobile config if available
-    const mobileConfig = (typeof gameConfig !== 'undefined' && gameConfig.gameplay?.mobile) ? 
-                        gameConfig.gameplay.mobile : 
-                        { minDeltaTime: 8, maxDeltaTime: 33, refreshRateSmoothing: 0.8, maxRefreshRateMultiplier: 1.2 };
-    
-    // Clamp delta time to prevent extreme values on mobile
-    deltaTime = Math.max(mobileConfig.minDeltaTime, Math.min(mobileConfig.maxDeltaTime, deltaTime));
-    
-    // Calculate multiplier to normalize to target FPS
-    const targetFrameTime = 1000 / targetFPS; // 16.67ms for 60fps
-    let multiplier = deltaTime / targetFrameTime;
-    
-    // Improved clamping for high refresh rate devices (like iPhone 15 Pro Max at 120Hz)
-    // More aggressive smoothing for mobile devices to prevent speed spikes
-    const isHighRefreshRate = multiplier < 0.6; // Likely running at 120Hz or higher
-    
-    if (isHighRefreshRate) {
-        // For high refresh rate devices, use mobile config limits
-        multiplier = Math.min(Math.max(multiplier, 0.3), mobileConfig.maxRefreshRateMultiplier);
-        
-        // Apply additional smoothing for high refresh rate devices
-        if (!calculateDeltaTimeMultiplier.smoothedMultiplier) {
-            calculateDeltaTimeMultiplier.smoothedMultiplier = multiplier;
-        }
-        
-        // Smooth the multiplier over time to prevent jerky movement
-        const smoothingFactor = mobileConfig.refreshRateSmoothing; // Use config value
-        calculateDeltaTimeMultiplier.smoothedMultiplier = 
-            calculateDeltaTimeMultiplier.smoothedMultiplier * smoothingFactor + 
-            multiplier * (1 - smoothingFactor);
-        
-        multiplier = calculateDeltaTimeMultiplier.smoothedMultiplier;
-    } else {
-        // Standard clamping for normal refresh rates
-        multiplier = Math.min(Math.max(multiplier, 0.1), 3.0);
-    }
-    
-    return multiplier;
 }
 
 // Update game state timers
@@ -844,9 +808,10 @@ export function updateNotifications(gameState, deltaTimeMultiplier) {
 // Dynamic fall angle calculation based on game state
 
 export function calculateFallAngle(gameState) {
-    // Check if upward movement is allowed and randomly decide
-    if (gameState.allowUpwardMovement && Math.random() < 0.1) { // 10% chance for upward movement
-        // Calculate upward angle (135° to 225°)
+    // Only the horizontal component of the angle is used (objects always spawn above the screen
+    // and have to fall into view), so the "upward" range acts as a wider sideways drift.
+    if (gameState.allowUpwardMovement && Math.random() < 0.1) { // 10% chance for the wide range
+        // Calculate angle from the upward range (135° to 225° by default)
         const upwardRange = gameState.upwardAngleMax - gameState.upwardAngleMin;
         const upwardAngle = gameState.upwardAngleMin + (Math.random() * upwardRange);
         return upwardAngle * (Math.PI / 180); // Convert to radians
@@ -1231,172 +1196,6 @@ export class ResponsiveScaler {
 
 // Create global scaler instance
 export const responsiveScaler = new ResponsiveScaler();
-
-// Physics functions for boundary collision and bouncing
-export function checkBoundaryCollision(item, canvas) {
-    // Get the correct canvas width - fallback to device-specific width
-    const canvasWidth = canvas.logicalWidth || 
-                       (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
-                        canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
-                        gameConfig.canvas.desktop.width);
-    
-
-    
-    // Only check for side and top collisions - bottom collision means the item is missed
-    return {
-        left: item.x <= 0,
-        right: item.x + item.width >= canvasWidth,
-        top: item.y <= 0,
-        bottom: false // Never bounce from bottom - items should be missed instead
-    };
-}
-
-export function applyBoundaryBounce(item, collisions, canvas, restitution = 0.7, spinFactor = 0.1) {
-    // Restitution: how much energy is retained after bounce (0-1)
-    // SpinFactor: how much collision affects rotation
-    
-    let bounced = false;
-    
-    // Left wall collision
-    if (collisions.left) {
-        item.x = 0; // Correct position
-        item.horizontalSpeed = Math.abs(item.horizontalSpeed) * restitution; // Bounce right
-        
-        // Add rotational effect based on vertical speed
-        const verticalImpact = Math.abs(item.speed); // item.speed is already the vertical component
-        item.rotationSpeed += verticalImpact * spinFactor * (Math.random() - 0.5);
-        
-        bounced = true;
-    }
-    
-    // Right wall collision
-    if (collisions.right) {
-        // Get the correct canvas width - fallback to device-specific width
-        const canvasWidth = canvas.logicalWidth || 
-                           (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
-                            canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
-                            gameConfig.canvas.desktop.width);
-        item.x = canvasWidth - item.width; // Correct position
-        item.horizontalSpeed = -Math.abs(item.horizontalSpeed) * restitution; // Bounce left
-        
-        // Add rotational effect based on vertical speed
-        const verticalImpact = Math.abs(item.speed); // item.speed is already the vertical component
-        item.rotationSpeed += verticalImpact * spinFactor * (Math.random() - 0.5);
-        
-        bounced = true;
-    }
-    
-    // Top wall collision (rare but possible)
-    if (collisions.top) {
-        item.y = 0; // Correct position
-        // Reverse vertical speed with energy loss
-        item.speed = item.speed * restitution;
-        item.horizontalSpeed += (Math.random() - 0.5) * item.speed * 0.3;
-        
-        // Strong rotational effect for top collisions
-        item.rotationSpeed += item.speed * spinFactor * 2 * (Math.random() - 0.5);
-        
-        bounced = true;
-    }
-    
-    // Bottom collision is not handled - items that reach the bottom should be missed
-    // (removed bottom collision handling to prevent bouncing from floor)
-    
-    return bounced;
-}
-
-export function applyAdvancedBouncePhysics(item, collisions, canvas, options = {}) {
-    // Simplified bounce physics - just reverse direction with energy loss
-    const {
-        restitution = 0.7           // Energy retention (0-1)
-    } = options;
-    
-    let bounced = false;
-    
-    if (collisions.left || collisions.right) {
-        // Simple wall collision physics - just reverse horizontal direction with energy loss
-        const isLeftWall = collisions.left;
-        
-        // Position correction - get the correct canvas width
-        const canvasWidth = canvas.logicalWidth || 
-                           (canvas.deviceType === 'mobile' ? gameConfig.canvas.mobile.width :
-                            canvas.deviceType === 'tablet' ? gameConfig.canvas.tablet.width :
-                            gameConfig.canvas.desktop.width);
-        item.x = isLeftWall ? 0 : canvasWidth - item.width;
-        
-        // Simply reverse horizontal speed with energy loss
-        item.horizontalSpeed = -item.horizontalSpeed * restitution;
-        
-        // Add a small amount of spin for visual effect
-        item.rotationSpeed += (Math.random() - 0.5) * 0.1;
-        
-        bounced = true;
-    }
-    
-    if (collisions.top) {
-        // Simple ceiling collision physics - reverse vertical direction with energy loss
-        // Position correction
-        item.y = 0;
-        
-        // Simply reverse vertical speed with energy loss (bounce downward from ceiling)
-        item.speed = Math.abs(item.speed) * restitution;
-        
-        // Add a small amount of spin for visual effect
-        item.rotationSpeed += (Math.random() - 0.5) * 0.1;
-        
-        bounced = true;
-    }
-    
-    return bounced;
-}
-
-export function calculateSpinEffect(item, deltaTime) {
-    // Calculate how spin affects the trajectory (Magnus effect simulation)
-    const spinStrength = Math.abs(item.rotationSpeed);
-    const magnusForce = spinStrength * 0.03; // Much weaker Magnus effect (was 0.1)
-    
-    // Spin direction affects horizontal drift
-    const spinDirection = Math.sign(item.rotationSpeed);
-    const magnusAcceleration = magnusForce * spinDirection;
-    
-    // Apply Magnus effect to horizontal speed (very subtle)
-    item.horizontalSpeed += magnusAcceleration * deltaTime;
-    
-    // Remove vertical Magnus effect to prevent excessive movement
-    // (commented out the vertical effect)
-}
-
-export function applyAirResistance(item, deltaTime, airDensity = 0.001) {
-    // Much gentler air resistance - only apply to very fast moving items
-    // or items with significant horizontal speed
-    const totalSpeed = Math.sqrt(item.speed * item.speed + item.horizontalSpeed * item.horizontalSpeed);
-    
-    // Only apply air resistance if item is moving fast or has significant horizontal movement
-    if (totalSpeed < 2 && Math.abs(item.horizontalSpeed) < 1) {
-        return; // Skip air resistance for slow-moving items
-    }
-    
-    // Very gentle drag - much smaller effect
-    const linearDrag = 1 - Math.min(airDensity * deltaTime, 0.01); // Cap at 1% per frame
-    const angularDrag = 1 - Math.min(airDensity * 0.3 * deltaTime, 0.005); // Even gentler for rotation
-    
-    // Apply drag to speeds - but preserve speed boost effects
-    if (item.baseSpeed && window.gameState && window.gameState.speedIncreaseActive) {
-        // When speed boost is active, apply drag to base speed then recalculate final speed
-        item.baseSpeed *= linearDrag;
-        item.speed = item.baseSpeed * window.gameState.speedIncreaseMultiplier;
-    } else {
-        // Normal air resistance when no speed boost is active
-        item.speed *= linearDrag;
-    }
-    
-    item.horizontalSpeed *= linearDrag;
-    item.rotationSpeed *= angularDrag;
-    
-    // Much lower minimum speed thresholds
-    if (Math.abs(item.horizontalSpeed) < 0.01) item.horizontalSpeed = 0;
-    if (Math.abs(item.rotationSpeed) < 0.001) item.rotationSpeed = 0;
-}
 
 // ===== CACHE BUSTING UTILITIES =====
 

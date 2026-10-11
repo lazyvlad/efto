@@ -742,6 +742,25 @@ export const serverConfig = {
         }
     }
 
+    // Resize oversized sprite images in the build output (the source images are left untouched)
+    async optimizeAssets() {
+        this.log('🖼️  Optimizing sprite images...', 'info');
+        try {
+            const { optimizeAssets } = require('./tools/optimize-assets');
+            const { results, savedBytes } = await optimizeAssets({
+                dir: path.resolve(CONFIG.distDir),
+                write: true,
+                quiet: true,
+                log: () => {}
+            });
+            const resized = results.filter(result => result.status === 'resized').length;
+            this.log(`✅ Resized ${resized} oversized images, saved ${this.formatBytes(savedBytes)}`, 'success');
+        } catch (error) {
+            // Not fatal: the build still works with the original images
+            this.log(`⚠️  Skipped image optimization: ${error.message}`, 'warning');
+        }
+    }
+
     async generateBuildInfo() {
         const buildInfo = {
             buildTime: this.buildTime,
@@ -785,6 +804,7 @@ export const serverConfig = {
             await this.processCSS();
             await this.processHTML();
             await this.copyAssets();
+            await this.optimizeAssets();
             await this.generateBuildInfo();
             
             this.log(`🎉 Build completed successfully! Output: ${CONFIG.distDir}/`, 'success');
