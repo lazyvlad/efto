@@ -20,7 +20,7 @@
  *   node tools/optimize-assets.js --in-place --write   Overwrite the source images themselves
  *
  * Options:
- *   --dir <path>      Folder containing assets/ and items/ to process (default: project root)
+ *   --dir <path>      Folder containing assets/ to process (default: project root)
  *   --write           Actually write files (without it, only a report is printed)
  *   --in-place        Required together with --write to overwrite the project's source images
  *   --density <n>     Pixel density to keep detail for (default: 2, the canvas maximum)
@@ -47,10 +47,10 @@ const BASE_SIZES = {
 const ALPHA_THRESHOLD = 8;      // Same as utils/spriteFit.js: fainter pixels count as empty
 const MIN_TARGET = 64;          // Never shrink artwork below this many pixels
 const UNSIZED_MAX = 512;        // Longest side allowed for images the game data doesn't size
-const NEVER_RESIZE = /background|social|favicon|android-chrome|apple-touch/i; // Full-screen and share images
+const NEVER_RESIZE = /^assets\/ui\/|background|social/i; // Full-screen and share images
 const WORTHWHILE_SCALE = 0.9;   // Leave images alone unless they'd shrink by at least 10%
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp']);
-const ASSET_FOLDERS = ['assets', 'items'];
+const ASSET_FOLDER = 'assets';
 const REFERENCE_SOURCES = ['index.html', 'test-mobile.html', 'game-modular.js', 'site.webmanifest',
     'classes', 'systems', 'ui', 'utils', 'data', 'config', 'styles'];
 
@@ -151,15 +151,19 @@ function encode(pipeline, extension) {
     }
 }
 
+// Every image under assets/, as paths relative to dir (e.g. "assets/items/gold.png")
 function listImages(dir) {
     const files = [];
-    for (const folder of ASSET_FOLDERS) {
-        const folderPath = path.join(dir, folder);
-        if (!fs.existsSync(folderPath)) continue;
-        for (const name of fs.readdirSync(folderPath)) {
-            if (IMAGE_EXTENSIONS.has(path.extname(name).toLowerCase())) files.push(`${folder}/${name}`);
+    const walk = relative => {
+        const folderPath = path.join(dir, relative);
+        if (!fs.existsSync(folderPath)) return;
+        for (const entry of fs.readdirSync(folderPath, { withFileTypes: true })) {
+            const entryPath = `${relative}/${entry.name}`;
+            if (entry.isDirectory()) walk(entryPath);
+            else if (IMAGE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) files.push(entryPath);
         }
-    }
+    };
+    walk(ASSET_FOLDER);
     return files;
 }
 
@@ -177,7 +181,7 @@ function findUnreferencedImages() {
     REFERENCE_SOURCES.forEach(source => read(path.join(PROJECT_ROOT, source)));
 
     return listImages(PROJECT_ROOT)
-        .filter(image => !haystack.includes(image) && !haystack.includes(path.basename(image)))
+        .filter(image => !haystack.includes(image))
         .map(image => ({ image, bytes: fs.statSync(path.join(PROJECT_ROOT, image)).size }))
         .sort((a, b) => b.bytes - a.bytes);
 }

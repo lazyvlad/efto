@@ -2277,7 +2277,7 @@ function createMobileIntegratedLayout(gameState, gameItems) {
             <div class="player-health-section">
                 <div id="healthBar" class="compact-health-bar">
                     <div class="player-portrait">
-                        <img src="assets/efto.png" alt="Player Portrait">
+                        <img src="assets/player/efto.png" alt="Player Portrait">
                     </div>
                     <div class="health-bar-container">
                         <div class="health-background">

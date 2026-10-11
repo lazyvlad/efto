@@ -4,147 +4,147 @@
 export const assetRegistry = {
     // Player assets
     player: {
-        normal: 'assets/efto.png',
-        impact: 'assets/vano.png',
-        celebration: 'assets/efto-win.png',
-        sando: 'assets/sando.png'  // Special celebration image for Ashkandi items
+        normal: 'assets/player/efto.png',
+        impact: 'assets/player/vano.png',
+        celebration: 'assets/player/efto-win.png',
+        sando: 'assets/player/sando.png'  // Special celebration image for Ashkandi items
     },
     
     // Projectile assets
     projectiles: {
-        fireball: 'assets/fireball.png',
-        frostbolt: 'assets/frostbolt.png',
-        shadowbolt: 'assets/shadowbolt.png',
-        thunder: 'assets/thunder.png'
+        fireball: 'assets/projectiles/fireball.png',
+        frostbolt: 'assets/projectiles/frostbolt.png',
+        shadowbolt: 'assets/projectiles/shadowbolt.png',
+        thunder: 'assets/projectiles/thunder.png'
     },
     
     // Power-up and consumable assets
     powerups: {
-        healthPotion: 'assets/health_potion.png',
-        manaPotion: 'assets/mana_potion.png',
-        alchemy: 'assets/alchemy.png',
-        speedBoost: 'assets/speed-boost.png',
-        sprint: 'assets/sprint.webp',
-        aspectOfTheMonkey: 'assets/aspect_of_the_monkey.webp',
-        evasion: 'assets/evasion.jpg',
-        frostNova: 'assets/frost-nova.jpg',
-        powerWordShield: 'assets/powerwordshield.jpg',
-        chickenFood: 'assets/kokoska.png',
-        reverseGravity: 'assets/reverse_gravity.webp',
-        thoriumArrows: 'assets/arrows.webp'
+        healthPotion: 'assets/powerups/health_potion.png',
+        manaPotion: 'assets/powerups/mana_potion.png',
+        alchemy: 'assets/powerups/alchemy.png',
+        speedBoost: 'assets/powerups/speed-boost.png',
+        sprint: 'assets/powerups/sprint.webp',
+        aspectOfTheMonkey: 'assets/powerups/aspect_of_the_monkey.webp',
+        evasion: 'assets/powerups/evasion.jpg',
+        frostNova: 'assets/powerups/frost-nova.jpg',
+        powerWordShield: 'assets/powerups/powerwordshield.jpg',
+        chickenFood: 'assets/powerups/kokoska.png',
+        reverseGravity: 'assets/powerups/reverse_gravity.webp',
+        thoriumArrows: 'assets/powerups/arrows.webp'
     },
     
     // Buff and effect assets
     buffs: {
-        songflower: 'assets/songflower-buff.png',
-        onyxia: 'assets/dragon-cry.webp',
-        zgBuff1: 'assets/zg-buff.png',
-        zgBuff2: 'assets/zg-buff2.png',
-        blackLotuses: 'assets/black-lotuses.webp',
-        flaskOfTitans: 'assets/flask_of_titans.webp',
-        autoshot: 'assets/autoshot.webp',
-        multishot: 'assets/multishot.webp'
+        songflower: 'assets/spells/songflower-buff.png',
+        onyxia: 'assets/spells/dragon-cry.webp',
+        zgBuff1: 'assets/spells/zg-buff.png',
+        zgBuff2: 'assets/spells/zg-buff2.png',
+        blackLotuses: 'assets/spells/black-lotuses.webp',
+        flaskOfTitans: 'assets/spells/flask_of_titans.webp',
+        autoshot: 'assets/spells/autoshot.webp',
+        multishot: 'assets/spells/multishot.webp'
     },
     
     // Audio assets
     audio: {
         // Background music
-        background: 'assets/background.mp3',
+        background: 'assets/audio/music/background.mp3',
         
         // Sound effects
-        voice: 'assets/voice.mp3',
-        scream: 'assets/scream.mp3',
-        uff: 'assets/uff.mp3',
-        total: 'assets/total.mp3',
-        smukajte: 'assets/SMUKAJTE.mp3',
-        ohoo: 'assets/ohoo.mp3',
-        nakoj: 'assets/nakoj.mp3',
-        roll: 'assets/roll.mp3',
-        fireballimpact: 'assets/fireballimpact.mp3',
-        wegotit2: 'assets/weGotIt2.mp3',
+        voice: 'assets/audio/sfx/voice.mp3',
+        scream: 'assets/audio/sfx/scream.mp3',
+        uff: 'assets/audio/sfx/uff.mp3',
+        total: 'assets/audio/sfx/total.mp3',
+        smukajte: 'assets/audio/sfx/SMUKAJTE.mp3',
+        ohoo: 'assets/audio/sfx/ohoo.mp3',
+        nakoj: 'assets/audio/sfx/nakoj.mp3',
+        roll: 'assets/audio/sfx/roll.mp3',
+        fireballimpact: 'assets/audio/sfx/fireballimpact.mp3',
+        wegotit2: 'assets/audio/sfx/weGotIt2.mp3',
         
         // Item-specific sounds
-        disenchant: 'assets/disenchant.mp3',
-        dft: 'assets/dft.mp3',
+        disenchant: 'assets/audio/sfx/disenchant.mp3',
+        dft: 'assets/audio/sfx/dft.mp3',
         
         // Power-up and effect sounds
-        manaDrink: 'assets/mana_potion.wav',
-        healDrink: 'assets/health_potion.mp3',
-        timeCut: 'assets/time_cut.mp3',
-        speedboost: 'assets/speedboost.wav',
-        shieldCast: 'assets/shield_cast.mp3',
-        frostbolt: 'assets/frostbolt.mp3',
-        shadowImpact: 'assets/shadow-bolt.mp3',
-        chickenEat: 'assets/neka_krka_peto.mp3',
-        reverseGravity: 'assets/reverse_gravity.mp3'
+        manaDrink: 'assets/audio/sfx/mana_potion.wav',
+        healDrink: 'assets/audio/sfx/health_potion.mp3',
+        timeCut: 'assets/audio/sfx/time_cut.mp3',
+        speedboost: 'assets/audio/sfx/speedboost.wav',
+        shieldCast: 'assets/audio/sfx/shield_cast.mp3',
+        frostbolt: 'assets/audio/sfx/frostbolt.mp3',
+        shadowImpact: 'assets/audio/sfx/shadow-bolt.mp3',
+        chickenEat: 'assets/audio/sfx/neka_krka_peto.mp3',
+        reverseGravity: 'assets/audio/sfx/reverse_gravity.mp3'
     },
 
     // Regular items
     items: {
         // Basic items
-        gold: 'items/gold.png',
-        ring1: 'items/ring1.png',
-        ring2: 'items/ring2.png',
-        ring3: 'items/ring3.png',
-        chest: 'items/chest.png',
+        gold: 'assets/items/gold.png',
+        ring1: 'assets/items/ring1.png',
+        ring2: 'assets/items/ring2.png',
+        ring3: 'assets/items/ring3.png',
+        chest: 'assets/items/chest.png',
         
         // Dragonstalker set
-        dsHelm: 'items/dshelm.png',
-        dsShoulders: 'items/dsshoulders.png',
-        dsChest: 'items/dschest.png',
-        dsBracers: 'items/dsbracers.png',
-        dsHands: 'items/dshands.png',
-        dsBelt: 'items/dsbelt.png',
-        dsLegs: 'items/dslegs.png',
-        dsBoots: 'items/dsboots.png',
+        dsHelm: 'assets/items/dshelm.png',
+        dsShoulders: 'assets/items/dsshoulders.png',
+        dsChest: 'assets/items/dschest.png',
+        dsBracers: 'assets/items/dsbracers.png',
+        dsHands: 'assets/items/dshands.png',
+        dsBelt: 'assets/items/dsbelt.png',
+        dsLegs: 'assets/items/dslegs.png',
+        dsBoots: 'assets/items/dsboots.png',
         
         // Numbered items
-        item2: 'items/2.png',
-        item33: 'items/33.png',
-        item4: 'items/4.png',
-        item5: 'items/5.png',
-        item6: 'items/6.png',
-        item66: 'items/66.png',
-        item7: 'items/7.png',
-        item8: 'items/8.png',
-        item99: 'items/99.png',
+        item2: 'assets/items/2.png',
+        item33: 'assets/items/33.png',
+        item4: 'assets/items/4.png',
+        item5: 'assets/items/5.png',
+        item6: 'assets/items/6.png',
+        item66: 'assets/items/66.png',
+        item7: 'assets/items/7.png',
+        item8: 'assets/items/8.png',
+        item99: 'assets/items/99.png',
         
         // Epic weapons and gear
-        ashkandi: 'items/ashkandi.png',
-        maladath: 'items/maladath.png',
-        dalrends: 'items/dalrends.png',
-        brutalityBlade: 'items/3.png',
-        perditionsBlade: 'items/perditions-blade.png',
+        ashkandi: 'assets/items/ashkandi.png',
+        maladath: 'assets/items/maladath.png',
+        dalrends: 'assets/items/dalrends.png',
+        brutalityBlade: 'assets/items/3.png',
+        perditionsBlade: 'assets/items/perditions-blade.png',
         
         // Accessories and misc
-        minersCape: 'items/miners-cape.png',
-        walkingStick: 'items/walking-stick.png',
-        wolfmasterCape: 'items/wolfmaster-cape.png',
-        quickStrikeRing: 'items/quick-strike-ring.png',
-        circleOfAppliedForce: 'items/circle-of-applied-force.png',
-        onslaught: 'items/onslaught.png',
-        cts: 'items/cts.png',
-        dft: 'items/DFT.png',
+        minersCape: 'assets/items/miners-cape.png',
+        walkingStick: 'assets/items/walking-stick.png',
+        wolfmasterCape: 'assets/items/wolfmaster-cape.png',
+        quickStrikeRing: 'assets/items/quick-strike-ring.png',
+        circleOfAppliedForce: 'assets/items/circle-of-applied-force.png',
+        onslaught: 'assets/items/onslaught.png',
+        cts: 'assets/items/cts.png',
+        dft: 'assets/items/DFT.png',
         
         // Legendary and ultra rare
-        tunder: 'items/tunder.png',
-        zee: 'items/zee.png',
+        tunder: 'assets/items/tunder.png',
+        zee: 'assets/items/zee.png',
         
-        // WebP items from assets folder
-        cape21: 'assets/Inv_misc_cape_21.webp',
-        cape05: 'assets/Inv_misc_cape_05.webp',
-        forkKnife: 'assets/fork_knife.webp',
-        sapphireGem: 'assets/Inv_misc_gem_sapphire_01.webp',
-        pearlGem: 'assets/Inv_misc_gem_pearl_04.webp',
-        hardCheese: 'assets/Inv_misc_food_100_hardcheese.webp',
-        food09: 'assets/Inv_misc_food_09.webp',
-        fish31: 'assets/Inv_misc_fish_31.webp',
-        swissArmy: 'assets/Inv_misc_enggizmos_swissarmy.webp',
-        gizmos29: 'assets/Inv_misc_enggizmos_29.webp',
-        coin04: 'assets/Inv_misc_coin_04.webp',
-        coin10: 'assets/Inv_misc_coin_10.webp',
-        coin02: 'assets/Inv_misc_coin_02.webp',
-        coin01: 'assets/Inv_misc_coin_01.webp'
+        // WebP items
+        cape21: 'assets/items/Inv_misc_cape_21.webp',
+        cape05: 'assets/items/Inv_misc_cape_05.webp',
+        forkKnife: 'assets/items/fork_knife.webp',
+        sapphireGem: 'assets/items/Inv_misc_gem_sapphire_01.webp',
+        pearlGem: 'assets/items/Inv_misc_gem_pearl_04.webp',
+        hardCheese: 'assets/items/Inv_misc_food_100_hardcheese.webp',
+        food09: 'assets/items/Inv_misc_food_09.webp',
+        fish31: 'assets/items/Inv_misc_fish_31.webp',
+        swissArmy: 'assets/items/Inv_misc_enggizmos_swissarmy.webp',
+        gizmos29: 'assets/items/Inv_misc_enggizmos_29.webp',
+        coin04: 'assets/items/Inv_misc_coin_04.webp',
+        coin10: 'assets/items/Inv_misc_coin_10.webp',
+        coin02: 'assets/items/Inv_misc_coin_02.webp',
+        coin01: 'assets/items/Inv_misc_coin_01.webp'
     }
 };
 

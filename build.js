@@ -34,7 +34,6 @@ const CONFIG = {
     ],
     assetDirs: [
         'assets',
-        'items',
         'api'
     ],
     copyFiles: [

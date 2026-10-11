@@ -6,7 +6,7 @@ body, html {
     padding: 0;
     height: 100%;
     overflow: hidden;
-    background: url('../assets/background.jpg') center center/cover no-repeat #1a1a1a;
+    background: url('../assets/ui/background.jpg') center center/cover no-repeat #1a1a1a;
     font-family: Arial, sans-serif;
 }
 

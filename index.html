@@ -27,7 +27,7 @@
     <link rel="manifest" href="site.webmanifest">
     
     <!-- Preload critical background image with high priority -->
-    <link rel="preload" href="assets/background.jpg" as="image" fetchpriority="high">
+    <link rel="preload" href="assets/ui/background.jpg" as="image" fetchpriority="high">
     <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
@@ -74,7 +74,7 @@
         <div id="spellBar">
             <div class="spell-slot" id="spell-dragon-cry">
                 <div class="spell-icon">
-                    <img src="assets/onyxia-buff.png" alt="Dragon Cry" class="spell-image">
+                    <img src="assets/spells/onyxia-buff.png" alt="Dragon Cry" class="spell-image">
                 </div>
                 <div class="spell-key">Q</div>
                 <div class="spell-name">Dragon Cry</div>
@@ -84,7 +84,7 @@
             
             <div class="spell-slot" id="spell-zandalari">
                 <div class="spell-icon">
-                    <img src="assets/zg-buff.png" alt="Zandalari" class="spell-image">
+                    <img src="assets/spells/zg-buff.png" alt="Zandalari" class="spell-image">
                 </div>
                 <div class="spell-key">W</div>
                 <div class="spell-name">Zandalari</div>
@@ -94,7 +94,7 @@
             
             <div class="spell-slot" id="spell-flask-of-titans">
                 <div class="spell-icon">
-                    <img src="assets/flask_of_titans.webp" alt="Flask of Titans" class="spell-image">
+                    <img src="assets/spells/flask_of_titans.webp" alt="Flask of Titans" class="spell-image">
                 </div>
                 <div class="spell-key">T</div>
                 <div class="spell-name">Flask of Titans</div>
@@ -104,7 +104,7 @@
             
             <div class="spell-slot" id="spell-autoshot">
                 <div class="spell-icon">
-                    <img src="assets/autoshot.webp" alt="Autoshot" class="spell-image">
+                    <img src="assets/spells/autoshot.webp" alt="Autoshot" class="spell-image">
                 </div>
                 <div class="spell-key">E</div>
                 <div class="spell-name">Autoshot</div>
@@ -114,7 +114,7 @@
             
             <div class="spell-slot" id="spell-multishot">
                 <div class="spell-icon">
-                    <img src="assets/multishot.webp" alt="Multishot" class="spell-image">
+                    <img src="assets/spells/multishot.webp" alt="Multishot" class="spell-image">
                 </div>
                 <div class="spell-key">R</div>
                 <div class="spell-name">Multishot</div>
@@ -126,7 +126,7 @@
     
     <!-- Mobile Pause Button (floating) -->
     <button id="mobilePauseBtn" class="mobile-pause-btn" style="display: none;" title="Pause Game">
-        <img src="assets/alchemy.png" alt="" class="mobile-pause-icon">
+        <img src="assets/powerups/alchemy.png" alt="" class="mobile-pause-icon">
     </button>
 
     <!-- Unified Pause Menu Screen -->
@@ -355,27 +355,27 @@
                     <h3>Item Types & Points</h3>
                     <div class="item-grid">
                         <div class="item-type">
-                            <img src="items/zee.png" alt="Zee Zgnan" class="guide-item-icon">
+                            <img src="assets/items/zee.png" alt="Zee Zgnan" class="guide-item-icon">
                             <span><strong>Zee Zgnan:</strong> 15 points (Ultra Rare)</span>
                         </div>
                         <div class="item-type">
-                            <img src="items/tunder.png" alt="Thunder Fury" class="guide-item-icon">
+                            <img src="assets/items/tunder.png" alt="Thunder Fury" class="guide-item-icon">
                             <span><strong>Legendary:</strong> Thunder Fury - 5 points + Auto-collect all items</span>
                         </div>
                         <div class="item-type">
-                            <img src="items/dshelm.png" alt="Dragonstalker helm" class="guide-item-icon">
+                            <img src="assets/items/dshelm.png" alt="Dragonstalker helm" class="guide-item-icon">
                             <span><strong>Tier Set:</strong> Dragonstalker pieces - 6 points each (Must collect all 10!)</span>
                         </div>
                         <div class="item-type">
-                            <img src="items/DFT.png" alt="Drake Fang Talisman" class="guide-item-icon">
+                            <img src="assets/items/DFT.png" alt="Drake Fang Talisman" class="guide-item-icon">
                             <span><strong>Special:</strong> 4-7 points (Rare items)</span>
                         </div>
                         <div class="item-type">
-                            <img src="items/maladath.png" alt="Maladath" class="guide-item-icon">
+                            <img src="assets/items/maladath.png" alt="Maladath" class="guide-item-icon">
                             <span><strong>Epic:</strong> 5-10 points (Uncommon items)</span>
                         </div>
                         <div class="item-type">
-                            <img src="items/gold.png" alt="Gold" class="guide-item-icon">
+                            <img src="assets/items/gold.png" alt="Gold" class="guide-item-icon">
                             <span><strong>Regular:</strong> 1-4 points (Common items)</span>
                         </div>
                     </div>
@@ -503,7 +503,7 @@
         <!-- Unit frame: portrait, name, level, health and score -->
         <div class="panel-header">
             <div class="player-portrait">
-                <img src="assets/efto.png" alt="">
+                <img src="assets/player/efto.png" alt="">
             </div>
             <div class="player-identity">
                 <div class="player-nameplate">
