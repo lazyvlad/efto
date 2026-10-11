@@ -18,7 +18,7 @@
     <meta name="format-detection" content="telephone=no">
     <meta name="msapplication-tap-highlight" content="no">
     
-    <title>DMTribut - EFTO Game</title>
+    <title>I N P U T</title>
     
     <!-- Favicon -->
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
@@ -28,6 +28,7 @@
     
     <!-- Preload critical background image with high priority -->
     <link rel="preload" href="assets/background.jpg" as="image" fetchpriority="high">
+    <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
     <link rel="stylesheet" href="styles/base.css">
@@ -38,6 +39,7 @@
     <link rel="stylesheet" href="styles/spell-bar.css">
     <link rel="stylesheet" href="styles/how-to-play.css">
     <link rel="stylesheet" href="styles/mobile.css">
+    <link rel="stylesheet" href="styles/wow-theme.css">
     <!-- <link rel="stylesheet" href="styles/mobile-fixed.css"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
 </head>
@@ -132,31 +134,24 @@
         <div id="pauseMenuContent" class="pause-content">
             <!-- Name Entry Content (shown when no game is running) -->
             <div id="nameEntryContent" style="display: none;">
-                <h2>Welcome to DMTribut!</h2>
+                <h2>I N P U T</h2>
                 <p style="margin-bottom: 20px; color: #ccc;">Enter your name to start playing</p>
                 <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" />
                 <br>
                 <div class="pause-buttons">
-                    <button id="startGameBtn" class="pause-btn continue-btn">
-                        <img src="assets/efto.png" alt="" class="menu-button-icon"> Start Game
+                    <button id="startGameBtn" class="pause-btn continue-btn">Start Game
                     </button>
-                    <button id="continueGameBtn" class="pause-btn continue-btn" style="display: none;">
-                        <img src="assets/sprint.webp" alt="" class="menu-button-icon"> Continue Game
+                    <button id="continueGameBtn" class="pause-btn continue-btn" style="display: none;">Continue Game
                     </button>
-                    <button id="restartGameBtn" class="pause-btn restart-btn" style="display: none;">
-                        <img src="assets/reverse_gravity.webp" alt="" class="menu-button-icon"> Restart Game
+                    <button id="restartGameBtn" class="pause-btn restart-btn" style="display: none;">Restart Game
                     </button>
-                    <button id="viewScoresBtn" class="pause-btn info-btn">
-                        <img src="items/zee.png" alt="" class="menu-button-icon"> High Scores
+                    <button id="viewScoresBtn" class="pause-btn info-btn">High Scores
                     </button>
-                    <button id="howToPlayBtn" class="pause-btn info-btn">
-                        <img src="assets/efto-win.png" alt="" class="menu-button-icon"> How to Play
+                    <button id="howToPlayBtn" class="pause-btn info-btn">How to Play
                     </button>
-                    <button id="settingsBtn" class="pause-btn settings-btn">
-                        <img src="assets/alchemy.png" alt="" class="menu-button-icon"> Settings
+                    <button id="settingsBtn" class="pause-btn settings-btn">Settings
                     </button>
                     <button id="itemBonusesMenuBtn" class="pause-btn bonuses-btn desktop-only">
-                        <img src="items/quick-strike-ring.png" alt="" class="menu-button-icon">
                         <span class="menu-button-label-full">Item Bonuses</span>
                         <span class="menu-button-label-short">Bonuses</span>
                     </button>
@@ -165,25 +160,20 @@
 
             <!-- Pause Game Content (shown when game is running and paused) -->
             <div id="pauseGameContent" style="display: none;">
-                <h2>⏸️ GAME PAUSED</h2>
-                <p class="pause-subtitle">Game is temporarily paused</p>
+                <h2>Game Menu</h2>
+                <p class="pause-subtitle">The game is paused</p>
                 <div class="pause-buttons">
-                    <button id="continuePauseBtn" class="pause-btn continue-btn">
-                        <img src="assets/sprint.webp" alt="" class="menu-button-icon"> Continue
+                    <button id="continuePauseBtn" class="pause-btn continue-btn">Continue
                     </button>
-                    <button id="gameInfoPauseBtn" class="pause-btn info-btn">
-                        <img src="assets/efto-win.png" alt="" class="menu-button-icon"> Game Info
+                    <button id="gameInfoPauseBtn" class="pause-btn info-btn">Game Info
                     </button>
                     <button id="itemBonusesPauseBtn" class="pause-btn bonuses-btn">
-                        <img src="items/quick-strike-ring.png" alt="" class="menu-button-icon">
                         <span class="menu-button-label-full">Item Bonuses</span>
                         <span class="menu-button-label-short">Bonuses</span>
                     </button>
-                    <button id="settingsPauseBtn" class="pause-btn settings-btn">
-                        <img src="assets/alchemy.png" alt="" class="menu-button-icon"> Settings
+                    <button id="settingsPauseBtn" class="pause-btn settings-btn">Settings
                     </button>
-                    <button id="restartPauseBtn" class="pause-btn restart-btn">
-                        <img src="assets/reverse_gravity.webp" alt="" class="menu-button-icon"> Restart
+                    <button id="restartPauseBtn" class="pause-btn restart-btn">Restart
                     </button>
                 </div>
                 <p class="pause-hint">Press ESC to continue or tap pause button</p>
@@ -193,11 +183,11 @@
         <!-- Settings Screen (moved inside pause menu) -->
         <div id="settingsScreen" class="screen" style="display: none;">
             <div class="screen-content settings-expanded">
-                <h2><img src="assets/alchemy.png" alt="" class="settings-heading-icon"> Game Settings</h2>
+                <h2>Game Settings</h2>
                 
                 <!-- Panel Appearance Settings Section -->
                 <div class="settings-section">
-                    <h3><img src="items/dshelm.png" alt="" class="settings-heading-icon"> Panel Appearance</h3>
+                    <h3>Panel Appearance</h3>
                     <p class="section-description">Control how information panels look and behave</p>
                     
                     <div class="setting-item">
@@ -229,13 +219,12 @@
                 
                 <!-- Audio Settings Section -->
                 <div class="settings-section">
-                    <h3><img src="assets/mana_potion.png" alt="" class="settings-heading-icon"> Audio Settings</h3>
+                    <h3>Audio Settings</h3>
                     
                     <!-- iOS Volume Notice -->
                     <div id="iosVolumeNotice" class="ios-notice" style="display: none;">
                         <div class="ios-notice-content">
-                            <img src="assets/mana_potion.png" alt="" class="ios-notice-icon">
-                            <div class="ios-notice-text">
+                        <div class="ios-notice-text">
                                 <strong>iOS Device Detected</strong><br>
                                 Volume is controlled by your device's hardware buttons
                             </div>
@@ -295,15 +284,15 @@
 
         <!-- How to Play Screen (moved inside pause menu) -->
         <div id="howToPlay" style="display: none;">
-            <h2><img src="assets/efto-win.png" alt="" class="guide-heading-icon"> How to Play</h2>
+            <h2>How to Play</h2>
             <div id="howToPlayContent">
                 <div class="guide-section">
-                    <h3><img src="assets/efto-win.png" alt="" class="guide-heading-icon"> Objective</h3>
-                    <p>Collect as many points as you can before you die! This is the ultimate DM Tribute!</p>
+                    <h3>Objective</h3>
+                    <p>Collect as many points as you can before you die! This is I N P U T!</p>
                 </div>
 
                 <div class="guide-section">
-                    <h3><img src="assets/efto.png" alt="" class="guide-heading-icon"> Controls</h3>
+                    <h3>Controls</h3>
                     <p><strong>Desktop:</strong> Mouse to move your character</p>
                     <p><strong>Mobile:</strong> Touch screen to move your character</p>
                     <p><strong>ESC:</strong> Pause game</p>
@@ -311,7 +300,7 @@
                 </div>
 
                 <div class="guide-section">
-                    <h3><img src="assets/powerwordshield.jpg" alt="" class="guide-heading-icon"> Beneficial Spells (Collect These!)</h3>
+                    <h3>Beneficial Spells (Collect These!)</h3>
                     <div class="spell-grid">
                         <div class="spell-item beneficial">
                             <strong>Power Word Shield</strong> - Grants temporary shield protection
@@ -326,7 +315,7 @@
                 </div>
 
                 <div class="guide-section">
-                    <h3><img src="assets/dragon-cry.webp" alt="" class="guide-heading-icon"> Player Spells</h3>
+                    <h3>Player Spells</h3>
                     <p style="color: #4ECDC4; font-style: italic; margin-bottom: 15px;">Desktop: Press Q/W/T/E/R keys | Mobile: Touch the spell icons!</p>
                     <div class="spell-grid">
                         <div class="spell-item player-spell">
@@ -348,7 +337,7 @@
                 </div>
 
                 <div class="guide-section">
-                    <h3><img src="assets/fireball.png" alt="" class="guide-heading-icon"> Dangerous Projectiles (Avoid These!)</h3>
+                    <h3>Dangerous Projectiles (Avoid These!)</h3>
                     <div class="spell-grid">
                         <div class="spell-item dangerous">
                             <strong>Fireball</strong> - 8 HP damage
@@ -363,7 +352,7 @@
                 </div>
 
                 <div class="guide-section">
-                    <h3><img src="items/tunder.png" alt="" class="guide-heading-icon"> Item Types & Points</h3>
+                    <h3>Item Types & Points</h3>
                     <div class="item-grid">
                         <div class="item-type">
                             <img src="items/zee.png" alt="Zee Zgnan" class="guide-item-icon">
@@ -393,28 +382,28 @@
                 </div>
 
                 <div class="guide-section">
-                    <h3><img src="items/quick-strike-ring.png" alt="" class="guide-heading-icon"> Critical Hit System</h3>
+                    <h3>Critical Hit System</h3>
                     <div id="critSystemContent">
                         <!-- Dynamic content will be generated here -->
                     </div>
                 </div>
 
                 <div class="guide-section">
-                    <h3><img src="assets/evasion.jpg" alt="" class="guide-heading-icon"> Dodge Rating System</h3>
+                    <h3>Dodge Rating System</h3>
                     <div id="dodgeSystemContent">
                         <!-- Dynamic content will be generated here -->
                     </div>
                 </div>
 
                 <div class="guide-section">
-                    <h3><img src="assets/arrows.webp" alt="" class="guide-heading-icon"> Arrow Combat System</h3>
+                    <h3>Arrow Combat System</h3>
                     <div id="arrowSystemContent">
                         <!-- Dynamic content will be generated here -->
                     </div>
                 </div>
 
                 <div class="guide-section">
-                    <h3><img src="items/zee.png" alt="" class="guide-heading-icon"> Scoring Tips</h3>
+                    <h3>Scoring Tips</h3>
                     <p>• Use Zandalari spell for +20% points and to slow down all falling objects</p>
                     <p>• Collect Speed Boost projectiles to increase game speed and scoring</p>
                     <p>• Thunder Fury automatically collects all items on screen AND increases crit chance</p>
@@ -440,7 +429,7 @@
         <div id="gameOver" style="display: none;">
             <h2>Game Over!</h2>
             <p id="finalScore">Final Score: 0</p>
-            <p id="newHighScore" style="display: none; color: #FFD700; font-weight: bold; margin: 10px 0;">🎉 NEW HIGH SCORE! 🎉</p>
+            <p id="newHighScore" style="display: none; color: #FFD700; font-weight: bold; margin: 10px 0;">New High Score!</p>
             <button id="restartBtn">Play Again</button>
             <button id="viewScoresBtn2">View High Scores</button>
         </div>
@@ -448,7 +437,7 @@
         <!-- Item Bonuses Screen (available during paused gameplay) -->
         <div id="itemBonusesScreen" class="screen" style="display: none;">
             <div class="screen-content bonuses-screen-content">
-                <h2><img src="items/quick-strike-ring.png" alt="" class="guide-heading-icon"> Item Stat Bonuses</h2>
+                <h2>Item Stat Bonuses</h2>
                 <p class="bonuses-subtitle">Active bonuses from collected items</p>
 
                 <div class="bonus-summary">
@@ -465,14 +454,11 @@
                 </div>
 
                 <div class="bonuses-tabs">
-                    <button id="permanentBonusesTab" class="bonus-tab active">
-                        <img src="items/circle-of-applied-force.png" alt="" class="menu-button-icon"> Permanent Bonuses
+                    <button id="permanentBonusesTab" class="bonus-tab active">Permanent Bonuses
                     </button>
-                    <button id="temporaryBonusesTab" class="bonus-tab">
-                        <img src="assets/black-lotuses.webp" alt="" class="menu-button-icon"> Temporary Bonuses
+                    <button id="temporaryBonusesTab" class="bonus-tab">Temporary Bonuses
                     </button>
-                    <button id="allItemsTab" class="bonus-tab">
-                        <img src="items/DFT.png" alt="" class="menu-button-icon"> All Items
+                    <button id="allItemsTab" class="bonus-tab">All Items
                     </button>
                 </div>
 
@@ -514,36 +500,29 @@
     
     <!-- DOM-based Items Collection Panel -->
     <div id="itemsCollectionPanel" class="hidden">
+        <!-- Unit frame: portrait, name, level, health and score -->
         <div class="panel-header">
-            <div class="player-name" id="playerNameDisplay">Player: aaaa</div>
-            <div class="player-score" id="playerScoreDisplay">0</div>
-            <div class="player-level" id="playerLevelDisplay">Level 1</div>
-
-            <!-- Compact Health Bar -->
-            <div class="player-health-bar">
-                <div class="player-health-background">
-                    <div class="player-health-fill" id="playerHealthFill"></div>
-                </div>
-                <div class="player-health-text" id="playerHealthText">100/100</div>
+            <div class="player-portrait">
+                <img src="assets/efto.png" alt="">
             </div>
-            
+            <div class="player-identity">
+                <div class="player-nameplate">
+                    <div class="player-name" id="playerNameDisplay"></div>
+                    <div class="player-level" id="playerLevelDisplay">Level 1</div>
+                </div>
+                <div class="player-health-bar">
+                    <div class="player-health-background">
+                        <div class="player-health-fill" id="playerHealthFill"></div>
+                    </div>
+                    <div class="player-health-text" id="playerHealthText">100/100</div>
+                </div>
+            </div>
+            <div class="player-score-row">
+                <span class="player-score-label">Score</span>
+                <span class="player-score" id="playerScoreDisplay">0</span>
+            </div>
             <div class="collection-summary">
                 <span id="collectionCount">0 types, 0 total</span>
-            </div>
-        </div>
-        
-        <!-- Compact Health Bar Section -->
-        <div class="player-health-section">
-            <div id="healthBar" class="compact-health-bar">
-                <div class="player-portrait">
-                    <img src="assets/efto.png" alt="Player Portrait">
-                </div>
-                <div class="health-bar-container">
-                    <div class="health-background">
-                        <div class="health-fill" id="healthFill"></div>
-                    </div>
-                    <div class="health-text" id="healthText">100%</div>
-                </div>
             </div>
         </div>
         
@@ -595,13 +574,15 @@
     <!-- Dedicated Dragonstalker Progress Panel -->
     <div id="dragonstalkerProgressPanel" class="hidden">
         <div class="dragonstalker-panel-header">
+            <div class="dragonstalker-title">
+                <span class="dragonstalker-set-name">Dragonstalker<span class="dragonstalker-set-suffix"> Armor</span></span>
+                <span class="dragonstalker-count" id="dragonstalkerProgressText">0/10</span>
+            </div>
             <div class="dragonstalker-progress-bar">
                 <div class="progress-background">
                     <div class="progress-fill" id="dragonstalkerProgressFill"></div>
                 </div>
-                <div class="progress-text" id="dragonstalkerProgressText">0/10 PIECES</div>
             </div>
-            <div class="dragonstalker-status" id="dragonstalkerStatus"></div>
         </div>
         
         <div class="dragonstalker-items-list" id="dragonstalkerItemsList">

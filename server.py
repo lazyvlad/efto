@@ -106,7 +106,7 @@ def get_player_scores(player_name):
     return jsonify(player_scores)
 
 if __name__ == '__main__':
-    print("Starting DMTribut game server...")
+    print("Starting I N P U T game server...")
     print("Game will be available at: http://localhost:8080")
     print("High scores will be stored in: highscores.json")
     # Never enable debug mode here: the Werkzeug debugger allows remote code execution

@@ -2413,12 +2413,7 @@ function updatePlayerStats(gameState) {
     
     // Update player name
     if (playerNameDisplay) {
-        // Check if device is mobile using ResponsiveScaler
-        const isMobile = responsiveScaler.deviceType === 'mobile';
-        const nameText = isMobile ? 
-            gameState.playerName || 'Unknown' : 
-            `Player: ${gameState.playerName || 'Unknown'}`;
-        playerNameDisplay.textContent = nameText;
+        playerNameDisplay.textContent = gameState.playerName || 'Unknown';
     }
     
     // Update score with formatting (large and prominent)
@@ -2442,15 +2437,9 @@ function updatePlayerStats(gameState) {
         // Update health fill width and color
         playerHealthFill.style.width = `${healthPercentage * 100}%`;
         
-        // Update health fill color based on health level
-        playerHealthFill.className = 'player-health-fill';
-        if (healthPercentage <= 0.25) {
-            playerHealthFill.style.background = 'linear-gradient(90deg, #ff0000, #ff3333)'; // Red for low
-        } else if (healthPercentage <= 0.6) {
-            playerHealthFill.style.background = 'linear-gradient(90deg, #ff8800, #ffaa00)'; // Orange for medium
-        } else {
-            playerHealthFill.style.background = 'linear-gradient(90deg, #00ff00, #44ff44)'; // Green for high
-        }
+        // Colour comes from the stylesheet: green, then amber, then red as health drops
+        const healthLevel = healthPercentage <= 0.25 ? 'low' : healthPercentage <= 0.6 ? 'medium' : 'high';
+        playerHealthFill.className = `player-health-fill ${healthLevel}`;
         
         // Update health text
         playerHealthText.textContent = `${Math.round(gameState.health)}/${gameState.maxHealth}`;
@@ -2950,54 +2939,19 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
         const progressPercent = (uniquePiecesCollected / 10) * 100;
         progressFill.style.width = `${progressPercent}%`;
         
-        // Check if mobile for compact formatting
-        const isMobile = responsiveScaler.deviceType === 'mobile';
-        
-        let progressString;
-        if (isMobile) {
-            // Compact format for mobile: "3/10" or "3/10 (2 SETS)"
-            progressString = `${uniquePiecesCollected}/10`;
-            if (gameState.dragonstalkerCompletions > 0) {
-                progressString += ` (${gameState.dragonstalkerCompletions})`;
-            }
-        } else {
-            // Full format for desktop
-            progressString = `${uniquePiecesCollected}/10 PIECES`;
-            if (gameState.dragonstalkerCompletions > 0) {
-                progressString += ` | ${gameState.dragonstalkerCompletions} SET${gameState.dragonstalkerCompletions > 1 ? 'S' : ''} COMPLETE`;
-            }
+        // Pieces collected, plus how many full sets have been completed so far
+        let progressString = `${uniquePiecesCollected}/10`;
+        if (gameState.dragonstalkerCompletions > 0) {
+            const isMobile = responsiveScaler.deviceType === 'mobile';
+            progressString += isMobile
+                ? ` (${gameState.dragonstalkerCompletions})`
+                : ` \u00b7 ${gameState.dragonstalkerCompletions} set${gameState.dragonstalkerCompletions > 1 ? 's' : ''}`;
         }
         
         progressText.textContent = progressString;
         
-        if (gameState.gameWon) {
-            progressFill.classList.add('victory');
-        }
+        progressFill.classList.toggle('victory', Boolean(gameState.gameWon));
     }
-    
-    // Update status message
-    // const statusElement = document.getElementById('dragonstalkerStatus');
-    // if (statusElement) {
-    //     statusElement.className = 'dragonstalker-status';
-    //     if (gameState.gameWon) {
-    //         if (zeeZgnanCollected) {
-    //             statusElement.textContent = '🎯 ZEE ZGNAN VICTORY! 🎯';
-    //             statusElement.classList.add('victory');
-    //         } else {
-    //             statusElement.textContent = '🏆 SET COMPLETE! 🏆';
-    //             statusElement.classList.add('victory');
-    //         }
-    //     } else if (uniquePiecesCollected >= 8) {
-    //         statusElement.textContent = '🏆 ALMOST THERE! 🏆';
-    //     } else {
-    //         statusElement.textContent = `Need ${10 - uniquePiecesCollected} more pieces`;
-    //     }
-        
-    //     // Add speed reduction info if any completions
-    //     if (gameState.permanentSpeedReductionFromSets > 0) {
-    //         statusElement.textContent += ` | Speed Reduction: -${gameState.permanentSpeedReductionFromSets.toFixed(1)}x`;
-    //     }
-    // }
     
     // Update items list
     const itemsList = document.getElementById('dragonstalkerItemsList');
@@ -3021,12 +2975,7 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
                 itemsList.appendChild(itemDiv);
                 
                 // Initialize cache for this item
-                dragonstalkerCache.itemStates.set(item.id, {
-                    collected: -1,
-                    missed: -1,
-                    status: '',
-                    displayName: ''
-                });
+                dragonstalkerCache.itemStates.set(item.id, { status: '' });
             });
         }
         
@@ -3035,77 +2984,30 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
             const itemDiv = itemsList.querySelector(`[data-item-id="${item.id}"]`);
             if (!itemDiv) return;
             
-            let status = '○';
             let statusClass = 'pending';
-            let nameClass = 'pending';
-            
             if (item.collected > 0) {
-                status = '✓';
                 statusClass = 'collected';
-                nameClass = 'collected';
             } else if (item.missed > 0) {
-                status = '✗';
                 statusClass = 'missed';
-                nameClass = 'missed';
-            }
-            
-            // Check what layout we need
-            const isCompactView = responsiveScaler.deviceType === 'mobile' || 
-                                 window.innerWidth <= 1024 || 
-                                 document.body.classList.contains('force-mobile-panels');
-            
-            let displayName = item.name;
-            if (isCompactView) {
-                displayName = getShortenedDragonstalkerName(item.id, item.name);
             }
             
             // Get cached state for this item (provide default if not found)
-            const cachedState = dragonstalkerCache.itemStates.get(item.id) || {
-                collected: -1,
-                missed: -1,
-                status: '',
-                displayName: ''
-            };
+            const cachedState = dragonstalkerCache.itemStates.get(item.id) || { status: '' };
             
-            // Check if anything changed
-            const collectedChanged = cachedState.collected !== item.collected;
-            const missedChanged = cachedState.missed !== item.missed;
-            const statusChanged = cachedState.status !== status;
-            const nameChanged = cachedState.displayName !== displayName;
-            
-            // Only update if something actually changed or if this is initial load
-            if (collectedChanged || missedChanged || statusChanged || nameChanged || !itemDiv.innerHTML) {
+            // Only touch the DOM when the slot's state changed or on first render
+            if (cachedState.status !== statusClass || !itemDiv.innerHTML) {
                 const itemIcon = getDragonstalkerItemIconData(item);
+                const slotName = getShortenedDragonstalkerName(item.id, item.name);
                 itemDiv.className = `dragonstalker-item ${statusClass}`;
+                itemDiv.title = item.name;
+                itemDiv.innerHTML = `
+                    <div class="dragonstalker-item-icon">
+                        <img src="${itemIcon.src}" alt="${itemIcon.alt}">
+                    </div>
+                    <div class="dragonstalker-item-name">${slotName}</div>
+                `;
                 
-                // Create layouts for mobile vs desktop (both show icons now)
-                if (isCompactView) {
-                    // Mobile: Compact layout with icon and status overlay
-                    itemDiv.innerHTML = `
-                        <div class="dragonstalker-item-icon">
-                            <img src="${itemIcon.src}" alt="${itemIcon.alt}" title="${itemIcon.alt}">
-                        </div>
-                        <div class="dragonstalker-item-status ${statusClass}">${status}</div>
-                        <div class="dragonstalker-item-name ${nameClass}">${displayName}</div>
-                    `;
-                } else {
-                    // Desktop: Traditional layout with icons
-                    itemDiv.innerHTML = `
-                        <div class="dragonstalker-item-icon">
-                            <img src="${itemIcon.src}" alt="${itemIcon.alt}" title="${itemIcon.alt}">
-                        </div>
-                        <div class="dragonstalker-item-status ${statusClass}">${status}</div>
-                        <div class="dragonstalker-item-name ${nameClass}">${displayName}</div>
-                    `;
-                }
-                
-                // Update cache
-                dragonstalkerCache.itemStates.set(item.id, {
-                    collected: item.collected,
-                    missed: item.missed,
-                    status: status,
-                    displayName: displayName
-                });
+                dragonstalkerCache.itemStates.set(item.id, { status: statusClass });
             }
         });
     }
@@ -3139,7 +3041,7 @@ function endGame() {
                 const newHighScoreElement = document.getElementById('newHighScore');
                 if (newHighScoreElement) {
                     if (rank <= 10) {
-                        newHighScoreElement.textContent = `🎉 NEW HIGH SCORE! Rank #${rank} 🎉`;
+                        newHighScoreElement.textContent = `New High Score! Rank #${rank}`;
                         newHighScoreElement.style.display = 'block';
                     } else {
                         newHighScoreElement.style.display = 'none';

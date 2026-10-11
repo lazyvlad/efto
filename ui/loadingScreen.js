@@ -8,7 +8,7 @@ export function showLoadingScreen() {
         loadingScreen.id = 'loadingScreen';
         loadingScreen.innerHTML = `
             <div class="loading-content">
-                <h2>Loading DMTribut...</h2>
+                <h2>I N P U T</h2>
                 <div class="loading-bar">
                     <div class="loading-progress" id="loadingProgress"></div>
                 </div>
