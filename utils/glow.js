@@ -86,3 +86,34 @@ function renderHalo(image, width, height, color, blur) {
 
     return { canvas, padding };
 }
+
+const auraCache = new Map();
+
+// Soft round aura centred on (cx, cy). `color` must be a #rrggbb hex colour.
+// One small gradient is rendered per colour and scaled to whatever radius is asked for.
+export function drawAura(ctx, cx, cy, radius, color, alpha = 1) {
+    if (!(radius > 0) || !(alpha > 0)) return;
+
+    let aura = auraCache.get(color);
+    if (!aura) {
+        const size = 128;
+        aura = document.createElement('canvas');
+        aura.width = aura.height = size;
+        const auraCtx = aura.getContext('2d');
+        const gradient = auraCtx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+        // Strongest just outside the object's edge, fading to nothing at the rim
+        gradient.addColorStop(0, `${color}59`);
+        gradient.addColorStop(0.45, `${color}a6`);
+        gradient.addColorStop(0.7, `${color}66`);
+        gradient.addColorStop(0.88, `${color}1f`);
+        gradient.addColorStop(1, `${color}00`);
+        auraCtx.fillStyle = gradient;
+        auraCtx.fillRect(0, 0, size, size);
+        auraCache.set(color, aura);
+    }
+
+    const previousAlpha = ctx.globalAlpha;
+    ctx.globalAlpha = previousAlpha * Math.min(1, alpha);
+    ctx.drawImage(aura, cx - radius, cy - radius, radius * 2, radius * 2);
+    ctx.globalAlpha = previousAlpha;
+}

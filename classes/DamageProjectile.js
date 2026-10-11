@@ -3,7 +3,8 @@ import { assetManager } from '../utils/AssetManager.js';
 import { getLogicalCanvasWidth, responsiveScaler } from '../utils/gameUtils.js';
 import { FallingObject } from './FallingObject.js';
 import { playSoundEffect } from '../systems/audioSystem.js';
-import { drawImageGlow } from '../utils/glow.js';
+import { drawAura, drawImageGlow } from '../utils/glow.js';
+import { isHarmfulProjectile } from '../data/damageProjectiles.js';
 import { getSprite } from '../utils/spriteCache.js';
 
 const REVERSE_GRAVITY = {
@@ -199,6 +200,14 @@ export class DamageProjectile extends FallingObject {
                 }
             }
         }
+        // Reddish aura behind harmful projectiles, greenish behind the ones worth catching
+        const aura = gameConfig.items.aura;
+        if (aura.enabled) {
+            const auraPulse = Math.sin(this.glowAnimation) * 0.15 + 0.85;
+            const auraColor = isHarmfulProjectile(this.data) ? aura.harmfulColor : aura.helpfulColor;
+            drawAura(ctx, this.x + this.width / 2, this.y + this.height / 2, drawWidth * aura.radius, auraColor, aura.opacity * auraPulse);
+        }
+        
         const borderPadding = responsiveScaler.deviceType === 'mobile' ? 4 : 8; // Padding for border around projectiles with variable values
         
         // Draw scary borders for shadowbolt and fireball (but not frostbolt)

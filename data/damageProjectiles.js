@@ -98,3 +98,11 @@ export const damageProjectiles = [
         dotDamagePerTick: 2 // 2 HP damage per second
     }
 ]; 
+
+// Projectiles that help the player when caught (speed boost, shield, frost nova)
+const BENEFICIAL_PROJECTILE_EFFECTS = new Set(['speed_increase', 'freeze_time', 'shield']);
+
+// Everything else hurts: these are the ones arrows can shoot down and that glow red
+export function isHarmfulProjectile(projectileData) {
+    return Boolean(projectileData) && !BENEFICIAL_PROJECTILE_EFFECTS.has(projectileData.effects);
+}

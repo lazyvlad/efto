@@ -116,10 +116,9 @@ function generateArrowSystemContent(gameState) {
         <p>• <strong>Starting Arrows:</strong> Begin with ${startingArrows} arrows</p>
         <p>• <strong>Arrow Power-ups:</strong> Bronze (+25), Silver (+50), Thorium (+100)</p>
         <p>• <strong>Autoshot (E):</strong> Fires 1 arrow straight up (0.5s cooldown, uses 1 arrow)</p>
-        <p>• <strong>Multishot (R):</strong> Fires 5 arrows in wide spread with +5% crit (0.5s cooldown, uses 5 arrows)</p>
-        <p>• Arrows collect items on contact (same as player collision)</p>
-        <p>• Arrows destroy harmful projectiles and gain beneficial effects</p>
-        <p>• Multishot arrows have increased crit chance for collected items</p>
+        <p>• <strong>Multishot (R):</strong> Fires 5 arrows in wide spread (0.5s cooldown, uses 5 arrows)</p>
+        <p>• Arrows destroy harmful projectiles (Fireball, Frostbolt, Shadowbolt)</p>
+        <p>• Arrows pass through items, power-ups and beneficial spells - those you have to catch yourself</p>
         <p>• Arrow power-ups display the amount they add below the icon</p>
     `;
     

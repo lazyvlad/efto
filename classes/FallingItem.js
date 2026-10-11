@@ -4,6 +4,7 @@ import { calculateFallAngle, getLogicalCanvasWidth, responsiveScaler } from '../
 import { FallingObject } from './FallingObject.js';
 import { drawImageGlow } from '../utils/glow.js';
 import { getSprite } from '../utils/spriteCache.js';
+import { getContentBounds } from '../utils/spriteFit.js';
 
 const MOBILE_ITEM_SIZE_BANDS = {
     regular: { min: 42, max: 52 },
@@ -11,7 +12,6 @@ const MOBILE_ITEM_SIZE_BANDS = {
     epic: { min: 60, max: 76 },
     special: { min: 58, max: 74 },
     dragonstalker: { min: 54, max: 60 },
-    wide_tier_weapon: { min: 96, max: 104 },
     tier_set: { min: 62, max: 78 },
     legendary: { min: 74, max: 84 },
     zee_zgnan: { min: 78, max: 86 },
@@ -33,35 +33,28 @@ function isDragonstalkerItem(itemData) {
     return itemData.type === 'tier_set' && itemData.setPosition >= 1 && itemData.setPosition <= 8;
 }
 
-function isWideTierWeapon(itemData) {
-    return itemData.type === 'tier_set' && itemData.setPosition >= 9 && itemData.setPosition <= 10;
-}
-
-// Crop rectangles for the wide tier weapons, as fractions of the image so they keep working if
-// the image files are resized
-function getWideTierWeaponCrop(itemData) {
-    const cropByImage = {
-        'items/4.png': { x: 13 / 300, y: 105 / 300, width: 275 / 300, height: 90 / 300 },
-        'items/ashkandi.png': { x: 12 / 300, y: 104 / 300, width: 275 / 300, height: 92 / 300 }
-    };
-
-    return isWideTierWeapon(itemData) ? cropByImage[itemData.image] : null;
-}
-
 function calculateItemSize(itemData) {
-    const sizeMultiplier = itemData.size_multiplier || 1;
+    // One size per rarity (see items.sizeByType in gameConfig)
+    const sizeMultiplier = gameConfig.items.sizeByType[itemData.type] || 1;
     const baseItemSize = responsiveScaler.getSize('item', 'base');
 
     if (responsiveScaler.deviceType !== 'mobile') {
         return baseItemSize * sizeMultiplier;
     }
 
-    const bandKey = isDragonstalkerItem(itemData) ? 'dragonstalker' :
-        isWideTierWeapon(itemData) ? 'wide_tier_weapon' :
-        itemData.type;
+    // Phones keep each rarity within a touch-friendly range
+    const bandKey = isDragonstalkerItem(itemData) ? 'dragonstalker' : itemData.type;
     const band = MOBILE_ITEM_SIZE_BANDS[bandKey] || MOBILE_ITEM_SIZE_BANDS.default;
     const compressedSize = baseItemSize * sizeMultiplier * 0.85;
     return clamp(compressedSize, band.min, band.max);
+}
+
+// Long, thin artwork is drawn larger than its box so it carries the same visual weight as a
+// square icon of the same rarity
+function getThinArtBoost(image) {
+    const bounds = getContentBounds(image);
+    const aspect = Math.max(bounds.width / bounds.height, bounds.height / bounds.width);
+    return aspect >= 2 ? gameConfig.items.thinArtBoost : 1;
 }
 
 export class FallingItem extends FallingObject {
@@ -209,38 +202,25 @@ export class FallingItem extends FallingObject {
             // Smooth rendering for rotating items to prevent visual tearing
             // Only use crisp rendering for non-rotating items
             const isRotating = Math.abs(this.rotationSpeed) > 0.001 || Math.abs(this.rotation) > 0.001;
-            const wideWeaponCrop = responsiveScaler.deviceType === 'mobile' ? getWideTierWeaponCrop(this.itemData) : null;
+            const thinArtBoost = getThinArtBoost(this.itemImage);
+            drawWidth *= thinArtBoost;
+            drawHeight *= thinArtBoost;
             
-            if (wideWeaponCrop) {
-                const weaponDrawHeight = Math.max(drawHeight * 0.48, 46);
-                ctx.drawImage(
-                    this.itemImage,
-                    wideWeaponCrop.x * this.itemImage.naturalWidth,
-                    wideWeaponCrop.y * this.itemImage.naturalHeight,
-                    wideWeaponCrop.width * this.itemImage.naturalWidth,
-                    wideWeaponCrop.height * this.itemImage.naturalHeight,
-                    -drawWidth / 2,
-                    -weaponDrawHeight / 2,
-                    drawWidth,
-                    weaponDrawHeight
-                );
-            } else {
-                // Pre-rendered at this size, trimmed of transparent padding and undistorted
-                const sprite = getSprite(ctx, this.itemImage, drawWidth, drawHeight);
-                let spriteX = -sprite.width / 2;
-                let spriteY = -sprite.height / 2;
-                let spriteWidth = sprite.width;
-                let spriteHeight = sprite.height;
-                if (gameConfig.items.highDPI.crispRendering && !isRotating) {
-                    // Pixel-perfect positioning only for stationary items
-                    spriteX = Math.round(spriteX);
-                    spriteY = Math.round(spriteY);
-                    spriteWidth = Math.round(spriteWidth);
-                    spriteHeight = Math.round(spriteHeight);
-                }
-                if (glowColor) drawImageGlow(ctx, sprite.canvas, spriteX, spriteY, spriteWidth, spriteHeight, glowColor, glowBlur);
-                ctx.drawImage(sprite.canvas, spriteX, spriteY, spriteWidth, spriteHeight);
+            // Pre-rendered at this size, trimmed of transparent padding and undistorted
+            const sprite = getSprite(ctx, this.itemImage, drawWidth, drawHeight);
+            let spriteX = -sprite.width / 2;
+            let spriteY = -sprite.height / 2;
+            let spriteWidth = sprite.width;
+            let spriteHeight = sprite.height;
+            if (gameConfig.items.highDPI.crispRendering && !isRotating) {
+                // Pixel-perfect positioning only for stationary items
+                spriteX = Math.round(spriteX);
+                spriteY = Math.round(spriteY);
+                spriteWidth = Math.round(spriteWidth);
+                spriteHeight = Math.round(spriteHeight);
             }
+            if (glowColor) drawImageGlow(ctx, sprite.canvas, spriteX, spriteY, spriteWidth, spriteHeight, glowColor, glowBlur);
+            ctx.drawImage(sprite.canvas, spriteX, spriteY, spriteWidth, spriteHeight);
         } else {
             // Fallback: try to extract number from old naming pattern, otherwise use first available image
             const numberMatch = this.itemData.image.match(/(\d+)\.png/);

@@ -15,7 +15,6 @@ export const powerUpItems = [
         description: "Slows down time",
         baseProbability: 0.25, // 25% base chance
         speedScaling: true, // Increases probability based on game speed
-        size_multiplier: 1.2 // Standardized size
     },
     {
         id: "health_potion",
@@ -30,7 +29,6 @@ export const powerUpItems = [
         description: "Restores 20 HP",
         baseProbability: 0.30, // 30% base chance
         healthScaling: true, // Increases probability when health is low
-        size_multiplier: 1.2 // Standardized size
     },
     {
         id: "time_cutter",
@@ -46,7 +44,6 @@ export const powerUpItems = [
         maxSpawns: 2, // Maximum times this can spawn in a game
         spawnChance: 0.1, // 10% chance when conditions are met (very rare)
         baseProbability: 0.10, // 10% base chance (very rare)
-        size_multiplier: 1.2 // Consistent size for legendary items
     },
     {
         id: "chicken_food",
@@ -62,7 +59,6 @@ export const powerUpItems = [
         baseProbability: 0.20, // 20% base chance
         healthScaling: true, // Increases probability when health is low
         stackable: true, // Multiple chicken foods can be active at once
-        size_multiplier: 1.2 // Standardized size
     },
     {
         id: "reverse_gravity",
@@ -76,8 +72,7 @@ export const powerUpItems = [
         sound: assetRegistry.audio.reverseGravity, // Using dedicated reverse gravity sound
         description: "Makes all items on screen move upward with dramatic angles for 10 seconds",
         baseProbability: 0.8, // 30% - INCREASED TO 300% FOR TESTING
-        speedScaling: false,
-        size_multiplier: 1.2 // Standardized size
+        speedScaling: false
     },
     {
         id: "swift_reflexes",
@@ -92,7 +87,6 @@ export const powerUpItems = [
         description: "Temporarily increases dodge chance by 3% for 15 seconds",
         baseProbability: 0.20, // 20% base chance
         speedScaling: true, // Increases probability based on game speed
-        size_multiplier: 1.2 // Standardized size
     },
     {
         id: "master_evasion",
@@ -108,7 +102,6 @@ export const powerUpItems = [
         maxSpawns: 5, // Maximum times this can spawn in a game (5% max dodge from this source)
         spawnChance: 0.05, // 5% chance when conditions are met (rare)
         baseProbability: 0.05, // 5% base chance (rare)
-        size_multiplier: 1.2 // Standardized size
     },
     {
         id: "bronze_arrows",
@@ -123,7 +116,6 @@ export const powerUpItems = [
         description: "Adds 25 arrows to your ammunition",
         baseProbability: 0.35, // 35% base chance (higher for lowest tier)
         speedScaling: true, // Increases probability based on game speed
-        size_multiplier: 1.0 // Smaller size for bronze tier
     },
     {
         id: "silver_arrows",
@@ -138,7 +130,6 @@ export const powerUpItems = [
         description: "Adds 50 arrows to your ammunition",
         baseProbability: 0.25, // 25% base chance (medium tier)
         speedScaling: true, // Increases probability based on game speed
-        size_multiplier: 1.1 // Medium size for silver tier
     },
     {
         id: "thorium_arrows",
@@ -153,7 +144,6 @@ export const powerUpItems = [
         description: "Adds 100 arrows to your ammunition",
         baseProbability: 0.15, // 15% base chance (lowest for highest tier)
         speedScaling: true, // Increases probability based on game speed
-        size_multiplier: 1.2 // Largest size for thorium tier
     }
     
     // Example power-up that modifies horizontal speed reduction (commented out)

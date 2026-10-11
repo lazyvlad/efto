@@ -3,6 +3,7 @@ import { addNotification, trackActivity, checkDragonstalkerCompletion } from '..
 import { createCollectionParticles, createImpactParticles, createShadowParticles } from '../utils/spawning.js';
 import { Particle } from '../classes/Particle.js';
 import { CombatText } from '../classes/CombatText.js';
+import { isHarmfulProjectile } from '../data/damageProjectiles.js';
 import { startBackgroundMusic, playDragonstalkerSound, playTotalSound, playItemSound, playThunderSound } from './audioSystem.js';
 
 export function checkCollisions(context) {
@@ -475,171 +476,26 @@ export function checkCollisions(context) {
         }
     });
     
-    // Check arrow collisions (iterate backwards to safely remove items)
+    // Check arrow collisions (iterate backwards to safely remove arrows).
+    // Arrows only shoot down harmful projectiles. They fly straight through collectible items,
+    // power-ups and beneficial projectiles, which still have to be caught by the player.
     for (let arrowIndex = window.arrows.length - 1; arrowIndex >= 0; arrowIndex--) {
         const arrow = window.arrows[arrowIndex];
-        let arrowRemoved = false;
         
-        // Check arrow vs falling items (collectibles)
-        for (let itemIndex = fallingItems.length - 1; itemIndex >= 0 && !arrowRemoved; itemIndex--) {
-            const item = fallingItems[itemIndex];
-            if (arrow.checkCollision(item)) {
-                // Collect the item with potential crit bonus from multishot
-                if (item.itemData) {
-                    item.itemData.collected++;
-                    
-                    // Trigger items list update
-                    onItemCollected(item.itemData);
-                    
-                    // Apply spell point multipliers
-                    const pointMultiplier = spellSystem.getPointMultiplier();
-                    const basePoints = item.itemData.value;
-                    let finalPoints = Math.round(basePoints * pointMultiplier);
-                    
-                    // Check for critical hit (include spell crit rating bonus and current multishot bonus if active)
-                    const critRoll = Math.random();
-                    const spellCritBonus = spellSystem.getCritRatingBonus();
-                    const arrowCritBonus = arrow.critBonus || 0; // Multishot arrows have +5% crit
-                    const totalCritRating = Math.min(gameState.critRating + spellCritBonus + arrowCritBonus, gameState.critRatingCap);
-                    const isCrit = critRoll < totalCritRating;
-                    
-                    if (isCrit) {
-                        finalPoints = Math.round(finalPoints * gameState.critMultiplier);
-                        
-                        // Create crit combat text
-                        const critText = new CombatText(
-                            item.x + item.width/2, 
-                            item.y + item.height/2,
-                            `+${finalPoints} CRIT!`,
-                            '#FF6B00', // Orange crit color
-                            true // is crit
-                        );
-                        combatTexts.push(critText);
-                    } else {
-                        // Create normal combat text for non-crit
-                        const normalText = new CombatText(
-                            item.x + item.width/2, 
-                            item.y + item.height/2,
-                            `+${finalPoints}`,
-                            '#FFD700', // Gold normal color
-                            false // not crit
-                        );
-                        combatTexts.push(normalText);
-                    }
-                    
-                    gameState.score += finalPoints;
-                    gameState.perfectCollections++;
-                    
-                    // Track activity for hybrid progression
-                    trackActivity(gameState, 'collection', 1);
-                    
-                    // Create collection particles
-                    createCollectionParticles(item.x + item.width/2, item.y + item.height/2, particles);
-                    
-                    // Handle special item effects (Thunderfury, tier sets, etc.)
-                    if (item.itemData.id === "ThunderFury") {
-                        triggerThunderfuryEffect(item.x + item.width/2, item.y + item.height/2);
-                    }
-                    
-                    // Apply configurable stat bonuses (crit rating, dodge rating)
-                    applyItemStatBonuses(item.itemData);
-                    
-                    // Handle tier set items
-                    if (item.itemData.type === "tier_set") {
-                        playDragonstalkerSound();
-                        
-                        // Only increment if this is the first time collecting this specific piece
-                        if (item.itemData.collected === 1) {
-                            gameState.tierSetCollected++;
-                        }
-                        
-                        // Check if this is an Ashkandi item for special celebration
-                        if (item.itemData.id === "ashjrethul" || item.itemData.id === "ashkandi2") {
-                            if (player.onAshkandiCollected) {
-                                player.onAshkandiCollected();
-                            }
-                        } else {
-                            if (player.onTierSetCollected) {
-                                player.onTierSetCollected();
-                            }
-                        }
-                        
-                        // Add notification for tier set collection
-                        const dragonstalkerItems = gameItems.filter(item => item.type === "tier_set");
-                        const uniquePiecesCollected = dragonstalkerItems.filter(item => item.collected > 0).length;
-                        addNotification(gameState, `🏹 ${item.itemData.name} (${uniquePiecesCollected}/10)`, 240, '#FFD700');
-                        
-                        // Check if Dragonstalker set is complete
-                        const setCompleted = checkDragonstalkerCompletion(gameState, gameItems);
-                        if (setCompleted) {
-                            playTotalSound();
-                        }
-                    } else {
-                        playItemSound(item.itemData);
-                    }
-                }
-                
-                // Create arrow impact particles
-                arrow.createImpactParticles(particles);
-                
-                // Remove both arrow and item
-                fallingItems.splice(itemIndex, 1);
-                window.arrows.splice(arrowIndex, 1);
-                arrowRemoved = true; // Mark arrow as removed
-                break; // Exit item loop
-            }
-        }
-        
-        // Only check other collisions if arrow still exists
-        if (!arrowRemoved && window.arrows[arrowIndex]) {
-            // Check arrow vs projectiles (destroy them)
-            for (let projectileIndex = fireballs.length - 1; projectileIndex >= 0 && !arrowRemoved; projectileIndex--) {
-                const projectile = fireballs[projectileIndex];
-                if (arrow.checkCollision(projectile)) {
-                    // Create impact particles for destroyed projectile
-                    arrow.createImpactParticles(particles);
-                    createImpactParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles, projectile.data);
-                    
-                    // If it's a beneficial projectile, apply its effect
-                    if (projectile.data && (projectile.data.effects === "speed_increase" || projectile.data.effects === "freeze_time" || projectile.data.effects === "shield")) {
-                        // Apply beneficial projectile effects
-                        if (projectile.data.effects === "speed_increase") {
-                            const increasePercent = projectile.speedIncreasePercent || 20;
-                            gameState.speedIncreaseActive = true;
-                            gameState.speedIncreaseTimer = 600; // 10 seconds
-                            gameState.currentSpeedIncreasePercent += increasePercent;
-                            gameState.speedIncreaseMultiplier = 1 + (gameState.currentSpeedIncreasePercent / 100);
-                            
-                            // Cap at 100%
-                            if (gameState.currentSpeedIncreasePercent > 100) {
-                                gameState.currentSpeedIncreasePercent = 100;
-                                gameState.speedIncreaseMultiplier = 2.0;
-                            }
-                            
-                            addNotification(gameState, `🏹⚡ Arrow Speed Boost +${increasePercent}%`, 180, '#FFD700');
-                        } else if (projectile.data.effects === "freeze_time") {
-                            gameState.freezeTimeActive = true;
-                            gameState.freezeTimeTimer = 600; // 10 seconds
-                            
-                            addNotification(gameState, `🏹❄️ Arrow Freeze All Items!`, 180, '#87CEEB');
-                        } else if (projectile.data.effects === "shield") {
-                            gameState.shieldActive = true;
-                            gameState.shieldTimer = 600; // 10 seconds
-                            
-                            addNotification(gameState, `🏹🛡️ Arrow Shield!`, 180, '#FFD700');
-                        }
-                    } else {
-                        // Add notification for destroying harmful projectile
-                        addNotification(gameState, `🏹💥 Projectile Destroyed!`, 120, '#FFD700');
-                    }
-                    
-                    // Remove both arrow and projectile
-                    fireballs.splice(projectileIndex, 1);
-                    window.arrows.splice(arrowIndex, 1);
-                    arrowRemoved = true; // Mark arrow as removed
-                    break; // Exit projectile loop
-                }
-            }
+        for (let projectileIndex = fireballs.length - 1; projectileIndex >= 0; projectileIndex--) {
+            const projectile = fireballs[projectileIndex];
+            if (!isHarmfulProjectile(projectile.data) || !arrow.checkCollision(projectile)) continue;
+            
+            // Create impact particles for destroyed projectile
+            arrow.createImpactParticles(particles);
+            createImpactParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles, projectile.data);
+            
+            addNotification(gameState, `🏹💥 Projectile Destroyed!`, 120, '#FFD700');
+            
+            // Remove both arrow and projectile
+            fireballs.splice(projectileIndex, 1);
+            window.arrows.splice(arrowIndex, 1);
+            break;
         }
     }
 }

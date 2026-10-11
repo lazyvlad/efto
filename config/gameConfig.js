@@ -306,15 +306,14 @@ export const gameConfig = {
     
     // === VISUAL SETTINGS ===
     visuals: {
-        itemSize: 80,              // Base size of falling items (multiplied by each item's size_multiplier)
+        itemSize: 80,              // Base size of falling items (multiplied by items.sizeByType for the item's rarity)
         powerUpItemSize: 120,       // Size of power-up items (width & height)
         playerWidth: 85,
         playerHeight: 165,
         playerSpeed: 12,                // Base player speed (will be scaled by resolution)
         minYSpacing: 250,           // Minimum spacing between falling objects
         forceItemAspectRatio: true, // Force square aspect ratio for all items
-        // NOTE: Individual items can have size_multiplier property (default 1.0)
-        // Examples: size_multiplier: 1.5 = 50% larger, size_multiplier: 2.0 = double size
+        // NOTE: Item sizes per rarity are set in items.sizeByType below
     },
     
     // === DEBUG SETTINGS ===
@@ -359,6 +358,35 @@ export const gameConfig = {
             quality: 'high',         // Image smoothing quality ('low', 'medium', 'high')
             sharpScaling: false,     // Use smooth scaling for rotation
         },
+        
+        // Size of each falling item as a multiple of the base item size, by rarity.
+        // Every item of a rarity is the same size; nothing is sized per item.
+        sizeByType: {
+            regular: 0.85,
+            green: 0.95,
+            epic: 1.15,
+            special: 1.15,
+            tier_set: 1.15,
+            legendary: 1.8,
+            zee_zgnan: 1.4
+        },
+        
+        // Every power-up is the same size: this multiple of the base power-up size
+        powerUpSize: 1.2,
+        
+        // Soft aura behind everything that isn't loot, so it reads at a glance:
+        // helpful things (power-ups, beneficial spells) are greenish, harmful projectiles reddish
+        aura: {
+            enabled: true,
+            helpfulColor: '#3dff6e',
+            harmfulColor: '#ff3b30',
+            radius: 1.15,            // Aura radius as a multiple of the object's size
+            opacity: 1.0             // Peak opacity; it pulses gently below this
+        },
+        
+        // Long, thin artwork (swords, crossbows: at least twice as long as wide) is drawn this
+        // much larger so it doesn't read as a sliver next to square icons of the same rarity
+        thinArtBoost: 1.35,
         
         // Size constraints
         sizing: {

@@ -7,7 +7,7 @@
  * only costs download time and memory.
  *
  * How big each image needs to be is worked out from the game's own data: the base size of its
- * category (item / power-up / projectile / player), its size_multiplier, and the highest pixel
+ * category (item / power-up / projectile / player), its rarity or size_multiplier, and the highest pixel
  * density the canvas renders at. The visible artwork (ignoring transparent padding) is scaled to
  * that size; the file keeps its name, format and proportions, so nothing else has to change.
  *
@@ -34,7 +34,7 @@ const { pathToFileURL } = require('url');
 
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 
-// Largest on-screen size of each sprite category, in game units, before size_multiplier.
+// Largest on-screen size of each sprite category, in game units, before any size multiplier.
 // These mirror calculateElementSizes() in utils/gameUtils.js at a uniform scale of 1.0, which is
 // above what any current device layout produces.
 const BASE_SIZES = {
@@ -88,11 +88,12 @@ async function loadGameData() {
         }
         fs.writeFileSync(path.join(tempDir, 'package.json'), '{"type":"module"}');
 
-        const load = file => import(pathToFileURL(path.join(tempDir, 'data', file)).href);
-        const [{ assetRegistry }, { gameItems }, { powerUpItems }, { damageProjectiles }] = await Promise.all([
-            load('assetRegistry.js'), load('gameItems.js'), load('powerUpItems.js'), load('damageProjectiles.js')
+        const load = file => import(pathToFileURL(path.join(tempDir, file)).href);
+        const [{ assetRegistry }, { gameConfig }, { gameItems }, { powerUpItems }, { damageProjectiles }] = await Promise.all([
+            load('data/assetRegistry.js'), load('config/gameConfig.js'), load('data/gameItems.js'),
+            load('data/powerUpItems.js'), load('data/damageProjectiles.js')
         ]);
-        return { assetRegistry, gameItems, powerUpItems, damageProjectiles };
+        return { assetRegistry, gameConfig, gameItems, powerUpItems, damageProjectiles };
     } finally {
         if (!hadWindow) delete globalThis.window;
         fs.rmSync(tempDir, { recursive: true, force: true });
@@ -100,7 +101,7 @@ async function loadGameData() {
 }
 
 // Map of image path -> { size: largest on-screen size in game units, usedBy: [names] }
-function collectSpriteSizes({ assetRegistry, gameItems, powerUpItems, damageProjectiles }) {
+function collectSpriteSizes({ assetRegistry, gameConfig, gameItems, powerUpItems, damageProjectiles }) {
     const sprites = new Map();
     const add = (image, size, usedBy) => {
         if (typeof image !== 'string' || !image) return;
@@ -110,8 +111,10 @@ function collectSpriteSizes({ assetRegistry, gameItems, powerUpItems, damageProj
         sprites.set(image, entry);
     };
 
-    for (const item of gameItems) add(item.image, BASE_SIZES.item * (item.size_multiplier || 1), item.id);
-    for (const powerUp of powerUpItems) add(powerUp.image, BASE_SIZES.powerUp * (powerUp.size_multiplier || 1), powerUp.id);
+    // Items are sized by rarity; thin artwork is drawn larger, so allow for that boost everywhere
+    const { sizeByType, thinArtBoost = 1 } = gameConfig.items;
+    for (const item of gameItems) add(item.image, BASE_SIZES.item * (sizeByType[item.type] || 1) * thinArtBoost, item.id);
+    for (const powerUp of powerUpItems) add(powerUp.image, BASE_SIZES.powerUp * (gameConfig.items.powerUpSize || 1), powerUp.id);
     for (const projectile of damageProjectiles) add(projectile.image, BASE_SIZES.projectile * (projectile.size_multiplier || 1), projectile.id);
     for (const [state, image] of Object.entries(assetRegistry.player || {})) add(image, BASE_SIZES.player, `player ${state}`);
 

@@ -3,17 +3,11 @@ import { addNotification, calculateFallAngle, getLogicalCanvasWidth, responsiveS
 import { assetManager } from '../utils/AssetManager.js';
 import { FallingObject } from './FallingObject.js';
 import { playSoundEffect } from '../systems/audioSystem.js';
-import { drawImageGlow } from '../utils/glow.js';
+import { drawAura, drawImageGlow } from '../utils/glow.js';
 import { getSprite } from '../utils/spriteCache.js';
 
-const MOBILE_POWER_UP_SIZE_BANDS = {
-    potion: { min: 70, max: 74 },
-    heal: { min: 70, max: 78 },
-    utility: { min: 64, max: 74 },
-    epic: { min: 72, max: 80 },
-    legendary: { min: 76, max: 84 },
-    default: { min: 66, max: 78 }
-};
+// Phones keep power-ups within a touch-friendly range
+const MOBILE_POWER_UP_SIZE = { min: 68, max: 78 };
 
 const REVERSE_GRAVITY = {
     angleRange: 65,          // Maximum deviation from straight up, in degrees
@@ -30,18 +24,15 @@ function isPotionPowerUp(powerUpData) {
     return powerUpData.id === 'health_potion' || powerUpData.id === 'mana_potion';
 }
 
-function calculatePowerUpSize(powerUpData) {
-    const sizeMultiplier = powerUpData.size_multiplier || 1;
-    const basePowerUpSize = responsiveScaler.getSize('item', 'powerUp');
+// Every power-up is the same size (see items.powerUpSize in gameConfig)
+function calculatePowerUpSize() {
+    const size = responsiveScaler.getSize('item', 'powerUp') * gameConfig.items.powerUpSize;
 
     if (responsiveScaler.deviceType !== 'mobile') {
-        return basePowerUpSize * sizeMultiplier;
+        return size;
     }
 
-    const bandKey = isPotionPowerUp(powerUpData) ? 'potion' : powerUpData.type;
-    const band = MOBILE_POWER_UP_SIZE_BANDS[bandKey] || MOBILE_POWER_UP_SIZE_BANDS.default;
-    const compressedSize = basePowerUpSize * sizeMultiplier * 0.92;
-    return clamp(compressedSize, band.min, band.max);
+    return clamp(size * 0.92, MOBILE_POWER_UP_SIZE.min, MOBILE_POWER_UP_SIZE.max);
 }
 
 export class PowerUpItem extends FallingObject {
@@ -176,6 +167,13 @@ export class PowerUpItem extends FallingObject {
         
         ctx.translate(this.x + this.width/2, this.y + this.height/2);
         ctx.rotate(this.rotation);
+        
+        // Power-ups always help, so they sit on the "helpful" aura
+        const aura = gameConfig.items.aura;
+        if (aura.enabled) {
+            const auraPulse = Math.sin(this.glowAnimation) * 0.15 + 0.85;
+            drawAura(ctx, 0, 0, drawWidth * aura.radius, aura.helpfulColor, aura.opacity * auraPulse);
+        }
         
         // Use the specific power-up image from AssetManager
         if (this.powerUpImage && this.powerUpImage.complete && this.powerUpImage.naturalWidth > 0) {

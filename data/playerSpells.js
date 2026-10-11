@@ -88,7 +88,7 @@ export const playerSpells = [
         id: "multishot",
         name: "Multishot",
         type: "instant",
-        description: "Fires 5 arrows in a wide spread pattern with +5% crit chance (0.5s cooldown)",
+        description: "Fires 5 arrows in a wide spread pattern (0.5s cooldown)",
         duration: 0, // Instant effect
         effects: {
             fire_arrow: {
