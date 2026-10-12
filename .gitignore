@@ -43,3 +43,6 @@ Thumbs.db
 *~
 *.tmp
 *.bak
+
+# Original artwork as uploaded (large zips); the game uses the converted copies in game/assets
+/game-art/

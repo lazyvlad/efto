@@ -47,7 +47,7 @@ const BASE_SIZES = {
 const ALPHA_THRESHOLD = 8;      // Same as utils/spriteFit.js: fainter pixels count as empty
 const MIN_TARGET = 64;          // Never shrink artwork below this many pixels
 const UNSIZED_MAX = 512;        // Longest side allowed for images the game data doesn't size
-const NEVER_RESIZE = /^assets\/ui\/|background|social/i; // Full-screen and share images
+const NEVER_RESIZE = /^assets\/ui\/|^assets\/bosses\/|^assets\/attacks\/|^assets\/player\/(pajama-hunter|horde-tauren)|background|social/i; // Full-screen and share images, and the boss, attack and player-figure pictures (already sized when added)
 const WORTHWHILE_SCALE = 0.9;   // Leave images alone unless they'd shrink by at least 10%
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp']);
 const ASSET_FOLDER = 'assets';
@@ -146,7 +146,8 @@ async function measureContent(sharp, file) {
 function encode(pipeline, extension) {
     switch (extension) {
         case '.png': return pipeline.png({ compressionLevel: 9, effort: 10 });
-        case '.webp': return pipeline.webp({ quality: 90, alphaQuality: 100, effort: 6 });
+        // effort 4: effort 6 takes about 70 times longer on a picture with transparency for files 5% smaller
+        case '.webp': return pipeline.webp({ quality: 90, alphaQuality: 100, effort: 4 });
         default: return pipeline.jpeg({ quality: 88, mozjpeg: true });
     }
 }
@@ -243,6 +244,8 @@ async function optimizeAssets(options = {}) {
             continue;
         }
         if (!IMAGE_EXTENSIONS.has(path.extname(image).toLowerCase())) continue;
+        // Pictures sized by hand when they were added stay as they are
+        if (NEVER_RESIZE.test(image)) continue;
 
         await resizeTo(image, Math.max(MIN_TARGET, Math.ceil(size * density)), { usedBy, sized: true });
     }
