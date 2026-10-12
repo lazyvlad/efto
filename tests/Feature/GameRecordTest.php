@@ -246,13 +246,18 @@ class GameRecordTest extends TestCase
         for ($i = 0; $i < 200; $i++) {
             foreach (range(0, 7) as $chunk) {
                 foreach (LootTable::rollChunk($chunk) as $drop) {
-                    $notBefore = config('loot.not_before_seconds.'.$typeOf[$drop['item_id']], 0);
+                    // A piece of a hunter set waits for its own set's time
+                    $notBefore = LootTable::setOf($drop['item_id'])['not_before_seconds']
+                        ?? config('loot.not_before_seconds.'.$typeOf[$drop['item_id']], 0);
                     $this->assertGreaterThanOrEqual($notBefore, $drop['at_seconds'], $drop['item_id'].' dropped too early');
                 }
             }
 
-            // Nothing rare at all in the first half minute
-            $this->assertSame([], LootTable::rollChunk(0));
+            // In the first half minute nothing rare but pieces of the first set, and those not at once
+            foreach (LootTable::rollChunk(0) as $drop) {
+                $this->assertSame('giantstalker', LootTable::setOf($drop['item_id'])['id'] ?? null);
+                $this->assertGreaterThanOrEqual(20, $drop['at_seconds']);
+            }
 
             foreach (LootTable::rollChunk(8, ['zee']) as $drop) {
                 $this->assertNotSame('zee', $drop['item_id']);

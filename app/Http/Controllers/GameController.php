@@ -39,7 +39,7 @@ class GameController extends Controller
         $user = $request->user();
 
         $boot = [
-            'user' => $user ? ['name' => $user->name, 'avatar' => $user->avatarUrl(), 'coins' => (int) $user->coins, 'quiver' => (bool) $user->quiver] : null,
+            'user' => $user ? ['name' => $user->name, 'avatar' => $user->avatarUrl(), 'coins' => (int) $user->coins, 'quiver' => (bool) $user->quiver, 'pieces' => $user->setPieces()] : null,
             'guestName' => $user ? null : GuestName::forSession($request),
             // Skipping ahead: the price per zone and the furthest zone open to the player on each side
             'skip' => $user ? [

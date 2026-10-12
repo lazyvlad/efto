@@ -233,7 +233,7 @@ export class FallingItem extends FallingObject {
                                this.itemData.type === 'special' ? '#FF69B4' : 
                                this.itemData.type === 'legendary' ? '#FFD700' :
                                this.itemData.type === 'zee_zgnan' ? '#FF0080' :
-                               this.itemData.type === 'tier_set' ? '#00FFFF' : '#FFD700';
+                               this.itemData.type === 'set_piece' ? '#00FFFF' : '#FFD700';
                 ctx.fillRect(-drawWidth/2, -drawHeight/2, drawWidth, drawHeight);
                 
                 // Add item name text
@@ -265,7 +265,6 @@ export class FallingItem extends FallingObject {
                 break;
                 
             case 'epic':
-            case 'set_piece':
                 // Pulsating purple border with padding
                 const epicPulse = Math.sin(this.borderAnimation) * 0.3 + 0.7; // 0.4 to 1.0
                 ctx.strokeStyle = '#9932CC';
@@ -348,8 +347,8 @@ export class FallingItem extends FallingObject {
                 ctx.shadowBlur = 0; // Reset shadow
                 break;
                 
-            case 'tier_set':
-                // Purple pulsating border that emanates outwards for Dragonstalker pieces
+            case 'set_piece':
+                // Purple pulsating border that emanates outwards for the pieces of the hunter sets
                 const time = Date.now() * 0.003; // Control animation speed
                 const pulseIntensity = (Math.sin(time) + 1) * 0.5; // 0 to 1
                 const maxPulseRadius = 20; // Maximum pulse distance

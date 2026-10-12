@@ -28,14 +28,13 @@ return [
     'early_seconds' => 15,
 
     // Rarities decided here; the rest stay random in the browser
-    'server_types' => ['epic', 'special', 'tier_set', 'set_piece', 'legendary', 'zee_zgnan'],
+    'server_types' => ['epic', 'special', 'set_piece', 'legendary', 'zee_zgnan'],
 
     'weights' => [
         'regular' => 0.3,
         'green' => 0.11,
-        'epic' => 0.07,
-        'tier_set' => 0.055,
-        'set_piece' => 0.01,
+        'epic' => 0.067,
+        'set_piece' => 0.024,
         'special' => 0.032,
         'legendary' => 0.02,
         'zee_zgnan' => 0.01,
@@ -53,15 +52,13 @@ return [
         ],
         'epic' => [
             'black-lotuses', 'maladath', 'quick-strike-ring', 'brutality_blade', 'dalrends',
-            'fiery-core', 'lava-core',
+            'fiery-core', 'lava-core', 'ashjrethul', 'ashkandi2',
         ],
         'special' => ['crulshorukh', 'drakefangtalisman', 'onslaught', 'circle-of-applied-force'],
-        'tier_set' => [
-            'ashjrethul', 'ashkandi2', 'ds_helm', 'ds_shoulders', 'ds_chest', 'ds_bracers',
-            'ds_gloves', 'ds_belt', 'ds_legs', 'ds_boots',
-        ],
-        // Pieces of the other hunter sets: Giantstalker (tier 1) and Cryptstalker (tier 3)
+        // Pieces of the three hunter sets (see "sets" below for which belongs to which)
         'set_piece' => [
+            'ds_helm', 'ds_shoulders', 'ds_chest', 'ds_bracers',
+            'ds_gloves', 'ds_belt', 'ds_legs', 'ds_boots',
             'giantstalker-helmet', 'giantstalker-shoulders', 'giantstalker-chest', 'giantstalker-bracers',
             'giantstalker-gloves', 'giantstalker-belt', 'giantstalker-leggings', 'giantstalker-boots',
             'cryptstalker-helmet', 'cryptstalker-shoulders', 'cryptstalker-chest', 'cryptstalker-bracers',
@@ -82,18 +79,6 @@ return [
         // legendary
         'ThunderFury' => ['name' => 'Thunder Fury', 'image' => 'assets/items/tunder.png'],
 
-        // tier_set
-        'ashjrethul' => ['name' => "Ashjre'thul, Crossbow of Smiting", 'image' => 'assets/items/4.png'],
-        'ashkandi2' => ['name' => 'Ashkandi, Greatsword of the Brotherhood', 'image' => 'assets/items/ashkandi.png'],
-        'ds_helm' => ['name' => "Dragonstalker's Helm", 'image' => 'assets/items/dragonstalker-helmet.webp'],
-        'ds_shoulders' => ['name' => "Dragonstalker's Spaulders", 'image' => 'assets/items/dragonstalker-shoulders.webp'],
-        'ds_chest' => ['name' => "Dragonstalker's Breastplate", 'image' => 'assets/items/dragonstalker-chest.webp'],
-        'ds_bracers' => ['name' => "Dragonstalker's Bracers", 'image' => 'assets/items/dragonstalker-bracers.webp'],
-        'ds_gloves' => ['name' => "Dragonstalker's Gauntlets", 'image' => 'assets/items/dragonstalker-gloves.webp'],
-        'ds_belt' => ['name' => "Dragonstalker's Belt", 'image' => 'assets/items/dragonstalker-belt.webp'],
-        'ds_legs' => ['name' => "Dragonstalker's Legguards", 'image' => 'assets/items/dragonstalker-leggings.webp'],
-        'ds_boots' => ['name' => "Dragonstalker's Greaves", 'image' => 'assets/items/dragonstalker-boots.webp'],
-
         // set_piece
         'giantstalker-helmet' => ['name' => "Giantstalker's Helmet", 'image' => 'assets/items/giantstalker-helmet.webp'],
         'giantstalker-shoulders' => ['name' => "Giantstalker's Epaulets", 'image' => 'assets/items/giantstalker-shoulders.webp'],
@@ -112,6 +97,14 @@ return [
         'cryptstalker-leggings' => ['name' => 'Cryptstalker Legguards', 'image' => 'assets/items/cryptstalker-leggings.webp'],
         'cryptstalker-boots' => ['name' => 'Cryptstalker Boots', 'image' => 'assets/items/cryptstalker-boots.webp'],
         'cryptstalker-ring' => ['name' => 'Ring of the Cryptstalker', 'image' => 'assets/items/cryptstalker-ring.webp'],
+        'ds_helm' => ['name' => "Dragonstalker's Helm", 'image' => 'assets/items/dragonstalker-helmet.webp'],
+        'ds_shoulders' => ['name' => "Dragonstalker's Spaulders", 'image' => 'assets/items/dragonstalker-shoulders.webp'],
+        'ds_chest' => ['name' => "Dragonstalker's Breastplate", 'image' => 'assets/items/dragonstalker-chest.webp'],
+        'ds_bracers' => ['name' => "Dragonstalker's Bracers", 'image' => 'assets/items/dragonstalker-bracers.webp'],
+        'ds_gloves' => ['name' => "Dragonstalker's Gauntlets", 'image' => 'assets/items/dragonstalker-gloves.webp'],
+        'ds_belt' => ['name' => "Dragonstalker's Belt", 'image' => 'assets/items/dragonstalker-belt.webp'],
+        'ds_legs' => ['name' => "Dragonstalker's Legguards", 'image' => 'assets/items/dragonstalker-leggings.webp'],
+        'ds_boots' => ['name' => "Dragonstalker's Greaves", 'image' => 'assets/items/dragonstalker-boots.webp'],
 
         // special
         'crulshorukh' => ['name' => 'Crulshorukh', 'image' => 'assets/items/6.png'],
@@ -122,8 +115,10 @@ return [
         // epic
         'fiery-core' => ['name' => 'Fiery Core', 'image' => 'assets/items/fiery-core.webp'],
         'lava-core' => ['name' => 'Lava Core', 'image' => 'assets/items/lava-core.webp'],
+        'ashjrethul' => ['name' => "Ashjre'thul, Crossbow of Smiting", 'image' => 'assets/items/4.png'],
         'black-lotuses' => ['name' => 'Stack of Black Lotus', 'image' => 'assets/items/black-lotuses.webp'],
         'maladath' => ['name' => 'Maladath', 'image' => 'assets/items/maladath.png'],
+        'ashkandi2' => ['name' => 'Ashkandi, Greatsword of the Brotherhood', 'image' => 'assets/items/ashkandi.png'],
         'quick-strike-ring' => ['name' => 'Quick Strike Ring', 'image' => 'assets/items/quick-strike-ring.webp'],
         'brutality_blade' => ['name' => 'Brutality Blade', 'image' => 'assets/items/3.png'],
         'dalrends' => ['name' => 'Dal Rends', 'image' => 'assets/items/dalrends.png'],
@@ -172,7 +167,6 @@ return [
         'green' => 25,
         'epic' => 100,
         'special' => 150,
-        'tier_set' => 200,
         'set_piece' => 200,
         'legendary' => 500,
         'zee_zgnan' => 1000,
@@ -185,6 +179,44 @@ return [
     // times what the game can have spawned in the time played
     'coins_spawn_allowance' => 1.5,
 
+    // The hunter's sets, collected over many games: a logged-in player keeps every piece they
+    // pick up. Each set starts to drop at a level (sets in game/config/gameConfig.js has the
+    // same levels), so its pieces are held back until the seconds below unless the game started
+    // at or past that level.
+    'sets' => [
+        'giantstalker' => [
+            'name' => 'Giantstalker Armor',
+            'tier' => 1,
+            'from_level' => 3,
+            'not_before_seconds' => 20,
+            'pieces' => [
+                'giantstalker-helmet', 'giantstalker-shoulders', 'giantstalker-chest', 'giantstalker-bracers',
+                'giantstalker-gloves', 'giantstalker-belt', 'giantstalker-leggings', 'giantstalker-boots',
+            ],
+        ],
+        'dragonstalker' => [
+            'name' => 'Dragonstalker Armor',
+            'tier' => 2,
+            'from_level' => 9,
+            'not_before_seconds' => 150,
+            'pieces' => [
+                'ds_helm', 'ds_shoulders', 'ds_chest', 'ds_bracers',
+                'ds_gloves', 'ds_belt', 'ds_legs', 'ds_boots',
+            ],
+        ],
+        'cryptstalker' => [
+            'name' => 'Cryptstalker Armor',
+            'tier' => 3,
+            'from_level' => 15,
+            'not_before_seconds' => 400,
+            'pieces' => [
+                'cryptstalker-helmet', 'cryptstalker-shoulders', 'cryptstalker-chest', 'cryptstalker-bracers',
+                'cryptstalker-gloves', 'cryptstalker-belt', 'cryptstalker-leggings', 'cryptstalker-boots',
+                'cryptstalker-ring',
+            ],
+        ],
+    ],
+
     // Offered at most once in a game
     'once_per_game' => ['zee'],
 
@@ -194,8 +226,7 @@ return [
     'unlock_level' => [
         'epic' => 4,
         'special' => 6,
-        'tier_set' => 8,
-        'set_piece' => 6,
+        'set_piece' => 3,
         'legendary' => 10,
         'zee_zgnan' => 12,
     ],
@@ -208,8 +239,7 @@ return [
     'not_before_seconds' => [
         'epic' => 30,
         'special' => 60,
-        'tier_set' => 90,
-        'set_piece' => 60,
+        'set_piece' => 20,
         'legendary' => 150,
         'zee_zgnan' => 210,
     ],

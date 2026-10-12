@@ -187,6 +187,8 @@ export function getCurrentTotalCritRating(gameState) {
     temporaryStatEffects.critRatingEffects.forEach(effect => {
         totalBonus += effect.bonus;
     });
+    // What the set being worn gives comes on top (utils/sets.js)
+    totalBonus += gameState.setBonus ? gameState.setBonus.crit : 0;
     return Math.min(gameState.critRating + totalBonus, gameState.critRatingCap);
 }
 
@@ -196,6 +198,7 @@ export function getCurrentTotalDodgeRating(gameState) {
     temporaryStatEffects.dodgeRatingEffects.forEach(effect => {
         totalBonus += effect.bonus;
     });
+    totalBonus += gameState.setBonus ? gameState.setBonus.dodge : 0;
     return Math.min(gameState.dodgeRating + totalBonus, gameState.dodgeRatingCap);
 }
 

@@ -248,8 +248,7 @@ export const gameConfig = {
             green: 2,
             epic: 4,
             special: 6,
-            tier_set: 8,
-            set_piece: 6,
+            set_piece: 3,               // The first set; each set has its own level under "sets" below
             legendary: 10,
             zee_zgnan: 12,
         },
@@ -259,6 +258,30 @@ export const gameConfig = {
     // Who the bosses are is in data/bosses.js. A boss's strength comes from its zone (1 to 10)
     // and the numbers here: "base" is the first zone's boss, "perZone" what each later zone
     // adds or takes off. 60 steps = 1 second.
+    // === HUNTER SETS ===
+    // Three armour sets, collected piece by piece over many games. A logged-in player keeps
+    // every piece they catch on their account; a guest has only what this game gave them. Each
+    // set drops from a level on (the site holds them back the same way: sets in
+    // config/loot.php), and wearing one gives a bonus that grows with the pieces owned. The
+    // player picks which set to wear and may change it at any time, in a fight too.
+    //   bonuses - what wearing the set gives once this many pieces are owned (the highest
+    //             reached counts): crit and dodge are added to the ratings, bossDamage to
+    //             what arrows do to a boss (0.05 = +5%)
+    sets: [
+        {
+            id: 'giantstalker', name: 'Giantstalker Armor', tier: 1, fromLevel: 3,
+            bonuses: [{ pieces: 3, dodge: 0.02 }, { pieces: 5, dodge: 0.04 }, { pieces: 8, dodge: 0.06 }],
+        },
+        {
+            id: 'dragonstalker', name: 'Dragonstalker Armor', tier: 2, fromLevel: 9,
+            bonuses: [{ pieces: 3, crit: 0.02 }, { pieces: 5, crit: 0.04 }, { pieces: 8, crit: 0.06 }],
+        },
+        {
+            id: 'cryptstalker', name: 'Cryptstalker Armor', tier: 3, fromLevel: 15,
+            bonuses: [{ pieces: 2, bossDamage: 0.05 }, { pieces: 4, bossDamage: 0.1 }, { pieces: 6, bossDamage: 0.15 }, { pieces: 8, bossDamage: 0.2 }],
+        },
+    ],
+
     // === BOSS RUSH ===
     // A game of nothing but the bosses of one side, back to back: no items, no stray
     // projectiles. For logged-in players, who pay coins to enter (rush in config/boss_loot.php
@@ -289,7 +312,6 @@ export const gameConfig = {
             green: 25,
             epic: 100,
             special: 150,
-            tier_set: 200,
             set_piece: 200,
             legendary: 500,
             zee_zgnan: 1000,
@@ -476,9 +498,8 @@ export const gameConfig = {
         // 0.4, 0.2 and 0.1 when there were 15 regular, 6 green and 5 epic items.
         regular: 0.3,               // 20 regular items
         green: 0.11,                // 11 green items
-        epic: 0.07,                 // 7 epic items
-        tier_set: 0.055,            // Tier set items base probability (5.5%) - Win condition items
-        set_piece: 0.01,            // Pieces of the other hunter sets (Giantstalker, Cryptstalker): collectables, 17 of them
+        epic: 0.067,                // 9 epic items
+        set_piece: 0.024,           // Pieces of the three hunter sets, 25 of them; only the sets unlocked at the level drop
         special: 0.032,              // Special items base probability (3.2%)
         legendary: 0.02,            // Legendary items base probability (2%)
         zee_zgnan: 0.01,           // Zee Zgnan items base probability (1%) - Ultra rare, one-time only
@@ -546,7 +567,6 @@ export const gameConfig = {
             green: 0.95,
             epic: 1.15,
             special: 1.15,
-            tier_set: 1.15,
             set_piece: 1.15,
             legendary: 1.8,
             zee_zgnan: 1.4

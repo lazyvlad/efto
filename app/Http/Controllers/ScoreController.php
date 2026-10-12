@@ -14,7 +14,7 @@ class ScoreController extends Controller
     public function page(): View
     {
         return view('highscores', [
-            'scores' => Score::top()->with('user')->get(),
+            'scores' => Score::top()->with(['user', 'game' => fn ($game) => $game->withCount('bossDrops')])->get(),
         ]);
     }
 

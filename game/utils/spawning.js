@@ -4,6 +4,7 @@ import { powerUpItems } from '../data/powerUpItems.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { serverDecides } from '../systems/lootSystem.js';
 import { isUnlocked } from './progression.js';
+import { pieceUnlocked } from './sets.js';
 
 // Calculate item spawn probability based on level and type
 export function calculateItemProbability(item, gameState) {
@@ -31,22 +32,14 @@ export function calculateItemProbability(item, gameState) {
         probability = 0;
     }
     
+    // A piece of a hunter set waits for its own set's level
+    if (item.type === "set_piece" && !pieceUnlocked(item, (gameState.currentLevel || 0) + 1, gameConfig.sets)) {
+        probability = 0;
+    }
+    
     // Apply frequency limits for ultra-rare items
     if (item.type === "zee_zgnan" && item.spawned > 0) {
         probability = 0; // Can only spawn once
-    }
-    
-    // Apply tier set item restrictions
-    if (item.type === "tier_set") {
-        // If already collected, can't spawn again
-        if (item.collected > 0) {
-            probability = 0;
-        }
-        // If missed and not restored by Flask of Titans, can't spawn again
-        else if (item.missed > 0) {
-            probability = 0;
-        }
-        // If missed but restored by Flask of Titans (missed = 0), can spawn again
     }
     
     return probability;

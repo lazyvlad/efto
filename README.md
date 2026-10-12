@@ -52,6 +52,13 @@ public/build/                          The built site CSS/JS (committed)
 - Any boss may drop the large quiver for a logged-in player who does not have it (`quiver`
   in `config/boss_loot.php`, kept as `users.quiver`). In the game it doubles the arrows the
   hunter can carry.
+- The three hunter sets (Giantstalker, Dragonstalker, Cryptstalker) are collected over many
+  games. Their pieces are rare items the server decides (`sets` in `config/loot.php` says
+  which piece belongs to which set and from when each set drops), and a logged-in player's
+  pieces are simply the ones among their picked-up drops. In the game the player wears one
+  set and gets a bonus that grows with the pieces owned (`sets` in
+  `game/config/gameConfig.js`).
+- A game is won by defeating the tenth boss of the side played.
 - A game that cannot reach the server in time goes offline: rare items drop at random and
   the game is recorded as offline. Only games played to the end online put a score on the
   leaderboard.

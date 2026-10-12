@@ -20,6 +20,7 @@ import * as lootSystem from './systems/lootSystem.js';
 import { totalXpAtLevel } from './utils/progression.js';
 import { coinsForItem, coinsForBoss, formatCoins } from './utils/coins.js';
 import { quiverCapacity, startingArrows } from './utils/quiver.js';
+import { setById, piecesOf, ownedCount, setBonus, nextStep, bonusText } from './utils/sets.js';
 import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost, renderGameModePicker, getGameMode, gameModeCost } from './ui/startZone.js';
 import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
 import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies } from './systems/bossSystem.js';
@@ -44,7 +45,6 @@ import { menuScreenManager } from './ui/menuScreenManager.js';
 import { applyPortrait, getAccountName, getGuestName, getPortraitUrl, renderAccountBar, siteBoot } from './ui/accountBar.js';
 import { initializeScreenNavigation, updateScreenNavigation } from './ui/screenNavigation.js';
 import { bindSettingsScreen, resetSettingsScreen, setSettingsBackLabel, updateSettingsScreen } from './ui/settingsScreen.js';
-import { getDragonstalkerItemIconData, getShortenedDragonstalkerName } from './utils/dragonstalkerDisplay.js';
 import { addBuff, removeBuff, updateBuffTracker, clearAllBuffs } from './systems/buffTrackerSystem.js';
 import { shouldCrit as calculateShouldCrit, shouldDodge as calculateShouldDodge, showDodgeText as createDodgeText, trackDodge as recordDodge, applyItemStatBonuses as applyItemStatBonusesToState, updateTemporaryStatEffects as updateTemporaryStatEffectsState, getCurrentTotalCritRating as calculateCurrentTotalCritRating, getCurrentTotalDodgeRating as calculateCurrentTotalDodgeRating, getTemporaryStatEffects, clearTemporaryStatEffects } from './systems/statEffectsSystem.js';
 import { updateBulletTime as updateBulletTimeState, renderBulletTimeEffects as renderBulletTimeVisuals } from './systems/bulletTimeSystem.js';
@@ -178,6 +178,9 @@ let gameState = {
     quiverCapacity: 200, // The most arrows the quiver holds; more for a player with the large quiver
     coins: 0, // Coins earned in this game, in copper (utils/coins.js)
     bossLoot: [], // What the bosses defeated in this game dropped: { boss, item: { id, name, rarity }, kept }
+    wornSet: 'giantstalker', // The hunter set being worn (utils/sets.js); the player may change it at any time
+    setBonus: { crit: 0, dodge: 0, bossDamage: 0 }, // What wearing it gives with the pieces owned
+    victory: false, // The last boss of the side is down: the game is won
     mode: 'normal', // 'normal', or 'boss_rush': nothing but the bosses, back to back
     rushPause: 0, // Boss Rush: steps left of the breather before the next boss comes in
     rushComplete: false, // Boss Rush: every boss of the side is down
@@ -551,6 +554,13 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     // Boss Rush brings the next boss in itself
     if (gameState.mode === 'boss_rush' && !isBossFightActive()) updateBossRush();
     
+    // The goal of the game: with the last boss of the side down, it is won
+    if (gameState.mode !== 'boss_rush' && !isBossFightActive() && gameState.levelCap === Infinity && !gameState.victory && lastBossIsDown()) {
+        gameState.victory = true;
+        endGame();
+        return;
+    }
+    
     // A zone's boss stands between the player and the next zone: the level stops at the end of
     // the zone until the boss, who comes in when the player has the experience to move on, is
     // defeated.
@@ -673,12 +683,22 @@ function firstLevel() {
     return gameConfig.levels.startingLevel || 1;
 }
 
+// With no boss left standing the game is over, but not at once: a few seconds pass first, so
+// what the last boss dropped is seen and recorded. Call once a step; true when they are up.
+const AFTER_LAST_BOSS_STEPS = 180;
+
+function lastBossIsDown() {
+    gameState.afterLastBoss = (gameState.afterLastBoss || 0) + 1;
+    return gameState.afterLastBoss >= AFTER_LAST_BOSS_STEPS;
+}
+
 // Boss Rush, between fights: a breather with something to restock, then the experience the
 // next boss waits for, so it comes in at once. With no boss left standing the run is won.
 function updateBossRush() {
     if (gameState.levelCap === undefined) return;   // The first step: not yet known who stands
     
     if (gameState.levelCap === Infinity) {
+        if (!lastBossIsDown()) return;
         gameState.rushComplete = true;
         endGame();
         return;
@@ -720,6 +740,65 @@ function finishGameNow() {
     gameState.showingPauseMenu = false;
     gameState.gamePaused = false;
     endGame();
+}
+
+// ----- Hunter sets -----
+// Pieces are collected over many games: a logged-in player's are on their account (the site
+// hands them over as INPUT_BOOT.user.pieces), and what this game catches counts at once. A
+// guest has only what this game gave them.
+
+const WORN_SET_KEY = 'input_worn_set';
+
+function ownedPieces() {
+    const owned = new Set(siteBoot && siteBoot.user && siteBoot.user.pieces ? siteBoot.user.pieces : []);
+    gameItems.forEach(item => {
+        if (item.type === 'set_piece' && item.collected > 0) owned.add(item.id);
+    });
+    return owned;
+}
+
+function rememberedSet() {
+    let id = null;
+    try {
+        id = localStorage.getItem(WORN_SET_KEY);
+    } catch (e) {
+        // Storage unavailable: the first set
+    }
+    return setById(gameConfig.sets, id) ? id : gameConfig.sets[0].id;
+}
+
+// What the set being worn gives with the pieces owned now
+function refreshSetBonus() {
+    const set = setById(gameConfig.sets, gameState.wornSet);
+    gameState.setBonus = setBonus(set, ownedCount(piecesOf(gameItems, gameState.wornSet), ownedPieces()));
+    dragonstalkerCache.lastUpdate = 0;  // The panel shows it at once
+}
+
+// Put a set on. It can be changed at any time, in a fight too.
+function wearSet(setId, announce = true) {
+    const set = setById(gameConfig.sets, setId);
+    if (!set) return;
+    
+    gameState.wornSet = set.id;
+    refreshSetBonus();
+    try {
+        localStorage.setItem(WORN_SET_KEY, set.id);
+    } catch (e) {
+        // Storage unavailable: worn for this game
+    }
+    
+    if (announce) {
+        const pieces = piecesOf(gameItems, set.id);
+        const owned = ownedCount(pieces, ownedPieces());
+        const gives = bonusText(gameState.setBonus) || `no bonus yet (${nextStep(set, owned)} pieces for the first)`;
+        addNotification(gameState, `Wearing ${set.name} (${owned}/${pieces.length}): ${gives}`, 240, '#C77DFF');
+    }
+}
+
+// The next set in order, for the tap on the panel
+function wearNextSet() {
+    const index = gameConfig.sets.findIndex(set => set.id === gameState.wornSet);
+    wearSet(gameConfig.sets[(index + 1) % gameConfig.sets.length].id);
 }
 
 // Whether the logged-in player has found the large quiver (a boss drop, kept on the account)
@@ -893,7 +972,12 @@ function startGame() {
     // Boss Rush: the first boss comes in after a moment
     gameState.rushPause = 60;
     gameState.rushComplete = false;
+    gameState.victory = false;
+    gameState.afterLastBoss = 0;
     gameState.levelCap = undefined;
+    
+    // The set worn last time is worn again, with what its owned pieces give
+    wearSet(rememberedSet(), false);
     gameState.coins = 0;
     gameState.bossLoot = [];
     
@@ -1123,7 +1207,12 @@ function restartGame() {
     // Boss Rush: the first boss comes in after a moment
     gameState.rushPause = 60;
     gameState.rushComplete = false;
+    gameState.victory = false;
+    gameState.afterLastBoss = 0;
     gameState.levelCap = undefined;
+    
+    // The set worn last time is worn again, with what its owned pieces give
+    wearSet(rememberedSet(), false);
     gameState.coins = 0;
     gameState.bossLoot = [];
     
@@ -1313,28 +1402,22 @@ function updateFallingItems(deltaTimeMultiplier) {
             // Track activity for hybrid progression
             trackActivity(gameState, 'miss', 1);
             
-            // Handle tier set items being missed
-            if (item.itemData && item.itemData.type === "tier_set") {
-                item.itemData.missed++;
-                gameState.tierSetMissed++;
-                playScreamSound();
+            // A missed item costs a little health, whatever it was: a piece of a hunter set
+            // too (it will come again in another game). Check dodge first, then shield
+            if (shouldDodge()) {
+                // Player dodged the missed item penalty
+                showDodgeText(player.x + player.width/2, player.y);
+                trackDodge(gameConfig.gameplay.healthLossOnMiss); // Track HP saved from dodging missed item
+                playUffSound(); // Still play the sound for feedback
+            } else if (gameState.shieldActive) {
+                // Shield blocks the damage from missed items (only if dodge failed)
+                combatTexts.push(new CombatText(player.x + player.width/2, player.y, 'BLOCKED', '#FFD700', false));
             } else {
-                // Check dodge first, then shield
-                if (shouldDodge()) {
-                    // Player dodged the missed item penalty
-                    showDodgeText(player.x + player.width/2, player.y);
-                    trackDodge(gameConfig.gameplay.healthLossOnMiss); // Track HP saved from dodging missed item
-                    playUffSound(); // Still play the sound for feedback
-                } else if (gameState.shieldActive) {
-                    // Shield blocks the damage from missed items (only if dodge failed)
-                    combatTexts.push(new CombatText(player.x + player.width/2, player.y, 'BLOCKED', '#FFD700', false));
-                } else {
-                    // Track damage for hybrid progression
-                    trackActivity(gameState, 'damage', gameConfig.gameplay.healthLossOnMiss);
-                    
-                    gameState.health = Math.max(0, gameState.health - gameConfig.gameplay.healthLossOnMiss);
-                    playUffSound();
-                }
+                // Track damage for hybrid progression
+                trackActivity(gameState, 'damage', gameConfig.gameplay.healthLossOnMiss);
+                
+                gameState.health = Math.max(0, gameState.health - gameConfig.gameplay.healthLossOnMiss);
+                playUffSound();
             }
         }
         
@@ -1840,6 +1923,22 @@ function restartGameFromUI() {
 // Set up UI event handlers
 function setupUIEventHandlers() {
     console.log('Setting up UI event handlers...');
+    
+    // Wearing another hunter set: 1, 2 or 3 while playing, or a tap on the set panel (it only
+    // takes taps while the game is paused)
+    document.addEventListener('keydown', event => {
+        const index = ['1', '2', '3'].indexOf(event.key);
+        const typing = document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+        if (index < 0 || typing || !gameState.gameRunning || !gameConfig.sets[index]) return;
+        
+        wearSet(gameConfig.sets[index].id);
+    });
+    const setPanelHeader = document.querySelector('#dragonstalkerProgressPanel .dragonstalker-panel-header');
+    if (setPanelHeader) {
+        setPanelHeader.addEventListener('click', () => {
+            if (gameState.currentScreen === 'game') wearNextSet();
+        });
+    }
     
     // Boss Rush always starts with the first boss, so the choice of starting zone goes away
     const gameModeSelect = document.getElementById('gameMode');
@@ -2445,7 +2544,7 @@ function updateDOMItemsPanel(gameState, gameItems) {
     
     // Sort items by priority (same as canvas version)
     const sortedItems = collectedItems.sort((a, b) => {
-        const priorityOrder = { zee_zgnan: 5, legendary: 4, special: 3, epic: 2, tier_set: 1, regular: 0 };
+        const priorityOrder = { zee_zgnan: 5, legendary: 4, special: 3, epic: 2, set_piece: 1, regular: 0 };
         const aPriority = priorityOrder[a.type] || 0;
         const bPriority = priorityOrder[b.type] || 0;
         
@@ -2494,7 +2593,6 @@ function createMobileIntegratedLayout(gameState, gameItems) {
     
     // Get dragonstalker data
     const dragonstalkerItems = gameItems.filter(item => 
-        item.type === 'tier_set' ||
         item.type === 'set_piece'
     );
     const collectedCount = dragonstalkerItems.reduce((sum, item) => sum + item.collected, 0);
@@ -2618,7 +2716,6 @@ function updateMobileIntegratedValues(gameState, gameItems) {
     
     // Update dragonstalker progress
     const dragonstalkerItems = gameItems.filter(item => 
-        item.type === 'tier_set' ||
         item.type === 'set_piece'
     );
     const collectedCount = dragonstalkerItems.reduce((sum, item) => sum + item.collected, 0);
@@ -2989,7 +3086,6 @@ function updateItemsList(sortedItems) {
         item.type === 'epic' || 
         item.type === 'legendary' || 
         item.type === 'zee_zgnan' || 
-        item.type === 'tier_set' ||
         item.type === 'set_piece'
     );
     const currentTotalCount = filteredItems.reduce((sum, item) => sum + item.collected, 0);
@@ -3074,7 +3170,6 @@ function updateItemsList(sortedItems) {
         else if (item.type === 'special') icon = '★';
         else if (item.type === 'legendary') icon = '⚡';
         else if (item.type === 'zee_zgnan') icon = '👑';
-        else if (item.type === 'tier_set') icon = '🐉';
         else if (item.type === 'set_piece') icon = '🛡';
         
         const totalPoints = item.collected * item.value;
@@ -3153,6 +3248,20 @@ function onItemCollected(itemData, fallingItem = null) {
         gameState.coins += coinsForItem(itemData.type, gameConfig.coins);
     }
     
+    // A piece of a hunter set: it counts towards what the worn set gives from this moment, and
+    // a logged-in player keeps it (the site records the pickup)
+    if (itemData.type === 'set_piece') {
+        if (siteBoot && siteBoot.user && dropId !== null && dropId !== undefined) {
+            siteBoot.user.pieces = siteBoot.user.pieces || [];
+            if (!siteBoot.user.pieces.includes(itemData.id)) siteBoot.user.pieces.push(itemData.id);
+        }
+        refreshSetBonus();
+        
+        const set = setById(gameConfig.sets, itemData.set);
+        const pieces = piecesOf(gameItems, itemData.set);
+        addNotification(gameState, `${itemData.name}: ${set.name} ${ownedCount(pieces, ownedPieces())}/${pieces.length}`, 240, '#C77DFF');
+    }
+    
     // The hunter reaches for it
     player.onCollect();
 }
@@ -3183,34 +3292,23 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
     const panel = document.getElementById('dragonstalkerProgressPanel');
     if (!panel) return;
     
-    // Get Dragonstalker items
-    const dragonstalkerItems = gameItems.filter(item => item.type === "tier_set");
-    const uniquePiecesCollected = dragonstalkerItems.filter(item => item.collected > 0).length;
+    // The panel shows the set being worn: its pieces, lit when owned (on the account or caught
+    // in this game), and what wearing it gives
+    const set = setById(gameConfig.sets, gameState.wornSet);
+    const pieces = piecesOf(gameItems, gameState.wornSet);
+    const owned = ownedPieces();
+    const piecesOwned = ownedCount(pieces, owned);
     
-    // Check if anything actually changed
+    // Throttle updates - only update every 1 second unless something changed
     const currentTime = Date.now();
-    const hasCollectionChanged = uniquePiecesCollected !== dragonstalkerCache.lastCollectedCount;
-    const hasCompletionChanged = gameState.dragonstalkerCompletions !== dragonstalkerCache.lastCompletionCount;
-    const hasGameStateChanged = gameState.gameWon !== dragonstalkerCache.lastGameWon;
-    
-    // Throttle updates - only update every 1 second unless something important changed
-    const timeSinceLastUpdate = currentTime - dragonstalkerCache.lastUpdate;
-    const shouldForceUpdate = hasCollectionChanged || hasCompletionChanged || hasGameStateChanged;
-    
-    if (!shouldForceUpdate && timeSinceLastUpdate < 1000) {
-        return; // Skip update if nothing changed and throttle time hasn't passed
+    const stateKey = `${gameState.wornSet}:${piecesOwned}`;
+    const hasChanged = stateKey !== dragonstalkerCache.lastCollectedCount || dragonstalkerCache.lastUpdate === 0;
+    if (!hasChanged && currentTime - dragonstalkerCache.lastUpdate < 1000) {
+        return;
     }
     
     dragonstalkerCache.lastUpdate = currentTime;
-    dragonstalkerCache.lastCollectedCount = uniquePiecesCollected;
-    dragonstalkerCache.lastCompletionCount = gameState.dragonstalkerCompletions;
-    dragonstalkerCache.lastGameWon = gameState.gameWon;
-    
-
-    
-    // Check for Zee Zgnan victory
-    const zeeZgnanItem = gameItems.find(item => item.type === "zee_zgnan");
-    const zeeZgnanCollected = zeeZgnanItem && zeeZgnanItem.collected > 0;
+    dragonstalkerCache.lastCollectedCount = stateKey;
     
     // Show/hide panel based on game state (always show during gameplay)
     if (gameState.gameRunning) {
@@ -3228,82 +3326,67 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
         return;
     }
     
-    // Update panel styling based on status without wiping responsive/settings classes.
-    panel.classList.toggle('victory', Boolean(gameState.gameWon));
+    // The set's name: its first word, and "Armor" where there is room
+    const nameElement = document.getElementById('setPanelName');
+    if (nameElement && set && nameElement.dataset.set !== set.id) {
+        const [first, ...rest] = set.name.split(' ');
+        nameElement.textContent = first;
+        const suffix = document.createElement('span');
+        suffix.className = 'dragonstalker-set-suffix';
+        suffix.textContent = ` ${rest.join(' ')}`;
+        nameElement.append(suffix);
+        nameElement.dataset.set = set.id;
+    }
+    panel.title = 'Press 1, 2 or 3 to wear another set';
     
     // Update progress bar
     const progressFill = document.getElementById('dragonstalkerProgressFill');
     const progressText = document.getElementById('dragonstalkerProgressText');
     if (progressFill && progressText) {
-        const progressPercent = (uniquePiecesCollected / 10) * 100;
-        progressFill.style.width = `${progressPercent}%`;
+        progressFill.style.width = `${pieces.length > 0 ? (piecesOwned / pieces.length) * 100 : 0}%`;
         
-        // Pieces collected, plus how many full sets have been completed so far
-        let progressString = `${uniquePiecesCollected}/10`;
-        if (gameState.dragonstalkerCompletions > 0) {
-            const isMobile = responsiveScaler.deviceType === 'mobile';
-            progressString += isMobile
-                ? ` (${gameState.dragonstalkerCompletions})`
-                : ` \u00b7 ${gameState.dragonstalkerCompletions} set${gameState.dragonstalkerCompletions > 1 ? 's' : ''}`;
-        }
-        
-        progressText.textContent = progressString;
-        
-        progressFill.classList.toggle('victory', Boolean(gameState.gameWon));
+        // Pieces owned, and what wearing the set gives with them (in short on phones)
+        const gives = bonusText(gameState.setBonus);
+        const isMobile = responsiveScaler.deviceType === 'mobile';
+        progressText.textContent = gives && !isMobile
+            ? `${piecesOwned}/${pieces.length} \u00b7 ${gives.replace(' damage to bosses', ' boss dmg')}`
+            : `${piecesOwned}/${pieces.length}`;
     }
     
     // Update items list
     const itemsList = document.getElementById('dragonstalkerItemsList');
     if (itemsList) {
-        // Get all tier set items dynamically and sort by setPosition
-        const sortedDragonstalkerItems = [...dragonstalkerItems].sort((a, b) => {
-            const aPos = a.setPosition || 999; // Put items without setPosition at the end
-            const bPos = b.setPosition || 999;
-            return aPos - bPos;
-        });
-        
-        // Check if we need to rebuild the list (first time or after game restart)
-        if (itemsList.children.length !== sortedDragonstalkerItems.length) {
+        // Another set: build its slots anew
+        if (itemsList.dataset.set !== gameState.wornSet) {
             itemsList.innerHTML = '';
+            itemsList.dataset.set = gameState.wornSet;
+            dragonstalkerCache.itemStates.clear();
             
-            // Create all items initially
-            sortedDragonstalkerItems.forEach(item => {
+            pieces.forEach(item => {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'dragonstalker-item';
                 itemDiv.setAttribute('data-item-id', item.id);
                 itemsList.appendChild(itemDiv);
-                
-                // Initialize cache for this item
-                dragonstalkerCache.itemStates.set(item.id, { status: '' });
             });
         }
         
         // Update only items that have changed
-        sortedDragonstalkerItems.forEach(item => {
+        pieces.forEach(item => {
             const itemDiv = itemsList.querySelector(`[data-item-id="${item.id}"]`);
             if (!itemDiv) return;
             
-            let statusClass = 'pending';
-            if (item.collected > 0) {
-                statusClass = 'collected';
-            } else if (item.missed > 0) {
-                statusClass = 'missed';
-            }
-            
-            // Get cached state for this item (provide default if not found)
+            const statusClass = owned.has(item.id) ? 'collected' : 'pending';
             const cachedState = dragonstalkerCache.itemStates.get(item.id) || { status: '' };
             
             // Only touch the DOM when the slot's state changed or on first render
             if (cachedState.status !== statusClass || !itemDiv.innerHTML) {
-                const itemIcon = getDragonstalkerItemIconData(item);
-                const slotName = getShortenedDragonstalkerName(item.id, item.name);
                 itemDiv.className = `dragonstalker-item ${statusClass}`;
                 itemDiv.title = item.name;
                 itemDiv.innerHTML = `
                     <div class="dragonstalker-item-icon">
-                        <img src="${itemIcon.src}" alt="${itemIcon.alt}">
+                        <img src="${item.image}" alt="">
                     </div>
-                    <div class="dragonstalker-item-name">${slotName}</div>
+                    <div class="dragonstalker-item-name">${item.slot.charAt(0).toUpperCase()}${item.slot.slice(1)}</div>
                 `;
                 
                 dragonstalkerCache.itemStates.set(item.id, { status: statusClass });
@@ -3431,7 +3514,9 @@ function endGame() {
     showCoinsEarned();
     
     const gameOverTitle = document.getElementById('gameOverTitle');
-    if (gameOverTitle) gameOverTitle.textContent = gameState.rushComplete ? 'Boss Rush complete!' : 'Game Over!';
+    if (gameOverTitle) {
+        gameOverTitle.textContent = gameState.rushComplete ? 'Boss Rush complete!' : gameState.victory ? 'Victory!' : 'Game Over!';
+    }
     
     // Update final score display
     const finalScoreElement = document.getElementById('finalScore');

@@ -446,7 +446,9 @@ function takeArrowHits(context) {
         const critChance = Math.min(gameState.critRating + (arrow.critBonus || 0), gameState.critRatingCap);
         const isCrit = Math.random() < critChance;
         const arrowDamage = gameConfig.bosses.arrowDamage * (arrow.arcane ? gameConfig.bosses.arcaneDamage : 1);
-        const damage = Math.round(arrowDamage * weakened * (isCrit ? gameState.critMultiplier : 1));
+        // The set being worn may add to what arrows do to a boss (utils/sets.js)
+        const fromSet = 1 + (gameState.setBonus ? gameState.setBonus.bossDamage : 0);
+        const damage = Math.round(arrowDamage * weakened * fromSet * (isCrit ? gameState.critMultiplier : 1));
 
         fight.health = Math.max(0, fight.health - damage);
         fight.hitFlash = HIT_FLASH_STEPS;

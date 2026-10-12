@@ -67,6 +67,23 @@ class User extends Authenticatable
     }
 
     /**
+     * The pieces of the hunter sets this player has picked up, in any of their games: a piece
+     * caught is theirs for good, however that game ended.
+     *
+     * @return array<int, string>
+     */
+    public function setPieces(): array
+    {
+        return GameDrop::query()
+            ->whereNotNull('claimed_at')
+            ->whereIn('item_id', config('loot.items.set_piece'))
+            ->whereHas('game', fn ($game) => $game->where('user_id', $this->id))
+            ->distinct()
+            ->pluck('item_id')
+            ->all();
+    }
+
+    /**
      * Address of the profile image, or null when the player has not uploaded one.
      */
     public function avatarUrl(): ?string

@@ -1,7 +1,7 @@
 // Account awareness for the main menu.
 //
 // When the game is served by the site, the page sets window.INPUT_BOOT with who is playing:
-//   { user: { name, avatar, coins, quiver } | null, skip: { costPerZone, unlocked } | null, rush: { fee } | null, guestName, csrfToken, embedded, urls: { scores, games, collection, history, login, register, logout, profile } }
+//   { user: { name, avatar, coins, quiver, pieces } | null, skip: { costPerZone, unlocked } | null, rush: { fee } | null, guestName, csrfToken, embedded, urls: { scores, games, collection, history, login, register, logout, profile } }
 // "embedded" means the site shows the game under its own header, which has the account links.
 // Opened on its own (no site around it) there is no INPUT_BOOT and the game behaves as before.
 

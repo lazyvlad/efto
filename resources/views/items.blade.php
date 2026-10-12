@@ -7,11 +7,11 @@
 
     @php
         $rarityName = [
-            'zee_zgnan' => __('Zee Zgnan'), 'legendary' => __('Legendary'), 'tier_set' => __('Tier set'), 'set_piece' => __('Set piece'),
+            'zee_zgnan' => __('Zee Zgnan'), 'legendary' => __('Legendary'), 'set_piece' => __('Set piece'),
             'special' => __('Special'), 'epic' => __('Epic'), 'green' => __('Uncommon'), 'regular' => __('Common'),
         ];
         $rarityColor = [
-            'zee_zgnan' => 'text-orange-400', 'legendary' => 'text-orange-400', 'tier_set' => 'text-purple-400', 'set_piece' => 'text-purple-400',
+            'zee_zgnan' => 'text-orange-400', 'legendary' => 'text-orange-400', 'set_piece' => 'text-purple-400',
             'special' => 'text-blue-400', 'epic' => 'text-purple-400', 'green' => 'text-green-400', 'regular' => 'text-gray-900',
         ];
         $lootColor = ['uncommon' => 'text-green-400', 'rare' => 'text-blue-400', 'epic' => 'text-purple-400'];

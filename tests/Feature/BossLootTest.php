@@ -222,13 +222,21 @@ class BossLootTest extends TestCase
     {
         config(['loot.spawns_per_second' => 400]);
 
-        // Level 9 is past the level epics, specials and tier pieces unlock at, but not legendaries
+        // Level 9 is past the level epics, specials and the first two sets unlock at, but not legendaries
         $types = fn (int $startLevel) => collect(\App\Support\LootTable::rollChunk(0, [], $startLevel))
             ->map(fn (array $drop) => \App\Support\LootTable::typeOf($drop['item_id']))
             ->unique();
 
-        $this->assertEqualsCanonicalizing(['epic', 'special', 'tier_set', 'set_piece'], $types(9)->all());
-        $this->assertSame([], $types(1)->all());
+        $this->assertEqualsCanonicalizing(['epic', 'special', 'set_piece'], $types(9)->all());
+        // A game from the start gets only pieces of the first set this early
+        $this->assertSame([], array_values(array_diff($types(1)->all(), ['set_piece'])));
+
+        // ...and of the sets, Giantstalker and Dragonstalker drop from the first second, Cryptstalker not yet
+        $sets = fn (int $startLevel) => collect(\App\Support\LootTable::rollChunk(0, [], $startLevel))
+            ->map(fn (array $drop) => \App\Support\LootTable::setOf($drop['item_id'])['id'] ?? null)
+            ->filter()->unique()->values();
+        $this->assertEqualsCanonicalizing(['giantstalker', 'dragonstalker'], $sets(9)->all());
+        $this->assertEqualsCanonicalizing(['giantstalker', 'dragonstalker', 'cryptstalker'], $sets(15)->all());
     }
 
     public function test_the_game_is_told_what_the_player_may_skip(): void
@@ -329,6 +337,51 @@ class BossLootTest extends TestCase
 
         $html = $this->get(route('play'))->getContent();
         $this->assertStringContainsString('"rush":{"fee":5000}', $html);
+    }
+
+    public function test_set_pieces_a_player_picks_up_are_theirs_whichever_way_the_game_ends(): void
+    {
+        $user = User::factory()->create();
+        $game = Game::create(['token' => 'abc', 'user_id' => $user->id, 'name' => 'A', 'status' => Game::ABANDONED, 'started_at' => now()]);
+        $game->drops()->create(['item_id' => 'giantstalker-helmet', 'chunk' => 0, 'at_seconds' => 3, 'claimed_at' => now()]);
+        $game->drops()->create(['item_id' => 'ds_chest', 'chunk' => 0, 'at_seconds' => 4, 'claimed_at' => now()]);
+        $game->drops()->create(['item_id' => 'ds_chest', 'chunk' => 0, 'at_seconds' => 9, 'claimed_at' => now()]);
+        // Offered but not picked up, and somebody else's
+        $game->drops()->create(['item_id' => 'cryptstalker-ring', 'chunk' => 0, 'at_seconds' => 5]);
+        $other = Game::create(['token' => 'def', 'name' => 'B', 'status' => Game::FINISHED, 'started_at' => now()]);
+        $other->drops()->create(['item_id' => 'cryptstalker-boots', 'chunk' => 0, 'at_seconds' => 3, 'claimed_at' => now()]);
+
+        $this->assertEqualsCanonicalizing(['giantstalker-helmet', 'ds_chest'], $user->setPieces());
+
+        $html = $this->actingAs($user)->get(route('play'))->getContent();
+        $this->assertStringContainsString('"pieces":[', $html);
+        $this->assertStringContainsString('giantstalker-helmet', $html);
+
+        $response = $this->getJson(route('collection'))->assertOk()
+            ->assertJsonPath('sets.0.id', 'giantstalker')
+            ->assertJsonPath('sets.0.owned', 1)
+            ->assertJsonPath('sets.1.name', 'Dragonstalker Armor')
+            ->assertJsonPath('sets.1.owned', 1)
+            ->assertJsonPath('sets.2.owned', 0)
+            ->assertJsonCount(9, 'sets.2.pieces');
+        $this->assertTrue($response->json('sets.0.pieces.0.owned'));
+
+        $this->get(route('games.history'))->assertSee('Hunter sets')->assertSee('1 of 8')->assertSee('0 of 9');
+    }
+
+    public function test_every_set_piece_belongs_to_exactly_one_set_with_the_game_s_levels(): void
+    {
+        $inSets = array_merge(...array_column(config('loot.sets'), 'pieces'));
+        $this->assertEqualsCanonicalizing(config('loot.items.set_piece'), $inSets);
+
+        $items = file_get_contents(base_path('game/data/gameItems.js'));
+        $settings = file_get_contents(base_path('game/config/gameConfig.js'));
+        foreach (config('loot.sets') as $setId => $set) {
+            foreach ($set['pieces'] as $itemId) {
+                $this->assertMatchesRegularExpression('/id: "'.$itemId.'",[^\n]*set: "'.$setId.'"/', $items);
+            }
+            $this->assertMatchesRegularExpression("/id: '$setId', name: '".$set['name']."', tier: ".$set['tier'].', fromLevel: '.$set['from_level'].',/', $settings);
+        }
     }
 
     public function test_amounts_read_as_gold_silver_and_copper(): void

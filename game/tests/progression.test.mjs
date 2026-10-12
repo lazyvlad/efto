@@ -13,7 +13,7 @@ const rules = {
     secondsPerLevel: 3,
     xpPerSecond: 1.2,
     valueGrowthPerLevel: 0.12,
-    unlockLevel: { regular: 1, green: 2, epic: 4, special: 6, tier_set: 8, legendary: 10, zee_zgnan: 12 }
+    unlockLevel: { regular: 1, green: 2, epic: 4, special: 6, set_piece: 3, legendary: 10, zee_zgnan: 12 }
 };
 
 test('every level needs more experience, and takes longer, than the one before', () => {
@@ -49,8 +49,8 @@ test('experience turns into a level and the progress through it', () => {
 test('rarer items only drop once the player has reached their level', () => {
     assert.ok(isUnlocked('regular', 1, rules));
     assert.ok(!isUnlocked('green', 1, rules));
-    assert.ok(!isUnlocked('tier_set', 7, rules));
-    assert.ok(isUnlocked('tier_set', 8, rules));
+    assert.ok(!isUnlocked('legendary', 9, rules));
+    assert.ok(isUnlocked('legendary', 10, rules));
     assert.ok(!isUnlocked('zee_zgnan', 11, rules));
     assert.ok(isUnlocked('zee_zgnan', 12, rules));
 });

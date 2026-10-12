@@ -1,5 +1,47 @@
 # Changelog
 
+## 2.23.0 - 2026-10-12
+
+### What's new
+
+**Hunter sets are collected over many games**
+- The three armour sets, Giantstalker, Dragonstalker and Cryptstalker, are no longer
+  something to finish inside one game. Every piece a logged-in player catches is theirs for
+  good and stays on their account. A guest has what the game in hand gave them.
+- Each set drops in its own stretch of the game: Giantstalker from level 3, Dragonstalker
+  from level 9, Cryptstalker from level 15. Pieces can drop again and again, so a missed one
+  comes back in another game.
+- You wear one set at a time and can change it whenever you like, in a boss fight too:
+  press 1, 2 or 3, or tap the set panel while paused. The panel shows the set you wear, the
+  pieces you own and what it gives.
+- A set gives more the more of it you own:
+  - Giantstalker: +2%, +4%, +6% dodge at 3, 5 and 8 pieces.
+  - Dragonstalker: +2%, +4%, +6% crit at 3, 5 and 8 pieces.
+  - Cryptstalker: +5%, +10%, +15%, +20% damage to bosses at 2, 4, 6 and 8 pieces.
+- "My Games" and the All Time tab's data list the three sets with the pieces you own.
+
+**The goal of the game is the last boss**
+- Defeating the tenth boss of your side wins the game: it ends a few seconds later with
+  "Victory!" and is recorded like any game.
+
+### Changed
+- Collecting ten Dragonstalker pieces in one game is no longer the goal, and completing the
+  set in a game no longer slows the game or adds crit. The Dragonstalker panel is now the
+  panel of the set you wear.
+- A missed set piece is a miss like any other: it costs a little health and can drop again.
+  It used to be gone for the rest of the game.
+- Ashjre'thul and Ashkandi, once two of the ten Dragonstalker pieces, are epic items of
+  their own.
+
+### For developers
+- The sets are `sets` in `game/config/gameConfig.js` (levels and bonuses) and in
+  `config/loot.php` (pieces, levels and how long the server holds each set back); the rules
+  are `game/utils/sets.js`. The `tier_set` rarity is gone: all 25 pieces are `set_piece`.
+- A player's pieces are the set pieces among their picked-up drops (`User::setPieces()`);
+  the game gets them as `INPUT_BOOT.user.pieces`. No migration is needed.
+- Left in place but no longer reached: `checkDragonstalkerCompletion` in
+  `game/utils/gameUtils.js` and the Flask of Titans code in `game/systems/spellSystem.js`.
+
 ## 2.22.0 - 2026-10-12
 
 ### What's new

@@ -1749,7 +1749,7 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
 /* Boss loot by rarity, items by theirs */
 #pauseMenu .loot-uncommon, #pauseMenu .loot-type-green { color: #1eff00; }
 #pauseMenu .loot-rare { color: #4d9bff; }
-#pauseMenu .loot-epic, #pauseMenu .loot-type-epic, #pauseMenu .loot-type-tier_set, #pauseMenu .loot-type-set_piece { color: #c77dff; }
+#pauseMenu .loot-epic, #pauseMenu .loot-type-epic, #pauseMenu .loot-type-set_piece { color: #c77dff; }
 #pauseMenu .loot-type-special { color: #4d9bff; }
 #pauseMenu .loot-type-legendary, #pauseMenu .loot-type-zee_zgnan { color: #ff8000; }
 #pauseMenu .loot-type-regular { color: #fff; }

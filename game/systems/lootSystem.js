@@ -16,7 +16,7 @@ import { siteBoot } from '../ui/accountBar.js';
 import { GAME_VERSION } from '../config/gameVersion.js';
 
 // Rarities the server decides (config/loot.php on the site has the same list)
-const SERVER_TYPES = new Set(['epic', 'special', 'tier_set', 'set_piece', 'legendary', 'zee_zgnan']);
+const SERVER_TYPES = new Set(['epic', 'special', 'set_piece', 'legendary', 'zee_zgnan']);
 
 const RECORD_PREFIX = 'input_game_record_';
 const TAB_GAME_KEY = 'input_game_token';

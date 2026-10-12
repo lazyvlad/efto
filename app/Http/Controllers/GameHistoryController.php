@@ -45,6 +45,7 @@ class GameHistoryController extends Controller
             'coins' => Coins::format((int) $user->coins),
             'quiver' => (bool) $user->quiver,
             'quiverName' => config('boss_loot.quiver.name'),
+            'sets' => LootTable::sets($user->setPieces()),
             'stats' => [
                 'played' => (clone $legal)->count(),
                 'best' => (int) (clone $legal)->max('score'),
@@ -82,6 +83,7 @@ class GameHistoryController extends Controller
         return response()->json([
             'coins' => (int) $user->coins,
             'quiver' => ['name' => config('boss_loot.quiver.name'), 'found' => (bool) $user->quiver],
+            'sets' => LootTable::sets($user->setPieces()),
             'items' => $items,
             'bosses' => $bosses,
         ]);

@@ -9,9 +9,9 @@ import { siteBoot } from './accountBar.js';
 import { formatCoins } from '../utils/coins.js';
 
 // Rarest first
-const ITEM_ORDER = ['zee_zgnan', 'legendary', 'tier_set', 'set_piece', 'special', 'epic', 'green', 'regular'];
+const ITEM_ORDER = ['zee_zgnan', 'legendary', 'set_piece', 'special', 'epic', 'green', 'regular'];
 const ITEM_TYPE_NAMES = {
-    zee_zgnan: 'Zee Zgnan', legendary: 'Legendary', tier_set: 'Tier set', set_piece: 'Set piece', special: 'Special',
+    zee_zgnan: 'Zee Zgnan', legendary: 'Legendary', set_piece: 'Set piece', special: 'Special',
     epic: 'Epic', green: 'Uncommon', regular: 'Common'
 };
 const BOSS_RARITY_NAMES = { uncommon: 'Uncommon', rare: 'Rare', epic: 'Epic' };

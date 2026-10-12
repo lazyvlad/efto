@@ -27,7 +27,7 @@ function generateCritSystemContent(gameState, gameItems) {
     
     let content = `
         <p>• ${baseCritPercent}% base chance to ${critMultiplier}x points from any item</p>
-        <p>• Complete Dragonstalker sets: +${dragonstalkerCritBonus}% crit chance each</p>
+        <p>• Wearing Dragonstalker Armor: more crit the more of its pieces you own</p>
     `;
     
     // Add item-based crit bonuses dynamically
@@ -35,7 +35,7 @@ function generateCritSystemContent(gameState, gameItems) {
     if (critItems.length > 0) {
         // Sort items by type for better organization
         const sortedCritItems = critItems.sort((a, b) => {
-            const typeOrder = { zee_zgnan: 5, legendary: 4, special: 3, epic: 2, tier_set: 1, regular: 0 };
+            const typeOrder = { zee_zgnan: 5, legendary: 4, special: 3, epic: 2, set_piece: 1, regular: 0 };
             const aPriority = typeOrder[a.type] || 0;
             const bPriority = typeOrder[b.type] || 0;
             if (aPriority !== bPriority) return bPriority - aPriority;
@@ -70,7 +70,7 @@ function generateDodgeSystemContent(gameState, gameItems) {
     
     let content = `
         <p>• ${baseDodgePercent}% base chance to avoid damage from projectiles and item misses</p>
-        <p>• Complete Dragonstalker sets: +${dragonstalkerDodgeBonus}% dodge chance each</p>
+        <p>• Wearing Giantstalker Armor: more dodge the more of its pieces you own</p>
     `;
     
     // Add item-based dodge bonuses dynamically
@@ -78,7 +78,7 @@ function generateDodgeSystemContent(gameState, gameItems) {
     if (dodgeItems.length > 0) {
         // Sort items by type for better organization
         const sortedDodgeItems = dodgeItems.sort((a, b) => {
-            const typeOrder = { zee_zgnan: 5, legendary: 4, special: 3, epic: 2, tier_set: 1, regular: 0 };
+            const typeOrder = { zee_zgnan: 5, legendary: 4, special: 3, epic: 2, set_piece: 1, regular: 0 };
             const aPriority = typeOrder[a.type] || 0;
             const bPriority = typeOrder[b.type] || 0;
             if (aPriority !== bPriority) return bPriority - aPriority;

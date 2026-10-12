@@ -66,6 +66,26 @@
                 </div>
 
                 <div class="bg-white shadow sm:rounded-lg p-4 sm:p-6">
+                    <h3 class="text-lg text-gray-800">{{ __('Hunter sets') }}</h3>
+                    <p class="mt-1 text-sm text-gray-500">{{ __('Every piece you catch is yours for good. In the game you choose which set to wear, and it gives more the more of it you own.') }}</p>
+
+                    @foreach ($sets as $set)
+                        <h4 class="mt-5 text-sm text-purple-400">
+                            {{ $set['name'] }}
+                            <span class="text-xs text-gray-500 ms-2">{{ __('tier :tier', ['tier' => $set['tier']]) }} &middot; {{ __(':owned of :total', ['owned' => $set['owned'], 'total' => count($set['pieces'])]) }}</span>
+                        </h4>
+
+                        <ul class="mt-2 flex flex-wrap gap-3">
+                            @foreach ($set['pieces'] as $piece)
+                                <li title="{{ $piece['name'] }}" class="{{ $piece['owned'] ? '' : 'opacity-30 grayscale' }}">
+                                    <img src="{{ $piece['image'] }}" alt="{{ $piece['name'] }}" loading="lazy" class="h-11 w-11 object-contain">
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endforeach
+                </div>
+
+                <div class="bg-white shadow sm:rounded-lg p-4 sm:p-6">
                     <h3 class="text-lg text-gray-800">
                         {{ __('Boss loot') }}
                         <span class="text-sm text-gray-500 ms-2">{{ __(':found of :total found', ['found' => $bossLoot->count(), 'total' => $bossLootTotal]) }}</span>

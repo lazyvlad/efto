@@ -21,7 +21,7 @@
                                 <th class="py-3 px-2 font-normal">{{ __('Player') }}</th>
                                 <th class="py-3 px-2 text-right font-normal">{{ __('Score') }}</th>
                                 <th class="py-3 px-2 text-right font-normal">{{ __('Level') }}</th>
-                                <th class="py-3 px-2 text-right font-normal hidden sm:table-cell">{{ __('Sets') }}</th>
+                                <th class="py-3 px-2 text-right font-normal hidden sm:table-cell">{{ __('Bosses') }}</th>
                                 <th class="py-3 ps-2 pe-4 sm:pe-6 text-right font-normal hidden sm:table-cell">{{ __('Date') }}</th>
                             </tr>
                         </thead>
@@ -44,7 +44,7 @@
                                     </td>
                                     <td class="py-2.5 px-2 text-right tabular-nums text-indigo-600">{{ number_format($score->score) }}</td>
                                     <td class="py-2.5 px-2 text-right tabular-nums text-gray-800">{{ $score->level }}</td>
-                                    <td class="py-2.5 px-2 text-right tabular-nums text-gray-800 hidden sm:table-cell">{{ $score->dragonstalker_completions ?: '–' }}</td>
+                                    <td class="py-2.5 px-2 text-right tabular-nums text-gray-800 hidden sm:table-cell">{{ $score->game?->boss_drops_count ?: '–' }}</td>
                                     <td class="py-2.5 ps-2 pe-4 sm:pe-6 text-right text-gray-500 whitespace-nowrap hidden sm:table-cell">{{ $score->created_at?->format('M j, Y') }}</td>
                                 </tr>
                             @endforeach
@@ -54,7 +54,7 @@
             </div>
 
             <p class="mt-4 px-4 sm:px-0 text-sm text-gray-500">
-                {{ __('The top :count scores. "Sets" is how many times the Dragonstalker set was completed in that game.', ['count' => config('game.leaderboard_size')]) }}
+                {{ __('The top :count scores. "Bosses" is how many bosses were defeated in that game.', ['count' => config('game.leaderboard_size')]) }}
             </p>
         </div>
     </div>

@@ -30,6 +30,12 @@ class LootTable
                 : (int) config("loot.not_before_seconds.$type", 0);
 
             foreach (config("loot.items.$type") as $itemId) {
+                // A piece of a hunter set waits for its own set's level, not its rarity's
+                $waitsUntil = $notBefore;
+                if ($set = self::setOf($itemId)) {
+                    $waitsUntil = $startLevel >= $set['from_level'] ? 0 : (int) $set['not_before_seconds'];
+                }
+
                 $once = in_array($itemId, config('loot.once_per_game'), true);
                 if ($once && in_array($itemId, $alreadyOffered, true)) {
                     continue;
@@ -40,7 +46,7 @@ class LootTable
 
                 for ($i = 0; $i < ($once ? min(1, $count) : $count); $i++) {
                     $at = $start + random_int(0, $chunkSeconds - 1);
-                    if ($at >= $notBefore) {
+                    if ($at >= $waitsUntil) {
                         $drops[] = ['item_id' => $itemId, 'at_seconds' => $at];
                     }
                 }
@@ -64,6 +70,57 @@ class LootTable
         }
 
         return false;
+    }
+
+    /**
+     * The hunter set an item is a piece of, with its id, or null for anything else.
+     *
+     * @return array{id: string, name: string, tier: int, from_level: int, not_before_seconds: int, pieces: array<int, string>}|null
+     */
+    public static function setOf(string $itemId): ?array
+    {
+        foreach (config('loot.sets') as $setId => $set) {
+            if (in_array($itemId, $set['pieces'], true)) {
+                return ['id' => $setId] + $set;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The hunter sets as the site shows them, lowest tier first, each piece marked with
+     * whether it is among the ids given.
+     *
+     * @param  array<int, string>  $owned  ids of the pieces a player has
+     * @return array<int, array{id: string, name: string, tier: int, owned: int, pieces: array<int, array{id: string, name: string, image: string, owned: bool}>}>
+     */
+    public static function sets(array $owned = []): array
+    {
+        $catalog = self::catalog();
+        $sets = [];
+
+        foreach (config('loot.sets') as $setId => $set) {
+            $pieces = array_map(
+                fn (string $itemId) => [
+                    'id' => $itemId,
+                    'name' => $catalog[$itemId]['name'],
+                    'image' => $catalog[$itemId]['image'],
+                    'owned' => in_array($itemId, $owned, true),
+                ],
+                $set['pieces']
+            );
+
+            $sets[] = [
+                'id' => $setId,
+                'name' => $set['name'],
+                'tier' => $set['tier'],
+                'owned' => count(array_filter($pieces, fn (array $piece) => $piece['owned'])),
+                'pieces' => $pieces,
+            ];
+        }
+
+        return $sets;
     }
 
     /**

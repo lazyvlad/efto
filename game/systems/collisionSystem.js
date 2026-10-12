@@ -104,10 +104,6 @@ export function checkCollisions(context) {
                 // Create collection particles at item location
                 createCollectionParticles(otherItem.x + otherItem.width/2, otherItem.y + otherItem.height/2, particles);
                 
-                // Handle tier set items
-                if (otherItem.itemData.type === "tier_set" && otherItem.itemData.collected === 1) {
-                    gameState.tierSetCollected++;
-                }
             }
             
             return false; // Remove all items (they were auto-collected)
@@ -198,44 +194,17 @@ export function checkCollisions(context) {
                 // Apply configurable stat bonuses (crit rating, dodge rating)
                 applyItemStatBonuses(item.itemData);
                 
-                // Play sounds and handle tier set collection
-                if (item.itemData.type === "tier_set") {
+                // A piece of a hunter set, or one of the hunter's two weapons: its own sound and
+                // a celebration. The piece counts towards its set from now on (see onItemCollected
+                // in game-modular.js, which also says how many of the set are owned).
+                const isWeapon = item.itemData.id === "ashjrethul" || item.itemData.id === "ashkandi2";
+                if (item.itemData.type === "set_piece" || isWeapon) {
                     playDragonstalkerSound();
                     
-                    // Debug logging for tier set collection
-                    console.log(`Tier set item collected: ${item.itemData.name} (${item.itemData.id})`);
-                    console.log(`Player celebration method exists:`, !!player.onTierSetCollected);
-                    
-                    // Only increment if this is the first time collecting this specific piece
-                    if (item.itemData.collected === 1) { // collected was incremented above, so 1 means first time
-                        gameState.tierSetCollected++;
-                    }
-                    
-                    // Check if this is an Ashkandi item for special celebration
-                    if (item.itemData.id === "ashjrethul" || item.itemData.id === "ashkandi2") {
-                        // Trigger special sando celebration for Ashkandi items
-                        if (player.onAshkandiCollected) {
-                            console.log(`Triggering sando celebration for: ${item.itemData.name}`);
-                            player.onAshkandiCollected();
-                        }
-                    } else {
-                        // Trigger regular player celebration for other tier set items
-                        if (player.onTierSetCollected) {
-                            console.log(`Triggering celebration for: ${item.itemData.name}`);
-                            player.onTierSetCollected();
-                        }
-                    }
-                    
-                    // Add notification for tier set collection
-                    // Use actual unique count for display
-                    const dragonstalkerItems = gameItems.filter(item => item.type === "tier_set");
-                    const uniquePiecesCollected = dragonstalkerItems.filter(item => item.collected > 0).length;
-                    addNotification(gameState, `🏆 ${item.itemData.name} (${uniquePiecesCollected}/10)`, 240, '#FFD700');
-                    
-                    // Check if Dragonstalker set is complete
-                    const setCompleted = checkDragonstalkerCompletion(gameState, gameItems);
-                    if (setCompleted) {
-                        playTotalSound(); // Play total sound for Dragonstalker completion
+                    if (isWeapon) {
+                        if (player.onAshkandiCollected) player.onAshkandiCollected();
+                    } else if (player.onTierSetCollected) {
+                        player.onTierSetCollected();
                     }
                 } else {
                     playItemSound(item.itemData);
