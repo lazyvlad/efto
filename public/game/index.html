@@ -50,18 +50,18 @@
     <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
-    <link rel="stylesheet" href="styles/base.css?v=2.17.0">
-    <link rel="stylesheet" href="styles/ui-components.css?v=2.17.0">
-    <link rel="stylesheet" href="styles/settings.css?v=2.17.0">
-    <link rel="stylesheet" href="styles/notifications.css?v=2.17.0">
-    <link rel="stylesheet" href="styles/game-panels.css?v=2.17.0">
-    <link rel="stylesheet" href="styles/spell-bar.css?v=2.17.0">
-    <link rel="stylesheet" href="styles/how-to-play.css?v=2.17.0">
-    <link rel="stylesheet" href="styles/mobile.css?v=2.17.0">
-    <link rel="stylesheet" href="styles/wow-theme.css?v=2.17.0">
-    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.17.0"> -->
+    <link rel="stylesheet" href="styles/base.css?v=2.18.0">
+    <link rel="stylesheet" href="styles/ui-components.css?v=2.18.0">
+    <link rel="stylesheet" href="styles/settings.css?v=2.18.0">
+    <link rel="stylesheet" href="styles/notifications.css?v=2.18.0">
+    <link rel="stylesheet" href="styles/game-panels.css?v=2.18.0">
+    <link rel="stylesheet" href="styles/spell-bar.css?v=2.18.0">
+    <link rel="stylesheet" href="styles/how-to-play.css?v=2.18.0">
+    <link rel="stylesheet" href="styles/mobile.css?v=2.18.0">
+    <link rel="stylesheet" href="styles/wow-theme.css?v=2.18.0">
+    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.18.0"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
-  <!-- Built: 2026-10-12T19:47:21.456Z | Version: 2.17.0 | Mode: Production -->
+  <!-- Built: 2026-10-12T19:57:28.104Z | Version: 2.18.0 | Mode: Production -->
 </head>
 <body>
     <!-- The background: two layers that fade from one picture to the next (backgroundSystem.js) -->
@@ -156,7 +156,9 @@
             <!-- Name Entry Content (shown when no game is running) -->
             <div id="nameEntryContent" style="display: none;">
                 <h2>I N P U T</h2>
-                <p style="margin-bottom: 20px; color: #ccc;">Enter your name to start playing</p>
+                <!-- For guests under the site: the way in to an account, ahead of the name box (ui/accountBar.js) -->
+                <div id="loginOffer" class="login-offer" hidden></div>
+                <p id="nameEntryPrompt" style="margin-bottom: 14px; color: #ccc;">Enter your name to start playing</p>
                 <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" />
                 <div id="accountBar" class="account-bar" hidden></div>
                 <!-- The side the player is on decides which backgrounds the game moves through -->
@@ -198,8 +200,8 @@
                     <button id="settingsBtn" class="pause-btn settings-btn">Settings
                     </button>
                     <button id="itemBonusesMenuBtn" class="pause-btn bonuses-btn desktop-only">
-                        <span class="menu-button-label-full">Item Bonuses</span>
-                        <span class="menu-button-label-short">Bonuses</span>
+                        <span class="menu-button-label-full">Loot &amp; Bonuses</span>
+                        <span class="menu-button-label-short">Loot</span>
                     </button>
                 </div>
             </div>
@@ -214,8 +216,8 @@
                     <button id="gameInfoPauseBtn" class="pause-btn info-btn">Game Info
                     </button>
                     <button id="itemBonusesPauseBtn" class="pause-btn bonuses-btn">
-                        <span class="menu-button-label-full">Item Bonuses</span>
-                        <span class="menu-button-label-short">Bonuses</span>
+                        <span class="menu-button-label-full">Loot &amp; Bonuses</span>
+                        <span class="menu-button-label-short">Loot</span>
                     </button>
                     <button id="settingsPauseBtn" class="pause-btn settings-btn">Settings
                     </button>
@@ -506,8 +508,8 @@
         <!-- Item Bonuses Screen (available during paused gameplay) -->
         <div id="itemBonusesScreen" class="screen" style="display: none;">
             <div class="screen-content bonuses-screen-content">
-                <h2>Item Stat Bonuses</h2>
-                <p class="bonuses-subtitle">Active bonuses from collected items</p>
+                <h2>Loot and Bonuses</h2>
+                <p class="bonuses-subtitle">What you have collected, and the bonuses it gives</p>
 
                 <div class="bonus-summary">
                     <div class="summary-stats">
@@ -523,16 +525,21 @@
                 </div>
 
                 <div class="bonuses-tabs">
-                    <button id="permanentBonusesTab" class="bonus-tab active">Permanent Bonuses
+                    <button id="thisGameTab" class="bonus-tab active">This Game
+                    </button>
+                    <button id="permanentBonusesTab" class="bonus-tab">Permanent Bonuses
                     </button>
                     <button id="temporaryBonusesTab" class="bonus-tab">Temporary Bonuses
                     </button>
-                    <button id="allItemsTab" class="bonus-tab">All Items
+                    <button id="allTimeTab" class="bonus-tab">All Time
                     </button>
                 </div>
 
                 <div class="bonuses-list-container">
-                    <div id="permanentBonusesList" class="bonuses-list active">
+                    <!-- Filled by ui/lootScreen.js -->
+                    <div id="thisGameList" class="bonuses-list active"></div>
+
+                    <div id="permanentBonusesList" class="bonuses-list">
                         <div class="bonus-item no-bonuses" id="noPermanentBonuses">
                             <div class="bonus-info">
                                 <div class="bonus-item-name">No permanent bonuses yet</div>
@@ -550,14 +557,8 @@
                         </div>
                     </div>
 
-                    <div id="allItemsList" class="bonuses-list">
-                        <div class="bonus-item no-bonuses" id="noItems">
-                            <div class="bonus-info">
-                                <div class="bonus-item-name">Loading items...</div>
-                                <div class="bonus-description">Item bonus data will appear here</div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Filled by ui/lootScreen.js -->
+                    <div id="allTimeList" class="bonuses-list"></div>
                 </div>
             </div>
         </div>
@@ -665,7 +666,7 @@
     </div>
 
     <!-- Game Script -->
-    <script type="module" src="game-modular.ynmbwnhf.js?v=2.17.0"></script>
+    <script type="module" src="game-modular.bnq0xn6f.js?v=2.18.0"></script>
     
 
 

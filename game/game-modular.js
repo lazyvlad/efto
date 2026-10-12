@@ -20,6 +20,7 @@ import * as lootSystem from './systems/lootSystem.js';
 import { totalXpAtLevel } from './utils/progression.js';
 import { coinsForItem, coinsForBoss, formatCoins } from './utils/coins.js';
 import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost } from './ui/startZone.js';
+import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
 import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse } from './systems/bossSystem.js';
 import { BossProjectile } from './classes/BossProjectile.js';
 import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground } from './systems/backgroundSystem.js';
@@ -174,6 +175,7 @@ let gameState = {
     // Arrow ammunition system
     arrowCount: 20, // Current number of arrows available (start with 20)
     coins: 0, // Coins earned in this game, in copper (utils/coins.js)
+    bossLoot: [], // What the bosses defeated in this game dropped: { boss, item: { id, name, rarity }, kept }
     startZone: 1, // The zone the game starts in: above 1 when the player paid to skip ahead (ui/startZone.js)
     
     // Bullet Time system
@@ -822,6 +824,7 @@ function startGame() {
     // Reset arrow ammunition - start with 20 arrows
     gameState.arrowCount = 20;
     gameState.coins = 0;
+    gameState.bossLoot = [];
     
     // Reset bullet time system
     gameState.bulletTimeActive = false;
@@ -1044,6 +1047,7 @@ function restartGame() {
     // Reset arrow ammunition - start with 20 arrows
     gameState.arrowCount = 20;
     gameState.coins = 0;
+    gameState.bossLoot = [];
     
     // Reset bullet time system
     gameState.bulletTimeActive = false;
@@ -2091,9 +2095,13 @@ function updateItemBonusesWindow() {
     document.getElementById('totalDodgeRating').textContent = `${Math.round(totalDodge * 100)}%`;
     
     // Update tabs content
+    renderThisGame(document.getElementById('thisGameList'), { items: gameItems, bossLoot: gameState.bossLoot, coins: gameState.coins });
     updatePermanentBonusesTab();
     updateTemporaryBonusesTab();
-    updateAllItemsTab();
+    // The account's collection is only asked for when its tab is looked at
+    if (document.getElementById('allTimeList').classList.contains('active')) {
+        renderAllTime(document.getElementById('allTimeList'));
+    }
 }
 
 // Update permanent bonuses tab
@@ -2157,46 +2165,6 @@ function updateTemporaryBonusesTab() {
     // Add temporary dodge effects
     temporaryStatEffects.dodgeRatingEffects.forEach(effect => {
         const bonusElement = createTemporaryEffectElement(effect, 'dodge');
-        container.appendChild(bonusElement);
-    });
-}
-
-// Update all items tab
-function updateAllItemsTab() {
-    const container = document.getElementById('allItemsList');
-    const noItemsMsg = document.getElementById('noItems');
-    
-    // Get all items with stat bonuses (regardless of collection status)
-    const allBonusItems = gameItems.filter(item => 
-        item.crit_rating_bonus > 0 || item.dodge_rating_bonus > 0
-    );
-    
-    if (allBonusItems.length === 0) {
-        noItemsMsg.querySelector('.bonus-item-name').textContent = 'No items with stat bonuses found';
-        noItemsMsg.querySelector('.bonus-description').textContent = 'No items are configured with crit or dodge bonuses';
-        noItemsMsg.style.display = 'block';
-        container.querySelectorAll('.bonus-item:not(.no-bonuses)').forEach(item => item.remove());
-        return;
-    }
-    
-    noItemsMsg.style.display = 'none';
-    
-    // Clear existing bonus items
-    container.querySelectorAll('.bonus-item:not(.no-bonuses)').forEach(item => item.remove());
-    
-    // Sort items by type priority
-    const sortedItems = allBonusItems.sort((a, b) => {
-        const priorityOrder = { zee_zgnan: 5, legendary: 4, special: 3, epic: 2, tier_set: 1, regular: 0 };
-        const aPriority = priorityOrder[a.type] || 0;
-        const bPriority = priorityOrder[b.type] || 0;
-        
-        if (aPriority !== bPriority) return bPriority - aPriority;
-        return a.name.localeCompare(b.name);
-    });
-    
-    // Add all bonus items
-    sortedItems.forEach(item => {
-        const bonusElement = createBonusItemElement(item, 'all');
         container.appendChild(bonusElement);
     });
 }
@@ -2274,7 +2242,8 @@ function setupItemBonusesEventHandlers() {
     // Tab switching
     const permanentTab = document.getElementById('permanentBonusesTab');
     const temporaryTab = document.getElementById('temporaryBonusesTab');
-    const allItemsTab = document.getElementById('allItemsTab');
+    const thisGameTab = document.getElementById('thisGameTab');
+    const allTimeTab = document.getElementById('allTimeTab');
     
     if (permanentTab && !permanentTab.hasEventListener) {
         permanentTab.addEventListener('click', () => switchBonusTab('permanent'));
@@ -2286,9 +2255,14 @@ function setupItemBonusesEventHandlers() {
         temporaryTab.hasEventListener = true;
     }
     
-    if (allItemsTab && !allItemsTab.hasEventListener) {
-        allItemsTab.addEventListener('click', () => switchBonusTab('all'));
-        allItemsTab.hasEventListener = true;
+    if (thisGameTab && !thisGameTab.hasEventListener) {
+        thisGameTab.addEventListener('click', () => switchBonusTab('thisGame'));
+        thisGameTab.hasEventListener = true;
+    }
+    
+    if (allTimeTab && !allTimeTab.hasEventListener) {
+        allTimeTab.addEventListener('click', () => switchBonusTab('allTime'));
+        allTimeTab.hasEventListener = true;
     }
 }
 
@@ -2307,9 +2281,13 @@ function switchBonusTab(tabName) {
     } else if (tabName === 'temporary') {
         tabButton = document.getElementById('temporaryBonusesTab');
         tabList = document.getElementById('temporaryBonusesList');
-    } else if (tabName === 'all') {
-        tabButton = document.getElementById('allItemsTab');
-        tabList = document.getElementById('allItemsList');
+    } else if (tabName === 'thisGame') {
+        tabButton = document.getElementById('thisGameTab');
+        tabList = document.getElementById('thisGameList');
+    } else if (tabName === 'allTime') {
+        tabButton = document.getElementById('allTimeTab');
+        tabList = document.getElementById('allTimeList');
+        renderAllTime(tabList);
     }
     
     if (tabButton) tabButton.classList.add('active');
@@ -2967,6 +2945,25 @@ function updateItemsList(sortedItems) {
     const visibleItems = filteredItems.slice(0, maxVisibleItems);
     const hiddenItems = filteredItems.slice(maxVisibleItems);
     
+    // Boss loot first: there are few of them and they are the rarest things in a game
+    gameState.bossLoot.forEach(drop => {
+        const entry = document.createElement('div');
+        entry.className = `item-entry boss-loot boss-loot-${drop.item.rarity}`;
+        
+        const icon = document.createElement('span');
+        icon.className = 'item-icon';
+        icon.textContent = '☠';
+        const name = document.createElement('span');
+        name.className = 'item-name';
+        name.textContent = drop.item.name;
+        const from = document.createElement('span');
+        from.className = 'item-points';
+        from.textContent = drop.boss.name;
+        
+        entry.append(icon, name, from);
+        itemsList.appendChild(entry);
+    });
+    
     // Create item entries
     visibleItems.forEach(item => {
         const itemEntry = document.createElement('div');
@@ -3230,7 +3227,12 @@ function onBossDefeated(boss) {
     lootSystem.reportBoss(boss.id).then(drop => {
         if (!drop) return;
         setUnlockedZone(boss.faction, drop.unlockedZone);
-        if (!drop.item || !gameState.gameRunning) return;
+        if (!drop.item) return;
+        
+        // Listed with the game's loot, in the panel and on the loot screen
+        gameState.bossLoot.push({ boss, item: drop.item, kept: drop.kept });
+        itemsListCache.needsUpdate = true;
+        if (!gameState.gameRunning) return;
         
         const color = BOSS_LOOT_COLORS[drop.item.rarity] || '#FFD700';
         // Kept short: the message bar cuts long lines off

@@ -21,7 +21,7 @@ const SCREEN_CONFIG = {
     },
     itemBonuses: {
         containerId: 'itemBonusesScreen',
-        title: 'Item Bonuses',
+        title: 'Loot and Bonuses',
         options: ['settings', 'howToPlay', 'highScores']
     }
 };
@@ -31,7 +31,7 @@ const SCREEN_LABELS = {
     howToPlay: 'How to Play',
     highScores: 'High Scores',
     gameOver: 'Game Over',
-    itemBonuses: 'Item Bonuses',
+    itemBonuses: 'Loot & Bonuses',
     menu: 'Main Menu',
     pause: 'Pause Menu',
     game: 'Game'
@@ -42,7 +42,7 @@ const SCREEN_SHORT_LABELS = {
     howToPlay: 'Guide',
     highScores: 'Scores',
     gameOver: 'Over',
-    itemBonuses: 'Bonuses'
+    itemBonuses: 'Loot'
 };
 
 let navigationCallbacks = {

@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.18.0 - 2026-10-12
+
+### What's new
+
+- The "Item Bonuses" page of the pause menu is now "Loot and Bonuses", and opens on what
+  this game has collected so far:
+  - **This Game**: the coins earned, what the bosses dropped, and every item caught with
+    how many of each. Items that give a bonus say which.
+  - **Permanent Bonuses** and **Temporary Bonuses**: as before.
+  - **All Time**: for logged-in players, everything the account has collected over all its
+    games: the purse, all 60 pieces of boss loot and the rare items, with how often each
+    was found. What is still missing is greyed out. This replaces the "All Items" tab.
+- Boss loot is also listed at the top of the panel's list of what the game has collected.
+- Guests are offered an account first: the main menu has "Log in" and "Register" buttons
+  above the name box, which is now for playing as a guest. This replaces the small links
+  under the name box.
+
+### For developers
+- The page is drawn by `game/ui/lootScreen.js`. The account's collection comes from
+  `GET /api/collection` (logged-in players only), the same data as "My Games".
+
 ## 2.17.0 - 2026-10-12
 
 ### What's new

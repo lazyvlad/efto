@@ -1,7 +1,7 @@
 // Account awareness for the main menu.
 //
 // When the game is served by the site, the page sets window.INPUT_BOOT with who is playing:
-//   { user: { name, avatar, coins } | null, skip: { costPerZone, unlocked } | null, guestName, csrfToken, embedded, urls: { scores, login, register, logout, profile } }
+//   { user: { name, avatar, coins } | null, skip: { costPerZone, unlocked } | null, guestName, csrfToken, embedded, urls: { scores, games, collection, history, login, register, logout, profile } }
 // "embedded" means the site shows the game under its own header, which has the account links.
 // Opened on its own (no site around it) there is no INPUT_BOOT and the game behaves as before.
 
@@ -51,13 +51,50 @@ function link(text, href) {
     return anchor;
 }
 
+// A guest is offered an account before the name box: logging in is what keeps coins, boss
+// loot and scores. Under the site's own header the game sits in a frame, so the links open
+// in the whole window.
+function renderLoginOffer() {
+    const offer = document.getElementById('loginOffer');
+    const prompt = document.getElementById('nameEntryPrompt');
+    if (!offer) return;
+
+    const guest = Boolean(siteBoot) && !siteBoot.user;
+    offer.textContent = '';
+    offer.hidden = !guest;
+
+    if (prompt) {
+        prompt.textContent = guest
+            ? 'Log in to keep your coins, boss loot and scores, or play as a guest:'
+            : (getAccountName() ? 'Playing under your account name' : 'Enter your name to start playing');
+    }
+    if (!guest) return;
+
+    const buttons = document.createElement('div');
+    buttons.className = 'login-offer-buttons';
+    for (const [label, href, className] of [
+        ['Log in', siteBoot.urls.login, 'login-offer-btn login-offer-primary'],
+        ['Register', siteBoot.urls.register, 'login-offer-btn']
+    ]) {
+        const anchor = link(label, href);
+        anchor.className = className;
+        if (siteBoot.embedded) anchor.target = '_top';
+        buttons.append(anchor);
+    }
+
+    offer.append(buttons);
+}
+
 // Fill the line under the name box: who you are playing as, and the way in or out
 export function renderAccountBar() {
+    renderLoginOffer();
+
     const bar = document.getElementById('accountBar');
     if (!bar) return;
 
     bar.textContent = '';
-    if (!siteBoot || siteBoot.embedded) {
+    // Guests have the offer above; under the site's header the account links are up there
+    if (!siteBoot || siteBoot.embedded || !siteBoot.user) {
         bar.hidden = true;
         return;
     }
@@ -85,8 +122,5 @@ export function renderAccountBar() {
         form.append(token, button);
 
         bar.append(label, link('Profile', siteBoot.urls.profile), form);
-    } else {
-        label.textContent = 'Playing as a guest';
-        bar.append(label, link('Log in', siteBoot.urls.login), link('Register', siteBoot.urls.register));
     }
 }

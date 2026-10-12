@@ -55,6 +55,8 @@ class GameController extends Controller
             'urls' => [
                 'scores' => route('scores.index'),
                 'games' => route('games.open'),
+                'collection' => route('collection'),
+                'history' => route('games.history'),
                 'login' => route('login'),
                 'register' => route('register'),
                 'logout' => route('logout'),

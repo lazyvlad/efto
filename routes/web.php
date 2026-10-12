@@ -36,6 +36,8 @@ Route::post('/api/games/{game}/finish', [GameRecordController::class, 'finish'])
 
 Route::middleware('auth')->group(function () {
     Route::get('/my-games', [GameHistoryController::class, 'index'])->name('games.history');
+    // The same collection as data, for the game's loot screen
+    Route::get('/api/collection', [GameHistoryController::class, 'collection'])->name('collection');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

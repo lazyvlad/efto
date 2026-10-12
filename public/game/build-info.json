@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-12T19:47:21.456Z",
-  "buildTimestamp": 1791834441462,
+  "buildTime": "2026-10-12T19:57:28.104Z",
+  "buildTimestamp": 1791835048111,
   "mode": "production",
-  "gameVersion": "2.17.0",
-  "cacheHash": "ynmbwnhf",
+  "gameVersion": "2.18.0",
+  "cacheHash": "bnq0xn6f",
   "fileMap": {
-    "game-modular.js": "game-modular.ynmbwnhf.js"
+    "game-modular.js": "game-modular.bnq0xn6f.js"
   },
-  "buildSystemVersion": "2.17.0"
+  "buildSystemVersion": "2.18.0"
 }

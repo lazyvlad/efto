@@ -7,7 +7,10 @@ use App\Models\GameDrop;
 use App\Support\BossLoot;
 use App\Support\Coins;
 use App\Support\LootTable;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class GameHistoryController extends Controller
@@ -28,19 +31,8 @@ class GameHistoryController extends Controller
             ->latest('id')
             ->paginate(20);
 
-        // Only games that count add to the collection
-        $found = GameDrop::query()
-            ->whereNotNull('claimed_at')
-            ->whereHas('game', fn ($game) => $game->legal()->where('user_id', $user->id))
-            ->selectRaw('item_id, count(*) as times')
-            ->groupBy('item_id')
-            ->pluck('times', 'item_id');
-
-        // Boss loot is the player's whichever way the game ended
-        $bossLoot = $user->bossDrops()
-            ->selectRaw('item_id, count(*) as times')
-            ->groupBy('item_id')
-            ->pluck('times', 'item_id');
+        $found = $this->rareItemsFound($user);
+        $bossLoot = $this->bossLootFound($user);
 
         $legal = $user->games()->legal();
 
@@ -57,5 +49,66 @@ class GameHistoryController extends Controller
                 'seconds' => (int) (clone $legal)->sum('game_time'),
             ],
         ]);
+    }
+
+    /**
+     * Everything the logged-in player has collected over all their games, for the game's own
+     * loot screen: their coins, the rare items and the boss loot, with how often each was found.
+     */
+    public function collection(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $found = $this->rareItemsFound($user);
+        $bossLoot = $this->bossLootFound($user);
+
+        $items = array_map(
+            fn (array $item) => $item + ['times' => (int) ($found[$item['id']] ?? 0)],
+            array_values(LootTable::catalog())
+        );
+
+        $bosses = [];
+        foreach (BossLoot::catalog() as $side => $sideBosses) {
+            foreach ($sideBosses as $boss) {
+                $boss['loot'] = array_map(
+                    fn (array $item) => $item + ['times' => (int) ($bossLoot[$item['id']] ?? 0)],
+                    $boss['loot']
+                );
+                $bosses[$side][] = $boss;
+            }
+        }
+
+        return response()->json([
+            'coins' => (int) $user->coins,
+            'items' => $items,
+            'bosses' => $bosses,
+        ]);
+    }
+
+    /**
+     * How often the player found each rare item. Only games that count add to the collection.
+     *
+     * @return Collection<string, int>
+     */
+    private function rareItemsFound(User $user): Collection
+    {
+        return GameDrop::query()
+            ->whereNotNull('claimed_at')
+            ->whereHas('game', fn ($game) => $game->legal()->where('user_id', $user->id))
+            ->selectRaw('item_id, count(*) as times')
+            ->groupBy('item_id')
+            ->pluck('times', 'item_id');
+    }
+
+    /**
+     * How often the player found each piece of boss loot. It is theirs whichever way the game ended.
+     *
+     * @return Collection<string, int>
+     */
+    private function bossLootFound(User $user): Collection
+    {
+        return $user->bossDrops()
+            ->selectRaw('item_id, count(*) as times')
+            ->groupBy('item_id')
+            ->pluck('times', 'item_id');
     }
 }

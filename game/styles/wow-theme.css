@@ -282,6 +282,45 @@
 }
 
 /* Who you are playing as, with the links to log in or out */
+/* The way in to an account, offered to guests ahead of the name box */
+#pauseMenu .login-offer {
+    margin: 0 0 10px;
+}
+
+#pauseMenu .login-offer[hidden] {
+    display: none;
+}
+
+#pauseMenu .login-offer-buttons {
+    display: flex;
+    gap: 12px;
+}
+
+#pauseMenu .login-offer-btn {
+    flex: 1;
+    padding: 9px 10px;
+    color: #f5e6b8;
+    font-family: var(--wow-heading, inherit);
+    font-size: 16px;
+    text-align: center;
+    text-decoration: none;
+    background: linear-gradient(180deg, #2a2219, #100d0a);
+    border: 1px solid #8f7a45;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000, inset 0 1px 0 rgba(255, 230, 160, 0.12);
+}
+
+#pauseMenu .login-offer-btn.login-offer-primary {
+    color: #fff5c2;
+    background: linear-gradient(180deg, #1f5fa8, #123a6b);
+    border-color: #c9a94f;
+}
+
+#pauseMenu .login-offer-btn:hover {
+    border-color: #f1d98a;
+    filter: brightness(1.15);
+}
+
 #pauseMenu .account-bar {
     display: flex;
     flex-wrap: wrap;
@@ -1626,3 +1665,96 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
         color: #fff !important;
     }
 }
+
+/* ----- Loot screen (ui/lootScreen.js) ----- */
+
+#pauseMenu .loot-summary {
+    margin: 0 0 10px;
+    color: #ffd100;
+    font-size: 15px;
+    text-align: center;
+}
+
+#pauseMenu#pauseMenu .loot-section-title {
+    margin: 16px 0 8px;
+    font-size: 16px;
+    text-align: left;
+}
+
+#pauseMenu .loot-section-title:first-of-type {
+    margin-top: 4px;
+}
+
+#pauseMenu .loot-section-note {
+    margin-left: 10px;
+    color: #a89a78;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+#pauseMenu .loot-side {
+    margin: 10px 0 6px;
+    color: #a89a78;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+#pauseMenu .bonus-item.loot-row {
+    gap: 10px;
+    padding: 6px 10px;
+    margin-bottom: 5px;
+}
+
+#pauseMenu .loot-icon {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    object-fit: contain;
+}
+
+#pauseMenu .loot-row .bonus-item-name {
+    margin-bottom: 1px;
+    font-size: 14px;
+}
+
+#pauseMenu .loot-row .bonus-description {
+    font-size: 12px;
+}
+
+#pauseMenu .loot-count {
+    min-width: 0;
+    color: #ffd100;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+#pauseMenu .loot-missing {
+    opacity: 0.45;
+}
+
+#pauseMenu .loot-missing .bonus-item-name {
+    color: #b9b0a0;
+}
+
+#pauseMenu .loot-found {
+    color: #ffd100;
+}
+
+#pauseMenu .loot-missing .loot-icon {
+    filter: grayscale(1);
+}
+
+/* Boss loot by rarity, items by theirs */
+#pauseMenu .loot-uncommon, #pauseMenu .loot-type-green { color: #1eff00; }
+#pauseMenu .loot-rare { color: #4d9bff; }
+#pauseMenu .loot-epic, #pauseMenu .loot-type-epic, #pauseMenu .loot-type-tier_set { color: #c77dff; }
+#pauseMenu .loot-type-special { color: #4d9bff; }
+#pauseMenu .loot-type-legendary, #pauseMenu .loot-type-zee_zgnan { color: #ff8000; }
+#pauseMenu .loot-type-regular { color: #fff; }
+
+/* Boss loot in the panel's list of what the game has collected */
+.item-entry.boss-loot-uncommon .item-name { color: #1eff00; }
+.item-entry.boss-loot-rare .item-name { color: #4d9bff; }
+.item-entry.boss-loot-epic .item-name { color: #c77dff; }

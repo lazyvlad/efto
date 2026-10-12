@@ -269,6 +269,30 @@ class BossLootTest extends TestCase
             ->assertSee('text-blue-400');
     }
 
+    public function test_the_game_can_ask_for_a_player_s_whole_collection(): void
+    {
+        $this->getJson(route('collection'))->assertUnauthorized();
+
+        $user = User::factory()->create();
+        $user->forceFill(['coins' => 1205])->save();
+        $this->beat($user, 'hogger', 'hogger');
+        $game = Game::create(['token' => 'abc', 'user_id' => $user->id, 'name' => 'A', 'status' => Game::FINISHED, 'started_at' => now()]);
+        $game->drops()->create(['item_id' => 'maladath', 'chunk' => 0, 'at_seconds' => 3, 'claimed_at' => now()]);
+
+        $response = $this->actingAs($user)->getJson(route('collection'))
+            ->assertOk()
+            ->assertJsonPath('coins', 1205)
+            ->assertJsonPath('bosses.alliance.1.name', 'Hogger')
+            ->assertJsonPath('bosses.alliance.1.loot.0', ['id' => 'hoggers-chewed-collar', 'name' => "Hogger's Chewed Collar", 'rarity' => 'uncommon', 'times' => 2])
+            ->assertJsonPath('bosses.alliance.1.loot.1.times', 0)
+            ->assertJsonCount(10, 'bosses.horde');
+
+        $items = collect($response->json('items'))->keyBy('id');
+        $this->assertSame(1, $items['maladath']['times']);
+        $this->assertSame(0, $items['zee']['times']);
+        $this->assertStringContainsString('/game/assets/items/', $items['maladath']['image']);
+    }
+
     public function test_the_game_is_told_the_player_s_balance(): void
     {
         $user = User::factory()->create();
