@@ -228,6 +228,13 @@ export const gameConfig = {
     },
     
     // === LEVEL PROGRESSION ===
+    // === BACKGROUNDS ===
+    // The pictures themselves are listed per side in data/backgrounds.js
+    backgrounds: {
+        levelsPerBackground: 2,     // Levels played on one background before moving to the next
+        whenFinished: 'loop',       // After the side's last background: 'loop' starts again, 'hold' stays on it
+    },
+    
     levels: {
         // === TESTING CONFIGURATION ===
         startingLevel: 1,                  // Starting level for testing (1 = normal 1.6x, 10 = ~4.3x speed, 15 = ~6.3x speed)

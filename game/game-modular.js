@@ -17,6 +17,7 @@ import { initializeVisibilitySystem, getVisibilitySystemStatus, updateVisibility
 import { initializeSettings, loadSettings, saveSettings, resetSettings, getSettings, updateSetting, areSoundEffectsEnabled, isBackgroundMusicEnabled, getVolume, getVolumeDecimal, getMasterVolume, getMusicVolume, getEffectsVolume, getMasterVolumeDecimal, getMusicVolumeDecimal, getEffectsVolumeDecimal, getPlayerPanelStyle, getDragonstalkerPanelStyle, getPanelOpacity, refreshPanelStyles } from './systems/settingsSystem.js';
 import { loadHighScores, addHighScore, cacheHighScores, isHighScore, displayHighScores, displayHighScoresSync } from './systems/highScoreSystem.js';
 import * as lootSystem from './systems/lootSystem.js';
+import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground } from './systems/backgroundSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState } from './systems/inputSystem.js';
 // drawSettings removed - now using HTML+CSS guide
 
@@ -538,6 +539,12 @@ function update(deltaTimeMultiplier, universalMultiplier) {
         
         console.log(`Level up! Now level ${gameState.currentLevel + 1} (Speed: ${gameState.levelSpeedMultiplier.toFixed(2)}x) at score ${gameState.score}`);
         addNotification(gameState, `Level ${gameState.currentLevel + 1}!`, 2000, '#FFD700');
+        
+        // Move on to the next background when this level is played somewhere new
+        const arrivedAt = showBackgroundForLevel(gameState.currentLevel);
+        if (arrivedAt) {
+            addNotification(gameState, `Entering ${arrivedAt.name}`, 240, '#FFD700');
+        }
     }
     
     // === BULLET TIME SYSTEM ===
@@ -823,8 +830,10 @@ function startGame() {
     // Play time starts from zero; the server opens a record of the game and decides its rare loot
     gameState.elapsedTime = 0;
     gameState.nextPowerUpTime = undefined;
+    showBackgroundForLevel(gameState.currentLevel, true);
     lootSystem.beginGame({
         playerName: gameState.playerName,
+        faction: gameState.faction,
         getSummary: getGameSummary,
         onOffline: () => addNotification(gameState, `⚠️ Connection lost - this game is offline and will not count`, 360, '#FF6B6B')
     });
@@ -1467,6 +1476,12 @@ function showNameEntry() {
     }
     renderAccountBar();
     
+    // The side chosen last time is still chosen; the menu shows where that side starts
+    document.querySelectorAll('#factionPicker input[name="faction"]').forEach(option => {
+        option.checked = option.value === getFaction();
+    });
+    showStartingBackground();
+    
     // Update canvas overlay
     updateCanvasOverlay();
 }
@@ -1627,7 +1642,16 @@ function startGameFromUI() {
         return;
     }
     
+    // The side decides which backgrounds the game moves through
+    if (!getFaction()) {
+        const picker = document.getElementById('factionPicker');
+        picker.classList.add('needs-choice');
+        picker.querySelector('input').focus();
+        return;
+    }
+    
     gameState.playerName = playerName;
+    gameState.faction = getFaction();
     
     // Remember a guest's chosen name for future sessions (accounts carry their own)
     if (!getAccountName()) {
@@ -1659,6 +1683,15 @@ function restartGameFromUI() {
 // Set up UI event handlers
 function setupUIEventHandlers() {
     console.log('Setting up UI event handlers...');
+    
+    // Choosing a side remembers it and shows where that side starts
+    document.querySelectorAll('#factionPicker input[name="faction"]').forEach(option => {
+        option.addEventListener('change', () => {
+            setFaction(option.value);
+            document.getElementById('factionPicker').classList.remove('needs-choice');
+            showStartingBackground();
+        });
+    });
     
     // Name input field
     const nameInput = document.getElementById('playerNameInput');

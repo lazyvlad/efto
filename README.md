@@ -38,8 +38,19 @@ public/build/                          The built site CSS/JS (committed)
 - A game that cannot reach the server in time goes offline: rare items drop at random and
   the game is recorded as offline. Only games played to the end online put a score on the
   leaderboard.
+- Logged-in players see their games and the rare items they have found at `/my-games`.
+  Only games played to the end online count towards its totals and the collection.
 - `config/loot.php` repeats the item list and weights from the game's own data;
   `tests/Feature/LootConfigTest.php` fails if the two drift apart.
+
+### Sides and backgrounds
+
+The player picks Alliance or Horde on the main menu. Each side has its own list of
+backgrounds in `game/data/backgrounds.js`, shown in the order listed. To add one, put the
+picture (landscape; the current ones are 1672x941 WebP) in `game/assets/backgrounds/alliance/` or
+`.../horde/` and add a line for it to that side's list. `backgrounds` in
+`game/config/gameConfig.js` sets how many levels are played on each one and what happens
+after the last. The side is stored with each game in `games.faction`.
 
 ## Setting up
 

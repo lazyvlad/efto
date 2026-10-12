@@ -1,5 +1,40 @@
 # Changelog
 
+## 2.7.0 - 2026-10-12
+
+### What's new
+
+**Alliance or Horde**
+- The main menu asks which side you play on, with a plaque for each. The choice is
+  remembered, and a game cannot start without one.
+- The chosen side's starting zone is on screen straight away, on the menu and when a game
+  starts.
+- On screens wider than a phone the buttons under Start Game sit two to a row, so the menu
+  still fits without scrolling.
+- Each side has its own series of ten landmark backgrounds that the game moves through as the
+  levels go up, fading from one to the next: Northshire Abbey to Aerie Peak for the Alliance,
+  the Valley of Trials to Gadgetzan for the Horde.
+- The side played is recorded with each game.
+
+### For developers
+- Backgrounds are listed per side in `game/data/backgrounds.js`, with the pictures in
+  `game/assets/backgrounds/<side>/`. When the game moves on is set under `backgrounds` in
+  `game/config/gameConfig.js` (for now: every 2 levels, starting again after the last).
+- New column `games.faction`: run `php artisan migrate`.
+- The game's scripts and styles are now sent with `Cache-Control: no-cache` (`public/.htaccess`),
+  so a browser never runs an old copy of one file next to new copies of the others after an update.
+
+## 2.6.0 - 2026-10-12
+
+### What's new
+
+**My Games**
+- Logged-in players have a "My Games" page in the site menu: every game they have played,
+  newest first, with the score, level, time and the rare items picked up in it.
+- A collection shows which of the 21 rare items the player has found, and how many times.
+- Games that were left early or went offline are listed and marked, but do not add to the
+  totals or the collection.
+
 ## 2.5.0 - 2026-10-12
 
 ### What's new

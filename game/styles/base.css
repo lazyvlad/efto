@@ -10,6 +10,27 @@ body, html {
     font-family: Arial, sans-serif;
 }
 
+/* The background behind the canvas: two layers that fade from one picture to the next.
+   With neither showing, the page's own background above is seen. */
+.background-layer {
+    position: fixed;
+    inset: 0;
+    background: center center/cover no-repeat;
+    opacity: 0;
+    transition: opacity 1.5s ease;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.background-layer.visible {
+    opacity: 1;
+}
+
+/* Swapped in place, not faded: on the menu and when a game starts */
+.background-layer.instant {
+    transition: none;
+}
+
 /* Game canvas styling */
 #gameCanvas {
     display: block;

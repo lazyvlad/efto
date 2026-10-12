@@ -56,6 +56,32 @@ return [
         'zee_zgnan' => ['zee'],
     ],
 
+    // What the site shows for the rare items (the game has its own copy of the names and
+    // pictures). Images are paths inside the built game, public/game.
+    'catalog' => [
+        'zee' => ['name' => 'Zee Zgnan Tigar', 'image' => 'assets/items/zee.png'],
+        'ThunderFury' => ['name' => 'Thunder Fury', 'image' => 'assets/items/tunder.png'],
+        'ashjrethul' => ['name' => "Ashjre'thul, Crossbow of Smiting", 'image' => 'assets/items/4.png'],
+        'ashkandi2' => ['name' => 'Ashkandi, Greatsword of the Brotherhood', 'image' => 'assets/items/ashkandi.png'],
+        'ds_helm' => ['name' => "Dragonstalker's Helm", 'image' => 'assets/items/dshelm.png'],
+        'ds_shoulders' => ['name' => "Dragonstalker's Spaulders", 'image' => 'assets/items/dsshoulders.png'],
+        'ds_chest' => ['name' => "Dragonstalker's Breastplate", 'image' => 'assets/items/dschest.png'],
+        'ds_bracers' => ['name' => "Dragonstalker's Bracers", 'image' => 'assets/items/dsbracers.png'],
+        'ds_gloves' => ['name' => "Dragonstalker's Gauntlets", 'image' => 'assets/items/dshands.png'],
+        'ds_belt' => ['name' => "Dragonstalker's Belt", 'image' => 'assets/items/dsbelt.png'],
+        'ds_legs' => ['name' => "Dragonstalker's Legguards", 'image' => 'assets/items/dslegs.png'],
+        'ds_boots' => ['name' => "Dragonstalker's Greaves", 'image' => 'assets/items/dsboots.png'],
+        'crulshorukh' => ['name' => 'Crulshorukh', 'image' => 'assets/items/6.png'],
+        'drakefangtalisman' => ['name' => 'Drake Fang Talisman', 'image' => 'assets/items/DFT.png'],
+        'onslaught' => ['name' => 'Onslaught', 'image' => 'assets/items/onslaught.png'],
+        'circle-of-applied-force' => ['name' => 'Circle of Applied', 'image' => 'assets/items/circle-of-applied-force.png'],
+        'black-lotuses' => ['name' => 'Stack of Black Lotus', 'image' => 'assets/spells/black-lotuses.webp'],
+        'maladath' => ['name' => 'Maladath', 'image' => 'assets/items/maladath.png'],
+        'quick-strike-ring' => ['name' => 'Quick Strike Ring', 'image' => 'assets/items/quick-strike-ring.png'],
+        'brutality_blade' => ['name' => 'Brutality Blade', 'image' => 'assets/items/3.png'],
+        'dalrends' => ['name' => 'Dal Rends', 'image' => 'assets/items/dalrends.png'],
+    ],
+
     // Offered at most once in a game
     'once_per_game' => ['zee'],
 

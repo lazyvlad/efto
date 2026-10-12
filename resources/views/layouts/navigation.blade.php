@@ -18,6 +18,11 @@
                     <x-nav-link :href="route('highscores')" :active="request()->routeIs('highscores')">
                         {{ __('High Scores') }}
                     </x-nav-link>
+                    @auth
+                        <x-nav-link :href="route('games.history')" :active="request()->routeIs('games.history')">
+                            {{ __('My Games') }}
+                        </x-nav-link>
+                    @endauth
                 </div>
             </div>
 
@@ -82,6 +87,11 @@
             <x-responsive-nav-link :href="route('highscores')" :active="request()->routeIs('highscores')">
                 {{ __('High Scores') }}
             </x-responsive-nav-link>
+            @auth
+                <x-responsive-nav-link :href="route('games.history')" :active="request()->routeIs('games.history')">
+                    {{ __('My Games') }}
+                </x-responsive-nav-link>
+            @endauth
         </div>
 
         <!-- Responsive Settings Options -->

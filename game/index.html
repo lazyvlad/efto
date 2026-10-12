@@ -44,6 +44,9 @@
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
 </head>
 <body>
+    <!-- The background: two layers that fade from one picture to the next (backgroundSystem.js) -->
+    <div id="backgroundLayerA" class="background-layer"></div>
+    <div id="backgroundLayerB" class="background-layer"></div>
     <canvas id="gameCanvas"></canvas>
     
     <!-- Canvas Border System -->
@@ -138,6 +141,26 @@
                 <p style="margin-bottom: 20px; color: #ccc;">Enter your name to start playing</p>
                 <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" />
                 <div id="accountBar" class="account-bar" hidden></div>
+                <!-- The side the player is on decides which backgrounds the game moves through -->
+                <div id="factionPicker" class="faction-picker" role="radiogroup" aria-labelledby="factionPrompt">
+                    <h3 id="factionPrompt" class="faction-prompt">Choose Your Side</h3>
+                    <div class="faction-options">
+                        <label class="faction-option faction-alliance">
+                            <input type="radio" name="faction" value="alliance">
+                            <span class="faction-plaque">
+                                <svg class="faction-crest" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5l8-3z"/><path class="faction-crest-detail" d="M12 5.2l5 1.9V11c0 3.4-2.1 6.2-5 7.8V5.2z"/></svg>
+                                <span class="faction-name">Alliance</span>
+                            </span>
+                        </label>
+                        <label class="faction-option faction-horde">
+                            <input type="radio" name="faction" value="horde">
+                            <span class="faction-plaque">
+                                <svg class="faction-crest" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l2.6 6.2 6.4-2.4-2.9 6.2 2.9 6.2-6.4-2.4L12 22.5l-2.6-7.2L3 17.7l2.9-6.2L3 5.3l6.4 2.4L12 1.5z"/><circle class="faction-crest-detail" cx="12" cy="11.6" r="2.6"/></svg>
+                                <span class="faction-name">Horde</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
                 <div class="pause-buttons">
                     <button id="startGameBtn" class="pause-btn continue-btn">Start Game
                     </button>

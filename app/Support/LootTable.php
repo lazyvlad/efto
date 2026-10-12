@@ -63,6 +63,25 @@ class LootTable
     }
 
     /**
+     * The rare items as the site shows them, rarest first.
+     *
+     * @return array<string, array{id: string, name: string, image: string}>
+     */
+    public static function catalog(): array
+    {
+        $catalog = [];
+        foreach (config('loot.catalog') as $itemId => $item) {
+            $catalog[$itemId] = [
+                'id' => $itemId,
+                'name' => $item['name'],
+                'image' => asset('game/'.$item['image']),
+            ];
+        }
+
+        return $catalog;
+    }
+
+    /**
      * @return array<int, string>
      */
     public static function itemIds(): array

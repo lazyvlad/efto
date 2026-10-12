@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\GameController;
+use App\Http\Controllers\GameHistoryController;
 use App\Http\Controllers\GameRecordController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScoreController;
@@ -31,6 +32,8 @@ Route::post('/api/games/{game}/finish', [GameRecordController::class, 'finish'])
     ->name('games.finish');
 
 Route::middleware('auth')->group(function () {
+    Route::get('/my-games', [GameHistoryController::class, 'index'])->name('games.history');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

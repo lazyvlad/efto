@@ -331,6 +331,143 @@
     cursor: default;
 }
 
+/* ===== Choosing a side =====
+   An inset panel with a gold heading and two plaques, Alliance blue and Horde red, each framed
+   in the same gold trim as the buttons. Both are always in their own colour so the choice is
+   easy to see; the one not chosen is dimmed, the chosen one is lit and ringed in gold. */
+#pauseMenu .faction-picker {
+    margin: 0 0 18px;
+    padding: 12px 14px 14px;
+    background: var(--wow-inset);
+    border: 1px solid var(--wow-inset-border);
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #000, inset 0 0 14px rgba(0, 0, 0, 0.6);
+}
+
+#pauseMenu#pauseMenu .faction-prompt {
+    margin: 0 0 10px;
+    font-size: 17px;
+    text-align: center;
+}
+
+/* Start was pressed before a side was chosen */
+#pauseMenu .faction-picker.needs-choice {
+    border-color: #f1d98a;
+    box-shadow: 0 0 0 1px #000, 0 0 14px rgba(255, 200, 80, 0.55), inset 0 0 14px rgba(0, 0, 0, 0.6);
+}
+
+#pauseMenu .faction-options {
+    display: flex;
+    gap: 12px;
+}
+
+#pauseMenu .faction-option {
+    flex: 1;
+    min-width: 0;
+    cursor: pointer;
+}
+
+#pauseMenu .faction-option input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+#pauseMenu .faction-plaque {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 76px;
+    padding: 8px 6px;
+    border: 2px solid transparent;
+    border-radius: 5px;
+    box-shadow: 0 0 0 1px #000, 0 2px 5px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -2px 4px rgba(0, 0, 0, 0.45);
+    filter: saturate(0.6) brightness(0.62);
+    transition: filter 0.15s, box-shadow 0.15s;
+}
+
+#pauseMenu .faction-alliance .faction-plaque {
+    background: linear-gradient(180deg, #3a6fd0 0%, #1f4a9c 46%, #143676 54%, #0b2150 100%) padding-box, var(--wow-trim) border-box;
+}
+
+#pauseMenu .faction-horde .faction-plaque {
+    background: var(--wow-button) padding-box, var(--wow-trim) border-box;
+}
+
+#pauseMenu .faction-crest {
+    width: 30px;
+    height: 30px;
+    fill: var(--wow-gold-soft);
+    filter: drop-shadow(0 1px 0 #000);
+}
+
+#pauseMenu .faction-crest-detail {
+    fill: rgba(0, 0, 0, 0.45);
+}
+
+#pauseMenu .faction-name {
+    font-family: var(--wow-font);
+    font-size: 19px;
+    letter-spacing: 0.05em;
+    color: var(--wow-gold);
+    text-shadow: 1px 1px 0 #000;
+}
+
+#pauseMenu .faction-option:hover .faction-plaque {
+    filter: saturate(0.85) brightness(0.85);
+}
+
+#pauseMenu .faction-option input:focus-visible + .faction-plaque {
+    outline: 2px solid #fff5c2;
+    outline-offset: 2px;
+}
+
+#pauseMenu .faction-option input:checked + .faction-plaque {
+    filter: none;
+}
+
+#pauseMenu .faction-option input:checked + .faction-plaque .faction-name {
+    color: #fff5c2;
+}
+
+#pauseMenu .faction-alliance input:checked + .faction-plaque {
+    box-shadow: 0 0 0 1px #000, 0 0 0 3px #f1d98a, 0 0 18px 4px rgba(90, 150, 255, 0.7), inset 0 1px 0 rgba(190, 215, 255, 0.5), inset 0 -2px 4px rgba(0, 0, 0, 0.45);
+}
+
+#pauseMenu .faction-horde input:checked + .faction-plaque {
+    box-shadow: 0 0 0 1px #000, 0 0 0 3px #f1d98a, 0 0 18px 4px rgba(255, 90, 50, 0.7), inset 0 1px 0 rgba(255, 190, 150, 0.5), inset 0 -2px 4px rgba(0, 0, 0, 0.45);
+}
+
+/* Short and narrow screens: the plaques lie flat, crest beside the name */
+@media (max-width: 480px), (max-height: 900px) {
+    #pauseMenu .faction-picker {
+        padding: 8px 10px 10px;
+        margin-bottom: 12px;
+    }
+
+    #pauseMenu#pauseMenu .faction-prompt {
+        margin-bottom: 7px;
+        font-size: 15px;
+    }
+
+    #pauseMenu .faction-plaque {
+        flex-direction: row;
+        gap: 8px;
+        min-height: 48px;
+    }
+
+    #pauseMenu .faction-crest {
+        width: 24px;
+        height: 24px;
+    }
+
+    #pauseMenu .faction-name {
+        font-size: 17px;
+    }
+}
+
 /* ===== Options panels ===== */
 
 #pauseMenu .settings-section,

@@ -23,3 +23,13 @@
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
 </IfModule>
+
+# The game's scripts and styles import one another by plain file name, so a browser holding
+# an older copy of one file next to newer copies of the rest breaks the game after an update.
+# "no-cache" keeps the copy but checks it with the server before every use (a quick "not
+# modified" answer when nothing changed). Pictures and sounds are cached as usual.
+<IfModule mod_headers.c>
+    <If "%{REQUEST_URI} =~ m#/game(-src)?/.*\.(js|css|json)$#">
+        Header set Cache-Control "no-cache"
+    </If>
+</IfModule>

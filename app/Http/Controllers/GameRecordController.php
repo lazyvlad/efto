@@ -27,6 +27,7 @@ class GameRecordController extends Controller
     {
         $data = $request->validate([
             'name' => ['nullable', 'string', 'max:60'],
+            'faction' => ['nullable', 'in:alliance,horde'],
             'version' => ['nullable', 'string', 'max:20'],
         ]);
 
@@ -41,6 +42,7 @@ class GameRecordController extends Controller
             'token' => Str::random(40),
             'user_id' => $user?->id,
             'name' => $name ?: 'Anonymous',
+            'faction' => $data['faction'] ?? null,
             'game_version' => $data['version'] ?? null,
             'started_at' => now(),
         ]);

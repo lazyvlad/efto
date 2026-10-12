@@ -39,6 +39,25 @@
     margin: 0 auto;
 }
 
+/* Anything wider than a phone: the buttons under the main one pair up, so the menu fits its
+   panel without scrolling now that it also holds the choice of side */
+@media (min-width: 600px) {
+    #nameEntryContent .pause-buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    #nameEntryContent #startGameBtn,
+    #nameEntryContent #continueGameBtn,
+    #nameEntryContent #restartGameBtn {
+        grid-column: 1 / -1;
+    }
+
+    #nameEntryContent .pause-btn {
+        min-width: 0;
+    }
+}
+
 #pauseMenuContent.pause-content h2 {
     color: #4ecdc4;
 }

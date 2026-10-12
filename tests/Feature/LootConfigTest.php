@@ -39,6 +39,19 @@ class LootConfigTest extends TestCase
         $this->assertEqualsWithDelta((float) $match[1] * 60, config('loot.spawns_per_second'), 0.0001);
     }
 
+    public function test_the_catalog_covers_every_rare_item_with_the_game_s_name_and_a_picture_that_exists(): void
+    {
+        $rare = array_merge(...array_map(fn (string $type) => config("loot.items.$type"), config('loot.server_types')));
+        $this->assertEqualsCanonicalizing($rare, array_keys(config('loot.catalog')));
+
+        $source = file_get_contents(base_path('game/data/gameItems.js'));
+
+        foreach (config('loot.catalog') as $itemId => $item) {
+            $this->assertStringContainsString('id: "'.$itemId.'", name: "'.$item['name'].'"', $source);
+            $this->assertFileExists(base_path('game/'.$item['image']));
+        }
+    }
+
     public function test_the_game_and_the_server_agree_on_which_rarities_the_server_decides(): void
     {
         $source = file_get_contents(base_path('game/systems/lootSystem.js'));

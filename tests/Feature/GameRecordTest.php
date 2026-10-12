@@ -27,7 +27,7 @@ class GameRecordTest extends TestCase
 
     public function test_opening_a_game_records_it_and_hands_out_the_first_chunk(): void
     {
-        $response = $this->postJson(route('games.open'), ['name' => ' <b>Bob</b> ', 'version' => '2.5.0'])
+        $response = $this->postJson(route('games.open'), ['name' => ' <b>Bob</b> ', 'faction' => 'horde', 'version' => '2.5.0'])
             ->assertOk()
             ->assertJsonStructure(['game', 'chunkSeconds', 'drops']);
 
@@ -37,7 +37,15 @@ class GameRecordTest extends TestCase
         $this->assertSame(Game::OPEN, $game->status);
         $this->assertSame(1, $game->chunks_issued);
         $this->assertSame('2.5.0', $game->game_version);
+        $this->assertSame('horde', $game->faction);
         $this->assertCount($game->drops()->count(), $response->json('drops'));
+    }
+
+    public function test_a_game_can_only_be_opened_for_a_real_side(): void
+    {
+        $this->postJson(route('games.open'), ['faction' => 'scourge'])->assertStatus(422);
+
+        $this->assertNull($this->openGame()->faction);
     }
 
     public function test_a_guest_without_a_name_plays_under_their_random_guest_name(): void

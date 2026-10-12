@@ -25,6 +25,7 @@ class Game extends Model
         'token',
         'user_id',
         'name',
+        'faction',
         'status',
         'offline',
         'chunks_issued',
@@ -83,6 +84,14 @@ class Game extends Model
     public function scopeLegal(Builder $query): Builder
     {
         return $query->where('status', self::FINISHED)->where('offline', false);
+    }
+
+    /**
+     * The rare items picked up in this game.
+     */
+    public function pickups(): HasMany
+    {
+        return $this->drops()->whereNotNull('claimed_at')->orderBy('at_seconds');
     }
 
     public function isOpen(): bool
