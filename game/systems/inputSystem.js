@@ -2,6 +2,7 @@ import { fallbackAudioInit } from './audioSystem.js';
 import { spellSystem } from './spellSystem.js';
 import { responsiveScaler } from '../utils/gameUtils.js';
 import { gameClock } from '../utils/gameClock.js';
+import { isMouseLockEnabled } from './settingsSystem.js';
 
 // Input system state
 export let inputState = {
@@ -16,6 +17,69 @@ export let inputState = {
     isTouchDevice: false, // Track if this is a touch device
     playerInitialized: false // Track if player has been given an initial position
 };
+
+// ----- Mouse lock -----
+// While a game is being played the mouse is held inside the game (the browser's "pointer
+// lock"), so it cannot wander off the field or out of the window and leave the hunter standing.
+// The browser always lets the player out with Esc; that pauses the game, as Esc does anyway.
+// A browser only grants the lock in answer to a click or a key press, so it is asked for
+// after each of those while a game runs, and given back as soon as the game is not running.
+
+let lockLostAt = -Infinity;     // When the lock was last lost, to tell its Esc from a second one
+
+function isPlaying(gameState) {
+    return gameState.gameRunning && !gameState.showingPauseMenu && !gameState.gamePaused;
+}
+
+function isMouseLocked(canvas) {
+    return document.pointerLockElement === canvas;
+}
+
+function wantsMouseLock(canvas, gameState) {
+    return isPlaying(gameState) && isMouseLockEnabled() && !inputState.isTouchDevice && typeof canvas.requestPointerLock === 'function';
+}
+
+function requestMouseLock(canvas, gameState) {
+    if (!wantsMouseLock(canvas, gameState) || isMouseLocked(canvas)) return;
+
+    try {
+        // Refused now and then (right after Esc, say): the next click or key press asks again
+        const asked = canvas.requestPointerLock();
+        if (asked && typeof asked.catch === 'function') asked.catch(() => {});
+    } catch (e) {
+        // Not available here: the mouse is followed as before
+    }
+}
+
+/**
+ * Call every frame: gives the mouse back as soon as the game is not being played (paused,
+ * over, a menu open) or the setting was turned off.
+ */
+export function updateMouseLock(canvas, gameState) {
+    if (isMouseLocked(canvas) && !wantsMouseLock(canvas, gameState)) {
+        document.exitPointerLock();
+    }
+}
+
+function initializeMouseLock(canvas, gameState, player, showPauseMenu) {
+    // After the click or key press has done its own work (started or resumed a game)
+    const askSoon = () => setTimeout(() => requestMouseLock(canvas, gameState), 0);
+    document.addEventListener('click', askSoon);
+    document.addEventListener('keydown', askSoon);
+
+    document.addEventListener('pointerlockchange', () => {
+        if (isMouseLocked(canvas)) {
+            // Carry on from where the hunter stands
+            inputState.mouseX = player.x + player.width / 2;
+            inputState.mouseY = player.y + player.height / 2;
+            inputState.hasMouseMoved = true;
+        } else if (isPlaying(gameState) && isMouseLockEnabled()) {
+            // Let go by the player (Esc) or taken by the browser (another window): pause
+            lockLostAt = performance.now();
+            showPauseMenu();
+        }
+    });
+}
 
 // Convert a mouse/touch position on the page to logical canvas coordinates
 function toCanvasCoords(canvas, clientX, clientY) {
@@ -50,11 +114,22 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
     }
     // Track mouse movement
     canvas.addEventListener('mousemove', (e) => {
-        const position = toCanvasCoords(canvas, e.clientX, e.clientY);
-        inputState.mouseX = position.x;
-        inputState.mouseY = position.y;
+        if (isMouseLocked(canvas)) {
+            // A locked mouse has no position, only movement: keep our own, inside the field
+            const rect = canvas.getBoundingClientRect();
+            const width = canvas.logicalWidth || canvas.width;
+            const height = canvas.logicalHeight || canvas.height;
+            inputState.mouseX = Math.max(0, Math.min(width, inputState.mouseX + e.movementX * (width / rect.width)));
+            inputState.mouseY = Math.max(0, Math.min(height, inputState.mouseY + e.movementY * (height / rect.height)));
+        } else {
+            const position = toCanvasCoords(canvas, e.clientX, e.clientY);
+            inputState.mouseX = position.x;
+            inputState.mouseY = position.y;
+        }
         inputState.hasMouseMoved = true;
     });
+    
+    initializeMouseLock(canvas, gameState, player, showPauseMenu);
 
     // Mouse click events
     canvas.addEventListener('mousedown', (e) => {
@@ -156,6 +231,9 @@ function handleKeyDown(e, gameState, restartGame, startGame, deprecatedParam, sh
     // Allow ESC key even when typing (to close menus/dialogs)
     if (e.key === 'Escape') {
         e.preventDefault();
+        
+        // The same press that let the mouse go has already paused the game
+        if (performance.now() - lockLostAt < 400) return;
 
         if (gameState.showingPauseMenu) {
             // Close HTML pause menu and resume game

@@ -45,6 +45,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'coins' => 'integer',
         ];
     }
 
@@ -54,6 +55,14 @@ class User extends Authenticatable
     public function games(): HasMany
     {
         return $this->hasMany(Game::class);
+    }
+
+    /**
+     * The boss loot this player has collected.
+     */
+    public function bossDrops(): HasMany
+    {
+        return $this->hasMany(BossDrop::class);
     }
 
     /**

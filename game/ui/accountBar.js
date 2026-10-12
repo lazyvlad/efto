@@ -1,9 +1,11 @@
 // Account awareness for the main menu.
 //
 // When the game is served by the site, the page sets window.INPUT_BOOT with who is playing:
-//   { user: { name, avatar } | null, guestName, csrfToken, embedded, urls: { scores, login, register, logout, profile } }
+//   { user: { name, avatar, coins } | null, skip: { costPerZone, unlocked } | null, guestName, csrfToken, embedded, urls: { scores, login, register, logout, profile } }
 // "embedded" means the site shows the game under its own header, which has the account links.
 // Opened on its own (no site around it) there is no INPUT_BOOT and the game behaves as before.
+
+import { formatCoins } from '../utils/coins.js';
 
 export const siteBoot = window.INPUT_BOOT || null;
 
@@ -66,7 +68,7 @@ export function renderAccountBar() {
     label.className = 'account-bar-label';
 
     if (accountName) {
-        label.textContent = `Logged in as ${accountName}`;
+        label.textContent = `Logged in as ${accountName} · ${formatCoins(siteBoot.user.coins)}`;
 
         // Logging out is a POST, so it needs a real form with the session token
         const form = document.createElement('form');

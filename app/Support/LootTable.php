@@ -11,9 +11,10 @@ class LootTable
      * The rare drops for one chunk, in the order they appear.
      *
      * @param  array<int, string>  $alreadyOffered  item ids offered earlier in the same game
+     * @param  int  $startLevel  the level the game started at (above 1 when the player skipped ahead)
      * @return array<int, array{item_id: string, at_seconds: int}>
      */
-    public static function rollChunk(int $chunk, array $alreadyOffered = []): array
+    public static function rollChunk(int $chunk, array $alreadyOffered = [], int $startLevel = 1): array
     {
         $chunkSeconds = (int) config('loot.chunk_seconds');
         $start = $chunk * $chunkSeconds;
@@ -23,7 +24,10 @@ class LootTable
 
         foreach (config('loot.server_types') as $type) {
             $weight = config("loot.weights.$type");
-            $notBefore = (int) config("loot.not_before_seconds.$type", 0);
+            // No waiting for a rarity the game had already unlocked when it started
+            $notBefore = $startLevel >= config("loot.unlock_level.$type", PHP_INT_MAX)
+                ? 0
+                : (int) config("loot.not_before_seconds.$type", 0);
 
             foreach (config("loot.items.$type") as $itemId) {
                 $once = in_array($itemId, config('loot.once_per_game'), true);
@@ -60,6 +64,20 @@ class LootTable
         }
 
         return false;
+    }
+
+    /**
+     * The rarity of an item, or null for an item the game does not have.
+     */
+    public static function typeOf(string $itemId): ?string
+    {
+        foreach (config('loot.items') as $type => $ids) {
+            if (in_array($itemId, $ids, true)) {
+                return $type;
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -21,6 +21,7 @@
 //   caster   - sends bolts that follow the player, and a curse that eats at their health
 //   bomber   - lobs things that land near the player and burst a moment later
 //   pounder  - stomps: the ground hurts everywhere but one safe patch
+//   warlord  - a fan of axes, a rush down the field, a throw and a row, one after the other
 //
 // Every boss keeps on the move along the top of the field and sidesteps arrows it sees coming,
 // the later bosses more sharply. It cannot sidestep while it winds up an attack.
@@ -39,7 +40,7 @@ const roster = {
         { id: 'hogger', behaviour: 'thrower', name: 'Hogger', image: '02-hogger', attack: { name: 'Thrown Axe', image: '02-hogger-axe', size: 1.5, spin: 0.12 } },
         { id: 'bazil-thredd', behaviour: 'assassin', name: 'Bazil Thredd', image: '03-bazil-thredd', attack: { name: 'Prison Shiv', image: '03-bazil-shiv', size: 1.2, spin: 0.22 } },
         { id: 'edwin-vancleef', behaviour: 'assassin', name: 'Edwin VanCleef', image: '04-edwin-vancleef', attack: { name: 'Defias Throwing Knife', image: '04-vancleef-knife', size: 1.2, spin: 0.22 } },
-        { id: 'gath-ilzogg', behaviour: 'thrower', name: "Gath'Ilzogg", image: '05-gath-ilzogg', attack: { name: 'Blackrock War Axe', image: '05-gath-war-axe', size: 1.6, spin: 0.12 } },
+        { id: 'gath-ilzogg', behaviour: 'warlord', name: "Gath'Ilzogg", image: '05-gath-ilzogg', attack: { name: 'Blackrock War Axe', image: '05-gath-war-axe', size: 1.6, spin: 0.12 } },
         { id: 'stitches', behaviour: 'thrower', name: 'Stitches', image: '06-stitches', attack: { name: 'Thrown Cleaver', image: '06-stitches-cleaver', size: 1.6, spin: 0.12 } },
         { id: 'chieftain-nekrosh', behaviour: 'thrower', name: "Chieftain Nek'rosh", image: '07-chieftain-nekrosh', attack: { name: 'Spiked Mace', image: '07-nekrosh-mace', size: 1.6, spin: 0.1 } },
         { id: 'fozruk', behaviour: 'bomber', name: 'Fozruk', image: '08-fozruk', attack: { name: 'Thrown Boulder', image: '08-fozruk-boulder', size: 1.9, spin: 0.05 } },
@@ -67,7 +68,8 @@ export const behaviours = {
     charger: ['throw', 'charge', 'throw', 'charge'],
     caster: ['bolt', 'bolt', 'curse'],
     bomber: ['bomb', 'throw', 'bomb', 'row'],
-    pounder: ['throw', 'stomp', 'throw', 'stomp']
+    pounder: ['throw', 'stomp', 'throw', 'stomp'],
+    warlord: ['fan', 'charge', 'throw', 'row']
 };
 
 // Every boss, with its side, its zone (1 is the first) and the full paths of its pictures

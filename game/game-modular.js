@@ -18,10 +18,12 @@ import { initializeSettings, loadSettings, saveSettings, resetSettings, getSetti
 import { loadHighScores, addHighScore, cacheHighScores, isHighScore, displayHighScores, displayHighScoresSync } from './systems/highScoreSystem.js';
 import * as lootSystem from './systems/lootSystem.js';
 import { totalXpAtLevel } from './utils/progression.js';
+import { coinsForItem, coinsForBoss, formatCoins } from './utils/coins.js';
+import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost } from './ui/startZone.js';
 import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse } from './systems/bossSystem.js';
 import { BossProjectile } from './classes/BossProjectile.js';
 import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground } from './systems/backgroundSystem.js';
-import { initializeInputSystem, updatePlayerPosition, resetInputState } from './systems/inputSystem.js';
+import { initializeInputSystem, updatePlayerPosition, resetInputState, updateMouseLock } from './systems/inputSystem.js';
 // drawSettings removed - now using HTML+CSS guide
 
 import { calculateLevelSpeedMultiplier, isValidYPosition, cleanupRecentDropPositions, calculateUniversalMultiplier, getLogicalCanvasWidth, getLogicalCanvasHeight, updateGameStateTimers, addNotification, updateNotifications, responsiveScaler, trackActivity, getLevelProgress, checkGameVersion, clearGameCache } from './utils/gameUtils.js';
@@ -171,6 +173,8 @@ let gameState = {
 
     // Arrow ammunition system
     arrowCount: 20, // Current number of arrows available (start with 20)
+    coins: 0, // Coins earned in this game, in copper (utils/coins.js)
+    startZone: 1, // The zone the game starts in: above 1 when the player paid to skip ahead (ui/startZone.js)
     
     // Bullet Time system
     bulletTimeActive: false,            // Whether bullet time is currently active
@@ -490,6 +494,9 @@ function gameLoop(now = performance.now()) {
     // Update canvas overlay visibility
     updateCanvasOverlay();
     
+    // The mouse is only held while a game is being played
+    updateMouseLock(canvas, gameState);
+    
     // Render
     render();
     
@@ -570,7 +577,7 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     // During a boss fight the boss does the throwing; the game's own drops wait.
     spawnItems(bulletTimeAdjustedDelta);
     if (isBossFightActive()) {
-        updateBoss({ gameState, canvas, player, fireballs, powerUps, particles, combatTexts, spellSystem, isValidYPosition, recentDropYPositions, shouldDodge, showDodgeText, trackDodge });
+        updateBoss({ gameState, canvas, player, fireballs, powerUps, particles, combatTexts, spellSystem, isValidYPosition, recentDropYPositions, shouldDodge, showDodgeText, trackDodge, onBossDefeated });
     } else {
         spawnProjectiles(bulletTimeAdjustedDelta);
         spawnPowerUps(bulletTimeAdjustedDelta);
@@ -645,6 +652,14 @@ function loadSpellIcons() {
 }
 
 // Game functions (simplified - these would contain the full logic)
+// The level a game starts at: the first of the zone the player skipped to, if they did
+function firstLevel() {
+    if (gameState.startZone > 1) {
+        return (gameState.startZone - 1) * gameConfig.backgrounds.levelsPerBackground + 1;
+    }
+    return gameConfig.levels.startingLevel || 1;
+}
+
 function startGame() {
     // Reset game state
     gameState.score = 0;
@@ -659,7 +674,7 @@ function startGame() {
     clearTemporaryStatEffects();
     
     // Apply starting level configuration for testing
-    const startingLevel = Math.max(0, (gameConfig.levels.startingLevel || 1) - 1); // Convert 1-based to 0-based
+    const startingLevel = Math.max(0, firstLevel() - 1); // Convert 1-based to 0-based
     gameState.currentLevel = startingLevel;
     
     // Calculate appropriate speed for starting level using the speed formula
@@ -806,6 +821,7 @@ function startGame() {
     
     // Reset arrow ammunition - start with 20 arrows
     gameState.arrowCount = 20;
+    gameState.coins = 0;
     
     // Reset bullet time system
     gameState.bulletTimeActive = false;
@@ -862,6 +878,7 @@ function startGame() {
     lootSystem.beginGame({
         playerName: gameState.playerName,
         faction: gameState.faction,
+        startZone: gameState.startZone,
         getSummary: getGameSummary,
         onOffline: () => addNotification(gameState, `⚠️ Connection lost - this game is offline and will not count`, 360, '#FF6B6B')
     });
@@ -880,7 +897,7 @@ function restartGame() {
     gameState.health = 100;
     
     // Apply starting level configuration for testing
-    const startingLevel = Math.max(0, (gameConfig.levels.startingLevel || 1) - 1); // Convert 1-based to 0-based
+    const startingLevel = Math.max(0, firstLevel() - 1); // Convert 1-based to 0-based
     gameState.currentLevel = startingLevel;
     
     // Calculate appropriate speed for starting level using the speed formula
@@ -1026,6 +1043,7 @@ function restartGame() {
     
     // Reset arrow ammunition - start with 20 arrows
     gameState.arrowCount = 20;
+    gameState.coins = 0;
     
     // Reset bullet time system
     gameState.bulletTimeActive = false;
@@ -1529,6 +1547,7 @@ function showNameEntry() {
     document.querySelectorAll('#factionPicker input[name="faction"]').forEach(option => {
         option.checked = option.value === getFaction();
     });
+    renderStartZonePicker(getFaction());
     showStartingBackground();
     
     // Update canvas overlay
@@ -1702,6 +1721,12 @@ function startGameFromUI() {
     gameState.playerName = playerName;
     gameState.faction = getFaction();
     
+    // Skipping ahead is paid for as the game opens; the site has the last word on the purse
+    gameState.startZone = getStartZone(gameState.faction);
+    if (gameState.startZone > 1) {
+        siteBoot.user.coins -= skipCost(gameState.startZone);
+    }
+    
     // Remember a guest's chosen name for future sessions (accounts carry their own)
     if (!getAccountName()) {
         localStorage.setItem('efto_playerName', playerName);
@@ -1737,6 +1762,7 @@ function setupUIEventHandlers() {
     document.querySelectorAll('#factionPicker input[name="faction"]').forEach(option => {
         option.addEventListener('change', () => {
             setFaction(option.value);
+            renderStartZonePicker(option.value);
             document.getElementById('factionPicker').classList.remove('needs-choice');
             showStartingBackground();
         });
@@ -2448,6 +2474,10 @@ function createMobileIntegratedLayout(gameState, gameItems) {
                 <span class="stat-label">Arrows:</span>
                 <span class="stat-value" id="arrowCount">0</span>
             </div>
+            <div class="stat-row">
+                <span class="stat-label">Coins:</span>
+                <span class="stat-value" id="coinCount">0c</span>
+            </div>
         </div>
         
         <div class="items-list" id="itemsList" style="display: none;">
@@ -2859,6 +2889,13 @@ function updatePlayerStats(gameState) {
             arrowCountElement.style.color = '#00FF00'; // Green for many arrows
         }
     }
+    
+    // Coins earned so far in this game
+    const coinCountElement = document.getElementById('coinCount');
+    if (coinCountElement) {
+        coinCountElement.textContent = formatCoins(gameState.coins);
+        coinCountElement.style.color = '#FFD700';
+    }
 }
 
 function updateItemsList(sortedItems) {
@@ -3015,7 +3052,11 @@ function onItemCollected(itemData, fallingItem = null) {
     // Mark that we need to update the items list
     itemsListCache.needsUpdate = true;
     
-    lootSystem.recordPickup(itemData.id, fallingItem ? fallingItem.dropId : null);
+    const dropId = fallingItem ? fallingItem.dropId : null;
+    lootSystem.recordPickup(itemData.id, dropId);
+    if (lootSystem.earnsCoins(itemData, dropId)) {
+        gameState.coins += coinsForItem(itemData.type, gameConfig.coins);
+    }
     
     // The hunter reaches for it
     player.onCollect();
@@ -3178,6 +3219,50 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
 
 // ===== GAME END FUNCTIONS =====
 
+// Boss loot, by rarity: the colour its name is written in
+const BOSS_LOOT_COLORS = { uncommon: '#1EFF00', rare: '#4D9BFF', epic: '#C77DFF' };
+
+// A boss went down: it pays coins, and the site decides what it dropped. A logged-in player
+// keeps the item on their account; a guest is only shown it.
+function onBossDefeated(boss) {
+    gameState.coins += coinsForBoss(boss.zone, gameConfig.coins);
+    
+    lootSystem.reportBoss(boss.id).then(drop => {
+        if (!drop) return;
+        setUnlockedZone(boss.faction, drop.unlockedZone);
+        if (!drop.item || !gameState.gameRunning) return;
+        
+        const color = BOSS_LOOT_COLORS[drop.item.rarity] || '#FFD700';
+        // Kept short: the message bar cuts long lines off
+        const message = drop.kept ? `${boss.name} dropped ${drop.item.name}` : `Loot: ${drop.item.name} - log in to keep it`;
+        addNotification(gameState, message, 420, color);
+        // Floating text as well: phones do not show the message bar
+        combatTexts.push(new CombatText((canvas.logicalWidth || canvas.width) / 2, player.y - 40, drop.item.name, color, true));
+    }).catch(console.error);
+}
+
+// What the game earned, on the game over screen. "banked" is the server's answer once it has
+// recorded the game: { earned, balance }, balance being null for guests.
+function showCoinsEarned(banked = null) {
+    const element = document.getElementById('coinsEarned');
+    if (!element) return;
+    
+    const earned = banked ? banked.earned : gameState.coins;
+    let text = `Coins earned: ${formatCoins(earned)}`;
+    
+    if (banked && banked.balance !== null && banked.balance !== undefined) {
+        text += ` | Purse: ${formatCoins(banked.balance)}`;
+        if (siteBoot && siteBoot.user) {
+            siteBoot.user.coins = banked.balance;
+            renderAccountBar();
+        }
+    } else if (siteBoot && !siteBoot.user) {
+        text += ' | Log in to keep your coins and boss loot';
+    }
+    
+    element.textContent = text;
+}
+
 // End game function
 function endGame() {
     gameState.gameRunning = false;
@@ -3200,6 +3285,7 @@ function endGame() {
         if (recorded) {
             recorded.then(result => {
                 if (result.scores) cacheHighScores(result.scores);
+                if (result.coins) showCoinsEarned(result.coins);
                 
                 if (result.legal) {
                     showRank(result.rank);
@@ -3227,6 +3313,8 @@ function endGame() {
     } catch (error) {
         console.error('Error saving high score:', error);
     }
+    
+    showCoinsEarned();
     
     // Update final score display
     const finalScoreElement = document.getElementById('finalScore');

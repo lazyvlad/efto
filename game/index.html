@@ -26,8 +26,27 @@
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <link rel="manifest" href="site.webmanifest">
     
-    <!-- Preload critical background image with high priority -->
-    <link rel="preload" href="assets/ui/background.jpg" as="image" fetchpriority="high">
+    <!-- A side chosen on an earlier visit: fetch the picture it starts on before the game's
+         code has loaded, so it is there when the menu comes up (systems/backgroundSystem.js) -->
+    <script>
+        (function () {
+            try {
+                var first = {
+                    alliance: 'assets/backgrounds/alliance/01-northshire-abbey.webp',
+                    horde: 'assets/backgrounds/horde/01-valley-of-trials.webp'
+                }[localStorage.getItem('input_faction')];
+                if (!first) return;
+                var link = document.createElement('link');
+                link.rel = 'preload';
+                link.as = 'image';
+                link.href = first;
+                link.fetchPriority = 'high';
+                document.head.appendChild(link);
+            } catch (e) {
+                // Storage unavailable: the picture is fetched with the game's code as before
+            }
+        })();
+    </script>
     <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
@@ -85,7 +104,7 @@
             
                 <div class="spell-slot" id="spell-zandalari">
                     <div class="spell-icon">
-                        <img src="assets/spells/zg-buff.png" alt="Zandalari" class="spell-image">
+                        <img src="assets/spells/zandalari.webp" alt="Zandalari" class="spell-image">
                     </div>
                     <div class="spell-key">W</div>
                     <div class="spell-name">Zandalari</div>
@@ -127,7 +146,7 @@
     
     <!-- Mobile Pause Button (floating) -->
     <button id="mobilePauseBtn" class="mobile-pause-btn" style="display: none;" title="Pause Game">
-        <img src="assets/powerups/alchemy.png" alt="" class="mobile-pause-icon">
+        <img src="assets/powerups/time-cutter.webp" alt="" class="mobile-pause-icon">
     </button>
 
     <!-- Unified Pause Menu Screen -->
@@ -157,6 +176,11 @@
                                 <span class="faction-name">Horde</span>
                             </span>
                         </label>
+                    </div>
+                    <!-- Skipping ahead: for players who have beaten bosses before (ui/startZone.js) -->
+                    <div id="startZonePicker" class="start-zone-picker" hidden>
+                        <label for="startZone">Start in</label>
+                        <select id="startZone" class="setting-select"></select>
                     </div>
                 </div>
                 <div class="pause-buttons">
@@ -217,6 +241,14 @@
                             <option value="right">Right-handed (move right, shoot left)</option>
                             <option value="left">Left-handed (move left, shoot right)</option>
                         </select>
+                    </div>
+                    
+                    <div class="setting-item desktop-only">
+                        <label for="lockMouseToggle">Keep the mouse inside the game (Esc lets it go):</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="lockMouseToggle" checked>
+                            <span class="toggle-slider"></span>
+                        </div>
                     </div>
                 </div>
                 
@@ -330,7 +362,7 @@
                     <h3>Controls</h3>
                     <p><strong>Desktop:</strong> Mouse to move your character</p>
                     <p><strong>Mobile:</strong> Touch screen to move your character</p>
-                    <p><strong>ESC:</strong> Pause game</p>
+                    <p><strong>ESC:</strong> Pause game. While you play the mouse is kept inside the game; Esc lets it go (this can be turned off in Settings)</p>
                     <p><strong>S:</strong> Open/close settings</p>
                 </div>
 
@@ -402,7 +434,7 @@
                             <span><strong>Tier Set:</strong> Dragonstalker pieces - 6 points each (Must collect all 10!)</span>
                         </div>
                         <div class="item-type">
-                            <img src="assets/items/DFT.png" alt="Drake Fang Talisman" class="guide-item-icon">
+                            <img src="assets/items/drakefangtalisman.webp" alt="Drake Fang Talisman" class="guide-item-icon">
                             <span><strong>Special:</strong> 4-7 points (Rare items)</span>
                         </div>
                         <div class="item-type">
@@ -410,7 +442,7 @@
                             <span><strong>Epic:</strong> 5-10 points (Uncommon items)</span>
                         </div>
                         <div class="item-type">
-                            <img src="assets/items/gold.png" alt="Gold" class="guide-item-icon">
+                            <img src="assets/items/gold.webp" alt="Gold" class="guide-item-icon">
                             <span><strong>Regular:</strong> 1-4 points (Common items)</span>
                         </div>
                     </div>
@@ -464,6 +496,7 @@
         <div id="gameOver" style="display: none;">
             <h2>Game Over!</h2>
             <p id="finalScore">Final Score: 0</p>
+            <p id="coinsEarned" style="color: #FFD700; margin: 6px 0;"></p>
             <p id="newHighScore" style="display: none; color: #FFD700; font-weight: bold; margin: 10px 0;">New High Score!</p>
             <button id="restartBtn">Play Again</button>
             <button id="viewScoresBtn2">View High Scores</button>
@@ -592,6 +625,10 @@
             <div class="stat-row">
                 <span class="stat-label">Arrows:</span>
                 <span class="stat-value" id="arrowCount">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Coins:</span>
+                <span class="stat-value" id="coinCount">0c</span>
             </div>
         </div>
         

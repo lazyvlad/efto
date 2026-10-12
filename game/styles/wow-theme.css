@@ -191,7 +191,7 @@
     border-radius: 4px;
     background: #0a0806;
     padding: 0;
-    object-fit: cover;
+    object-fit: contain;
     box-shadow: 0 0 0 1px #8a7440, 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
@@ -351,6 +351,30 @@
 }
 
 /* Start was pressed before a side was chosen */
+#pauseMenu .start-zone-picker {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 12px;
+    color: #ffd100;
+    font-size: 14px;
+}
+
+#pauseMenu .start-zone-picker[hidden] {
+    display: none;
+}
+
+#pauseMenu .start-zone-picker label {
+    white-space: nowrap;
+}
+
+#pauseMenu .start-zone-picker .setting-select {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 30px 7px 10px;
+    font-size: 14px;
+}
+
 #pauseMenu .faction-picker.needs-choice {
     border-color: #f1d98a;
     box-shadow: 0 0 0 1px #000, 0 0 14px rgba(255, 200, 80, 0.55), inset 0 0 14px rgba(0, 0, 0, 0.6);

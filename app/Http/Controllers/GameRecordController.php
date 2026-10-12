@@ -2,13 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BossDrop;
 use App\Models\Game;
 use App\Models\GameDrop;
 use App\Models\Score;
+use App\Models\User;
+use App\Support\BossLoot;
+use App\Support\Coins;
 use App\Support\GuestName;
 use App\Support\LootTable;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -17,6 +23,9 @@ use Illuminate\Support\Str;
  * The game opens a record when it starts, asks for its drops a chunk of play at a time and
  * closes the record when it ends. A game that loses the server carries on with its own
  * random loot and is recorded as offline, which keeps it off the leaderboard.
+ *
+ * It also decides what a defeated boss drops (config/boss_loot.php) and, when the game is
+ * closed, what it earned in coins. Both are kept on a logged-in player's account.
  */
 class GameRecordController extends Controller
 {
@@ -29,6 +38,7 @@ class GameRecordController extends Controller
             'name' => ['nullable', 'string', 'max:60'],
             'faction' => ['nullable', 'in:alliance,horde'],
             'version' => ['nullable', 'string', 'max:20'],
+            'startZone' => ['nullable', 'integer', 'min:1', 'max:10'],
         ]);
 
         // Logged-in players always play under their account name. Guests use the name they
@@ -38,11 +48,24 @@ class GameRecordController extends Controller
             ? Score::cleanName($user->name)
             : (Score::cleanName($data['name'] ?? '') ?: GuestName::forSession($request));
 
+        // Skipping ahead: only past bosses the player has beaten before, and it costs coins
+        $startZone = (int) ($data['startZone'] ?? 1);
+        if ($startZone > 1) {
+            abort_unless($user && isset($data['faction']), 422, 'Log in to skip ahead.');
+            abort_if($startZone > BossLoot::unlockedZone($user, $data['faction']), 422, 'Defeat the earlier bosses first.');
+
+            // Only taken if the purse still holds that much
+            $cost = BossLoot::skipCost($startZone);
+            $paid = User::whereKey($user->id)->where('coins', '>=', $cost)->decrement('coins', $cost);
+            abort_if($paid === 0, 422, 'Not enough coins.');
+        }
+
         $game = Game::create([
             'token' => Str::random(40),
             'user_id' => $user?->id,
             'name' => $name ?: 'Anonymous',
             'faction' => $data['faction'] ?? null,
+            'start_zone' => $startZone,
             'game_version' => $data['version'] ?? null,
             'started_at' => now(),
         ]);
@@ -51,6 +74,8 @@ class GameRecordController extends Controller
             'game' => $game->token,
             'chunkSeconds' => (int) config('loot.chunk_seconds'),
             'drops' => $this->dropsPayload($game, 0),
+            // The purse, after paying for any skip
+            'coins' => $user ? (int) $user->fresh()->coins : null,
         ]);
     }
 
@@ -80,6 +105,58 @@ class GameRecordController extends Controller
     }
 
     /**
+     * A boss was defeated: decide what it drops. A logged-in player keeps the item; a guest
+     * is only shown it. Reporting the same boss again returns the same item.
+     */
+    public function boss(Request $request, Game $game): JsonResponse
+    {
+        $data = $request->validate([
+            'boss' => ['required', 'string', 'max:40'],
+        ]);
+
+        abort_unless($game->isOpen(), 409, 'This game is over.');
+
+        $boss = BossLoot::boss($data['boss']);
+        abort_if($boss === null, 422, 'No such boss.');
+        abort_if($game->faction !== null && $game->faction !== $boss['faction'], 422, 'That boss is on the other side.');
+
+        abort_if($boss['zone'] < $game->start_zone, 422, 'This game started past that boss.');
+
+        $earliest = ($boss['zone'] - $game->start_zone + 1) * config('boss_loot.min_seconds_per_zone');
+        abort_if($game->secondsSinceStart() < $earliest, 425, 'Too early for this boss.');
+
+        $drop = $game->bossDrops()->where('boss_id', $boss['id'])->first();
+
+        if (! $drop) {
+            $item = BossLoot::roll($boss);
+
+            try {
+                $drop = $game->bossDrops()->create([
+                    'user_id' => $game->user_id,
+                    'boss_id' => $boss['id'],
+                    'item_id' => $item['id'],
+                    'rarity' => $item['rarity'],
+                    'dropped_at' => now(),
+                ]);
+            } catch (UniqueConstraintViolationException) {
+                // The same report arrived twice at once
+                $drop = $game->bossDrops()->where('boss_id', $boss['id'])->firstOrFail();
+            }
+        }
+
+        return response()->json([
+            'boss' => $boss['id'],
+            'item' => BossLoot::item($boss, $drop->item_id),
+            'kept' => $drop->user_id !== null,
+            'timesFound' => $drop->user_id !== null
+                ? BossDrop::where('user_id', $drop->user_id)->where('item_id', $drop->item_id)->count()
+                : null,
+            // The furthest zone the player may now start a game in on this side
+            'unlockedZone' => $game->user ? BossLoot::unlockedZone($game->user, $boss['faction']) : null,
+        ]);
+    }
+
+    /**
      * The game is over (or was left mid-game and is being handed in afterwards).
      */
     public function finish(Request $request, Game $game): JsonResponse
@@ -101,15 +178,18 @@ class GameRecordController extends Controller
 
         // Handing the same game in twice changes nothing
         if ($game->isOpen()) {
-            $this->close($game, $data);
+            DB::transaction(fn () => $this->close($game, $data));
         }
 
         $entry = $game->scoreEntry;
+        // The balance is only for the player whose game this is
+        $owner = $game->user_id !== null && $game->user_id === $request->user()?->id ? $game->user : null;
 
         return response()->json([
             'success' => true,
             'legal' => $game->isLegal(),
             'rank' => $entry ? Score::query()->where('score', '>', $entry->score)->count() + 1 : null,
+            'coins' => ['earned' => $game->coins, 'balance' => $owner?->coins],
             'scores' => Score::leaderboard(),
         ]);
     }
@@ -144,6 +224,13 @@ class GameRecordController extends Controller
             'items' => $items,
             'ended_at' => now(),
         ]);
+
+        // Every recorded game earns its coins, finished or not: what was caught was caught
+        $coins = Coins::earned($game, $items);
+        $game->update(['coins' => $coins]);
+        if ($coins > 0 && $game->user_id !== null) {
+            $game->user()->increment('coins', $coins);
+        }
 
         // Only games that count go on the leaderboard
         if ($game->isLegal()) {

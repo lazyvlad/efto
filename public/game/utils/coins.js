@@ -1,0 +1,1 @@
+export function coinsForItem(o,t){return t.byType[o]||0}export function coinsForBoss(o,t){return o*t.bossPerZone}export function formatCoins(o){const t=Math.max(0,Math.floor(o||0)),n=Math.floor(t/1e4),r=Math.floor(t/100)%100,e=t%100,s=[];return n>0&&s.push(`${n.toLocaleString("en-US")}g`),r>0&&s.push(`${r}s`),(e>0||0===s.length)&&s.push(`${e}c`),s.join(" ")}

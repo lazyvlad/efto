@@ -106,7 +106,7 @@ export const powerUpItems = [
     {
         id: "bronze_arrows",
         name: "Bronze Arrows",
-        image: assetRegistry.powerups.thoriumArrows, // Reusing arrows asset for now
+        image: assetRegistry.powerups.bronzeArrows,
         effect: "arrow_ammo",
         value: 25, // 25 arrows per bundle
         duration: 0, // Instant effect (adds to inventory)
@@ -120,7 +120,7 @@ export const powerUpItems = [
     {
         id: "silver_arrows",
         name: "Silver Arrows",
-        image: assetRegistry.powerups.thoriumArrows, // Reusing arrows asset for now
+        image: assetRegistry.powerups.silverArrows,
         effect: "arrow_ammo",
         value: 50, // 50 arrows per bundle
         duration: 0, // Instant effect (adds to inventory)
@@ -134,7 +134,7 @@ export const powerUpItems = [
     {
         id: "thorium_arrows",
         name: "Thorium Arrows",
-        image: assetRegistry.powerups.thoriumArrows, // New thorium arrows asset
+        image: assetRegistry.powerups.thoriumArrows,
         effect: "arrow_ammo",
         value: 100, // 100 arrows per bundle
         duration: 0, // Instant effect (adds to inventory)

@@ -27,6 +27,9 @@ Route::post('/api/games', [GameRecordController::class, 'open'])
 Route::post('/api/games/{game}/drops', [GameRecordController::class, 'drops'])
     ->middleware('throttle:30,1')
     ->name('games.drops');
+Route::post('/api/games/{game}/bosses', [GameRecordController::class, 'boss'])
+    ->middleware('throttle:20,1')
+    ->name('games.boss');
 Route::post('/api/games/{game}/finish', [GameRecordController::class, 'finish'])
     ->middleware('throttle:20,1')
     ->name('games.finish');

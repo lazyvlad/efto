@@ -14,6 +14,7 @@ const defaultSettings = {
     },
     ui: {
         handedness: 'right',            // right: move with the right hand, shoot with the left; left: the other way round
+        lockMouse: true,                // Keep the mouse inside the game while playing (Esc lets it go and pauses)
         playerPanelStyle: 'auto',       // auto, desktop, mobile
         dragonstalkerPanelStyle: 'auto', // auto, desktop, mobile
         panelOpacity: 80                 // 60-100
@@ -349,6 +350,11 @@ export function initializeSettings() {
     });
     
     return gameSettings;
+}
+
+// Whether the mouse is kept inside the game while playing
+export function isMouseLockEnabled() {
+    return gameSettings.ui.lockMouse !== false;
 }
 
 // Check if sound effects are enabled

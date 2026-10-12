@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\BossLoot;
 use App\Support\GuestName;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -38,8 +39,16 @@ class GameController extends Controller
         $user = $request->user();
 
         $boot = [
-            'user' => $user ? ['name' => $user->name, 'avatar' => $user->avatarUrl()] : null,
+            'user' => $user ? ['name' => $user->name, 'avatar' => $user->avatarUrl(), 'coins' => (int) $user->coins] : null,
             'guestName' => $user ? null : GuestName::forSession($request),
+            // Skipping ahead: the price per zone and the furthest zone open to the player on each side
+            'skip' => $user ? [
+                'costPerZone' => (int) config('boss_loot.skip_cost_per_zone'),
+                'unlocked' => [
+                    'alliance' => BossLoot::unlockedZone($user, 'alliance'),
+                    'horde' => BossLoot::unlockedZone($user, 'horde'),
+                ],
+            ] : null,
             'csrfToken' => csrf_token(),
             // Framed by the landing page, whose header already has the account links
             'embedded' => $request->boolean('embedded'),

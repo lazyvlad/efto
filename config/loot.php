@@ -72,18 +72,49 @@ return [
         'ds_legs' => ['name' => "Dragonstalker's Legguards", 'image' => 'assets/items/dslegs.png'],
         'ds_boots' => ['name' => "Dragonstalker's Greaves", 'image' => 'assets/items/dsboots.png'],
         'crulshorukh' => ['name' => 'Crulshorukh', 'image' => 'assets/items/6.png'],
-        'drakefangtalisman' => ['name' => 'Drake Fang Talisman', 'image' => 'assets/items/DFT.png'],
-        'onslaught' => ['name' => 'Onslaught', 'image' => 'assets/items/onslaught.png'],
-        'circle-of-applied-force' => ['name' => 'Circle of Applied', 'image' => 'assets/items/circle-of-applied-force.png'],
-        'black-lotuses' => ['name' => 'Stack of Black Lotus', 'image' => 'assets/spells/black-lotuses.webp'],
+        'drakefangtalisman' => ['name' => 'Drake Fang Talisman', 'image' => 'assets/items/drakefangtalisman.webp'],
+        'onslaught' => ['name' => 'Onslaught', 'image' => 'assets/items/onslaught.webp'],
+        'circle-of-applied-force' => ['name' => 'Circle of Applied', 'image' => 'assets/items/circle-of-applied-force.webp'],
+        'black-lotuses' => ['name' => 'Stack of Black Lotus', 'image' => 'assets/items/black-lotuses.webp'],
         'maladath' => ['name' => 'Maladath', 'image' => 'assets/items/maladath.png'],
-        'quick-strike-ring' => ['name' => 'Quick Strike Ring', 'image' => 'assets/items/quick-strike-ring.png'],
+        'quick-strike-ring' => ['name' => 'Quick Strike Ring', 'image' => 'assets/items/quick-strike-ring.webp'],
         'brutality_blade' => ['name' => 'Brutality Blade', 'image' => 'assets/items/3.png'],
         'dalrends' => ['name' => 'Dal Rends', 'image' => 'assets/items/dalrends.png'],
     ],
 
+    // What catching an item is worth, in copper (100 copper = 1 silver, 100 silver = 1 gold).
+    // The game shows the same amounts as it goes (coins in game/config/gameConfig.js); the
+    // server works out what a finished game earned and adds it to the player's account.
+    'coins' => [
+        'regular' => 10,
+        'green' => 25,
+        'epic' => 100,
+        'special' => 150,
+        'tier_set' => 200,
+        'legendary' => 500,
+        'zee_zgnan' => 1000,
+    ],
+
+    // Defeating a boss pays this much for each zone it guards (the third boss: three times this)
+    'boss_coins_per_zone' => 100,
+
+    // Common items are counted as the browser reports them, but never more than this many
+    // times what the game can have spawned in the time played
+    'coins_spawn_allowance' => 1.5,
+
     // Offered at most once in a game
     'once_per_game' => ['zee'],
+
+    // The level at which each server-decided rarity starts to drop (progression.unlockLevel in
+    // game/config/gameConfig.js). A game that starts at or past that level, because the player
+    // skipped ahead, is not held back by not_before_seconds for that rarity.
+    'unlock_level' => [
+        'epic' => 4,
+        'special' => 6,
+        'tier_set' => 8,
+        'legendary' => 10,
+        'zee_zgnan' => 12,
+    ],
 
     // Rarities that never drop this early. In the game each rarity unlocks at a level
     // (progression.unlockLevel in game/config/gameConfig.js); these are the seconds of play

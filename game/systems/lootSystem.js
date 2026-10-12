@@ -170,13 +170,15 @@ function goOffline(current) {
     current.onOffline();
 }
 
-async function openGame(current, playerName, faction) {
+async function openGame(current, playerName, faction, startZone) {
     while (session === current && !current.token) {
         try {
-            const response = await post(gamesUrl(), { name: playerName, faction, version: GAME_VERSION });
+            const response = await post(gamesUrl(), { name: playerName, faction, startZone, version: GAME_VERSION });
             if (response.ok) {
                 const data = await response.json();
                 current.token = data.game;
+                // The purse, after the site took the price of any skip
+                if (siteBoot.user && typeof data.coins === 'number') siteBoot.user.coins = data.coins;
 
                 // Answered too late: the game is recorded, but as an offline one
                 if (session === current && current.mode === 'connecting') {
@@ -236,14 +238,47 @@ export function serverDecides(item) {
     return Boolean(session) && session.mode !== 'offline' && SERVER_TYPES.has(item.type);
 }
 
+// Whether catching this item earns coins. A rare item only does when the server offered it.
+export function earnsCoins(item, dropId = null) {
+    if (!session) return true;
+    return !SERVER_TYPES.has(item.type) || (dropId !== null && dropId !== undefined);
+}
+
+/**
+ * A boss was defeated. Resolves to what it dropped, as the server decided:
+ * { item: { id, name, rarity }, kept, timesFound } - "kept" is false for guests, who are only
+ * shown the item. Resolves to null when the server could not be asked.
+ */
+export async function reportBoss(bossId) {
+    const current = session;
+    if (!current) return null;
+
+    for (let attempt = 0; attempt < 4 && session === current; attempt++) {
+        if (current.token) {
+            try {
+                const response = await post(gamesUrl(current.token, 'bosses'), { boss: bossId });
+                if (response.ok) return await response.json();
+                // Too early or too many requests may pass; anything else will not
+                if (response.status >= 400 && response.status < 500 && response.status !== 425 && response.status !== 429) return null;
+            } catch (e) {
+                // Retried below
+            }
+        }
+        await new Promise(resolve => setTimeout(resolve, RETRY_MS));
+    }
+
+    return null;
+}
+
 /**
  * A game is starting.
  * @param {string}   playerName  Name typed by a guest (accounts play under their own name)
  * @param {string}   faction     The side the player chose: 'alliance' or 'horde'
+ * @param {number}   startZone   The zone the game starts in: above 1 when the player pays to skip ahead
  * @param {Function} getSummary  Returns the game's result so far: { score, level, gameTime, ... }
  * @param {Function} onOffline   Called once if the game loses the server
  */
-export function beginGame({ playerName, faction, getSummary, onOffline }) {
+export function beginGame({ playerName, faction, startZone = 1, getSummary, onOffline }) {
     if (!siteBoot || !siteBoot.urls.games) {
         session = null;
         return;
@@ -268,7 +303,7 @@ export function beginGame({ playerName, faction, getSummary, onOffline }) {
     // The game this tab played before (if it was left unfinished) is handed in first; the tab's
     // own game is only replaced once the new one has opened
     handInLeftovers();
-    openGame(session, playerName, faction);
+    openGame(session, playerName, faction, startZone);
 }
 
 /**
@@ -323,7 +358,7 @@ export function recordPickup(itemId, dropId = null) {
 }
 
 /**
- * The game is over. Resolves to { legal, rank, scores } once the server has recorded it, to
+ * The game is over. Resolves to { legal, rank, scores, coins } once the server has recorded it, to
  * { legal: false } when it could not be recorded, or returns null when the game is not played
  * under the site (the caller keeps its own scores then).
  */

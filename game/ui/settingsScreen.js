@@ -64,7 +64,7 @@ function bindSelect(id, section, key, label) {
     });
 }
 
-function bindToggle(id, key, label) {
+function bindToggle(id, key, label, category = 'audio') {
     const toggle = byId(id);
     if (!toggle) {
         console.warn(`${label} toggle element not found!`);
@@ -86,7 +86,7 @@ function bindToggle(id, key, label) {
 
     toggle.addEventListener('change', function() {
         console.log(`${label} toggle changed to:`, this.checked);
-        updateSetting('audio', key, this.checked);
+        updateSetting(category, key, this.checked);
     });
 }
 
@@ -128,6 +128,7 @@ export function updateSettingsScreen() {
     }
 
     setValue('handedness', settings.ui?.handedness || 'right');
+    setChecked('lockMouseToggle', settings.ui?.lockMouse !== false);
     setValue('playerPanelStyle', settings.ui?.playerPanelStyle || 'auto');
     setValue('dragonstalkerPanelStyle', settings.ui?.dragonstalkerPanelStyle || 'auto');
 
@@ -147,6 +148,7 @@ export function bindSettingsScreen() {
 
     bindToggle('soundEffectsToggle', 'soundEffects', 'Sound effects');
     bindToggle('backgroundMusicToggle', 'backgroundMusic', 'Background music');
+    bindToggle('lockMouseToggle', 'lockMouse', 'Mouse lock', 'ui');
 
     bindRange('masterVolumeSlider', 'masterVolumeValue', 'audio', 'masterVolume');
     bindRange('musicVolumeSlider', 'musicVolumeValue', 'audio', 'musicVolume');

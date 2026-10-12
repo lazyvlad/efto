@@ -1,5 +1,77 @@
 # Changelog
 
+## 2.17.0 - 2026-10-12
+
+### What's new
+
+- The old item pictures are redrawn in the same painted style as the bosses and backgrounds:
+  26 items (rings, capes, gems, food, coins, trinkets), the potions and other power-ups, the
+  three falling spells (Sprint, Power Word: Shield, Frost Nova) and the Dragon Cry,
+  Zandalari, Autoshot and Multishot buttons. They no longer sit in dark square tiles.
+- Bronze, Silver and Thorium Arrows each have their own picture; they used to share one.
+- The four coins now look like the metal they are named after.
+
+**Boss loot**
+- Every boss you defeat drops one of its three items: usually the common one (70%),
+  sometimes the rare one (24%), now and then the epic one (6%). The name comes up on screen
+  in its rarity's colour.
+- Logged-in players keep what drops. "My Games" lists every boss with its three items, the
+  ones you have and how many times you found them. Guests are shown the item, but it is not
+  kept.
+
+**Coins**
+- Catching items earns coins: 10 copper for a common item, up to 10 silver for Zee Zgnan
+  Tigar. A boss pays 1 silver for each zone it guards. 100 copper is a silver, 100 silver a
+  gold.
+- The stats panel shows what the game has earned so far, and the game over screen what it
+  came to. For logged-in players it is added to their purse, shown on the main menu and on
+  "My Games". There is nothing to spend it on yet.
+- Coins and boss loot are kept whichever way a game ends, also when it was left early or
+  went offline.
+
+**Skipping ahead**
+- Coins have a use: a logged-in player can start a game in a later zone. The main menu shows
+  "Start in" once you have beaten the first boss of a side. You can start in any zone whose
+  earlier bosses you have defeated before, for 50 silver per zone skipped (the third zone:
+  1 gold). The coins are taken when the game starts.
+- A game that skipped ahead starts with no points and counts on the leaderboard like any
+  other. Rare items that are already unlocked at its starting level can drop from the start.
+
+**Mouse**
+- While you play, the mouse is kept inside the game, so it can no longer slip off the field
+  or out of the window and leave the hunter standing. Esc lets it go and pauses the game;
+  carrying on takes it again. It can be turned off under Settings, Controls.
+
+### Changed
+- The first bosses have less health and hit harder. The first boss has a fifth less health
+  and Hogger a tenth less, and their attacks take 8 and about 9 health instead of 6 and 7.
+  The difference fades with every zone: the last bosses are as they were.
+- Gath'Ilzogg was too easy for the fifth boss. He now fights as a warlord: a fan of axes, a
+  rush down the field, a throw and a row, one after the other.
+
+### Fixed
+- The old background picture no longer flashes up when the game opens. The page starts
+  plain dark, and the picture of the side you chose last time is fetched first, before the
+  rest of the game. The old picture (`game/assets/ui/background.jpg`) is removed.
+
+### For developers
+- Deploying this version needs `php artisan migrate` (new table `boss_drops`, new `coins`
+  columns on `users` and `games`, new `start_zone` on `games`).
+- Skipping ahead: the price and the length of a zone are in `config/boss_loot.php`; the game
+  sends `startZone` when it opens a game and the server checks the bosses beaten and takes
+  the coins (`games.start_zone`). The menu's choice is `game/ui/startZone.js`.
+- The mouse lock is in `game/systems/inputSystem.js` (the browser's pointer lock).
+- What bosses drop is `config/boss_loot.php`; the game reports a defeated boss with
+  `POST /api/games/{token}/bosses` and the server rolls the item. Coin values are `coins` in
+  `config/loot.php` and in `game/config/gameConfig.js`, which must agree
+  (`tests/Feature/BossLootConfigTest.php`). The server works out a game's coins when it is
+  handed in (`app/Support/Coins.php`).
+- The new pictures are WebP, named after the item (`game/assets/items/hard-cheese.webp`),
+  and the falling spells are in `game/assets/projectiles/`. The 38 pictures they replace are
+  removed. `game/data/assetRegistry.js` keeps its keys; `config/loot.php` has the new paths.
+- The originals as delivered (1024px PNG) are in `game-art/item-redraw-pack.zip`, which is
+  not in the repository.
+
 ## 2.16.1 - 2026-10-12
 
 ### Fixed

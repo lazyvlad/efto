@@ -27,27 +27,29 @@ export const assetRegistry = {
     
     // Power-up and consumable assets
     powerups: {
-        healthPotion: 'assets/powerups/health_potion.png',
-        manaPotion: 'assets/powerups/mana_potion.png',
-        alchemy: 'assets/powerups/alchemy.png',
+        healthPotion: 'assets/powerups/health-potion.webp',
+        manaPotion: 'assets/powerups/mana-potion.webp',
+        alchemy: 'assets/powerups/time-cutter.webp',
         speedBoost: 'assets/powerups/speed-boost.png',
-        sprint: 'assets/powerups/sprint.webp',
-        aspectOfTheMonkey: 'assets/powerups/aspect_of_the_monkey.webp',
-        evasion: 'assets/powerups/evasion.jpg',
-        frostNova: 'assets/powerups/frost-nova.jpg',
-        powerWordShield: 'assets/powerups/powerwordshield.jpg',
-        chickenFood: 'assets/powerups/kokoska.png',
-        reverseGravity: 'assets/powerups/reverse_gravity.webp',
-        thoriumArrows: 'assets/powerups/arrows.webp'
+        sprint: 'assets/projectiles/sprint.webp',
+        aspectOfTheMonkey: 'assets/powerups/swift-reflexes.webp',
+        evasion: 'assets/powerups/master-evasion.webp',
+        frostNova: 'assets/projectiles/frost-nova.webp',
+        powerWordShield: 'assets/projectiles/power-word-shield.webp',
+        chickenFood: 'assets/powerups/chicken-food.webp',
+        reverseGravity: 'assets/powerups/reverse-gravity.webp',
+        bronzeArrows: 'assets/powerups/bronze-arrows.webp',
+        silverArrows: 'assets/powerups/silver-arrows.webp',
+        thoriumArrows: 'assets/powerups/thorium-arrows.webp'
     },
     
     // Buff and effect assets
     buffs: {
         songflower: 'assets/spells/songflower-buff.png',
         onyxia: 'assets/spells/dragon-cry.webp',
-        zgBuff1: 'assets/spells/zg-buff.png',
+        zgBuff1: 'assets/spells/zandalari.webp',
         zgBuff2: 'assets/spells/zg-buff2.png',
-        blackLotuses: 'assets/spells/black-lotuses.webp',
+        blackLotuses: 'assets/items/black-lotuses.webp',
         flaskOfTitans: 'assets/spells/flask_of_titans.webp',
         arcaneShot: 'assets/spells/arcane_shot.webp',
         autoshot: 'assets/spells/autoshot.webp',
@@ -90,10 +92,10 @@ export const assetRegistry = {
     // Regular items
     items: {
         // Basic items
-        gold: 'assets/items/gold.png',
-        ring1: 'assets/items/ring1.png',
-        ring2: 'assets/items/ring2.png',
-        ring3: 'assets/items/ring3.png',
+        gold: 'assets/items/gold.webp',
+        ring1: 'assets/items/ring1.webp',
+        ring2: 'assets/items/ring2.webp',
+        ring3: 'assets/items/arcane-crystal.webp',
         chest: 'assets/items/chest.png',
         
         // Dragonstalker set
@@ -125,34 +127,34 @@ export const assetRegistry = {
         perditionsBlade: 'assets/items/perditions-blade.png',
         
         // Accessories and misc
-        minersCape: 'assets/items/miners-cape.png',
-        walkingStick: 'assets/items/walking-stick.png',
-        wolfmasterCape: 'assets/items/wolfmaster-cape.png',
-        quickStrikeRing: 'assets/items/quick-strike-ring.png',
-        circleOfAppliedForce: 'assets/items/circle-of-applied-force.png',
-        onslaught: 'assets/items/onslaught.png',
+        minersCape: 'assets/items/miners-cape.webp',
+        walkingStick: 'assets/items/walking-stick.webp',
+        wolfmasterCape: 'assets/items/wolf-master.webp',
+        quickStrikeRing: 'assets/items/quick-strike-ring.webp',
+        circleOfAppliedForce: 'assets/items/circle-of-applied-force.webp',
+        onslaught: 'assets/items/onslaught.webp',
         cts: 'assets/items/cts.png',
-        dft: 'assets/items/DFT.png',
+        dft: 'assets/items/drakefangtalisman.webp',
         
         // Legendary and ultra rare
         tunder: 'assets/items/tunder.png',
         zee: 'assets/items/zee.png',
         
-        // WebP items
-        cape21: 'assets/items/Inv_misc_cape_21.webp',
-        cape05: 'assets/items/Inv_misc_cape_05.webp',
-        forkKnife: 'assets/items/fork_knife.webp',
-        sapphireGem: 'assets/items/Inv_misc_gem_sapphire_01.webp',
-        pearlGem: 'assets/items/Inv_misc_gem_pearl_04.webp',
-        hardCheese: 'assets/items/Inv_misc_food_100_hardcheese.webp',
-        food09: 'assets/items/Inv_misc_food_09.webp',
-        fish31: 'assets/items/Inv_misc_fish_31.webp',
-        swissArmy: 'assets/items/Inv_misc_enggizmos_swissarmy.webp',
-        gizmos29: 'assets/items/Inv_misc_enggizmos_29.webp',
-        coin04: 'assets/items/Inv_misc_coin_04.webp',
-        coin10: 'assets/items/Inv_misc_coin_10.webp',
-        coin02: 'assets/items/Inv_misc_coin_02.webp',
-        coin01: 'assets/items/Inv_misc_coin_01.webp'
+        // Common loot
+        cape21: 'assets/items/cape21.webp',
+        cape05: 'assets/items/cape05.webp',
+        forkKnife: 'assets/items/fork-knife.webp',
+        sapphireGem: 'assets/items/sapphire-gem.webp',
+        pearlGem: 'assets/items/pearl-gem.webp',
+        hardCheese: 'assets/items/hard-cheese.webp',
+        food09: 'assets/items/bread.webp',
+        fish31: 'assets/items/fish.webp',
+        swissArmy: 'assets/items/swiss-army.webp',
+        gizmos29: 'assets/items/gizmos.webp',
+        coin04: 'assets/items/copper-coin.webp',
+        coin10: 'assets/items/gold-coin.webp',
+        coin02: 'assets/items/silver-coin.webp',
+        coin01: 'assets/items/bronze-coin.webp'
     }
 };
 
@@ -177,7 +179,7 @@ export const assetCategories = {
         assetRegistry.items.gold,
         assetRegistry.items.wolfmasterCape,
         
-        // WebP regular items
+        // More regular items
         assetRegistry.items.cape21,
         assetRegistry.items.cape05,
         assetRegistry.items.forkKnife,
@@ -228,6 +230,8 @@ export const assetCategories = {
         assetRegistry.powerups.alchemy,
         assetRegistry.powerups.chickenFood,
         assetRegistry.powerups.reverseGravity,
+        assetRegistry.powerups.bronzeArrows,
+        assetRegistry.powerups.silverArrows,
         assetRegistry.powerups.thoriumArrows,
         
         // Important special buffs and spell icons

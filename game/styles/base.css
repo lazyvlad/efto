@@ -6,12 +6,13 @@ body, html {
     padding: 0;
     height: 100%;
     overflow: hidden;
-    background: url('../assets/ui/background.jpg') center center/cover no-repeat #1a1a1a;
+    background: #0d0b09;
     font-family: Arial, sans-serif;
 }
 
 /* The background behind the canvas: two layers that fade from one picture to the next.
-   With neither showing, the page's own background above is seen. */
+   With neither showing (no side chosen yet, or the picture still loading), the page's own
+   plain dark background above is seen. */
 .background-layer {
     position: fixed;
     inset: 0;

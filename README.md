@@ -35,6 +35,17 @@ public/build/                          The built site CSS/JS (committed)
   (`POST /api/games/{token}/drops`), so the browser never holds more than the next chunk,
   and a pickup only counts if the server offered that item to that game. The offers and
   pickups are the rows of `game_drops`.
+- A defeated boss drops one of its three items, picked by the server (`config/boss_loot.php`,
+  reported with `POST /api/games/{token}/bosses`). Logged-in players keep them: the rows of
+  `boss_drops` with their user id. Guests are only shown the item.
+- Games earn coins, counted in copper: so much per item caught, by rarity, and so much per
+  boss (`coins` in `config/loot.php`; the game shows the same amounts from
+  `game/config/gameConfig.js`). The server works the total out when the game is handed in
+  and adds it to the player's `coins`. Rare items only count if the server offered them, and
+  common ones only up to what the game can have spawned in the time played.
+- A logged-in player can pay coins to start a game in a later zone, past bosses they have
+  defeated before (`skip_cost_per_zone` in `config/boss_loot.php`). The game sends the zone
+  as `startZone` when it opens the game; the server checks it and takes the coins.
 - A game that cannot reach the server in time goes offline: rare items drop at random and
   the game is recorded as offline. Only games played to the end online put a score on the
   leaderboard.
@@ -79,7 +90,7 @@ the boss, its picture (`game/assets/bosses/<side>/`) and what it throws
 settings in `game/config/gameConfig.js`: health, damage, how often it throws, its shield,
 how fast it weakens, when it enrages, how it moves and how sharply it sidesteps arrows. Its
 `behaviour` picks the round of attacks it works through (thrower, assassin, charger, caster,
-bomber or pounder). Convert large artwork to WebP at the size it is
+bomber, pounder or warlord). Convert large artwork to WebP at the size it is
 needed before adding it: the build does not resize these two folders.
 
 ## Setting up

@@ -690,13 +690,14 @@ function defeat(context) {
     gameState.health = Math.min(gameState.maxHealth, gameState.health + reward.health);
     addNotification(gameState, `${boss.name} is defeated! +${reward.score} points`, 360, '#FFD700');
     playTotalSound();
+    if (context.onBossDefeated) context.onBossDefeated(boss);
 }
 
 /**
  * Advance the fight by one simulation step. Does nothing when there is no fight.
  * @param {object} context  { gameState, canvas, player, fireballs, powerUps, particles, combatTexts,
  *                            spellSystem, isValidYPosition, recentDropYPositions,
- *                            shouldDodge, showDodgeText, trackDodge }
+ *                            shouldDodge, showDodgeText, trackDodge, onBossDefeated }
  */
 export function updateBoss(context) {
     if (!fight) return;

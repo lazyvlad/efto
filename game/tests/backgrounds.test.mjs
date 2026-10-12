@@ -39,3 +39,12 @@ test('every side has a list, and every background has an id, a name and a pictur
         }
     }
 });
+
+test('the page fetches the same starting pictures early as the game shows', async () => {
+    const page = (await readFile(new URL('../index.html', import.meta.url))).toString();
+
+    for (const [side, list] of Object.entries(backgrounds)) {
+        assert.ok(page.includes(`${side}: '${list[0].image}'`), `index.html preloads another picture for the ${side}`);
+    }
+    assert.ok(!page.includes('assets/ui/background'), 'the old background is still on the page');
+});

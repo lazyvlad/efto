@@ -258,9 +258,26 @@ export const gameConfig = {
     // Who the bosses are is in data/bosses.js. A boss's strength comes from its zone (1 to 10)
     // and the numbers here: "base" is the first zone's boss, "perZone" what each later zone
     // adds or takes off. 60 steps = 1 second.
+    // === COINS ===
+    // What catching an item is worth, by rarity, in copper (100 copper = 1 silver, 100 silver =
+    // 1 gold). A logged-in player's coins are kept on their account. The site works out what a
+    // game earned from its own copy of these (coins in config/loot.php): keep the two the same.
+    coins: {
+        byType: {
+            regular: 10,
+            green: 25,
+            epic: 100,
+            special: 150,
+            tier_set: 200,
+            legendary: 500,
+            zee_zgnan: 1000,
+        },
+        bossPerZone: 100,           // Defeating a boss pays this for each zone it guards
+    },
+
     bosses: {
-        health: { base: 300, perZone: 250 },                    // Hogger (zone 2): 550
-        damage: { base: 6, perZone: 1 },                        // What one of the boss's attacks takes off the player
+        health: { base: 240, perZone: 257 },                    // Hogger (zone 2): 497. The first bosses go down quickly; the last has about 2550
+        damage: { base: 8, perZone: 0.8 },                      // What one of the boss's attacks takes off the player: 8 for the first boss, about 15 for the last
         throwEvery: { base: 100, perZone: 5, fastest: 70 },     // Steps on the move between one attack and winding up the next
         volleyEvery: { base: 450, perZone: 15, fastest: 300 },  // Steps between rows with one gap
         

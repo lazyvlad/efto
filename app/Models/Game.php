@@ -26,6 +26,7 @@ class Game extends Model
         'user_id',
         'name',
         'faction',
+        'start_zone',
         'status',
         'offline',
         'chunks_issued',
@@ -36,6 +37,7 @@ class Game extends Model
         'final_crit_rating',
         'final_dodge_rating',
         'items',
+        'coins',
         'game_version',
         'started_at',
         'ended_at',
@@ -44,6 +46,7 @@ class Game extends Model
     protected function casts(): array
     {
         return [
+            'start_zone' => 'integer',
             'offline' => 'boolean',
             'chunks_issued' => 'integer',
             'score' => 'integer',
@@ -53,6 +56,7 @@ class Game extends Model
             'final_crit_rating' => 'float',
             'final_dodge_rating' => 'float',
             'items' => 'array',
+            'coins' => 'integer',
             'started_at' => 'datetime',
             'ended_at' => 'datetime',
         ];
@@ -71,6 +75,14 @@ class Game extends Model
     public function drops(): HasMany
     {
         return $this->hasMany(GameDrop::class);
+    }
+
+    /**
+     * What the bosses defeated in this game dropped.
+     */
+    public function bossDrops(): HasMany
+    {
+        return $this->hasMany(BossDrop::class);
     }
 
     public function scoreEntry(): HasOne
@@ -105,6 +117,14 @@ class Game extends Model
     }
 
     /**
+     * The level the game started at: the first of its starting zone.
+     */
+    public function startLevel(): int
+    {
+        return (max(1, (int) $this->start_zone) - 1) * (int) config('boss_loot.levels_per_zone') + 1;
+    }
+
+    /**
      * Real seconds since the game started. Play time can only be shorter (pauses).
      */
     public function secondsSinceStart(): int
@@ -126,7 +146,7 @@ class Game extends Model
 
         $offered = $this->drops()->pluck('item_id')->all();
 
-        $drops = collect(LootTable::rollChunk($chunk, $offered))
+        $drops = collect(LootTable::rollChunk($chunk, $offered, $this->startLevel()))
             ->map(fn (array $drop) => $this->drops()->create($drop + ['chunk' => $chunk]));
 
         $this->update(['chunks_issued' => $chunk + 1]);
