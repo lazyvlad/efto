@@ -52,6 +52,36 @@ picture (landscape; the current ones are 1672x941 WebP) in `game/assets/backgrou
 `game/config/gameConfig.js` sets how many levels are played on each one and what happens
 after the last. The side is stored with each game in `games.faction`.
 
+### The player's figure
+
+Each side has its own figure, a single drawing animated by `game/classes/CharacterAnimator.js`:
+the pajama hunter for the Alliance, a tauren for the Horde. `game/data/playerCharacters.js`
+lists them with a "rig" each, which says where the arms, legs, chest and feet are in that
+drawing. To add or replace one, put a square 640px WebP in `game/assets/player/` and set
+its rig; the build leaves these pictures at the size they were added at.
+
+### Levels and what drops
+
+Catching items gives experience, and each level needs more than the last
+(`game/utils/progression.js`). The pace, how much more items are worth per level, and the
+level at which each rarity starts to drop are set under `progression` in
+`game/config/gameConfig.js`. The server holds rare drops back by time as well
+(`not_before_seconds` in `config/loot.php`), set a little below the earliest a player can
+reach each rarity's level; keep the two in step when either changes.
+
+### Bosses
+
+Every zone ends with a boss, listed by side and zone in `game/data/bosses.js` in the same
+order as the backgrounds. A boss comes in when the player has the experience for the next
+zone, and the level stays at the end of the zone until the boss is defeated. An entry names
+the boss, its picture (`game/assets/bosses/<side>/`) and what it throws
+(`game/assets/attacks/<side>/`). How strong it is comes from its zone and the `bosses`
+settings in `game/config/gameConfig.js`: health, damage, how often it throws, its shield,
+how fast it weakens, when it enrages, how it moves and how sharply it sidesteps arrows. Its
+`behaviour` picks the round of attacks it works through (thrower, assassin, charger, caster,
+bomber or pounder). Convert large artwork to WebP at the size it is
+needed before adding it: the build does not resize these two folders.
+
 ## Setting up
 
 Requires PHP 8.2+, Composer and MySQL. Node.js is only needed where you change and build

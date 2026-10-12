@@ -212,26 +212,127 @@ export const gameConfig = {
     player: {
         startingHealth: 100,
         maxHealth: 100,
-        impactDuration: 120,        // Frames to show impact face (120 = ~2 seconds)
         moveSmoothing: 0.15,        // Movement smoothing factor (0.1 = slow, 0.3 = fast)
-        celebrationDuration: 120,   // Frames to show celebration for tier set collection (120 = ~2 seconds)
         
         // === MOVABLE AREA SETTINGS ===
         movableArea: {
             enabled: true,          // Enable movement constraints
             heightPercent: 0.3,     // Player can move in bottom 30% of canvas
             showBorder: true,       // Show visual border of movable area
-            borderColor: '#4ECDC4', // Border color (cyan)
+            borderColor: '#e8c66a', // Border color (the interface's soft gold)
             borderOpacity: 0.3,     // Border opacity (30%)
             borderWidth: 2,         // Border line thickness
         }
     },
     
     // === LEVEL PROGRESSION ===
+    // === LEVELLING ===
+    // Catching items gives experience, and each level needs more of it than the last
+    // (utils/progression.js). Levels are the ones the player sees: the first is 1.
+    progression: {
+        // The pace is set in seconds: a player who catches most things spends about
+        // secondsAtLevel1 on level 1 and secondsPerLevel more on every level after that
+        // (level 5: 22s, level 10: 37s, level 20: 67s).
+        secondsAtLevel1: 10,
+        secondsPerLevel: 3,
+        xpPerSecond: 1.2,           // Experience such a player earns per second from level 1 items
+        
+        // Items are worth this much more per level, in points and in experience (0.12 = +12%).
+        // Without it the later levels would take longer and longer for the same catches.
+        valueGrowthPerLevel: 0.12,
+        
+        // The level at which each rarity starts to drop. The server holds the rare ones back
+        // by time as well (not_before_seconds in config/loot.php on the site).
+        unlockLevel: {
+            regular: 1,
+            green: 2,
+            epic: 4,
+            special: 6,
+            tier_set: 8,
+            legendary: 10,
+            zee_zgnan: 12,
+        },
+    },
+    
+    // === BOSS FIGHTS ===
+    // Who the bosses are is in data/bosses.js. A boss's strength comes from its zone (1 to 10)
+    // and the numbers here: "base" is the first zone's boss, "perZone" what each later zone
+    // adds or takes off. 60 steps = 1 second.
+    bosses: {
+        health: { base: 300, perZone: 250 },                    // Hogger (zone 2): 550
+        damage: { base: 6, perZone: 1 },                        // What one of the boss's attacks takes off the player
+        throwEvery: { base: 100, perZone: 5, fastest: 70 },     // Steps on the move between one attack and winding up the next
+        volleyEvery: { base: 450, perZone: 15, fastest: 300 },  // Steps between rows with one gap
+        
+        // Arrows
+        arrowDamage: 10,            // Damage of one arrow, before crits and weakening
+        arcaneDamage: 3,            // An Arcane Shot does this many arrows' worth (it costs 5)
+        
+        // The longer a fight lasts the weaker the boss gets, up to a limit
+        weakenPerSecond: 0.02,      // Each second, arrows do this much more damage (0.02 = +2%)
+        maxWeakened: 2,             // Arrows never do more than this many times their normal damage
+        
+        // The boss shields itself: arrows are absorbed until an Arcane Shot breaks the shield
+        shield: {
+            fromZone: 2,            // The first zone whose boss shields itself
+            firstAfter: 12,         // Seconds into the fight of the first shield
+            every: 30,              // Seconds from a shield being broken to the next one
+            perZone: 1.5,           // Shorter by this much with every zone
+            shortest: 15,
+        },
+        
+        // When its time is up the boss enrages: it throws faster and hits harder
+        enrage: {
+            after: 100,             // Seconds the first boss gives the player
+            perZone: 5,             // Less by this much with every zone
+            soonest: 50,
+            atStart: 1.5,           // Times faster and harder the moment it enrages
+            perSecond: 0.03,        // Growing by this much every second after
+            most: 4,                // Never more than this
+        },
+        
+        reward: { score: 100, scorePerZone: 50, health: 30 },
+        
+        // A boss keeps on the move: it sweeps along the top and is drawn towards the player,
+        // so it passes over them without ever settling there
+        movement: {
+            speed: 0.004,           // Fastest it moves, as a share of the screen width per step
+            sweep: { base: 15, perZone: 0.8, fastest: 8 },  // Seconds for one sweep across and back: slow for the first boss, quicker by the zone
+            towardsPlayer: 0.35,    // How far it is drawn off its sweep towards the player (0 = not at all, 1 = sits over them)
+        },
+        
+        // A boss sidesteps arrows it sees coming, the later bosses more sharply. It cannot while
+        // it winds up an attack, while shielded, or while already busy.
+        dodge: {
+            reaction: { base: 20, perZone: 1.5, fastest: 6 },   // Steps it takes to react to an arrow
+            cooldown: { base: 100, perZone: 8, shortest: 28 },  // Steps before it can sidestep again
+            seesAhead: 45,          // It notices arrows this many steps before they would land
+            steps: 14,              // A sidestep lasts this long
+            distance: 0.8,          // ...and carries it this far, in widths of its own body
+        },
+        
+        // Later bosses wind up faster: each zone takes this share off the wind-up, down to the
+        // least it may be. A charge or a stomp, which the player has to get clear of, keeps more.
+        windUp: { perZone: 0.05, least: 0.5, leastForHeavy: 0.7 },
+        
+        // Attacks that are more than a thrown thing hit harder: a charge, a blast, a stomp
+        heavyDamage: 1.5,
+        // A curse takes this share of the boss's damage every second, for this many seconds
+        curse: { share: 0.25, seconds: 6 },
+
+        arrowBundle: 'bronze_arrows', // The arrow bundle dropped during a fight (data/powerUpItems.js)
+        arrowsEvery: 300,           // Steps between arrow bundles
+        potionEvery: 1200,          // Steps between health potions
+        
+        // In normal play, the chance per step that one of the bosses' attacks falls as a hazard
+        // (any boss of either side, picked at random)
+        bossAttackChance: 0.006,
+    },
+    
     // === BACKGROUNDS ===
     // The pictures themselves are listed per side in data/backgrounds.js
     backgrounds: {
-        levelsPerBackground: 2,     // Levels played on one background before moving to the next
+        levelsPerBackground: 2,     // Levels in a zone: played on one background, with the zone's boss at the end
         whenFinished: 'loop',       // After the side's last background: 'loop' starts again, 'hold' stays on it
     },
     
@@ -240,7 +341,7 @@ export const gameConfig = {
         startingLevel: 1,                  // Starting level for testing (1 = normal 1.6x, 10 = ~4.3x speed, 15 = ~6.3x speed)
         
         // === HYBRID TIME + ACTIVITY PROGRESSION ===
-        progressionType: "hybrid",          // "hybrid", "time", "points", or "events"
+        progressionType: "xp",              // "xp" (experience, see progression above); "hybrid", "time" and "points" are the older systems
         baseTimePerLevel: 35,               // Base time requirement per level (seconds)
         
         // Activity bonuses/penalties

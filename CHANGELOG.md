@@ -1,5 +1,211 @@
 # Changelog
 
+## 2.16.1 - 2026-10-12
+
+### Fixed
+- More room to play in a boss fight. When the screen has a band above the play field, the
+  messages ("Bronze Arrows! +25 arrows" and the like) are shown there instead of on the
+  field, and the boss and his health bar start right at the top of the field. Where the
+  field fills the screen, the messages stay on it as before.
+
+## 2.16.0 - 2026-10-12
+
+### What's new
+
+**Bosses fight back, and each in their own way**
+- A boss no longer hangs over your head. He sweeps along the top of the field, passing over
+  you, so standing still and shooting straight up mostly misses.
+- Bosses sidestep arrows they see coming: the first ones slowly and now and then, the last
+  ones quickly and often.
+- Every attack is wound up first. The boss glows and stands still, and cannot sidestep: that
+  is the moment to shoot.
+- Six ways of fighting, shared out among the twenty bosses:
+  - **Throwers** (Garrick Padfoot, Hogger, Gath'Ilzogg, Stitches, Nek'rosh) throw at you, and
+    now and then a whole row with one gap.
+  - **Assassins** (Bazil Thredd, Edwin VanCleef) throw fans of blades and vanish, to come
+    back on your other side.
+  - **Chargers** (King Bangalash, Echeyakee, Shadumbra, Big Samras) mark a lane and rush down
+    it into your part of the field. Get out of the lane.
+  - **Casters** (Vile Priestess Hexx, Sarkoth, Zalazane, Taragaman) send bolts that follow
+    you, and a curse that eats at your health until it runs out or Dragon Cry lifts it.
+  - **Bombers** (Fozruk, Gerenzo Wrenchwhistle) lob things that land where you stood and
+    burst a moment later.
+  - **Pounders** (Arnak Grimtotem, Khan Dez'hepah, Chief Ukorz Sandscalp) stomp: the whole
+    floor hurts except one safe patch, shown in green.
+
+**Dodging, the Warcraft way**
+- Your dodge chance now follows Classic's rule: every level an attacker is above you takes
+  0.2% off it. A boss counts as three levels above you, so his attacks are 0.6% harder to
+  dodge. Charges, blasts and stomps can be dodged, and are blocked by a shield, like
+  anything else. A curse cannot.
+
+### For developers
+- A boss's way of fighting is its `behaviour` in `game/data/bosses.js`; `behaviours` there
+  lists the round of attacks each one works through. The attacks are in
+  `game/systems/bossSystem.js`; movement, sidestepping and wind-up settings are under
+  `bosses` in `game/config/gameConfig.js`.
+- The dodge rule is `game/utils/combat.js`.
+
+## 2.15.0 - 2026-10-12
+
+### What's new
+
+- Horde players have their own figure: a tauren, animated the same way as the Alliance's
+  pajama hunter. He breathes, leans and steps, reaches to catch, recoils from a hit and
+  braces to shoot. The figure changes with the side chosen on the main menu.
+
+### For developers
+- The animator is now `game/classes/CharacterAnimator.js` and takes a "rig" that says where
+  the arms, legs, chest, feet and back-gear are in a drawing. The two figures and their rigs
+  are in `game/data/playerCharacters.js`; a new figure is a picture plus an entry there.
+
+## 2.14.0 - 2026-10-12
+
+### What's new
+
+- The hunter has a small health bar under his feet: green, then amber, then red as his
+  health drops.
+
+## 2.13.0 - 2026-10-12
+
+### What's new
+
+**The pajama hunter**
+- The player is now a full figure: the hunter in his pyjamas, in place of the floating face.
+- He moves: he breathes while standing, leans and steps when he walks, lifts his hands when
+  he catches something, draws back and flashes when he is hit, and braces when he shoots.
+- What catches loot and what gets hit is his head, arms and body: the same size as the old
+  player, so catching and dodging feel as they did. His legs neither catch nor get hit.
+- Players who ask their device for reduced motion get him standing still.
+
+### For developers
+- `game/classes/HunterAnimator.js` (renamed `CharacterAnimator.js` in 2.15.0) warps the one picture (`game/assets/player/pajama-hunter.webp`)
+  over a grid with WebGL and stamps the result onto the game's canvas; without WebGL the
+  picture moves as one piece. `Player` tells it what happened (`onCollect`, `onHit`, `onShoot`).
+- The pictures the player used to be drawn with are no longer loaded.
+
+## 2.12.0 - 2026-10-12
+
+### What's new
+
+**Controls**
+- A new Handedness setting says which hand moves the character and which one shoots.
+  Right-handed (the default) puts the shots on the left; left-handed puts them on the right.
+- On phones the spell buttons are no longer one bar across the bottom. The shots (Autoshot,
+  Multishot, Arcane Shot) are a column of round buttons at one edge and the other spells a
+  column at the other, both just above the strip the character moves in, so no button is in
+  the way of the moving thumb. With a keyboard the bar stays in one piece, shots first.
+- The pause button on phones sits above the buttons at the right edge.
+
+**Look**
+- The frame around the play field, and the line marking where the character can move, are
+  drawn in the interface's gold in place of the neon green.
+- The "supported by" credit is no longer shown inside the game; it is in the site's footer.
+
+**Phones**
+- On the landing page the site's header and footer disappear while a game is underway, so
+  the game has the whole screen. They return at the main menu and at game over.
+
+## 2.11.0 - 2026-10-12
+
+### What's new
+
+**Every zone has its boss**
+- Each of the ten zones on each side now ends with its own boss, who never leaves his zone:
+  Hogger is met in Elwynn Forest, and Stormwind cannot be reached while he stands. When you
+  have the experience for the next zone the boss comes in, and the level stays put until he
+  is defeated.
+- A boss throws only his own attack: Hogger his axe, Sarkoth his venom, and so on.
+- Bosses get harder zone by zone: more health, harder and faster attacks, less time. The
+  first two are meant to be easy.
+- From the second zone on, a boss shields himself during the fight. Ordinary arrows are
+  absorbed until the shield is broken with an Arcane Shot.
+- Every fight has a time limit. When it runs out the boss enrages: he throws faster and hits
+  harder, more so every second.
+- A boss still weakens the longer the fight lasts, but now only up to double damage.
+
+**Arcane Shot (T)**
+- Takes the place of Flask of Titans on the spell bar. It fires one arcane arrow that breaks
+  a boss's shield, flies straight through projectiles, and hits for three arrows' worth. It
+  uses 5 arrows.
+- Flask of Titans is no longer on the bar. It is kept in the game's files for later.
+
+**New hazards and new pictures**
+- The attacks of all 20 bosses, of both sides, also fall as hazards all through the game:
+  daggers, axes, boulders, venom, claw slashes and the rest, any of them at any point,
+  whether or not you have met the boss they belong to.
+- Two new projectiles: Smite from level 7 and Holy Shock from level 11.
+- Fireball, Frostbolt and Shadowbolt have new pictures.
+
+### For developers
+- `game/data/bosses.js` lists all 20 bosses by side and zone; their strength comes from the
+  zone and the `bosses` settings in `game/config/gameConfig.js`.
+- Archived spells are `archivedSpells` in `game/data/playerSpells.js`.
+- Rare items the server schedules during a fight now drop one a second after it, not all at once.
+
+## 2.10.0 - 2026-10-12
+
+### What's new
+
+**Attack artwork**
+- Hogger now throws his axe, which tumbles as it falls, in place of the fireball he borrowed.
+- Your arrows are drawn as arrows, pointing the way they fly, instead of thin gold lines.
+
+### For developers
+- All 30 pictures of the attack pack are in `game/assets/attacks/`: one attack per boss in
+  `alliance/` and `horde/`, eight spells in `spells/` and two area effects in `area/`. Only
+  Hogger's axe and the arrow are used so far.
+- A boss's attack is the `attack` entry of its boss in `game/data/bosses.js`, drawn by
+  `game/classes/BossProjectile.js`.
+- The build leaves `assets/bosses/` and `assets/attacks/` at the size they were added at, and
+  takes about half a minute again.
+
+## 2.9.0 - 2026-10-12
+
+### What's new
+
+**Levelling**
+- Levels now come from experience: every item caught gives experience, and each level needs
+  more of it than the one before. The first levels go by in seconds (level 2 after about 10
+  seconds of good play, level 5 after about a minute); later ones take longer (level 10 after
+  about 3 minutes, level 20 after about 12).
+- Items are worth 12% more with every level, in points and in experience, so later levels
+  stay reachable.
+- The player panel shows how far through the level you are ("Level 5 · 62%").
+
+**Rare items are held back**
+- Each rarity starts dropping at its own level: green items from level 2, epics from 4,
+  specials from 6, the Dragonstalker set and the two tier weapons from 8, Thunder Fury from
+  10 and Zee Zgnan Tigar from 12. Level 1 only drops regular items.
+
+### For developers
+- Levelling is `game/utils/progression.js` with its numbers under `progression` in
+  `game/config/gameConfig.js`. The older time-based system is still in the code
+  (`levels.progressionType`).
+- The server also holds rare drops back by time (`not_before_seconds` in `config/loot.php`).
+- The artwork for all 20 zone bosses is in `game/assets/bosses/<side>/`; only Hogger has a
+  fight so far. The uploaded originals in `game-art/` are kept out of git.
+
+## 2.8.0 - 2026-10-12
+
+### What's new
+
+**Boss fights**
+- Alliance players meet Hogger on reaching level 5. Normal drops stop, Hogger comes in at
+  the top of the screen with a health bar, and the level does not move on until he is down.
+- He follows you, throws fireballs at you, and every few seconds sends a whole row across
+  the screen with one gap to stand in.
+- Bring him down with arrows (Autoshot and Multishot). Critical hits count, and arrow
+  bundles and the odd health potion drop during the fight.
+- The longer you survive, the weaker he gets: arrows do 2% more damage for every second of
+  the fight, shown on his health bar.
+- Defeating him gives 150 points and restores 30 health. Dying to him ends the game as usual.
+
+### For developers
+- Bosses are listed in `game/data/bosses.js` (side, level, health, attacks, reward) with
+  their pictures in `game/assets/bosses/`; the fight itself is `game/systems/bossSystem.js`
+  and its tuning is under `bosses` in `game/config/gameConfig.js`.
+
 ## 2.7.0 - 2026-10-12
 
 ### What's new

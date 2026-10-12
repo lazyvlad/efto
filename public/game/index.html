@@ -31,18 +31,18 @@
     <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
-    <link rel="stylesheet" href="styles/base.css?v=2.7.0">
-    <link rel="stylesheet" href="styles/ui-components.css?v=2.7.0">
-    <link rel="stylesheet" href="styles/settings.css?v=2.7.0">
-    <link rel="stylesheet" href="styles/notifications.css?v=2.7.0">
-    <link rel="stylesheet" href="styles/game-panels.css?v=2.7.0">
-    <link rel="stylesheet" href="styles/spell-bar.css?v=2.7.0">
-    <link rel="stylesheet" href="styles/how-to-play.css?v=2.7.0">
-    <link rel="stylesheet" href="styles/mobile.css?v=2.7.0">
-    <link rel="stylesheet" href="styles/wow-theme.css?v=2.7.0">
-    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.7.0"> -->
+    <link rel="stylesheet" href="styles/base.css?v=2.16.1">
+    <link rel="stylesheet" href="styles/ui-components.css?v=2.16.1">
+    <link rel="stylesheet" href="styles/settings.css?v=2.16.1">
+    <link rel="stylesheet" href="styles/notifications.css?v=2.16.1">
+    <link rel="stylesheet" href="styles/game-panels.css?v=2.16.1">
+    <link rel="stylesheet" href="styles/spell-bar.css?v=2.16.1">
+    <link rel="stylesheet" href="styles/how-to-play.css?v=2.16.1">
+    <link rel="stylesheet" href="styles/mobile.css?v=2.16.1">
+    <link rel="stylesheet" href="styles/wow-theme.css?v=2.16.1">
+    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.16.1"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
-  <!-- Built: 2026-10-12T13:04:23.320Z | Version: 2.7.0 | Mode: Production -->
+  <!-- Built: 2026-10-12T16:58:19.769Z | Version: 2.16.1 | Mode: Production -->
 </head>
 <body>
     <!-- The background: two layers that fade from one picture to the next (backgroundSystem.js) -->
@@ -59,11 +59,6 @@
     <!-- Buff Tracker Container -->
     <div id="buffTracker" class="buff-tracker-container"></div>
 
-    <!-- Sponsor Link -->
-    <div class="sponsor-link-class">
-        supported by: <a href="https://barkoder.com" target="_blank" rel="noopener noreferrer">barKoder</a>
-    </div>
-    
     <!-- Spell Notifications Container -->
     <div id="spellNotifications" class="spell-notifications-container"></div>
     
@@ -76,54 +71,57 @@
         
         <!-- Spell Bar -->
         <div id="spellBar">
-            <div class="spell-slot" id="spell-dragon-cry">
-                <div class="spell-icon">
-                    <img src="assets/spells/onyxia-buff.png" alt="Dragon Cry" class="spell-image">
+            <!-- Two groups, so they can sit on opposite sides: the shots under the hand that
+                 shoots, the rest under the hand that moves (see the Handedness setting) -->
+            <div class="spell-group spell-group-utility">
+                <div class="spell-slot" id="spell-dragon-cry">
+                    <div class="spell-icon">
+                        <img src="assets/spells/onyxia-buff.png" alt="Dragon Cry" class="spell-image">
+                    </div>
+                    <div class="spell-key">Q</div>
+                    <div class="spell-name">Dragon Cry</div>
+                    <div class="spell-timer" id="spell-dragon-cry-timer"></div>
+                    <div class="spell-cooldown-overlay" id="spell-dragon-cry-cooldown"></div>
                 </div>
-                <div class="spell-key">Q</div>
-                <div class="spell-name">Dragon Cry</div>
-                <div class="spell-timer" id="spell-dragon-cry-timer"></div>
-                <div class="spell-cooldown-overlay" id="spell-dragon-cry-cooldown"></div>
-            </div>
             
-            <div class="spell-slot" id="spell-zandalari">
-                <div class="spell-icon">
-                    <img src="assets/spells/zg-buff.png" alt="Zandalari" class="spell-image">
+                <div class="spell-slot" id="spell-zandalari">
+                    <div class="spell-icon">
+                        <img src="assets/spells/zg-buff.png" alt="Zandalari" class="spell-image">
+                    </div>
+                    <div class="spell-key">W</div>
+                    <div class="spell-name">Zandalari</div>
+                    <div class="spell-timer" id="spell-zandalari-timer"></div>
+                    <div class="spell-cooldown-overlay" id="spell-zandalari-cooldown"></div>
                 </div>
-                <div class="spell-key">W</div>
-                <div class="spell-name">Zandalari</div>
-                <div class="spell-timer" id="spell-zandalari-timer"></div>
-                <div class="spell-cooldown-overlay" id="spell-zandalari-cooldown"></div>
             </div>
-            
-            <div class="spell-slot" id="spell-flask-of-titans">
-                <div class="spell-icon">
-                    <img src="assets/spells/flask_of_titans.webp" alt="Flask of Titans" class="spell-image">
+            <div class="spell-group spell-group-shoot">
+                <div class="spell-slot" id="spell-autoshot">
+                    <div class="spell-icon">
+                        <img src="assets/spells/autoshot.webp" alt="Autoshot" class="spell-image">
+                    </div>
+                    <div class="spell-key">E</div>
+                    <div class="spell-name">Autoshot</div>
+                    <div class="spell-timer" id="spell-autoshot-timer"></div>
+                    <div class="spell-cooldown-overlay" id="spell-autoshot-cooldown"></div>
                 </div>
-                <div class="spell-key">T</div>
-                <div class="spell-name">Flask of Titans</div>
-                <div class="spell-timer" id="spell-flask-of-titans-timer"></div>
-                <div class="spell-cooldown-overlay" id="spell-flask-of-titans-cooldown"></div>
-            </div>
-            
-            <div class="spell-slot" id="spell-autoshot">
-                <div class="spell-icon">
-                    <img src="assets/spells/autoshot.webp" alt="Autoshot" class="spell-image">
+                <div class="spell-slot" id="spell-multishot">
+                    <div class="spell-icon">
+                        <img src="assets/spells/multishot.webp" alt="Multishot" class="spell-image">
+                    </div>
+                    <div class="spell-key">R</div>
+                    <div class="spell-name">Multishot</div>
+                    <div class="spell-timer" id="spell-multishot-timer"></div>
+                    <div class="spell-cooldown-overlay" id="spell-multishot-cooldown"></div>
                 </div>
-                <div class="spell-key">E</div>
-                <div class="spell-name">Autoshot</div>
-                <div class="spell-timer" id="spell-autoshot-timer"></div>
-                <div class="spell-cooldown-overlay" id="spell-autoshot-cooldown"></div>
-            </div>
-            
-            <div class="spell-slot" id="spell-multishot">
-                <div class="spell-icon">
-                    <img src="assets/spells/multishot.webp" alt="Multishot" class="spell-image">
+                <div class="spell-slot" id="spell-arcane-shot">
+                    <div class="spell-icon">
+                        <img src="assets/spells/arcane_shot.webp" alt="Arcane Shot" class="spell-image">
+                    </div>
+                    <div class="spell-key">T</div>
+                    <div class="spell-name">Arcane Shot</div>
+                    <div class="spell-timer" id="spell-arcane-shot-timer"></div>
+                    <div class="spell-cooldown-overlay" id="spell-arcane-shot-cooldown"></div>
                 </div>
-                <div class="spell-key">R</div>
-                <div class="spell-name">Multishot</div>
-                <div class="spell-timer" id="spell-multishot-timer"></div>
-                <div class="spell-cooldown-overlay" id="spell-multishot-cooldown"></div>
             </div>
         </div>
     </div>
@@ -208,6 +206,20 @@
         <div id="settingsScreen" class="screen" style="display: none;">
             <div class="screen-content settings-expanded">
                 <h2>Game Settings</h2>
+                
+                <!-- Controls Settings Section -->
+                <div class="settings-section">
+                    <h3>Controls</h3>
+                    <p class="section-description">Which hand moves the character and which one shoots</p>
+                    
+                    <div class="setting-item">
+                        <label for="handedness">Handedness:</label>
+                        <select id="handedness" class="setting-select">
+                            <option value="right">Right-handed (move right, shoot left)</option>
+                            <option value="left">Left-handed (move left, shoot right)</option>
+                        </select>
+                    </div>
+                </div>
                 
                 <!-- Panel Appearance Settings Section -->
                 <div class="settings-section">
@@ -349,7 +361,7 @@
                             <strong>W - Zandalari:</strong> +100% points, slow projectiles and items (45s cooldown)
                         </div>
                         <div class="spell-item player-spell">
-                            <strong>T - Flask of Titans:</strong> Remove one missed Dragonstalker (2 min cooldown)
+                            <strong>T - Arcane Shot:</strong> Breaks a boss's shield and hits for 3 arrows' worth; flies through projectiles (uses 5 arrows, 1.5s cooldown)
                         </div>
                         <div class="spell-item player-spell">
                             <strong>E - Autoshot:</strong> Fire 1 arrow straight up (0.5s cooldown)
@@ -616,7 +628,7 @@
     </div>
 
     <!-- Game Script -->
-    <script type="module" src="game-modular.kfnk5q0w.js?v=2.7.0"></script>
+    <script type="module" src="game-modular.xaa3cgb1.js?v=2.16.1"></script>
     
 
 

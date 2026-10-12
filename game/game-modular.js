@@ -17,6 +17,9 @@ import { initializeVisibilitySystem, getVisibilitySystemStatus, updateVisibility
 import { initializeSettings, loadSettings, saveSettings, resetSettings, getSettings, updateSetting, areSoundEffectsEnabled, isBackgroundMusicEnabled, getVolume, getVolumeDecimal, getMasterVolume, getMusicVolume, getEffectsVolume, getMasterVolumeDecimal, getMusicVolumeDecimal, getEffectsVolumeDecimal, getPlayerPanelStyle, getDragonstalkerPanelStyle, getPanelOpacity, refreshPanelStyles } from './systems/settingsSystem.js';
 import { loadHighScores, addHighScore, cacheHighScores, isHighScore, displayHighScores, displayHighScoresSync } from './systems/highScoreSystem.js';
 import * as lootSystem from './systems/lootSystem.js';
+import { totalXpAtLevel } from './utils/progression.js';
+import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse } from './systems/bossSystem.js';
+import { BossProjectile } from './classes/BossProjectile.js';
 import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground } from './systems/backgroundSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState } from './systems/inputSystem.js';
 // drawSettings removed - now using HTML+CSS guide
@@ -181,6 +184,8 @@ let fallingItems = [];
 let fireballs = [];
 let powerUps = [];
 let arrows = []; // Player arrows
+let heldDrops = []; // Rare items from the server waiting for a boss fight to end
+let heldDropWait = 0; // Steps until the next of them may drop
 let particles = [];
 let combatTexts = []; // For crit damage numbers and other combat feedback
 let images = { items: [], spells: {} };
@@ -529,8 +534,15 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     const oldLevel = gameState.currentLevel;
     const oldSpeedMultiplier = gameState.levelSpeedMultiplier;
     
-    // Calculate new level and speed multiplier based on current score
-    calculateLevelSpeedMultiplier(gameState);
+    // A zone's boss stands between the player and the next zone: the level stops at the end of
+    // the zone until the boss, who comes in when the player has the experience to move on, is
+    // defeated.
+    guardZone(gameState, canvas);
+    
+    // Calculate new level and speed multiplier from the experience earned
+    if (!isBossFightActive()) {
+        calculateLevelSpeedMultiplier(gameState);
+    }
     
     // Check if level increased
     if (gameState.currentLevel > oldLevel) {
@@ -545,6 +557,7 @@ function update(deltaTimeMultiplier, universalMultiplier) {
         if (arrivedAt) {
             addNotification(gameState, `Entering ${arrivedAt.name}`, 240, '#FFD700');
         }
+
     }
     
     // === BULLET TIME SYSTEM ===
@@ -553,10 +566,18 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     // Apply bullet time to delta time multiplier for all game objects
     const bulletTimeAdjustedDelta = deltaTimeMultiplier * gameState.bulletTimeMultiplier;
     
-    // Spawn new items, projectiles, and power-ups (affected by bullet time)
+    // Spawn new items, projectiles, and power-ups (affected by bullet time).
+    // During a boss fight the boss does the throwing; the game's own drops wait.
     spawnItems(bulletTimeAdjustedDelta);
-    spawnProjectiles(bulletTimeAdjustedDelta);
-    spawnPowerUps(bulletTimeAdjustedDelta);
+    if (isBossFightActive()) {
+        updateBoss({ gameState, canvas, player, fireballs, powerUps, particles, combatTexts, spellSystem, isValidYPosition, recentDropYPositions, shouldDodge, showDodgeText, trackDodge });
+    } else {
+        spawnProjectiles(bulletTimeAdjustedDelta);
+        spawnPowerUps(bulletTimeAdjustedDelta);
+    }
+    
+    // A boss's curse keeps eating at the player, in the fight or after it
+    updateCurse({ gameState, player, combatTexts, spellSystem });
     
     // Update all game objects (affected by bullet time)
     updateFallingItems(bulletTimeAdjustedDelta);
@@ -615,12 +636,12 @@ function loadSpellIcons() {
     };
             zandalariIcon.src = assetRegistry.buffs.zgBuff1;
     
-        // Flask of Titans spell icon
-    const flaskOfTitansIcon = new Image();
-    flaskOfTitansIcon.onload = () => {
-        images.spells.flask_of_titans = flaskOfTitansIcon;
+        // Arcane Shot spell icon
+    const arcaneShotIcon = new Image();
+    arcaneShotIcon.onload = () => {
+        images.spells.arcane_shot = arcaneShotIcon;
     };
-    flaskOfTitansIcon.src = assetRegistry.buffs.flaskOfTitans;
+    arcaneShotIcon.src = assetRegistry.buffs.arcaneShot;
 }
 
 // Game functions (simplified - these would contain the full logic)
@@ -702,6 +723,9 @@ function startGame() {
             gameState.score = lastThreshold + (additionalLevels * 100); // 100 points per additional level
         }
     }
+    
+    // Experience starts at what the starting level needs (none, unless a later level is set for testing)
+    gameState.xp = totalXpAtLevel(startingLevel + 1, gameConfig.progression);
     
     console.log(`🚀 Starting at Level ${startingLevel + 1} with speed ${gameState.levelSpeedMultiplier}x${gameState.score > 0 ? ` (Score: ${gameState.score})` : ''}`);
     
@@ -831,6 +855,10 @@ function startGame() {
     gameState.elapsedTime = 0;
     gameState.nextPowerUpTime = undefined;
     showBackgroundForLevel(gameState.currentLevel, true);
+    player.setCharacter(gameState.faction);
+    resetBosses(gameState.faction, gameState.currentLevel + 1);
+    heldDrops = [];
+    heldDropWait = 0;
     lootSystem.beginGame({
         playerName: gameState.playerName,
         faction: gameState.faction,
@@ -916,6 +944,8 @@ function restartGame() {
             gameState.score = lastThreshold + (additionalLevels * 100); // 100 points per additional level
         }
     }
+    
+    gameState.xp = totalXpAtLevel(startingLevel + 1, gameConfig.progression);
     
     console.log(`🔄 Restarting at Level ${startingLevel + 1} with speed ${gameState.levelSpeedMultiplier}x${gameState.score > 0 ? ` (Score: ${gameState.score})` : ''}`);
     
@@ -1073,13 +1103,24 @@ function hidePauseMenu() {
 function spawnItems(deltaTimeMultiplier) {
     // Rare items the server scheduled for this moment. The usual rules still apply: a set piece
     // already collected or missed, or a second Zee Zgnan, does not drop.
-    for (const drop of lootSystem.update(gameState.elapsedTime)) {
+    heldDrops.push(...lootSystem.update(gameState.elapsedTime));
+    
+    // Nothing drops during a boss fight; rare items due in that time come once it is over
+    if (isBossFightActive()) return;
+    
+    // One at a time, a second apart: after a fight several may be waiting, and they should not
+    // all come down at once
+    heldDropWait -= deltaTimeMultiplier;
+    if (heldDrops.length > 0 && heldDropWait <= 0) {
+        const drop = heldDrops.shift();
         const itemData = gameItems.find(item => item.id === drop.item);
-        if (!itemData || calculateItemProbability(itemData, gameState) <= 0) continue;
-
-        const rareItem = new FallingItem(() => itemData, isValidYPosition, recentDropYPositions, gameState, images, canvas);
-        rareItem.dropId = drop.id;
-        fallingItems.push(rareItem);
+        
+        if (itemData && calculateItemProbability(itemData, gameState) > 0) {
+            const rareItem = new FallingItem(() => itemData, isValidYPosition, recentDropYPositions, gameState, images, canvas);
+            rareItem.dropId = drop.id;
+            fallingItems.push(rareItem);
+            heldDropWait = 60;
+        }
     }
 
     if (fallingItems.length < gameConfig.gameplay.maxFallingItems) {
@@ -1104,6 +1145,14 @@ function spawnProjectiles(deltaTimeMultiplier) {
             if (newProjectile) {
                 fireballs.push(newProjectile);
             }
+        }
+    }
+    
+    // The bosses' attacks also fall as hazards of their own, any of them at any point in the game
+    if (fireballs.length < gameConfig.gameplay.maxFireballs && Math.random() < gameConfig.bosses.bossAttackChance * deltaTimeMultiplier) {
+        const attack = randomBossAttack(gameState.currentLevel + 1);
+        if (attack) {
+            fireballs.push(new BossProjectile(attack, isValidYPosition, recentDropYPositions, gameState, canvas));
         }
     }
 }
@@ -1804,10 +1853,6 @@ function setupUIEventHandlers() {
     } else {
         console.warn('viewScoresBtn not found!');
     }
-
-    // ...and the site's footer carries the credit
-    const sponsorLink = document.querySelector('.sponsor-link-class');
-    if (sponsorLink && siteBoot && siteBoot.embedded) sponsorLink.style.display = 'none';
     
     if (howToPlayBtn) {
         console.log('Setting up How to Play button handler');
@@ -2453,7 +2498,7 @@ function updateMobileIntegratedValues(gameState, gameItems) {
     
     if (playerNameDisplay) playerNameDisplay.textContent = gameState.playerName || 'Unknown';
     if (playerScoreDisplay) playerScoreDisplay.textContent = gameState.score.toLocaleString();
-    if (playerLevelDisplay) playerLevelDisplay.textContent = `Level ${(gameState.currentLevel || 0) + 1}`;
+    if (playerLevelDisplay) playerLevelDisplay.textContent = levelLabel();
     
     // Update health bar
     const healthFill = document.getElementById('healthFill');
@@ -2515,7 +2560,7 @@ function updatePlayerStats(gameState) {
     
     // Update level (add 1 to 0-based internal level for 1-based UI display)
     if (playerLevelDisplay) {
-        playerLevelDisplay.textContent = `Level ${(gameState.currentLevel || 0) + 1}`;
+        playerLevelDisplay.textContent = levelLabel();
     }
     
     // Update health bar in player section
@@ -2971,6 +3016,17 @@ function onItemCollected(itemData, fallingItem = null) {
     itemsListCache.needsUpdate = true;
     
     lootSystem.recordPickup(itemData.id, fallingItem ? fallingItem.dropId : null);
+    
+    // The hunter reaches for it
+    player.onCollect();
+}
+
+// The level as the player sees it, with how far along it they are
+function levelLabel() {
+    const level = (gameState.currentLevel || 0) + 1;
+    if (gameConfig.levels.progressionType !== 'xp') return `Level ${level}`;
+    
+    return `Level ${level} · ${Math.floor(getLevelProgress(gameState).progress * 100)}%`;
 }
 
 // The game's result so far, as the server records it
@@ -3316,8 +3372,8 @@ function shouldCrit() {
     return calculateShouldCrit(gameState);
 }
 
-function shouldDodge() {
-    return calculateShouldDodge(gameState, spellSystem);
+function shouldDodge(attackerLevel) {
+    return calculateShouldDodge(gameState, spellSystem, attackerLevel);
 }
 
 function showDodgeText(x, y) {

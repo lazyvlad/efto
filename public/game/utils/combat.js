@@ -1,0 +1,1 @@
+const SKILL_PER_LEVEL=5,DODGE_PER_SKILL_POINT=4e-4;export function dodgeChance(n,t,e=t,L=1){const o=5*(t-e);return Math.max(0,Math.min(L,n+4e-4*o))}
