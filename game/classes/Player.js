@@ -2,7 +2,16 @@ import { gameConfig } from '../config/gameConfig.js';
 import { assetManager } from '../utils/AssetManager.js';
 import { assetRegistry } from '../data/assetRegistry.js';
 import { responsiveScaler } from '../utils/gameUtils.js';
-import { getSprite } from '../utils/spriteCache.js';
+import { CharacterAnimator } from './CharacterAnimator.js';
+import { characterFor } from '../data/playerCharacters.js';
+
+// The player is a whole figure (data/playerCharacters.js has one for each side), so the
+// player's box is this many times taller than it is wide. The figure stands as tall as the
+// box; a broad one reaches a little outside it to either side.
+const FIGURE_HEIGHT_TO_WIDTH = 1.88;
+// Under the feet, inside the player's box, is room for a small health bar: this much of the
+// box's width, top to bottom.
+const HEALTH_BAR_ROOM = 0.16;
 
 // Player Class - Encapsulates all player functionality
 export class Player {
@@ -12,7 +21,7 @@ export class Player {
         
         // Position and size (now responsive)
         this.width = playerSize.width;
-        this.height = playerSize.height;
+        this.height = Math.round(playerSize.width * (FIGURE_HEIGHT_TO_WIDTH + HEALTH_BAR_ROOM));
         this.x = canvasWidth / 2 - this.width / 2;
         this.y = canvasHeight - this.height - responsiveScaler.scale(20);
         this.canvasWidth = canvasWidth;
@@ -23,114 +32,80 @@ export class Player {
         this.targetX = this.x;
         this.smoothingFactor = 0.15;
         
-        // Visual state
-        this.impactTimer = 0;
-        this.impactDuration = gameConfig.player.impactDuration * (1000 / 60); // Convert frames to milliseconds
-        this.celebrationTimer = 0;
-        this.celebrationDuration = gameConfig.player.celebrationDuration * (1000 / 60); // Convert frames to milliseconds
-        
-        // Animation
-        this.bobOffset = 0;
-        this.bobSpeed = 0.05;
-        this.bobAmplitude = 2;
-        
-        // Image management using AssetManager with centralized registry
-        this.normalImage = assetManager.getImage(assetRegistry.player.normal);
-        this.impactImage = assetManager.getImage(assetRegistry.player.impact);
-        this.celebrationImage = assetManager.getImage(assetRegistry.player.celebration);
-        this.sandoImage = assetManager.getImage(assetRegistry.player.sando);
-        
-        // Current image state
-        this.currentImage = this.normalImage;
-        
-        // State
-        this.isReacting = false;
-        this.isCelebrating = false;
-        this.isSandoCelebrating = false;
-        this.sandoTimer = 0;
-        this.lastImageState = null; // For debugging image state changes
+        // The character's picture, and what brings it to life once it has loaded. The animation
+        // only draws: position and collisions are this class's and the input system's.
+        this.lastX = this.x;
+        this.setCharacter(null);
     }
     
-    // Handle getting hit by projectiles
+    // Become the character of a side ('alliance' or 'horde'; the Alliance one until one is chosen)
+    setCharacter(faction) {
+        const character = characterFor(faction);
+        if (this.character === character) return;
+        
+        this.character = character;
+        this.image = assetManager.getImage(character.image);
+        this.animator = null;
+    }
+    
+    // Handle getting hit by projectiles: he draws back and flashes
     onHit() {
-        this.impactTimer = this.impactDuration;
-        this.isReacting = true;
+        this.animator?.hit();
     }
     
-    // Handle collecting tier set items
+    // He caught something: the hands come up
+    onCollect() {
+        this.animator?.collect();
+    }
+    
+    // He loosed an arrow: he braces
+    onShoot() {
+        this.animator?.shoot();
+    }
+    
+    // Set pieces and the tier weapons are caught like anything else
     onTierSetCollected() {
-        this.celebrationTimer = this.celebrationDuration;
-        this.isCelebrating = true;
-        // Don't show impact during celebration
-        this.isReacting = false;
-        this.impactTimer = 0;
+        this.onCollect();
     }
     
-    // Handle collecting Ashkandi items (special celebration)
     onAshkandiCollected() {
-        this.sandoTimer = this.celebrationDuration;
-        this.isSandoCelebrating = true;
-        // Don't show other states during sando celebration
-        this.isReacting = false;
-        this.isCelebrating = false;
-        this.impactTimer = 0;
-        this.celebrationTimer = 0;
+        this.onCollect();
     }
     
-    // Update timers and visual states (position is handled by the input system)
+    // Advance the animation (position is handled by the input system). Called every display
+    // frame with the time passed, in 60ths of a second.
     updateTimers(deltaTimeMultiplier) {
-        // Convert deltaTimeMultiplier to milliseconds (assuming 60fps = 16.67ms per frame)
-        const deltaTimeMs = deltaTimeMultiplier * (1000 / 60);
-        
-        // Update sando timer first (has highest priority)
-        if (this.sandoTimer > 0) {
-            this.sandoTimer -= deltaTimeMs;
-            if (this.sandoTimer <= 0) {
-                this.sandoTimer = 0;
-                this.isSandoCelebrating = false;
-            }
+        if (!this.animator && this.image.complete && this.image.naturalWidth > 0) {
+            this.animator = new CharacterAnimator(this.image, this.character.rig);
         }
         
-        // Update celebration timer (second priority, only if not sando celebrating)
-        if (!this.isSandoCelebrating && this.celebrationTimer > 0) {
-            this.celebrationTimer -= deltaTimeMs;
-            if (this.celebrationTimer <= 0) {
-                this.celebrationTimer = 0; // Ensure it's exactly 0
-                this.isCelebrating = false;
-            }
-        }
+        const seconds = deltaTimeMultiplier / 60;
+        if (!this.animator || seconds <= 0) return;
         
-        // Update impact timer (only if not celebrating)
-        if (!this.isCelebrating && !this.isSandoCelebrating && this.impactTimer > 0) {
-            this.impactTimer -= deltaTimeMs;
-            if (this.impactTimer <= 0) {
-                this.impactTimer = 0; // Ensure it's exactly 0
-                this.isReacting = false;
-            }
-        }
+        // How fast he is moving sideways, from how far he has come since the last frame.
+        // Crossing half the play field in a second counts as flat out.
+        const velocityX = (this.x - this.lastX) / seconds;
+        this.lastX = this.x;
+        this.animator.update(seconds, velocityX, this.canvasWidth * 0.5);
     }
     
-    // Draw the player
-    draw(ctx, shieldActive = false) {
-        let imageToUse = this.normalImage; // Default to normal image (efto.png)
-        
-        // Priority: sando celebration > celebration > impact > normal
-        if (this.isSandoCelebrating) {
-            imageToUse = this.sandoImage; // sando.png
-        } else if (this.isCelebrating) {
-            imageToUse = this.celebrationImage; // efto-win.png
-        } else if (this.isReacting) {
-            imageToUse = this.impactImage; // vano.png
-        }
-        // If none of the above, imageToUse remains this.normalImage (efto.png)
+    /**
+     * Draw the player.
+     * @param {boolean} shieldActive  Whether a shield is around him
+     * @param {number}  health        How much health he has left, 0 to 1, shown under his feet
+     */
+    draw(ctx, shieldActive = false, health = 1) {
+        // The box holds him and, under his feet, his health bar
+        const barRoom = this.width * HEALTH_BAR_ROOM;
+        const figureHeight = this.height - barRoom;
         
         ctx.save();
         
         // Draw shield border if active
         if (shieldActive) {
             const centerX = this.x + this.width / 2;
-            const centerY = this.y + this.height / 2;
-            const radius = Math.max(this.width, this.height) / 2 + 15; // Slightly larger than player
+            const centerY = this.y + figureHeight / 2;
+            const radius = figureHeight / 2 + 10; // Around the whole of him
             
             // Animated glow effect
             const time = Date.now() * 0.005; // Slow animation
@@ -158,34 +133,54 @@ export class Player {
             ctx.shadowColor = 'transparent';
         }
         
-        // Check if image is loaded and draw
-        if (imageToUse && imageToUse.complete && imageToUse.naturalWidth > 0) {
-            const sprite = getSprite(ctx, imageToUse, this.width, this.height);
-            ctx.drawImage(sprite.canvas, this.x + (this.width - sprite.width) / 2, this.y + (this.height - sprite.height) / 2, sprite.width, sprite.height);
-        } else {
-            // Fallback: draw a simple rectangle with different colors for states
-            let fillColor = '#4ECDC4'; // Normal (efto.png equivalent)
-            if (this.isSandoCelebrating) {
-                fillColor = '#FF69B4'; // Pink for sando celebration (sando.png equivalent)
-            } else if (this.isCelebrating) {
-                fillColor = '#FFD700'; // Gold for celebration (efto-win.png equivalent)
-            } else if (this.isReacting) {
-                fillColor = '#FF6B6B'; // Red for impact (vano.png equivalent)
-            }
-            ctx.fillStyle = fillColor;
-            ctx.fillRect(this.x, this.y, this.width, this.height);
+        // He stands in the middle of the player's box, his feet just above the health bar
+        if (this.animator) {
+            this.animator.draw(ctx, this.x + this.width / 2, this.y + figureHeight, figureHeight / this.character.heightInPicture);
         }
         
         ctx.restore();
+        
+        this.drawHealthBar(ctx, this.y + figureHeight, barRoom, health);
     }
     
-    // Get collision bounds
+    // A small health bar under his feet: a dark well with a gold edge, as on the panels, filled
+    // green, then amber, then red as his health drops
+    drawHealthBar(ctx, top, room, health) {
+        const fill = Math.max(0, Math.min(1, health));
+        const width = this.width * 0.9;
+        const height = Math.max(4, room * 0.45);
+        const x = this.x + (this.width - width) / 2;
+        const y = top + (room - height) / 2;
+        const colors = fill <= 0.25 ? ['#ff8a7a', '#8e0c0c'] : fill <= 0.6 ? ['#ffe680', '#b97800'] : ['#7dfa7d', '#0c7a0c'];
+        
+        ctx.save();
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+        ctx.fillRect(x, y, width, height);
+        
+        const gradient = ctx.createLinearGradient(0, y, 0, y + height);
+        gradient.addColorStop(0, colors[0]);
+        gradient.addColorStop(1, colors[1]);
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x, y, width * fill, height);
+        
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, y, width, height);
+        ctx.strokeStyle = '#b9902f';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, width, height);
+        ctx.restore();
+    }
+    
+    // What catches and gets hit: his head, arms and body, a square as wide as the player's box
+    // at the top of it. That is the size the player's whole box used to be, so catching and
+    // dodging are as they were; his legs neither catch nor get hit.
     getCollisionBounds() {
         return {
             x: this.x,
             y: this.y,
             width: this.width,
-            height: this.height
+            height: this.width
         };
     }
     
@@ -194,7 +189,7 @@ export class Player {
         // Update size based on new scaling
         const playerSize = responsiveScaler.getSize('player');
         this.width = playerSize.width;
-        this.height = playerSize.height;
+        this.height = Math.round(playerSize.width * (FIGURE_HEIGHT_TO_WIDTH + HEALTH_BAR_ROOM));
         this.speed = playerSize.speed;
         
         // Update canvas dimensions
@@ -219,19 +214,11 @@ export class Player {
     
     // Reset player state (for game restart)
     reset() {
-        this.impactTimer = 0;
-        this.celebrationTimer = 0;
-        this.sandoTimer = 0;
-        this.isReacting = false;
-        this.isCelebrating = false;
-        this.isSandoCelebrating = false;
+        this.lastX = this.x;
     }
     
     // Check if images are loaded
     areImagesLoaded() {
-        return this.normalImage.complete && this.normalImage.naturalWidth > 0 &&
-               this.impactImage.complete && this.impactImage.naturalWidth > 0 &&
-               this.celebrationImage.complete && this.celebrationImage.naturalWidth > 0 &&
-               this.sandoImage.complete && this.sandoImage.naturalWidth > 0;
+        return this.image.complete && this.image.naturalWidth > 0;
     }
-} 
+}
