@@ -1750,6 +1750,10 @@ function setupUIEventHandlers() {
     } else {
         console.warn('viewScoresBtn not found!');
     }
+
+    // ...and the site's footer carries the credit
+    const sponsorLink = document.querySelector('.sponsor-link-class');
+    if (sponsorLink && siteBoot && siteBoot.embedded) sponsorLink.style.display = 'none';
     
     if (howToPlayBtn) {
         console.log('Setting up How to Play button handler');

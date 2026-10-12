@@ -16,6 +16,7 @@
 - The landing page is the game under a site header with the menu and the account links.
 - Clicking a menu link in the middle of a game pauses it and asks before leaving, so a game
   is not lost by accident.
+- A small footer on every page carries the credit that used to sit inside the game.
 
 **A new look**
 - Warcraft-style menus, a Dragonstalker set tracker and a unit-frame player panel.

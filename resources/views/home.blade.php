@@ -32,6 +32,8 @@
                 onload="this.contentWindow.focus()"
             ></iframe>
 
+            @include('layouts.footer')
+
             <div
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"
                 x-show="asking"

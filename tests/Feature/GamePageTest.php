@@ -30,6 +30,13 @@ class GamePageTest extends TestCase
             ->assertDontSee(route('register'), false);
     }
 
+    public function test_pages_carry_the_footer_credit(): void
+    {
+        foreach (['/', route('highscores'), route('login'), route('register')] as $page) {
+            $this->get($page)->assertOk()->assertSee('href="https://barkoder.com"', false);
+        }
+    }
+
     public function test_the_game_is_told_when_it_is_framed_by_the_site(): void
     {
         $this->assertFalse($this->bootData($this->get(route('play'))->getContent())['embedded']);

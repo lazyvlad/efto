@@ -15,20 +15,24 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0">
-            <div>
-                <a href="{{ route('home') }}">
-                    <x-application-logo class="text-3xl" />
+        <div class="min-h-screen flex flex-col">
+            <div class="flex-1 flex flex-col sm:justify-center items-center pt-6 sm:pt-0 pb-6">
+                <div>
+                    <a href="{{ route('home') }}">
+                        <x-application-logo class="text-3xl" />
+                    </a>
+                </div>
+
+                <div class="panel w-full sm:max-w-md mt-6 px-6 py-5 overflow-hidden">
+                    {{ $slot }}
+                </div>
+
+                <a href="{{ route('home') }}" class="mt-5 text-sm text-gray-600 hover:text-gray-900 underline">
+                    {{ __('Back to the game') }}
                 </a>
             </div>
 
-            <div class="panel w-full sm:max-w-md mt-6 px-6 py-5 overflow-hidden">
-                {{ $slot }}
-            </div>
-
-            <a href="{{ route('home') }}" class="mt-5 text-sm text-gray-600 hover:text-gray-900 underline">
-                {{ __('Back to the game') }}
-            </a>
+            @include('layouts.footer')
         </div>
     </body>
 </html>
