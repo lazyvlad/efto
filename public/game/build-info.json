@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-12T21:50:20.491Z",
-  "buildTimestamp": 1791841820501,
+  "buildTime": "2026-10-12T22:33:55.870Z",
+  "buildTimestamp": 1791844435877,
   "mode": "production",
-  "gameVersion": "2.21.0",
-  "cacheHash": "ctbppoyg",
+  "gameVersion": "2.22.0",
+  "cacheHash": "wvd0wnzx",
   "fileMap": {
-    "game-modular.js": "game-modular.ctbppoyg.js"
+    "game-modular.js": "game-modular.wvd0wnzx.js"
   },
-  "buildSystemVersion": "2.21.0"
+  "buildSystemVersion": "2.22.0"
 }

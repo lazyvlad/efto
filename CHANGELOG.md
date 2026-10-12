@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.22.0 - 2026-10-12
+
+### What's new
+
+- Two more hunter sets to collect, 17 pieces in all: **Giantstalker Armor** (tier 1, eight
+  pieces) and **Cryptstalker Armor** (tier 3, eight pieces and the Ring of the Cryptstalker).
+  They fall as rare items from level 6, decided by the server like the other rare ones, pay
+  2 silver each and count towards the collection, which now has 40 rare items. Collecting a
+  set does nothing yet beyond the collection.
+- The eight Dragonstalker pieces have new pictures in the same painted style. They work as
+  before: collecting the ten pieces of the Dragonstalker panel is still the game's goal.
+
+### For developers
+- The new pieces are their own rarity, `set_piece`, so that the Dragonstalker rules tied to
+  `tier_set` (the panel, the goal, the penalty for a missed piece) do not apply to them. Each
+  piece names its set in `set` (`giantstalker`, `cryptstalker`; the Dragonstalker pieces have
+  `dragonstalker`). Weight, coins, unlock level and size are under `set_piece` in
+  `game/config/gameConfig.js` and `config/loot.php`.
+- The art as delivered is `game-art/hunter-tier-sets.zip`, not in the repository.
+
 ## 2.21.0 - 2026-10-12
 
 ### What's new

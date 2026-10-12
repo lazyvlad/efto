@@ -265,6 +265,7 @@ export class FallingItem extends FallingObject {
                 break;
                 
             case 'epic':
+            case 'set_piece':
                 // Pulsating purple border with padding
                 const epicPulse = Math.sin(this.borderAnimation) * 0.3 + 0.7; // 0.4 to 1.0
                 ctx.strokeStyle = '#9932CC';

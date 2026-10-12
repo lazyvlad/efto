@@ -2494,7 +2494,8 @@ function createMobileIntegratedLayout(gameState, gameItems) {
     
     // Get dragonstalker data
     const dragonstalkerItems = gameItems.filter(item => 
-        item.type === 'tier_set'
+        item.type === 'tier_set' ||
+        item.type === 'set_piece'
     );
     const collectedCount = dragonstalkerItems.reduce((sum, item) => sum + item.collected, 0);
     const totalPieces = dragonstalkerItems.length;
@@ -2617,7 +2618,8 @@ function updateMobileIntegratedValues(gameState, gameItems) {
     
     // Update dragonstalker progress
     const dragonstalkerItems = gameItems.filter(item => 
-        item.type === 'tier_set'
+        item.type === 'tier_set' ||
+        item.type === 'set_piece'
     );
     const collectedCount = dragonstalkerItems.reduce((sum, item) => sum + item.collected, 0);
     const totalPieces = dragonstalkerItems.length;
@@ -2987,7 +2989,8 @@ function updateItemsList(sortedItems) {
         item.type === 'epic' || 
         item.type === 'legendary' || 
         item.type === 'zee_zgnan' || 
-        item.type === 'tier_set'
+        item.type === 'tier_set' ||
+        item.type === 'set_piece'
     );
     const currentTotalCount = filteredItems.reduce((sum, item) => sum + item.collected, 0);
     const currentUniqueCount = filteredItems.filter(item => item.collected > 0).length;
@@ -3072,6 +3075,7 @@ function updateItemsList(sortedItems) {
         else if (item.type === 'legendary') icon = '⚡';
         else if (item.type === 'zee_zgnan') icon = '👑';
         else if (item.type === 'tier_set') icon = '🐉';
+        else if (item.type === 'set_piece') icon = '🛡';
         
         const totalPoints = item.collected * item.value;
         

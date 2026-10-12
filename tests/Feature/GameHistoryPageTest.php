@@ -89,7 +89,7 @@ class GameHistoryPageTest extends TestCase
         $response = $this->actingAs($player)->get(route('games.history'))->assertOk();
 
         $this->assertEquals(['ThunderFury' => 2, 'maladath' => 1], $response->viewData('found')->all());
-        $response->assertSee('2 of 23 found')->assertSee('found 2 times')->assertSee('found once');
+        $response->assertSee('2 of 40 found')->assertSee('found 2 times')->assertSee('found once');
     }
 
     public function test_each_game_shows_the_rare_items_picked_up_in_it(): void

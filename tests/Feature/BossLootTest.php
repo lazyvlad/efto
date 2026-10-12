@@ -227,7 +227,7 @@ class BossLootTest extends TestCase
             ->map(fn (array $drop) => \App\Support\LootTable::typeOf($drop['item_id']))
             ->unique();
 
-        $this->assertEqualsCanonicalizing(['epic', 'special', 'tier_set'], $types(9)->all());
+        $this->assertEqualsCanonicalizing(['epic', 'special', 'tier_set', 'set_piece'], $types(9)->all());
         $this->assertSame([], $types(1)->all());
     }
 

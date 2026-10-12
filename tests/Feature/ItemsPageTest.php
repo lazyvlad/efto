@@ -17,7 +17,7 @@ class ItemsPageTest extends TestCase
 
         // Rarest first, each rarity with its price
         $response->assertSeeInOrder(['Zee Zgnan', '10s each', 'Legendary', '5s each', 'Epic', '1s each', 'Uncommon', '25c each', 'Common', '10c each']);
-        $response->assertSee('54 items in all');
+        $response->assertSee('71 items in all');
     }
 
     public function test_the_page_lists_the_bosses_with_their_pay_and_loot(): void

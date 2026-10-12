@@ -249,6 +249,7 @@ export const gameConfig = {
             epic: 4,
             special: 6,
             tier_set: 8,
+            set_piece: 6,
             legendary: 10,
             zee_zgnan: 12,
         },
@@ -289,6 +290,7 @@ export const gameConfig = {
             epic: 100,
             special: 150,
             tier_set: 200,
+            set_piece: 200,
             legendary: 500,
             zee_zgnan: 1000,
         },
@@ -476,6 +478,7 @@ export const gameConfig = {
         green: 0.11,                // 11 green items
         epic: 0.07,                 // 7 epic items
         tier_set: 0.055,            // Tier set items base probability (5.5%) - Win condition items
+        set_piece: 0.01,            // Pieces of the other hunter sets (Giantstalker, Cryptstalker): collectables, 17 of them
         special: 0.032,              // Special items base probability (3.2%)
         legendary: 0.02,            // Legendary items base probability (2%)
         zee_zgnan: 0.01,           // Zee Zgnan items base probability (1%) - Ultra rare, one-time only
@@ -544,6 +547,7 @@ export const gameConfig = {
             epic: 1.15,
             special: 1.15,
             tier_set: 1.15,
+            set_piece: 1.15,
             legendary: 1.8,
             zee_zgnan: 1.4
         },
