@@ -2,14 +2,21 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Notifications\ResetPassword;
+use App\Notifications\VerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+/**
+ * A player's account. It works from the moment it is registered: the player can log in, play
+ * and earn. Until they activate it through the link emailed to them (MustVerifyEmail), they
+ * cannot use what they earn: see canUseRewards().
+ */
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -47,7 +54,33 @@ class User extends Authenticatable
             'password' => 'hashed',
             'coins' => 'integer',
             'quiver' => 'boolean',
+            'news_emails' => 'boolean',
         ];
+    }
+
+    /**
+     * Whether the player may use what they have earned: spend coins, wear their sets, carry
+     * the large quiver. Earning needs no activation; using does.
+     */
+    public function canUseRewards(): bool
+    {
+        return $this->hasVerifiedEmail();
+    }
+
+    /**
+     * The activation email, in the game's own words and look.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new VerifyEmail);
+    }
+
+    /**
+     * The password reset email, in the game's own words and look.
+     */
+    public function sendPasswordResetNotification(#[\SensitiveParameter] $token): void
+    {
+        $this->notify(new ResetPassword($token));
     }
 
     /**

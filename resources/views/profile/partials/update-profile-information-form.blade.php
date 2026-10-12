@@ -31,20 +31,27 @@
             @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
                 <div>
                     <p class="text-sm mt-2 text-gray-800">
-                        {{ __('Your email address is unverified.') }}
+                        {{ __('Your account is not activated yet: follow the link we emailed you.') }}
 
                         <button form="send-verification" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                            {{ __('Click here to re-send the verification email.') }}
+                            {{ __('Click here to send the activation email again.') }}
                         </button>
                     </p>
 
                     @if (session('status') === 'verification-link-sent')
                         <p class="mt-2 font-medium text-sm text-green-600">
-                            {{ __('A new verification link has been sent to your email address.') }}
+                            {{ __('A new activation link has been sent to your email address.') }}
                         </p>
                     @endif
                 </div>
             @endif
+        </div>
+
+        <div>
+            <label for="news_emails" class="inline-flex items-center gap-2 text-sm text-gray-600">
+                <input id="news_emails" name="news_emails" type="checkbox" value="1" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" @checked(old('news_emails', $user->news_emails ?? true))>
+                {{ __('Email me news about the game (new versions, events)') }}
+            </label>
         </div>
 
         <div class="flex items-center gap-4">

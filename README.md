@@ -193,5 +193,10 @@ the real `APP_URL` and the database settings. `storage/` and `bootstrap/cache/` 
 writable by the web server user. If `public/storage` is missing (`install.php` was not used),
 run `php artisan storage:link` once.
 
-Password reset emails need a mail server: set the `MAIL_*` values in `.env`. With the default
-(`MAIL_MAILER=log`) they are only written to `storage/logs/laravel.log`.
+The site sends email: the link that activates a new account, password resets, a welcome
+once an account is activated, and general news (`php artisan input:announce`). Set the
+`MAIL_*` values in `.env`, with `MAIL_FROM_ADDRESS` an address the mail service may send
+from. With the default (`MAIL_MAILER=log`) emails are only written to
+`storage/logs/laravel.log`. An account that has not been activated can play and earn but not
+use what it earns (`User::canUseRewards()`). On a development machine `/mail-preview` shows
+the emails in the browser.

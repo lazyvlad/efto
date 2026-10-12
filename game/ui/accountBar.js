@@ -1,7 +1,7 @@
 // Account awareness for the main menu.
 //
 // When the game is served by the site, the page sets window.INPUT_BOOT with who is playing:
-//   { user: { name, avatar, coins, quiver, pieces } | null, skip: { costPerZone, unlocked } | null, rush: { fee } | null, guestName, csrfToken, embedded, urls: { scores, games, collection, history, login, register, logout, profile } }
+//   { user: { name, avatar, coins, verified, quiver, pieces } | null, skip: { costPerZone, unlocked } | null, rush: { fee } | null, guestName, csrfToken, embedded, urls: { scores, games, collection, verify, history, login, register, logout, profile } }
 // "embedded" means the site shows the game under its own header, which has the account links.
 // Opened on its own (no site around it) there is no INPUT_BOOT and the game behaves as before.
 
@@ -60,13 +60,28 @@ function renderLoginOffer() {
     if (!offer) return;
 
     const guest = Boolean(siteBoot) && !siteBoot.user;
+    // Logged in, but the account has not been activated through the emailed link: the player
+    // earns as usual, and is told what activating adds
+    const inactive = Boolean(siteBoot) && Boolean(siteBoot.user) && siteBoot.user.verified === false;
     offer.textContent = '';
-    offer.hidden = !guest;
+    offer.hidden = !guest && !inactive;
 
     if (prompt) {
         prompt.textContent = guest
             ? 'Log in to keep your coins, boss loot and scores, or play as a guest:'
-            : (getAccountName() ? 'Playing under your account name' : 'Enter your name to start playing');
+            : inactive
+                ? 'Activate your account to spend coins, wear your sets and carry the large quiver. Until then you keep earning:'
+                : (getAccountName() ? 'Playing under your account name' : 'Enter your name to start playing');
+    }
+    if (inactive) {
+        const buttons = document.createElement('div');
+        buttons.className = 'login-offer-buttons';
+        const anchor = link('Activate my account', siteBoot.urls.verify);
+        anchor.className = 'login-offer-btn login-offer-primary';
+        if (siteBoot.embedded) anchor.target = '_top';
+        buttons.append(anchor);
+        offer.append(buttons);
+        return;
     }
     if (!guest) return;
 

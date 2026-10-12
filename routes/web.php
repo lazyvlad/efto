@@ -5,6 +5,7 @@ use App\Http\Controllers\GameController;
 use App\Http\Controllers\GameHistoryController;
 use App\Http\Controllers\GameRecordController;
 use App\Http\Controllers\ItemController;
+use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScoreController;
 use Illuminate\Support\Facades\Route;
@@ -52,3 +53,14 @@ Route::middleware('auth')->group(function () {
 });
 
 require __DIR__.'/auth.php';
+
+// The link at the foot of every general email: stops them for that player. Signed, so it
+// works without logging in and only for the player it was sent to.
+Route::get('/news/unsubscribe/{user}', [NewsController::class, 'unsubscribe'])
+    ->middleware('signed')
+    ->name('news.unsubscribe');
+
+// Development only: see the emails in the browser as they will be sent
+if (app()->environment('local')) {
+    Route::get('/mail-preview/{email?}', [NewsController::class, 'preview'])->name('mail.preview');
+}

@@ -1,5 +1,38 @@
 # Changelog
 
+## 2.24.0 - 2026-10-12
+
+### What's new
+
+**Accounts are activated by email**
+- Registering sends an email with a link that activates the account. The player is logged
+  in and can play at once, and everything they earn is kept: coins, boss loot, set pieces,
+  the large quiver.
+- Until the account is activated, what was earned cannot be used: no spending coins on
+  skipping ahead or Boss Rush, no bonus from wearing a set, no large quiver. The main menu
+  and "My Games" say so and offer to send the email again.
+- Following the link activates the account and sends a second email saying what is now
+  open. Changing the email address in the profile asks for the new one to be confirmed.
+
+**The emails**
+- Four emails in the game's own look, dark with gold headings: account activation,
+  password reset, the welcome after activating, and a general news email for new versions
+  and events.
+- News goes only to players with an activated account. Every news email has a link that
+  stops them, and the profile has a checkbox for it.
+
+### For developers
+- Deploying this version needs `php artisan migrate` (new `news_emails` column on `users`).
+  `MAIL_FROM_ADDRESS` in `.env` must be an address the mail service may send from.
+- Accounts registered before this version are not activated: their owners have to ask for
+  the activation email (main menu, "My Games" or the profile) before they can spend again.
+- The emails are `app/Notifications/` with their texts in `resources/views/emails/`; the
+  look is `resources/views/vendor/mail/html/` (the theme is `themes/default.css`). What an
+  account may do before activation is `User::canUseRewards()`.
+- Send news with `php artisan input:announce "Subject" --file=message.md` (Markdown;
+  `--button` and `--url` add a button, `--to=address` sends to one account to try it out).
+- With `APP_ENV=local`, `/mail-preview` shows each email in the browser.
+
 ## 2.23.0 - 2026-10-12
 
 ### What's new

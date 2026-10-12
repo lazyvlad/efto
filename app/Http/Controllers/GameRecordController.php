@@ -53,6 +53,7 @@ class GameRecordController extends Controller
         $mode = $data['mode'] ?? Game::NORMAL;
         if ($mode === Game::BOSS_RUSH) {
             abort_unless($user && isset($data['faction']), 422, 'Log in to play Boss Rush.');
+            abort_unless($user->canUseRewards(), 422, 'Activate your account to spend coins.');
             abort_if((int) ($data['startZone'] ?? 1) > 1, 422, 'Boss Rush starts with the first boss.');
 
             $fee = (int) config('boss_loot.rush.entry_fee');
@@ -64,6 +65,7 @@ class GameRecordController extends Controller
         $startZone = (int) ($data['startZone'] ?? 1);
         if ($startZone > 1) {
             abort_unless($user && isset($data['faction']), 422, 'Log in to skip ahead.');
+            abort_unless($user->canUseRewards(), 422, 'Activate your account to spend coins.');
             abort_if($startZone > BossLoot::unlockedZone($user, $data['faction']), 422, 'Defeat the earlier bosses first.');
 
             // Only taken if the purse still holds that much
