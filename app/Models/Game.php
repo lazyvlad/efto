@@ -21,12 +21,17 @@ class Game extends Model
 
     public const ABANDONED = 'abandoned';
 
+    public const NORMAL = 'normal';
+
+    public const BOSS_RUSH = 'boss_rush';
+
     protected $fillable = [
         'token',
         'user_id',
         'name',
         'faction',
         'start_zone',
+        'mode',
         'status',
         'offline',
         'chunks_issued',
@@ -109,6 +114,11 @@ class Game extends Model
     public function isOpen(): bool
     {
         return $this->status === self::OPEN;
+    }
+
+    public function isBossRush(): bool
+    {
+        return $this->mode === self::BOSS_RUSH;
     }
 
     public function isLegal(): bool

@@ -184,6 +184,11 @@
                         <label for="startZone">Start in</label>
                         <select id="startZone" class="setting-select"></select>
                     </div>
+                    <!-- Boss Rush: for logged-in players (ui/startZone.js) -->
+                    <div id="gameModePicker" class="start-zone-picker" hidden>
+                        <label for="gameMode">Mode</label>
+                        <select id="gameMode" class="setting-select"></select>
+                    </div>
                 </div>
                 <div class="pause-buttons">
                     <button id="startGameBtn" class="pause-btn continue-btn">Start Game
@@ -496,7 +501,7 @@
 
         <!-- Game Over Screen (moved inside pause menu) -->
         <div id="gameOver" style="display: none;">
-            <h2>Game Over!</h2>
+            <h2 id="gameOverTitle">Game Over!</h2>
             <p id="finalScore">Final Score: 0</p>
             <p id="coinsEarned" style="color: #FFD700; margin: 6px 0;"></p>
             <p id="newHighScore" style="display: none; color: #FFD700; font-weight: bold; margin: 10px 0;">New High Score!</p>

@@ -46,6 +46,12 @@ public/build/                          The built site CSS/JS (committed)
 - A logged-in player can pay coins to start a game in a later zone, past bosses they have
   defeated before (`skip_cost_per_zone` in `config/boss_loot.php`). The game sends the zone
   as `startZone` when it opens the game; the server checks it and takes the coins.
+- Boss Rush is a game of nothing but the bosses, for logged-in players, who pay coins to
+  enter (`rush` in `config/boss_loot.php`). The game opens it with `mode: boss_rush`; it is
+  recorded like any game (`games.mode`) but puts no score on the leaderboard.
+- Any boss may drop the large quiver for a logged-in player who does not have it (`quiver`
+  in `config/boss_loot.php`, kept as `users.quiver`). In the game it doubles the arrows the
+  hunter can carry.
 - A game that cannot reach the server in time goes offline: rare items drop at random and
   the game is recorded as offline. Only games played to the end online put a score on the
   leaderboard.
@@ -90,7 +96,7 @@ the boss, its picture (`game/assets/bosses/<side>/`) and what it throws
 settings in `game/config/gameConfig.js`: health, damage, how often it throws, its shield,
 how fast it weakens, when it enrages, how it moves and how sharply it sidesteps arrows. Its
 `behaviour` picks the round of attacks it works through (thrower, assassin, charger, caster,
-bomber, pounder or warlord). Convert large artwork to WebP at the size it is
+bomber, pounder, warlord or brawler). Convert large artwork to WebP at the size it is
 needed before adding it: the build does not resize these two folders.
 
 ## Setting up

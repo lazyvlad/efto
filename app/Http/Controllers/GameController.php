@@ -39,7 +39,7 @@ class GameController extends Controller
         $user = $request->user();
 
         $boot = [
-            'user' => $user ? ['name' => $user->name, 'avatar' => $user->avatarUrl(), 'coins' => (int) $user->coins] : null,
+            'user' => $user ? ['name' => $user->name, 'avatar' => $user->avatarUrl(), 'coins' => (int) $user->coins, 'quiver' => (bool) $user->quiver] : null,
             'guestName' => $user ? null : GuestName::forSession($request),
             // Skipping ahead: the price per zone and the furthest zone open to the player on each side
             'skip' => $user ? [
@@ -49,6 +49,8 @@ class GameController extends Controller
                     'horde' => BossLoot::unlockedZone($user, 'horde'),
                 ],
             ] : null,
+            // Boss Rush: what a logged-in player pays to enter
+            'rush' => $user ? ['fee' => (int) config('boss_loot.rush.entry_fee')] : null,
             'csrfToken' => csrf_token(),
             // Framed by the landing page, whose header already has the account links
             'embedded' => $request->boolean('embedded'),

@@ -72,6 +72,13 @@
                     </h3>
                     <p class="mt-1 text-sm text-gray-500">{{ __('Every boss you defeat drops one of its three items. The rarer ones take more kills.') }}</p>
 
+                    <p class="mt-3 text-sm {{ $quiver ? 'text-orange-400' : 'text-gray-400' }}">
+                        {{ $quiverName }}
+                        <span class="text-xs text-gray-500">
+                            {{ $quiver ? __('found: your quiver holds twice the arrows') : __('not found yet: any boss may drop it, and it doubles the arrows you can carry') }}
+                        </span>
+                    </p>
+
                     @foreach ($bosses as $side => $sideBosses)
                         <h4 class="mt-5 text-sm uppercase tracking-wide text-gray-500">{{ $side === 'alliance' ? __('Alliance') : __('Horde') }}</h4>
 
@@ -120,6 +127,9 @@
                                     <td class="py-2.5 ps-4 sm:ps-6 pe-2 whitespace-nowrap">
                                         <span class="text-gray-800">{{ $game->started_at->format('M j, Y') }}</span>
                                         <span class="text-gray-500 hidden sm:inline">{{ $game->started_at->format('H:i') }}</span>
+                                        @if ($game->isBossRush())
+                                            <span class="block text-xs text-amber-700">{{ __('Boss Rush') }}</span>
+                                        @endif
                                         @if ($game->start_zone > 1)
                                             <span class="block text-xs text-amber-700">{{ __('Skipped to zone :zone', ['zone' => $game->start_zone]) }}</span>
                                         @endif

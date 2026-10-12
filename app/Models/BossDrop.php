@@ -13,11 +13,12 @@ class BossDrop extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['game_id', 'user_id', 'boss_id', 'item_id', 'rarity', 'dropped_at'];
+    protected $fillable = ['game_id', 'user_id', 'boss_id', 'item_id', 'rarity', 'quiver', 'dropped_at'];
 
     protected function casts(): array
     {
         return [
+            'quiver' => 'boolean',
             'dropped_at' => 'datetime',
         ];
     }

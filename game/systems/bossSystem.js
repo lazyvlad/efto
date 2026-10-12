@@ -198,6 +198,8 @@ export function guardZone(gameState, canvas) {
 
     const boss = bossForZone(faction, cap / levelsPerZone());
     const stats = bossStats(boss, rules());
+    // Its storm's picture is fetched now, to be there when the storm is called
+    if (boss.storm) load(boss.storm.image);
 
     fight = {
         boss,
@@ -225,6 +227,9 @@ export function guardZone(gameState, canvas) {
         nextAttack: 0,          // Place in the behaviour's round of attacks
         sinceAttack: 0,
         closeFor: 0,            // Steps the player has stayed within the boss's reach
+        sinceVolley: 0,         // Steps since the last row it sent down outside its round
+        storm: null,            // The storm coming down: { left, right, steps }
+        sinceStorm: Infinity,   // Steps since the last storm ended (the first comes at once)
         sweep: Math.random() * Math.PI * 2,     // Where it is in its sweep along the top
 
         // Sidestepping arrows
@@ -306,6 +311,15 @@ function throwFan(context) {
     for (const lean of [-0.5, -0.25, 0, 0.25, 0.5]) {
         throwProjectile(context, fight.x, { vx: speed * lean }, speed);
     }
+}
+
+/**
+ * Drop power-ups for the player to catch, outside a fight (Boss Rush restocks between bosses).
+ * @param {object}   context  { gameState, powerUps, isValidYPosition, recentDropYPositions }
+ * @param {string[]} ids      Power-ups from data/powerUpItems.js
+ */
+export function dropSupplies(context, ids) {
+    ids.forEach(id => dropPowerUp(context, id));
 }
 
 function dropPowerUp(context, id) {
@@ -528,14 +542,130 @@ function withinReach(context) {
         && body.x < box.x + box.width * 1.4;
 }
 
-// A player who stays within reach gets a swipe, outside the boss's round of attacks
-function windUpSwipe() {
-    fight.attack = 'swipe';
+// ----- The storm -----
+// The last boss of each side calls a storm down over half the field once it is below half
+// health: the ground is marked, then it comes down. It goes on beside the boss's own attacks.
+
+function updateStorm(context) {
+    const { gameState, canvas, player, particles } = context;
+    const { boss, stats } = fight;
+    const settings = gameConfig.bosses.storm;
+    if (!boss.storm) return;
+
+    if (!fight.storm) {
+        if (fight.health > stats.health * settings.belowHealth || ++fight.sinceStorm < settings.every) return;
+
+        // The half the player stands in, so they have to cross
+        const middle = canvas.logicalWidth / 2;
+        const onLeft = playerBody(player).centerX < middle;
+        fight.storm = { left: onLeft ? 0 : middle, right: onLeft ? middle : canvas.logicalWidth, steps: 0 };
+        addNotification(gameState, `${boss.name} calls down ${boss.storm.name}! Cross to the other side`, 300, '#FF6B35');
+        return;
+    }
+
+    const storm = fight.storm;
+    storm.steps++;
+    const falling = storm.steps - settings.warning;
+
+    if (falling >= settings.lasts) {
+        fight.storm = null;
+        fight.sinceStorm = 0;
+        return;
+    }
+    if (falling < 0) return;
+
+    if (falling % settings.hitEvery === 0) {
+        const body = playerBody(player);
+        if (body.centerX > storm.left && body.centerX < storm.right) {
+            hurtPlayer(context, Math.max(1, Math.round(stats.damage * settings.damage * enrage())));
+        }
+    }
+    // Sparks where it lands
+    if (falling % 4 === 0) {
+        const floorTop = canvas.logicalHeight * (1 - gameConfig.player.movableArea.heightPercent);
+        particles.push(new Particle(
+            storm.left + Math.random() * (storm.right - storm.left),
+            floorTop + Math.random() * (canvas.logicalHeight - floorTop),
+            `rgb(${boss.storm.color})`
+        ));
+    }
+}
+
+// The storm's picture at the size it is drawn at, made once: stamping the big original
+// several times a frame would cost more than the rest of the fight together
+let stormSprite = null;
+
+function stormPicture(path, width) {
+    const image = load(path);
+    if (!image.complete || !image.naturalWidth) return null;
+
+    const size = Math.max(32, Math.round(width));
+    if (!stormSprite || stormSprite.path !== path || stormSprite.canvas.width !== size) {
+        const sprite = document.createElement('canvas');
+        sprite.width = size;
+        sprite.height = Math.round(size * image.naturalHeight / image.naturalWidth);
+        const spriteCtx = sprite.getContext('2d');
+        spriteCtx.imageSmoothingQuality = 'high';
+        spriteCtx.drawImage(image, 0, 0, sprite.width, sprite.height);
+        stormSprite = { path, canvas: sprite };
+    }
+    return stormSprite.canvas;
+}
+
+function drawStorm(ctx, canvas, pulse) {
+    const storm = fight.storm;
+    const settings = gameConfig.bosses.storm;
+    const { color, image } = fight.boss.storm;
+    const top = layout(canvas, fight.boss).top;
+    const width = storm.right - storm.left;
+    const height = canvas.logicalHeight - top;
+    const falling = storm.steps - settings.warning;
+
+    // The ground it is called down on: marked first, burning after
+    ctx.fillStyle = `rgba(${color}, ${(falling < 0 ? 0.34 : 0.2) * pulse})`;
+    ctx.fillRect(storm.left, top, width, height);
+    ctx.strokeStyle = `rgba(${color}, ${0.9 * pulse})`;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(storm.left + 1.5, top, width - 3, height - 1.5);
+    if (falling < 0) return;
+
+    // Two columns of the picture falling through the half, one a little behind the other
+    const sprite = stormPicture(image, width * 0.48);
+    if (!sprite) return;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(storm.left, top, width, height);
+    ctx.clip();
+    // Fades in as it starts and out as it ends
+    ctx.globalAlpha = Math.min(1, falling / 15, (settings.lasts - falling) / 20);
+    const gap = sprite.height * 1.15;
+    for (let column = 0; column < 2; column++) {
+        const x = storm.left + width * (0.02 + column * 0.5);
+        const offset = (falling * canvas.logicalHeight * 0.012 + column * gap * 0.5) % gap;
+        for (let y = top - gap + offset; y < canvas.logicalHeight; y += gap) {
+            ctx.drawImage(sprite, x, y);
+        }
+    }
+    ctx.restore();
+}
+
+// Wind up an attack that is not part of the boss's round: the swipe at a player who stays
+// within reach, and the row every boss sends down now and then
+function windUpExtra(attack) {
+    fight.attack = attack;
     fight.doing = 'winding';
     fight.doingSteps = 0;
     fight.attackData = null;
     fight.reactingFor = -1;
-    fight.closeFor = 0;
+}
+
+// How much faster the boss attacks for being weakened: the price of waiting for it to weaken
+function frenzy() {
+    const weakened = weakenedMultiplier(fightSeconds(), gameConfig.bosses);
+    const full = gameConfig.bosses.maxWeakened - 1;
+
+    return full > 0 ? 1 + (weakened - 1) / full * fight.stats.frenzy : 1;
 }
 
 // Begin winding up the next attack in the boss's round
@@ -592,6 +722,7 @@ function strike(context) {
             }
             // The round of attacks carries on from where it was
             fight.sinceAttack = Math.round(fight.stats.throwEvery / 2);
+            fight.closeFor = 0;
             break;
         case 'fan':
             throwFan(context);
@@ -710,6 +841,7 @@ function defeat(context) {
     fight.hidden = 0;
     fight.drop = 0;
     fight.bombs = [];
+    fight.storm = null;
     fight.doing = 'moving';
     defeated.push(boss.id);
     passed.push(boss.id);
@@ -783,9 +915,18 @@ export function updateBoss(context) {
         move(context);
         // Too close for too long, and it swipes; stepping back cools it down again
         fight.closeFor = withinReach(context) ? fight.closeFor + 1 : Math.max(0, fight.closeFor - 2);
-        if (fight.closeFor >= settings.melee.patience && fight.dodgeSteps === 0) {
-            windUpSwipe();
-        } else if (++fight.sinceAttack >= stats.throwEvery / rage && fight.dodgeSteps === 0) {
+        // Enraged it attacks faster, and so it does the weaker it gets
+        const tempo = rage * frenzy();
+        fight.sinceVolley++;
+        fight.sinceAttack++;
+        if (fight.dodgeSteps > 0) {
+            // Busy sidestepping
+        } else if (fight.closeFor >= settings.melee.patience) {
+            windUpExtra('swipe');
+        } else if (fight.sinceVolley >= stats.volleyEvery / tempo) {
+            fight.sinceVolley = 0;
+            windUpExtra('row');
+        } else if (fight.sinceAttack >= stats.throwEvery / tempo) {
             windUp(context);
         }
     } else if (fight.doing === 'winding') {
@@ -798,6 +939,7 @@ export function updateBoss(context) {
     }
 
     updateBombs(context);
+    updateStorm(context);
 
     if (++fight.sinceArrows >= settings.arrowsEvery) {
         fight.sinceArrows = 0;
@@ -863,6 +1005,8 @@ function drawWarnings(ctx, canvas, place) {
     const pulse = 0.55 + Math.sin(fight.steps * 0.35) * 0.25;
 
     ctx.save();
+
+    if (fight.storm) drawStorm(ctx, canvas, pulse);
 
     if (fight.attack === 'charge' && fight.doing !== 'moving') {
         const width = place.width * 0.6;

@@ -1,5 +1,59 @@
 # Changelog
 
+## 2.20.0 - 2026-10-12
+
+### What's new
+
+**The quiver**
+- The hunter's arrows now go in a quiver of 4 slots of 50 arrows: 200 at most. A game starts
+  with 2 slots filled, so with 100 arrows where it used to be 20. Arrows caught with a full
+  quiver are lost. The stats panel shows how full it is ("95/200").
+- Logged-in players can find the large quiver, Ancient Sinew Wrapped Lamina: every boss
+  defeated has a 10% chance to drop it, besides the boss's own item. It is found once and
+  kept on the account, and adds 4 more slots: 400 arrows. "My Games", the All Time tab and
+  the Items page say whether you have it.
+
+**Boss Rush**
+- A new way to play for logged-in players: nothing but the ten bosses of your side, back to
+  back, with no items and no stray projectiles. Choose it under "Mode" on the main menu. A
+  run costs 50 silver, taken when it starts.
+- Between two bosses there is a short breather, and arrows and a health potion drop to
+  restock. Beat all ten and the run is complete.
+- The bosses pay and drop loot as they always do (a full run pays 55 silver), so it is the
+  quickest way to hunt for boss loot and the large quiver. Boss Rush games stay off the
+  leaderboard.
+
+**Storms for the last bosses**
+- Vile Priestess Hexx calls down Rain of Fire, and Chief Ukorz Sandscalp a Blizzard. Below
+  half health the boss marks the half of the field you stand in; a moment later the storm
+  comes down there for four seconds and hurts whoever is still in it. Cross to the other
+  half. It comes again every ten seconds, beside the boss's own attacks.
+
+### Changed
+
+- Hogger and Chieftain Nek'rosh now charge: between their throws they mark a lane and rush
+  down it at you.
+- Waiting for a boss to weaken now has its price. The weaker a boss gets, the more
+  frantically it fights: fully weakened, the first boss attacks 1.6 times as often as at the
+  start of the fight, the fifth 2.2 times, the last 3 times. Its attacks are still wound up
+  as before, so each one can be seen coming.
+- Every boss now sends down a row with one gap every few seconds, on top of its own attacks.
+  This too comes faster as the boss weakens.
+
+### For developers
+- Deploying this version needs `php artisan migrate` (new `quiver` columns on `users` and
+  `boss_drops`, new `mode` on `games`).
+- Boss Rush: the fee is `rush` in `config/boss_loot.php`, the breather and what drops in it
+  `bossRush` in `game/config/gameConfig.js`. The game sends `mode: boss_rush` when it opens
+  the game; the run itself is `updateBossRush` in `game/game-modular.js`.
+- A boss's storm is `storm` on its entry in `game/data/bosses.js`; timings and damage are
+  `storm` under `bosses` in `game/config/gameConfig.js`. Hogger and Nek'rosh use the new
+  `brawler` behaviour.
+- The quiver's sizes are `quiver` in `game/config/gameConfig.js`; the drop's name and chance
+  are `quiver` in `config/boss_loot.php`.
+- Both are under `bosses` in `game/config/gameConfig.js`: `frenzy` for the quickening, and
+  `volleyEvery`, which was there but unused, for the rows.
+
 ## 2.19.0 - 2026-10-12
 
 ### What's new

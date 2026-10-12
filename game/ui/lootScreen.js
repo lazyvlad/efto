@@ -141,6 +141,18 @@ function drawCollection(container, data) {
     container.textContent = '';
     container.append(element('div', 'loot-summary', `Your purse: ${formatCoins(data.coins)}`));
 
+    if (data.quiver) {
+        container.append(heading('Quiver'));
+        container.append(lootRow({
+            name: data.quiver.name,
+            nameClass: data.quiver.found ? 'loot-type-legendary' : '',
+            description: data.quiver.found
+                ? 'Found: your quiver holds twice the arrows'
+                : 'Not found yet: any boss may drop it, and it doubles the arrows you can carry',
+            missing: !data.quiver.found
+        }));
+    }
+
     const bossItems = Object.values(data.bosses).flat().flatMap(boss => boss.loot);
     container.append(heading('Boss loot', `${bossItems.filter(item => item.times > 0).length} of ${bossItems.length} found`));
 

@@ -22,6 +22,7 @@
 //   bomber   - lobs things that land near the player and burst a moment later
 //   pounder  - stomps: the ground hurts everywhere but one safe patch
 //   warlord  - a fan of axes, a rush down the field, a throw and a row, one after the other
+//   brawler  - throws, and rushes down the field at the player in between
 //
 // Every boss keeps on the move along the top of the field and sidesteps arrows it sees coming,
 // the later bosses more sharply. It cannot sidestep while it winds up an attack.
@@ -30,6 +31,9 @@
 // (see bossStats below), so the first bosses are easy and each one after is harder. An entry
 // here only says who the boss is and what it throws:
 //   image   - its picture, in assets/bosses/<side>/
+//   storm   - for a boss with a storm of its own (the last of each side): below half health
+//             it calls it down over the half of the field the player stands in. Name, picture
+//             (assets/attacks/area/) and the colour the ground is marked in, as "r, g, b"
 //   attack  - name and picture (assets/attacks/<side>/) of what it throws; "size" is how big
 //             it is (1 = the standard projectile); "spin" makes a thrown weapon tumble (turn
 //             per step) - leave it out for bolts and slashes, which keep pointing down
@@ -37,15 +41,15 @@
 const roster = {
     alliance: [
         { id: 'garrick-padfoot', behaviour: 'thrower', name: 'Garrick Padfoot', image: '01-garrick-padfoot', attack: { name: 'Throwing Dagger', image: '01-garrick-dagger', size: 1.2, spin: 0.22 } },
-        { id: 'hogger', behaviour: 'thrower', name: 'Hogger', image: '02-hogger', attack: { name: 'Thrown Axe', image: '02-hogger-axe', size: 1.5, spin: 0.12 } },
+        { id: 'hogger', behaviour: 'brawler', name: 'Hogger', image: '02-hogger', attack: { name: 'Thrown Axe', image: '02-hogger-axe', size: 1.5, spin: 0.12 } },
         { id: 'bazil-thredd', behaviour: 'assassin', name: 'Bazil Thredd', image: '03-bazil-thredd', attack: { name: 'Prison Shiv', image: '03-bazil-shiv', size: 1.2, spin: 0.22 } },
         { id: 'edwin-vancleef', behaviour: 'assassin', name: 'Edwin VanCleef', image: '04-edwin-vancleef', attack: { name: 'Defias Throwing Knife', image: '04-vancleef-knife', size: 1.2, spin: 0.22 } },
         { id: 'gath-ilzogg', behaviour: 'warlord', name: "Gath'Ilzogg", image: '05-gath-ilzogg', attack: { name: 'Blackrock War Axe', image: '05-gath-war-axe', size: 1.6, spin: 0.12 } },
         { id: 'stitches', behaviour: 'thrower', name: 'Stitches', image: '06-stitches', attack: { name: 'Thrown Cleaver', image: '06-stitches-cleaver', size: 1.6, spin: 0.12 } },
-        { id: 'chieftain-nekrosh', behaviour: 'thrower', name: "Chieftain Nek'rosh", image: '07-chieftain-nekrosh', attack: { name: 'Spiked Mace', image: '07-nekrosh-mace', size: 1.6, spin: 0.1 } },
+        { id: 'chieftain-nekrosh', behaviour: 'brawler', name: "Chieftain Nek'rosh", image: '07-chieftain-nekrosh', attack: { name: 'Spiked Mace', image: '07-nekrosh-mace', size: 1.6, spin: 0.1 } },
         { id: 'fozruk', behaviour: 'bomber', name: 'Fozruk', image: '08-fozruk', attack: { name: 'Thrown Boulder', image: '08-fozruk-boulder', size: 1.9, spin: 0.05 } },
         { id: 'king-bangalash', behaviour: 'charger', name: 'King Bangalash', image: '09-king-bangalash', attack: { name: 'Tiger Claw Slash', image: '09-bangalash-claws', size: 2.2 } },
-        { id: 'vile-priestess-hexx', behaviour: 'caster', name: 'Vile Priestess Hexx', image: '10-vile-priestess-hexx', attack: { name: 'Violet Curse Bolt', image: '10-hexx-curse', size: 1.4 } }
+        { id: 'vile-priestess-hexx', behaviour: 'caster', name: 'Vile Priestess Hexx', image: '10-vile-priestess-hexx', storm: { name: 'Rain of Fire', image: '09-rain-of-fire', color: '255, 70, 20' }, attack: { name: 'Violet Curse Bolt', image: '10-hexx-curse', size: 1.4 } }
     ],
     horde: [
         { id: 'sarkoth', behaviour: 'caster', name: 'Sarkoth', image: '01-sarkoth', attack: { name: 'Venom Sting', image: '01-sarkoth-venom', size: 1.3 } },
@@ -57,7 +61,7 @@ const roster = {
         { id: 'arnak-grimtotem', behaviour: 'pounder', name: 'Arnak Grimtotem', image: '07-arnak-grimtotem', attack: { name: 'War Stomp Shockwave', image: '07-arnak-shockwave', size: 2.4 } },
         { id: 'big-samras', behaviour: 'charger', name: 'Big Samras', image: '08-big-samras', attack: { name: 'Heavy Bear Swipe', image: '08-samras-swipe', size: 2.2 } },
         { id: 'khan-dezhepah', behaviour: 'pounder', name: "Khan Dez'hepah", image: '09-khan-dezhepah', attack: { name: 'Thrown Centaur Spear', image: '09-khan-spear', size: 1.5 } },
-        { id: 'chief-ukorz-sandscalp', behaviour: 'pounder', name: 'Chief Ukorz Sandscalp', image: '10-chief-ukorz-sandscalp', attack: { name: 'Sand Cleave', image: '10-ukorz-sand-cleave', size: 2.2 } }
+        { id: 'chief-ukorz-sandscalp', behaviour: 'pounder', name: 'Chief Ukorz Sandscalp', image: '10-chief-ukorz-sandscalp', storm: { name: 'Blizzard', image: '10-blizzard', color: '90, 170, 255' }, attack: { name: 'Sand Cleave', image: '10-ukorz-sand-cleave', size: 2.2 } }
     ]
 };
 
@@ -69,7 +73,8 @@ export const behaviours = {
     caster: ['bolt', 'bolt', 'curse'],
     bomber: ['bomb', 'throw', 'bomb', 'row'],
     pounder: ['throw', 'stomp', 'throw', 'stomp'],
-    warlord: ['fan', 'charge', 'throw', 'row']
+    warlord: ['fan', 'charge', 'throw', 'row'],
+    brawler: ['throw', 'throw', 'charge', 'row']
 };
 
 // Every boss, with its side, its zone (1 is the first) and the full paths of its pictures
@@ -78,6 +83,7 @@ export const bosses = Object.entries(roster).flatMap(([faction, list]) => list.m
     faction,
     zone: index + 1,
     image: `assets/bosses/${faction}/${boss.image}.webp`,
+    storm: boss.storm ? { ...boss.storm, image: `assets/attacks/area/${boss.storm.image}.webp` } : null,
     attack: {
         ...boss.attack,
         id: `${boss.id}-attack`,
@@ -121,6 +127,8 @@ export function bossStats(boss, rules) {
         // Steps between single throws, and between rows with one gap (60 steps = 1 second)
         throwEvery: Math.max(rules.throwEvery.fastest, rules.throwEvery.base - rules.throwEvery.perZone * steps),
         volleyEvery: Math.max(rules.volleyEvery.fastest, rules.volleyEvery.base - rules.volleyEvery.perZone * steps),
+        // How much more often it attacks once fully weakened (1 = twice as often)
+        frenzy: Math.min(rules.frenzy.most, rules.frenzy.base + rules.frenzy.perZone * steps),
         // Seconds into the fight of the first shield, and between one shield being broken and
         // the next. The first bosses have none.
         shieldAfter: boss.zone >= rules.shield.fromZone ? rules.shield.firstAfter : null,

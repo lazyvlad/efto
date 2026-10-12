@@ -1,3 +1,4 @@
+import { addArrows } from '../utils/quiver.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { addNotification, calculateFallAngle, getLogicalCanvasWidth, responsiveScaler } from '../utils/gameUtils.js';
 import { assetManager } from '../utils/AssetManager.js';
@@ -484,18 +485,16 @@ export class PowerUpItem extends FallingObject {
                 
             case "arrow_ammo":
                 // Add arrows to the ammunition inventory
-                const arrowsToAdd = this.data.value;
-                gameState.arrowCount = (gameState.arrowCount || 0) + arrowsToAdd;
+                // The quiver only holds so many: what does not fit is lost
+                const quiver = addArrows(gameState.arrowCount || 0, this.data.value, gameState.quiverCapacity || Infinity);
+                const arrowsToAdd = quiver.added;
+                gameState.arrowCount = quiver.arrows;
                 
                 // Add notification for arrow collection with tier-specific names and emojis
-                let arrowNotification = '';
-                if (this.data.id === 'bronze_arrows') {
-                    arrowNotification = `🏹 BRONZE ARROWS! +${arrowsToAdd} arrows (Total: ${gameState.arrowCount})`;
-                } else if (this.data.id === 'silver_arrows') {
-                    arrowNotification = `🏹 SILVER ARROWS! +${arrowsToAdd} arrows (Total: ${gameState.arrowCount})`;
-                } else {
-                    arrowNotification = `🏹 THORIUM ARROWS! +${arrowsToAdd} arrows (Total: ${gameState.arrowCount})`;
-                }
+                const arrowTier = this.data.id === 'bronze_arrows' ? 'BRONZE' : this.data.id === 'silver_arrows' ? 'SILVER' : 'THORIUM';
+                const arrowNotification = quiver.lost > 0
+                    ? `🏹 ${arrowTier} ARROWS! +${arrowsToAdd} arrows - quiver full (${gameState.arrowCount})`
+                    : `🏹 ${arrowTier} ARROWS! +${arrowsToAdd} arrows (Total: ${gameState.arrowCount})`;
                 addNotification(gameState, arrowNotification, 300, this.data.color);
                 break;
         }

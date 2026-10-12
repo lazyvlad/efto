@@ -258,6 +258,26 @@ export const gameConfig = {
     // Who the bosses are is in data/bosses.js. A boss's strength comes from its zone (1 to 10)
     // and the numbers here: "base" is the first zone's boss, "perZone" what each later zone
     // adds or takes off. 60 steps = 1 second.
+    // === BOSS RUSH ===
+    // A game of nothing but the bosses of one side, back to back: no items, no stray
+    // projectiles. For logged-in players, who pay coins to enter (rush in config/boss_loot.php
+    // on the site). Between two bosses there is a breather, with something dropped to restock.
+    bossRush: {
+        breather: 240,              // Steps between one boss falling and the next coming in
+        supplies: ['thorium_arrows', 'health_potion'],  // Dropped in the breather (data/powerUpItems.js)
+    },
+
+    // === QUIVER ===
+    // How many arrows the hunter can carry: so many slots of so many arrows. A game starts with
+    // some slots filled, and arrows caught beyond what the quiver holds are lost. A logged-in
+    // player who has found the large quiver (a boss drop, kept on the account) has more slots.
+    quiver: {
+        slotSize: 50,               // Arrows to a slot
+        slots: 4,                   // Slots everyone has: 200 arrows
+        startFilled: 2,             // Slots filled when a game starts: 100 arrows
+        bonusSlots: 4,              // Slots the large quiver adds: 400 arrows in all
+    },
+
     // === COINS ===
     // What catching an item is worth, by rarity, in copper (100 copper = 1 silver, 100 silver =
     // 1 gold). A logged-in player's coins are kept on their account. The site works out what a
@@ -279,7 +299,7 @@ export const gameConfig = {
         health: { base: 240, perZone: 257 },                    // Hogger (zone 2): 497. The first bosses go down quickly; the last has about 2550
         damage: { base: 8, perZone: 0.8 },                      // What one of the boss's attacks takes off the player: 8 for the first boss, about 15 for the last
         throwEvery: { base: 75, perZone: 5, fastest: 45 },      // Steps on the move between one attack and winding up the next
-        volleyEvery: { base: 450, perZone: 15, fastest: 300 },  // Steps between rows with one gap
+        volleyEvery: { base: 450, perZone: 15, fastest: 300 },  // Steps between rows with one gap, which every boss sends down on top of its own attacks
         
         // Arrows
         arrowDamage: 10,            // Damage of one arrow, before crits and weakening
@@ -288,6 +308,12 @@ export const gameConfig = {
         // The longer a fight lasts the weaker the boss gets, up to a limit
         weakenPerSecond: 0.02,      // Each second, arrows do this much more damage (0.02 = +2%)
         maxWeakened: 2,             // Arrows never do more than this many times their normal damage
+        
+        // Waiting for the boss to weaken has its price: the weaker it gets, the more frantically
+        // it fights. Fully weakened it attacks (1 + this) times as often as at the start: the
+        // first boss 1.6 times, the fifth 2.2 times, the last 3 times. Its wind-ups stay as
+        // they are, so every attack can still be seen coming.
+        frenzy: { base: 0.6, perZone: 0.15, most: 2 },
         
         // The boss shields itself: arrows are absorbed until an Arcane Shot breaks the shield
         shield: {
@@ -340,6 +366,19 @@ export const gameConfig = {
             reach: 0.9,             // How far below the boss it reaches, in heights of its body
             patience: 45,           // Steps a player may stay that close before it winds up
             damage: 2,              // The swipe does this many times the boss's damage
+        },
+
+        // The last boss of each side has a storm of its own (Rain of Fire, Blizzard: "storm" in
+        // data/bosses.js). Below this share of its health it calls the storm down over the half
+        // of the field the player stands in: the ground is marked first, so there is time to
+        // cross to the other half, and then it comes down for a while, hurting whoever is in it.
+        storm: {
+            belowHealth: 0.5,       // The boss's health at which the storms begin
+            every: 600,             // Steps from the end of one storm to the next
+            warning: 75,            // Steps the ground is marked before it comes down
+            lasts: 240,             // Steps it comes down for
+            hitEvery: 30,           // Steps between one hit and the next on a player standing in it
+            damage: 0.6,            // Each hit does this many times the boss's damage
         },
 
         // Attacks that are more than a thrown thing hit harder: a charge, a blast, a stomp

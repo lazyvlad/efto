@@ -18,6 +18,7 @@ const rules = {
     volleyEvery: { base: 450, perZone: 15, fastest: 300 },
     weakenPerSecond: 0.02,
     maxWeakened: 2,
+    frenzy: { base: 0.6, perZone: 0.15, most: 2 },
     shield: { fromZone: 2, firstAfter: 12, every: 30, perZone: 1.5, shortest: 15 },
     enrage: { after: 100, perZone: 5, soonest: 50, atStart: 1.5, perSecond: 0.03, most: 4 },
     reward: { score: 100, scorePerZone: 50, health: 30 },
@@ -116,7 +117,7 @@ test('every boss fights in one of the known ways, and each way is used', () => {
     }
     // The first bosses are plain throwers
     assert.equal(bossForZone('alliance', 1).behaviour, 'thrower');
-    assert.equal(bossForZone('alliance', 2).behaviour, 'thrower');
+    assert.equal(bossForZone('alliance', 2).behaviour, 'brawler');
 });
 
 test('the settings in the game match the ones these tests describe', async () => {

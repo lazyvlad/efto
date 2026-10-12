@@ -170,10 +170,10 @@ function goOffline(current) {
     current.onOffline();
 }
 
-async function openGame(current, playerName, faction, startZone) {
+async function openGame(current, playerName, faction, startZone, mode) {
     while (session === current && !current.token) {
         try {
-            const response = await post(gamesUrl(), { name: playerName, faction, startZone, version: GAME_VERSION });
+            const response = await post(gamesUrl(), { name: playerName, faction, startZone, mode, version: GAME_VERSION });
             if (response.ok) {
                 const data = await response.json();
                 current.token = data.game;
@@ -275,10 +275,11 @@ export async function reportBoss(bossId) {
  * @param {string}   playerName  Name typed by a guest (accounts play under their own name)
  * @param {string}   faction     The side the player chose: 'alliance' or 'horde'
  * @param {number}   startZone   The zone the game starts in: above 1 when the player pays to skip ahead
+ * @param {string}   mode        'normal', or 'boss_rush' for a game of nothing but the bosses
  * @param {Function} getSummary  Returns the game's result so far: { score, level, gameTime, ... }
  * @param {Function} onOffline   Called once if the game loses the server
  */
-export function beginGame({ playerName, faction, startZone = 1, getSummary, onOffline }) {
+export function beginGame({ playerName, faction, startZone = 1, mode = 'normal', getSummary, onOffline }) {
     if (!siteBoot || !siteBoot.urls.games) {
         session = null;
         return;
@@ -303,7 +304,7 @@ export function beginGame({ playerName, faction, startZone = 1, getSummary, onOf
     // The game this tab played before (if it was left unfinished) is handed in first; the tab's
     // own game is only replaced once the new one has opened
     handInLeftovers();
-    openGame(session, playerName, faction, startZone);
+    openGame(session, playerName, faction, startZone, mode);
 }
 
 /**

@@ -243,6 +243,94 @@ class BossLootTest extends TestCase
         $this->assertStringContainsString('"skip":null', $this->get(route('play'))->getContent());
     }
 
+    public function test_a_boss_may_drop_the_large_quiver_once_for_a_player(): void
+    {
+        config(['boss_loot.quiver.chance' => 1]);
+        $user = User::factory()->create();
+        $game = $this->actingAs($user)->openGame();
+        $this->travel(60)->seconds();
+
+        $this->postJson(route('games.boss', $game), ['boss' => 'garrick-padfoot'])
+            ->assertOk()
+            ->assertJsonPath('quiver', 'Ancient Sinew Wrapped Lamina');
+        $this->assertTrue($user->fresh()->quiver);
+
+        // Reported again, the answer is the same; the next boss has none to give
+        $this->postJson(route('games.boss', $game), ['boss' => 'garrick-padfoot'])->assertJsonPath('quiver', 'Ancient Sinew Wrapped Lamina');
+        $this->postJson(route('games.boss', $game), ['boss' => 'hogger'])->assertOk()->assertJsonPath('quiver', null);
+        $this->assertSame(1, BossDrop::where('quiver', true)->count());
+
+        // A later visit (the test keeps the player as they were when they logged in)
+        $html = $this->actingAs($user->fresh())->get(route('play'))->getContent();
+        $this->assertStringContainsString('"quiver":true', $html);
+        $this->getJson(route('collection'))->assertJsonPath('quiver.found', true);
+        $this->postJson(route('games.finish', $game), ['score' => 10])->assertOk();
+        $this->get(route('games.history'))->assertSee('your quiver holds twice the arrows');
+    }
+
+    public function test_guests_and_unlucky_players_get_no_quiver(): void
+    {
+        config(['boss_loot.quiver.chance' => 1]);
+        $game = $this->openGame();
+        $this->travel(60)->seconds();
+        $this->postJson(route('games.boss', $game), ['boss' => 'garrick-padfoot'])->assertOk()->assertJsonPath('quiver', null);
+
+        config(['boss_loot.quiver.chance' => 0]);
+        $user = User::factory()->create();
+        $game = $this->actingAs($user)->openGame();
+        $this->travel(60)->seconds();
+        $this->postJson(route('games.boss', $game), ['boss' => 'garrick-padfoot'])->assertOk()->assertJsonPath('quiver', null);
+        $this->assertFalse($user->fresh()->quiver);
+        $this->getJson(route('collection'))->assertJsonPath('quiver.found', false);
+    }
+
+    public function test_boss_rush_costs_coins_lets_bosses_fall_fast_and_stays_off_the_leaderboard(): void
+    {
+        config(['boss_loot.quiver.chance' => 0]);
+        $user = User::factory()->create();
+        $user->forceFill(['coins' => 6000])->save();
+
+        $response = $this->actingAs($user)
+            ->postJson(route('games.open'), ['faction' => 'alliance', 'mode' => 'boss_rush'])
+            ->assertOk()
+            ->assertJsonPath('coins', 1000);
+        $game = Game::where('token', $response->json('game'))->firstOrFail();
+        $this->assertTrue($game->isBossRush());
+
+        // The second boss 15 seconds in: far too early in a normal game, fine here
+        $this->travel(15)->seconds();
+        $this->postJson(route('games.boss', $game), ['boss' => 'garrick-padfoot'])->assertOk();
+        $this->postJson(route('games.boss', $game), ['boss' => 'hogger'])->assertOk();
+        $this->postJson(route('games.boss', $game), ['boss' => 'bazil-thredd'])->assertStatus(425);
+
+        // Two bosses: 1s and 2s
+        $this->postJson(route('games.finish', $game), ['score' => 250, 'gameTime' => 14])
+            ->assertOk()
+            ->assertJsonPath('mode', 'boss_rush')
+            ->assertJsonPath('rank', null)
+            ->assertJsonPath('coins.earned', 300)
+            ->assertJsonPath('coins.balance', 1300);
+        $this->assertDatabaseCount('scores', 0);
+
+        $this->get(route('games.history'))->assertSee('Boss Rush');
+    }
+
+    public function test_boss_rush_needs_an_account_and_the_fee(): void
+    {
+        $this->postJson(route('games.open'), ['faction' => 'alliance', 'mode' => 'boss_rush'])->assertStatus(422);
+
+        $user = User::factory()->create();
+        $user->forceFill(['coins' => 4999])->save();
+        $this->actingAs($user)->postJson(route('games.open'), ['faction' => 'alliance', 'mode' => 'boss_rush'])->assertStatus(422);
+        $this->postJson(route('games.open'), ['faction' => 'alliance', 'mode' => 'tournament'])->assertStatus(422);
+
+        $this->assertSame(4999, $user->fresh()->coins);
+        $this->assertDatabaseCount('games', 0);
+
+        $html = $this->get(route('play'))->getContent();
+        $this->assertStringContainsString('"rush":{"fee":5000}', $html);
+    }
+
     public function test_amounts_read_as_gold_silver_and_copper(): void
     {
         $this->assertSame('0c', Coins::format(0));

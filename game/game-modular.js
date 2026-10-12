@@ -19,9 +19,10 @@ import { loadHighScores, addHighScore, cacheHighScores, isHighScore, displayHigh
 import * as lootSystem from './systems/lootSystem.js';
 import { totalXpAtLevel } from './utils/progression.js';
 import { coinsForItem, coinsForBoss, formatCoins } from './utils/coins.js';
-import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost } from './ui/startZone.js';
+import { quiverCapacity, startingArrows } from './utils/quiver.js';
+import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost, renderGameModePicker, getGameMode, gameModeCost } from './ui/startZone.js';
 import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
-import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse } from './systems/bossSystem.js';
+import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, dropSupplies } from './systems/bossSystem.js';
 import { BossProjectile } from './classes/BossProjectile.js';
 import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground } from './systems/backgroundSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState, updateMouseLock } from './systems/inputSystem.js';
@@ -173,9 +174,13 @@ let gameState = {
     player: null,
 
     // Arrow ammunition system
-    arrowCount: 20, // Current number of arrows available (start with 20)
+    arrowCount: 100, // Arrows in the quiver; a game starts with some of its slots filled (utils/quiver.js)
+    quiverCapacity: 200, // The most arrows the quiver holds; more for a player with the large quiver
     coins: 0, // Coins earned in this game, in copper (utils/coins.js)
     bossLoot: [], // What the bosses defeated in this game dropped: { boss, item: { id, name, rarity }, kept }
+    mode: 'normal', // 'normal', or 'boss_rush': nothing but the bosses, back to back
+    rushPause: 0, // Boss Rush: steps left of the breather before the next boss comes in
+    rushComplete: false, // Boss Rush: every boss of the side is down
     startZone: 1, // The zone the game starts in: above 1 when the player paid to skip ahead (ui/startZone.js)
     
     // Bullet Time system
@@ -543,6 +548,9 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     const oldLevel = gameState.currentLevel;
     const oldSpeedMultiplier = gameState.levelSpeedMultiplier;
     
+    // Boss Rush brings the next boss in itself
+    if (gameState.mode === 'boss_rush' && !isBossFightActive()) updateBossRush();
+    
     // A zone's boss stands between the player and the next zone: the level stops at the end of
     // the zone until the boss, who comes in when the player has the experience to move on, is
     // defeated.
@@ -577,10 +585,12 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     
     // Spawn new items, projectiles, and power-ups (affected by bullet time).
     // During a boss fight the boss does the throwing; the game's own drops wait.
-    spawnItems(bulletTimeAdjustedDelta);
+    // Boss Rush has nothing but the bosses.
+    const onlyBosses = gameState.mode === 'boss_rush';
+    if (!onlyBosses) spawnItems(bulletTimeAdjustedDelta);
     if (isBossFightActive()) {
         updateBoss({ gameState, canvas, player, fireballs, powerUps, particles, combatTexts, spellSystem, isValidYPosition, recentDropYPositions, shouldDodge, showDodgeText, trackDodge, onBossDefeated });
-    } else {
+    } else if (!onlyBosses) {
         spawnProjectiles(bulletTimeAdjustedDelta);
         spawnPowerUps(bulletTimeAdjustedDelta);
     }
@@ -660,6 +670,33 @@ function firstLevel() {
         return (gameState.startZone - 1) * gameConfig.backgrounds.levelsPerBackground + 1;
     }
     return gameConfig.levels.startingLevel || 1;
+}
+
+// Boss Rush, between fights: a breather with something to restock, then the experience the
+// next boss waits for, so it comes in at once. With no boss left standing the run is won.
+function updateBossRush() {
+    if (gameState.levelCap === undefined) return;   // The first step: not yet known who stands
+    
+    if (gameState.levelCap === Infinity) {
+        gameState.rushComplete = true;
+        endGame();
+        return;
+    }
+    
+    if (gameState.rushPause > 0) {
+        gameState.rushPause--;
+        if (gameState.rushPause === gameConfig.bossRush.breather - 60) {
+            dropSupplies({ gameState, powerUps, isValidYPosition, recentDropYPositions }, gameConfig.bossRush.supplies);
+        }
+        return;
+    }
+    
+    gameState.xp = Math.max(gameState.xp || 0, totalXpAtLevel(gameState.levelCap + 1, gameConfig.progression));
+}
+
+// Whether the logged-in player has found the large quiver (a boss drop, kept on the account)
+function hasLargeQuiver() {
+    return Boolean(siteBoot && siteBoot.user && siteBoot.user.quiver);
 }
 
 function startGame() {
@@ -821,8 +858,14 @@ function startGame() {
     gameState.healthSavedFromDodges = 0;
     gameState.dodgeAreaExpansion = 0;
     
-    // Reset arrow ammunition - start with 20 arrows
-    gameState.arrowCount = 20;
+    // The quiver: some of its slots filled, and bigger for a player who has found the large one
+    gameState.quiverCapacity = quiverCapacity(gameConfig.quiver, hasLargeQuiver());
+    gameState.arrowCount = startingArrows(gameConfig.quiver);
+    
+    // Boss Rush: the first boss comes in after a moment
+    gameState.rushPause = 60;
+    gameState.rushComplete = false;
+    gameState.levelCap = undefined;
     gameState.coins = 0;
     gameState.bossLoot = [];
     
@@ -882,6 +925,7 @@ function startGame() {
         playerName: gameState.playerName,
         faction: gameState.faction,
         startZone: gameState.startZone,
+        mode: gameState.mode,
         getSummary: getGameSummary,
         onOffline: () => addNotification(gameState, `⚠️ Connection lost - this game is offline and will not count`, 360, '#FF6B6B')
     });
@@ -1044,8 +1088,14 @@ function restartGame() {
     gameState.healthSavedFromDodges = 0;
     gameState.dodgeAreaExpansion = 0;
     
-    // Reset arrow ammunition - start with 20 arrows
-    gameState.arrowCount = 20;
+    // The quiver: some of its slots filled, and bigger for a player who has found the large one
+    gameState.quiverCapacity = quiverCapacity(gameConfig.quiver, hasLargeQuiver());
+    gameState.arrowCount = startingArrows(gameConfig.quiver);
+    
+    // Boss Rush: the first boss comes in after a moment
+    gameState.rushPause = 60;
+    gameState.rushComplete = false;
+    gameState.levelCap = undefined;
     gameState.coins = 0;
     gameState.bossLoot = [];
     
@@ -1552,6 +1602,7 @@ function showNameEntry() {
         option.checked = option.value === getFaction();
     });
     renderStartZonePicker(getFaction());
+    renderGameModePicker();
     showStartingBackground();
     
     // Update canvas overlay
@@ -1725,9 +1776,13 @@ function startGameFromUI() {
     gameState.playerName = playerName;
     gameState.faction = getFaction();
     
-    // Skipping ahead is paid for as the game opens; the site has the last word on the purse
-    gameState.startZone = getStartZone(gameState.faction);
-    if (gameState.startZone > 1) {
+    // Boss Rush and skipping ahead are paid for as the game opens; the site has the last word
+    // on the purse. Boss Rush always starts with the first boss.
+    gameState.mode = getGameMode();
+    gameState.startZone = gameState.mode === 'boss_rush' ? 1 : getStartZone(gameState.faction);
+    if (gameState.mode === 'boss_rush') {
+        siteBoot.user.coins -= gameModeCost(gameState.mode);
+    } else if (gameState.startZone > 1) {
         siteBoot.user.coins -= skipCost(gameState.startZone);
     }
     
@@ -1761,6 +1816,18 @@ function restartGameFromUI() {
 // Set up UI event handlers
 function setupUIEventHandlers() {
     console.log('Setting up UI event handlers...');
+    
+    // Boss Rush always starts with the first boss, so the choice of starting zone goes away
+    const gameModeSelect = document.getElementById('gameMode');
+    if (gameModeSelect) {
+        gameModeSelect.addEventListener('change', () => {
+            if (gameModeSelect.value === 'boss_rush') {
+                document.getElementById('startZonePicker').hidden = true;
+            } else {
+                renderStartZonePicker(getFaction());
+            }
+        });
+    }
     
     // Choosing a side remembers it and shows where that side starts
     document.querySelectorAll('#factionPicker input[name="faction"]').forEach(option => {
@@ -2857,14 +2924,14 @@ function updatePlayerStats(gameState) {
     // Update arrow count display
     const arrowCountElement = document.getElementById('arrowCount');
     if (arrowCountElement) {
-        arrowCountElement.textContent = (gameState.arrowCount || 0).toString();
-        // Color code based on arrow count
+        arrowCountElement.textContent = `${gameState.arrowCount || 0}/${gameState.quiverCapacity}`;
+        // Grey when empty, green when the quiver is full, gold in between
         if ((gameState.arrowCount || 0) === 0) {
-            arrowCountElement.style.color = '#CCCCCC'; // Gray for no arrows
-        } else if (gameState.arrowCount < 100) {
-            arrowCountElement.style.color = '#FFD700'; // Gold for some arrows
+            arrowCountElement.style.color = '#CCCCCC';
+        } else if (gameState.arrowCount < gameState.quiverCapacity) {
+            arrowCountElement.style.color = '#FFD700';
         } else {
-            arrowCountElement.style.color = '#00FF00'; // Green for many arrows
+            arrowCountElement.style.color = '#00FF00';
         }
     }
     
@@ -3223,10 +3290,19 @@ const BOSS_LOOT_COLORS = { uncommon: '#1EFF00', rare: '#4D9BFF', epic: '#C77DFF'
 // keeps the item on their account; a guest is only shown it.
 function onBossDefeated(boss) {
     gameState.coins += coinsForBoss(boss.zone, gameConfig.coins);
+    if (gameState.mode === 'boss_rush') gameState.rushPause = gameConfig.bossRush.breather;
     
     lootSystem.reportBoss(boss.id).then(drop => {
         if (!drop) return;
         setUnlockedZone(boss.faction, drop.unlockedZone);
+        
+        // The large quiver, found once in an account's life: it holds more from this moment on
+        if (drop.quiver && siteBoot && siteBoot.user) {
+            siteBoot.user.quiver = true;
+            gameState.quiverCapacity = quiverCapacity(gameConfig.quiver, true);
+            addNotification(gameState, `${drop.quiver}! Your quiver now holds ${gameState.quiverCapacity} arrows`, 480, '#FF8000');
+            combatTexts.push(new CombatText((canvas.logicalWidth || canvas.width) / 2, player.y - 90, 'Large quiver!', '#FF8000', true));
+        }
         if (!drop.item) return;
         
         // Listed with the game's loot, in the panel and on the loot screen
@@ -3289,7 +3365,12 @@ function endGame() {
                 if (result.scores) cacheHighScores(result.scores);
                 if (result.coins) showCoinsEarned(result.coins);
                 
-                if (result.legal) {
+                if (result.mode === 'boss_rush') {
+                    if (newHighScoreElement) {
+                        newHighScoreElement.textContent = 'Boss Rush is not played for the leaderboard';
+                        newHighScoreElement.style.display = 'block';
+                    }
+                } else if (result.legal) {
                     showRank(result.rank);
                 } else if (newHighScoreElement) {
                     newHighScoreElement.textContent = 'Offline game - not on the leaderboard';
@@ -3317,6 +3398,9 @@ function endGame() {
     }
     
     showCoinsEarned();
+    
+    const gameOverTitle = document.getElementById('gameOverTitle');
+    if (gameOverTitle) gameOverTitle.textContent = gameState.rushComplete ? 'Boss Rush complete!' : 'Game Over!';
     
     // Update final score display
     const finalScoreElement = document.getElementById('finalScore');

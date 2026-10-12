@@ -78,6 +78,18 @@ class BossLoot
     }
 
     /**
+     * Whether this kill also drops the large quiver. Only for a player who does not have it.
+     */
+    public static function rollQuiver(?User $user): bool
+    {
+        if ($user === null || $user->quiver) {
+            return false;
+        }
+
+        return random_int(0, PHP_INT_MAX - 1) / PHP_INT_MAX < (float) config('boss_loot.quiver.chance');
+    }
+
+    /**
      * One of a boss's items by its id.
      *
      * @return array{id: string, name: string, rarity: string}|null

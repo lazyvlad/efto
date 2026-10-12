@@ -39,6 +39,7 @@ class GameRecordController extends Controller
             'faction' => ['nullable', 'in:alliance,horde'],
             'version' => ['nullable', 'string', 'max:20'],
             'startZone' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'mode' => ['nullable', 'in:normal,boss_rush'],
         ]);
 
         // Logged-in players always play under their account name. Guests use the name they
@@ -47,6 +48,17 @@ class GameRecordController extends Controller
         $name = $user
             ? Score::cleanName($user->name)
             : (Score::cleanName($data['name'] ?? '') ?: GuestName::forSession($request));
+
+        // Boss Rush is for logged-in players and is paid for; it always starts with the first boss
+        $mode = $data['mode'] ?? Game::NORMAL;
+        if ($mode === Game::BOSS_RUSH) {
+            abort_unless($user && isset($data['faction']), 422, 'Log in to play Boss Rush.');
+            abort_if((int) ($data['startZone'] ?? 1) > 1, 422, 'Boss Rush starts with the first boss.');
+
+            $fee = (int) config('boss_loot.rush.entry_fee');
+            $paid = User::whereKey($user->id)->where('coins', '>=', $fee)->decrement('coins', $fee);
+            abort_if($paid === 0, 422, 'Not enough coins.');
+        }
 
         // Skipping ahead: only past bosses the player has beaten before, and it costs coins
         $startZone = (int) ($data['startZone'] ?? 1);
@@ -66,6 +78,7 @@ class GameRecordController extends Controller
             'name' => $name ?: 'Anonymous',
             'faction' => $data['faction'] ?? null,
             'start_zone' => $startZone,
+            'mode' => $mode,
             'game_version' => $data['version'] ?? null,
             'started_at' => now(),
         ]);
@@ -122,13 +135,16 @@ class GameRecordController extends Controller
 
         abort_if($boss['zone'] < $game->start_zone, 422, 'This game started past that boss.');
 
-        $earliest = ($boss['zone'] - $game->start_zone + 1) * config('boss_loot.min_seconds_per_zone');
+        $earliest = ($boss['zone'] - $game->start_zone + 1) * ($game->isBossRush()
+            ? config('boss_loot.rush.min_seconds_per_boss')
+            : config('boss_loot.min_seconds_per_zone'));
         abort_if($game->secondsSinceStart() < $earliest, 425, 'Too early for this boss.');
 
         $drop = $game->bossDrops()->where('boss_id', $boss['id'])->first();
 
         if (! $drop) {
             $item = BossLoot::roll($boss);
+            $quiver = BossLoot::rollQuiver($game->user);
 
             try {
                 $drop = $game->bossDrops()->create([
@@ -136,8 +152,13 @@ class GameRecordController extends Controller
                     'boss_id' => $boss['id'],
                     'item_id' => $item['id'],
                     'rarity' => $item['rarity'],
+                    'quiver' => $quiver,
                     'dropped_at' => now(),
                 ]);
+
+                if ($quiver) {
+                    $game->user->forceFill(['quiver' => true])->save();
+                }
             } catch (UniqueConstraintViolationException) {
                 // The same report arrived twice at once
                 $drop = $game->bossDrops()->where('boss_id', $boss['id'])->firstOrFail();
@@ -148,6 +169,8 @@ class GameRecordController extends Controller
             'boss' => $boss['id'],
             'item' => BossLoot::item($boss, $drop->item_id),
             'kept' => $drop->user_id !== null,
+            // The large quiver came with it (once in an account's life)
+            'quiver' => $drop->quiver ? config('boss_loot.quiver.name') : null,
             'timesFound' => $drop->user_id !== null
                 ? BossDrop::where('user_id', $drop->user_id)->where('item_id', $drop->item_id)->count()
                 : null,
@@ -188,6 +211,7 @@ class GameRecordController extends Controller
         return response()->json([
             'success' => true,
             'legal' => $game->isLegal(),
+            'mode' => $game->mode,
             'rank' => $entry ? Score::query()->where('score', '>', $entry->score)->count() + 1 : null,
             'coins' => ['earned' => $game->coins, 'balance' => $owner?->coins],
             'scores' => Score::leaderboard(),
@@ -232,8 +256,8 @@ class GameRecordController extends Controller
             $game->user()->increment('coins', $coins);
         }
 
-        // Only games that count go on the leaderboard
-        if ($game->isLegal()) {
+        // Only games that count go on the leaderboard, and Boss Rush is not played for points
+        if ($game->isLegal() && ! $game->isBossRush()) {
             Score::create([
                 'game_id' => $game->id,
                 'user_id' => $game->user_id,

@@ -44,7 +44,10 @@ class ItemController extends Controller
             'total' => count(LootTable::catalog()),
             'bosses' => $bosses,
             'chances' => config('boss_loot.chances'),
+            'quiverName' => config('boss_loot.quiver.name'),
+            'quiverChance' => round(config('boss_loot.quiver.chance') * 100),
             'skipCost' => Coins::format((int) config('boss_loot.skip_cost_per_zone')),
+            'rushFee' => Coins::format((int) config('boss_loot.rush.entry_fee')),
         ]);
     }
 }

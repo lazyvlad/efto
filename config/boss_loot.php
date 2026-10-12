@@ -28,6 +28,24 @@ return [
     // (the third boss: three times this). Stops a boss being reported the moment a game opens.
     'min_seconds_per_zone' => 20,
 
+    // The large quiver: besides its item, a boss may drop this for a logged-in player who does
+    // not have it yet. It is kept on the account and found only once; in the game it adds four
+    // slots to the quiver, doubling the arrows the hunter can carry (quiver in
+    // game/config/gameConfig.js).
+    'quiver' => [
+        'name' => 'Ancient Sinew Wrapped Lamina',
+        'chance' => 0.1,
+    ],
+
+    // Boss Rush: a game of nothing but the bosses of one side, back to back. For logged-in
+    // players, who pay this much copper to enter. The bosses pay and drop as they always do,
+    // but the game stays off the leaderboard. They fall faster than in a normal game, so a
+    // boss may be reported this many seconds into the game for each one before it and itself.
+    'rush' => [
+        'entry_fee' => 5000,
+        'min_seconds_per_boss' => 6,
+    ],
+
     // Skipping ahead: a logged-in player may start a game in any zone whose earlier bosses
     // they have defeated before (they own loot from each), for this much copper per zone
     // skipped. Starting in the third zone costs twice this.

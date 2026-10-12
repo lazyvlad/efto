@@ -60,6 +60,48 @@ export function getStartZone(faction) {
     return zone > 1 && zone <= unlockedZone(faction) && canAfford(zone) ? zone : 1;
 }
 
+// ----- Boss Rush -----
+// A game of nothing but the bosses, for logged-in players, who pay coins to enter
+// (INPUT_BOOT.rush: { fee }). It always starts with the first boss.
+
+function rushFee() {
+    return siteBoot && siteBoot.user && siteBoot.rush ? siteBoot.rush.fee : null;
+}
+
+// Fill the choice between a normal game and Boss Rush
+export function renderGameModePicker() {
+    const picker = document.getElementById('gameModePicker');
+    const select = document.getElementById('gameMode');
+    if (!picker || !select) return;
+
+    const fee = rushFee();
+    picker.hidden = fee === null;
+    select.textContent = '';
+    if (fee === null) return;
+
+    const normal = document.createElement('option');
+    normal.value = 'normal';
+    normal.textContent = 'Normal game';
+    const rush = document.createElement('option');
+    rush.value = 'boss_rush';
+    rush.textContent = `Boss Rush: only the bosses - ${formatCoins(fee)}`;
+    rush.disabled = fee > (siteBoot.user.coins || 0);
+    select.append(normal, rush);
+    select.value = 'normal';
+}
+
+// The mode chosen: Boss Rush only if it can be paid for
+export function getGameMode() {
+    const select = document.getElementById('gameMode');
+    const fee = rushFee();
+
+    return select && select.value === 'boss_rush' && fee !== null && fee <= (siteBoot.user.coins || 0) ? 'boss_rush' : 'normal';
+}
+
+export function gameModeCost(mode) {
+    return mode === 'boss_rush' ? rushFee() || 0 : 0;
+}
+
 // The player defeated a boss: the site says how far they may now skip on that side
 export function setUnlockedZone(faction, zone) {
     const rules = skip();

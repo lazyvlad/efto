@@ -24,7 +24,7 @@
                     {{ __('Everything you can catch in the game, :total items in all, and what each pays in coins. 100 copper (c) is a silver (s), 100 silver a gold (g).', ['total' => $total]) }}
                 </p>
                 <p>
-                    {{ __('Coins are kept on your account. They pay for starting a game in a later zone: :cost for each zone skipped.', ['cost' => $skipCost]) }}
+                    {{ __('Coins are kept on your account. They pay for starting a game in a later zone, :cost for each zone skipped, and for Boss Rush, a game of nothing but the bosses: :fee a run.', ['cost' => $skipCost, 'fee' => $rushFee]) }}
                     @guest
                         <a href="{{ route('login') }}" class="underline text-indigo-600 hover:text-indigo-700">{{ __('Log in to keep yours.') }}</a>
                     @endguest
@@ -61,6 +61,11 @@
                         'rare' => round($chances['rare'] * 100),
                         'epic' => round($chances['epic'] * 100),
                     ]) }}
+                </p>
+
+                <p class="mt-3 text-sm text-gray-500">
+                    <span class="text-orange-400">{{ $quiverName }}</span>
+                    {{ __('Any boss may also drop this large quiver for a logged-in player, :chance% of the time. It is found once, kept on the account, and doubles the arrows the hunter can carry: 8 slots of 50 instead of 4.', ['chance' => $quiverChance]) }}
                 </p>
 
                 @foreach ($bosses as $side => $sideBosses)
