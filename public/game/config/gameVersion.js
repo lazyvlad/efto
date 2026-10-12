@@ -1,1 +1,1 @@
-export const GAME_VERSION="2.4.0";export const BUILD_TIMESTAMP=1791805715313;
+export const GAME_VERSION="2.5.0";export const BUILD_TIMESTAMP=1791808568396;

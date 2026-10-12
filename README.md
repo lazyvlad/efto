@@ -25,8 +25,21 @@ public/build/                          The built site CSS/JS (committed)
 - New passwords need 12 characters, must not appear in known breaches (checked with
   haveibeenpwned.com, without sending the password) and must not contain the player's name
   or email. The forms show a strength meter; it is advice, the rules above are enforced.
-- Scores live in the `scores` table. `GET /api/scores` returns the leaderboard,
-  `POST /api/scores` adds a score (limited to 6 per minute per visitor).
+- Scores live in the `scores` table. `GET /api/scores` returns the leaderboard.
+- Every game played is recorded in the `games` table, guests' games included. The game
+  opens a record when it starts (`POST /api/games`) and closes it when it ends
+  (`POST /api/games/{token}/finish`); a game left or closed part-way is handed in as
+  abandoned the next time the game is opened.
+- The server decides each game's rare loot (epic, special, tier set, legendary and Zee
+  Zgnan items; see `config/loot.php`). The game asks for it 30 seconds of play at a time
+  (`POST /api/games/{token}/drops`), so the browser never holds more than the next chunk,
+  and a pickup only counts if the server offered that item to that game. The offers and
+  pickups are the rows of `game_drops`.
+- A game that cannot reach the server in time goes offline: rare items drop at random and
+  the game is recorded as offline. Only games played to the end online put a score on the
+  leaderboard.
+- `config/loot.php` repeats the item list and weights from the game's own data;
+  `tests/Feature/LootConfigTest.php` fails if the two drift apart.
 
 ## Setting up
 

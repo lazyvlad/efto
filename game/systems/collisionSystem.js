@@ -55,7 +55,7 @@ export function checkCollisions(context) {
                 otherItem.itemData.collected++;
                 
                 // Trigger items list update
-                onItemCollected(otherItem.itemData);
+                onItemCollected(otherItem.itemData, otherItem);
                 
                 // Apply spell point multipliers
                 const pointMultiplier = spellSystem.getPointMultiplier();
@@ -129,7 +129,7 @@ export function checkCollisions(context) {
                 item.itemData.collected++;
                 
                 // Trigger items list update
-                onItemCollected(item.itemData);
+                onItemCollected(item.itemData, item);
                 
                 // Apply spell point multipliers
                 const pointMultiplier = spellSystem.getPointMultiplier();

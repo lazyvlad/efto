@@ -50,6 +50,15 @@ export function loadHighScoresSync() {
     }
 }
 
+// Keep a copy of the leaderboard the server sent, for the high score screen
+export function cacheHighScores(scores) {
+    try {
+        localStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(scores));
+    } catch (e) {
+        console.log('Error saving to localStorage:', e);
+    }
+}
+
 // Save high scores to server (with localStorage fallback)
 export async function saveHighScores(scores) {
     try {

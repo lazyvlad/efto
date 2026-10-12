@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Score extends Model
 {
     protected $fillable = [
+        'game_id',
         'user_id',
         'name',
         'score',
@@ -35,6 +36,14 @@ class Score extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * The game this score came from; none for scores from before games were recorded.
+     */
+    public function game(): BelongsTo
+    {
+        return $this->belongsTo(Game::class);
     }
 
     /**

@@ -45,6 +45,7 @@ class GameController extends Controller
             'embedded' => $request->boolean('embedded'),
             'urls' => [
                 'scores' => route('scores.index'),
+                'games' => route('games.open'),
                 'login' => route('login'),
                 'register' => route('register'),
                 'logout' => route('logout'),

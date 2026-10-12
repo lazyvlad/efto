@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.5.0 - 2026-10-12
+
+### What's new
+
+**Every game is recorded**
+- The site keeps a record of each game played: who played, the score, level and time, and
+  what was picked up. Games left or closed part-way are recorded as abandoned.
+- Rare items (epics, specials, the tier set, Thunder Fury and Zee Zgnan Tigar) are now handed
+  out by the server, a little at a time during the game, and a pickup is only recorded if the
+  server offered that item. Thunder Fury and Zee Zgnan Tigar no longer drop in the first minute.
+- If the connection is lost for about 10 seconds the game carries on offline with random loot,
+  says so, and does not count: it stays off the leaderboard.
+- The leaderboard now only takes scores from games played to the end online, and shows the
+  real time played.
+
+### For developers
+- New tables `games` and `game_drops`, and `scores.game_id`: run `php artisan migrate`.
+- `POST /api/scores` is gone; a score is created when a game is finished. See the README.
+
 ## 2.4.0 - 2026-10-12
 
 ### What's new

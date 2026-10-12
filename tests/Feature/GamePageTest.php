@@ -52,6 +52,7 @@ class GamePageTest extends TestCase
         $this->assertNull($boot['user']);
         $this->assertMatchesRegularExpression('/^[A-Z][a-z]+[A-Z][a-z]+\d{3}$/', $boot['guestName']);
         $this->assertSame(route('scores.index'), $boot['urls']['scores']);
+        $this->assertSame(route('games.open'), $boot['urls']['games']);
         $this->assertNotEmpty($boot['csrfToken']);
         $response->assertSee('<base href="'.asset('game').'/">', false);
     }

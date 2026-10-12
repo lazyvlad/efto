@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\GameController;
+use App\Http\Controllers\GameRecordController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScoreController;
 use Illuminate\Support\Facades\Route;
@@ -13,11 +14,21 @@ Route::get('/play', [GameController::class, 'play'])->name('play');
 
 Route::get('/highscores', [ScoreController::class, 'page'])->name('highscores');
 
-// High scores as data, for the game. Open to guests; a logged-in player's scores are tied to their account.
+// High scores as data, for the game
 Route::get('/api/scores', [ScoreController::class, 'index'])->name('scores.index');
-Route::post('/api/scores', [ScoreController::class, 'store'])
-    ->middleware('throttle:6,1')
-    ->name('scores.store');
+
+// Every game played is recorded: opened when it starts, handed its rare loot a chunk of play
+// at a time, closed when it ends. Open to guests; a logged-in player's games are tied to
+// their account. A finished game is what puts a score on the leaderboard.
+Route::post('/api/games', [GameRecordController::class, 'open'])
+    ->middleware('throttle:20,1')
+    ->name('games.open');
+Route::post('/api/games/{game}/drops', [GameRecordController::class, 'drops'])
+    ->middleware('throttle:30,1')
+    ->name('games.drops');
+Route::post('/api/games/{game}/finish', [GameRecordController::class, 'finish'])
+    ->middleware('throttle:20,1')
+    ->name('games.finish');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

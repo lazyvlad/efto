@@ -15,12 +15,13 @@ import { Arrow } from './classes/Arrow.js';
 import { tryAutoInitAudio, startBackgroundMusic, playUffSound, playScreamSound, playTotalSound, playFireballImpactSound, sounds } from './systems/audioSystem.js';
 import { initializeVisibilitySystem, getVisibilitySystemStatus, updateVisibilityConfig } from './systems/visibilitySystem.js';
 import { initializeSettings, loadSettings, saveSettings, resetSettings, getSettings, updateSetting, areSoundEffectsEnabled, isBackgroundMusicEnabled, getVolume, getVolumeDecimal, getMasterVolume, getMusicVolume, getEffectsVolume, getMasterVolumeDecimal, getMusicVolumeDecimal, getEffectsVolumeDecimal, getPlayerPanelStyle, getDragonstalkerPanelStyle, getPanelOpacity, refreshPanelStyles } from './systems/settingsSystem.js';
-import { loadHighScores, addHighScore, isHighScore, displayHighScores, displayHighScoresSync } from './systems/highScoreSystem.js';
+import { loadHighScores, addHighScore, cacheHighScores, isHighScore, displayHighScores, displayHighScoresSync } from './systems/highScoreSystem.js';
+import * as lootSystem from './systems/lootSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState } from './systems/inputSystem.js';
 // drawSettings removed - now using HTML+CSS guide
 
 import { calculateLevelSpeedMultiplier, isValidYPosition, cleanupRecentDropPositions, calculateUniversalMultiplier, getLogicalCanvasWidth, getLogicalCanvasHeight, updateGameStateTimers, addNotification, updateNotifications, responsiveScaler, trackActivity, getLevelProgress, checkGameVersion, clearGameCache } from './utils/gameUtils.js';
-import { selectRandomItem, selectRandomProjectile, selectRandomPowerUp, shouldSpawnPowerUp, calculateProjectileProbability } from './utils/spawning.js';
+import { selectRandomItem, calculateItemProbability, selectRandomProjectile, selectRandomPowerUp, shouldSpawnPowerUp, calculateProjectileProbability } from './utils/spawning.js';
 import { spellSystem } from './systems/spellSystem.js';
 import { gameClock } from './utils/gameClock.js';
 import { notificationSystem } from './systems/notificationSystem.js';
@@ -819,6 +820,15 @@ function startGame() {
     // Update mobile pause button visibility (show on mobile during gameplay)
     updateMobilePauseButtonVisibility();
     
+    // Play time starts from zero; the server opens a record of the game and decides its rare loot
+    gameState.elapsedTime = 0;
+    gameState.nextPowerUpTime = undefined;
+    lootSystem.beginGame({
+        playerName: gameState.playerName,
+        getSummary: getGameSummary,
+        onOffline: () => addNotification(gameState, `⚠️ Connection lost - this game is offline and will not count`, 360, '#FF6B6B')
+    });
+    
     console.log('Game started');
 }
 
@@ -1052,6 +1062,17 @@ function hidePauseMenu() {
 
 // Main game mechanics implementations
 function spawnItems(deltaTimeMultiplier) {
+    // Rare items the server scheduled for this moment. The usual rules still apply: a set piece
+    // already collected or missed, or a second Zee Zgnan, does not drop.
+    for (const drop of lootSystem.update(gameState.elapsedTime)) {
+        const itemData = gameItems.find(item => item.id === drop.item);
+        if (!itemData || calculateItemProbability(itemData, gameState) <= 0) continue;
+
+        const rareItem = new FallingItem(() => itemData, isValidYPosition, recentDropYPositions, gameState, images, canvas);
+        rareItem.dropId = drop.id;
+        fallingItems.push(rareItem);
+    }
+
     if (fallingItems.length < gameConfig.gameplay.maxFallingItems) {
         if (Math.random() < gameConfig.gameplay.itemSpawnChance * deltaTimeMultiplier) {
             const newItem = new FallingItem(selectRandomItem, isValidYPosition, recentDropYPositions, gameState, images, canvas);
@@ -2912,9 +2933,24 @@ function resetItemsListCache() {
 }
 
 // Trigger items list update when an item is collected
-function onItemCollected(itemData) {
+function onItemCollected(itemData, fallingItem = null) {
     // Mark that we need to update the items list
     itemsListCache.needsUpdate = true;
+    
+    lootSystem.recordPickup(itemData.id, fallingItem ? fallingItem.dropId : null);
+}
+
+// The game's result so far, as the server records it
+function getGameSummary() {
+    return {
+        score: gameState.score,
+        level: gameState.currentLevel,
+        gameTime: Math.round(gameState.elapsedTime || 0),
+        dragonstalkerCompletions: gameState.dragonstalkerCompletions,
+        // Ratings as percentages with one decimal
+        finalCritRating: Math.round(getCurrentTotalCritRating() * 1000) / 10,
+        finalDodgeRating: Math.round(getCurrentTotalDodgeRating() * 1000) / 10
+    };
 }
 
 // Update dedicated Dragonstalker progress panel
@@ -3057,35 +3093,47 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
 function endGame() {
     gameState.gameRunning = false;
     
-    // Save the high score with enhanced stats
+    const newHighScoreElement = document.getElementById('newHighScore');
+    if (newHighScoreElement) newHighScoreElement.style.display = 'none';
+    
+    const showRank = rank => {
+        // Show new high score message if it's in top 10
+        if (newHighScoreElement && rank > 0 && rank <= 10) {
+            newHighScoreElement.textContent = `New High Score! Rank #${rank}`;
+            newHighScoreElement.style.display = 'block';
+        }
+    };
+    
     try {
-        const finalCritRating = getCurrentTotalCritRating();
-        const finalDodgeRating = getCurrentTotalDodgeRating();
+        // Under the site the server records the game, and a game that counts goes on the leaderboard
+        const recorded = lootSystem.finishGame();
         
-        const scorePromise = addHighScore(
-            gameState.playerName, 
-            gameState.score, 
-            gameState.perfectCollections, 
-            gameState.currentLevel,
-            0, // gameTime (placeholder)
-            gameState.dragonstalkerCompletions,
-            finalCritRating,
-            finalDodgeRating
-        );
-        
-        if (scorePromise && typeof scorePromise.then === 'function') {
-            scorePromise.then(rank => {
-                // Show new high score message if it's in top 10
-                const newHighScoreElement = document.getElementById('newHighScore');
-                if (newHighScoreElement) {
-                    if (rank <= 10) {
-                        newHighScoreElement.textContent = `New High Score! Rank #${rank}`;
-                        newHighScoreElement.style.display = 'block';
-                    } else {
-                        newHighScoreElement.style.display = 'none';
-                    }
+        if (recorded) {
+            recorded.then(result => {
+                if (result.scores) cacheHighScores(result.scores);
+                
+                if (result.legal) {
+                    showRank(result.rank);
+                } else if (newHighScoreElement) {
+                    newHighScoreElement.textContent = 'Offline game - not on the leaderboard';
+                    newHighScoreElement.style.display = 'block';
                 }
             }).catch(console.error);
+        } else {
+            // Opened on its own: the game keeps its own high scores
+            const finalCritRating = getCurrentTotalCritRating();
+            const finalDodgeRating = getCurrentTotalDodgeRating();
+            
+            addHighScore(
+                gameState.playerName, 
+                gameState.score, 
+                gameState.perfectCollections, 
+                gameState.currentLevel,
+                Math.round(gameState.elapsedTime || 0),
+                gameState.dragonstalkerCompletions,
+                finalCritRating,
+                finalDodgeRating
+            ).then(showRank).catch(console.error);
         }
     } catch (error) {
         console.error('Error saving high score:', error);

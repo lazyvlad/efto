@@ -2,6 +2,7 @@ import { gameItems } from '../data/gameItems.js';
 import { damageProjectiles } from '../data/damageProjectiles.js';
 import { powerUpItems } from '../data/powerUpItems.js';
 import { gameConfig } from '../config/gameConfig.js';
+import { serverDecides } from '../systems/lootSystem.js';
 
 // Calculate item spawn probability based on level and type
 export function calculateItemProbability(item, gameState) {
@@ -99,6 +100,9 @@ export function selectRandomItem(gameState) {
     const items = [];
     
     for (const item of gameItems) {
+        // Rare items come from the server's loot table while the game is recorded online
+        if (serverDecides(item)) continue;
+
         const probability = calculateItemProbability(item, gameState);
         if (probability > 0) {
             weights.push(probability);
