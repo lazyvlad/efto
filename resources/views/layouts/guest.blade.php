@@ -7,6 +7,8 @@
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
+        <link rel="icon" href="{{ asset('favicon.ico') }}">
+
         @include('layouts.fonts')
 
         <!-- Scripts -->
@@ -15,7 +17,7 @@
     <body class="font-sans antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0">
             <div>
-                <a href="{{ route('play') }}">
+                <a href="{{ route('home') }}">
                     <x-application-logo class="text-3xl" />
                 </a>
             </div>
@@ -24,7 +26,7 @@
                 {{ $slot }}
             </div>
 
-            <a href="{{ route('play') }}" class="mt-5 text-sm text-gray-600 hover:text-gray-900 underline">
+            <a href="{{ route('home') }}" class="mt-5 text-sm text-gray-600 hover:text-gray-900 underline">
                 {{ __('Back to the game') }}
             </a>
         </div>

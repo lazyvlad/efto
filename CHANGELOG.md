@@ -8,7 +8,12 @@
 - Create an account or log in from the main menu. Logged-in players score under their account.
 - Guests can still play straight away. They are given a random guest name they can find on the
   leaderboard, or can type their own.
-- High scores are stored in a database instead of a file.
+- High scores are stored in a database instead of a file, and have a page of their own.
+- Players can upload a profile image, cropped in the browser. It shows in the site header, on
+  the high scores page and as the portrait in the game's player panel.
+- New passwords need at least 12 characters and are checked against known data breaches. The
+  forms show how strong a password is while it is typed.
+- The landing page is the game under a site header with the menu and the account links.
 
 **A new look**
 - Warcraft-style menus, a Dragonstalker set tracker and a unit-frame player panel.

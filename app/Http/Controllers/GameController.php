@@ -5,9 +5,18 @@ namespace App\Http\Controllers;
 use App\Support\GuestName;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\View\View;
 
 class GameController extends Controller
 {
+    /**
+     * The landing page: the site header with the game in a frame under it.
+     */
+    public function home(): View
+    {
+        return view('home');
+    }
+
     /**
      * Serve the game. The game is a self-contained front-end (built into public/game); this
      * hands it the page it expects plus what it needs to know about the visitor.
@@ -29,9 +38,11 @@ class GameController extends Controller
         $user = $request->user();
 
         $boot = [
-            'user' => $user ? ['name' => $user->name] : null,
+            'user' => $user ? ['name' => $user->name, 'avatar' => $user->avatarUrl()] : null,
             'guestName' => $user ? null : GuestName::forSession($request),
             'csrfToken' => csrf_token(),
+            // Framed by the landing page, whose header already has the account links
+            'embedded' => $request->boolean('embedded'),
             'urls' => [
                 'scores' => route('scores.index'),
                 'login' => route('login'),

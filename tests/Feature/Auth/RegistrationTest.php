@@ -21,11 +21,35 @@ class RegistrationTest extends TestCase
         $response = $this->post('/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
+            'password' => 'correct-horse-battery',
+            'password_confirmation' => 'correct-horse-battery',
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('play', absolute: false));
+        $response->assertRedirect(route('home', absolute: false));
+    }
+
+    public function test_short_passwords_are_rejected(): void
+    {
+        $this->post('/register', [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => 'short-pass',
+            'password_confirmation' => 'short-pass',
+        ])->assertSessionHasErrors('password');
+
+        $this->assertGuest();
+    }
+
+    public function test_passwords_built_from_the_name_or_email_are_rejected(): void
+    {
+        $this->post('/register', [
+            'name' => 'Sylvanas Windrunner',
+            'email' => 'banshee@example.com',
+            'password' => 'windrunner-2026!',
+            'password_confirmation' => 'windrunner-2026!',
+        ])->assertSessionHasErrors('password');
+
+        $this->assertGuest();
     }
 }

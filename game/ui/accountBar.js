@@ -1,7 +1,8 @@
 // Account awareness for the main menu.
 //
 // When the game is served by the site, the page sets window.INPUT_BOOT with who is playing:
-//   { user: { name } | null, guestName, csrfToken, urls: { scores, login, register, logout, profile } }
+//   { user: { name, avatar } | null, guestName, csrfToken, embedded, urls: { scores, login, register, logout, profile } }
+// "embedded" means the site shows the game under its own header, which has the account links.
 // Opened on its own (no site around it) there is no INPUT_BOOT and the game behaves as before.
 
 export const siteBoot = window.INPUT_BOOT || null;
@@ -9,6 +10,31 @@ export const siteBoot = window.INPUT_BOOT || null;
 // The logged-in player's account name, or null for guests
 export function getAccountName() {
     return siteBoot && siteBoot.user ? siteBoot.user.name : null;
+}
+
+const DEFAULT_PORTRAIT = 'assets/player/efto.png';
+
+// Picture for the player panel: the account's profile image when it has one
+export function getPortraitUrl() {
+    return (siteBoot && siteBoot.user && siteBoot.user.avatar) || DEFAULT_PORTRAIT;
+}
+
+// Point the player panel's portrait at that picture; back to the stock one if it fails to load.
+// A player's own picture is marked, so the compact panel (which drops the stock portrait) keeps it.
+export function applyPortrait(root = document) {
+    const url = getPortraitUrl();
+
+    root.querySelectorAll('.player-portrait img').forEach((img) => {
+        const frame = img.parentElement;
+
+        img.onerror = () => {
+            img.onerror = null;
+            img.src = DEFAULT_PORTRAIT;
+            frame.classList.remove('is-profile-image');
+        };
+        img.src = url;
+        frame.classList.toggle('is-profile-image', url !== DEFAULT_PORTRAIT);
+    });
 }
 
 // Name to offer a guest who hasn't typed one
@@ -29,7 +55,7 @@ export function renderAccountBar() {
     if (!bar) return;
 
     bar.textContent = '';
-    if (!siteBoot) {
+    if (!siteBoot || siteBoot.embedded) {
         bar.hidden = true;
         return;
     }

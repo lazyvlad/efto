@@ -10,9 +10,30 @@ class GamePageTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_home_redirects_to_the_game(): void
+    public function test_home_shows_the_game_under_the_site_header_for_guests(): void
     {
-        $this->get('/')->assertRedirect('play');
+        $this->get('/')
+            ->assertOk()
+            ->assertSee('src="'.e(route('play', ['embedded' => 1])).'"', false)
+            ->assertSee(route('login'), false)
+            ->assertSee(route('register'), false);
+    }
+
+    public function test_home_header_shows_the_account_for_logged_in_players(): void
+    {
+        $user = User::factory()->create(['name' => 'Jaina']);
+
+        $this->actingAs($user)->get('/')
+            ->assertOk()
+            ->assertSee('Jaina')
+            ->assertSee(route('profile.edit'), false)
+            ->assertDontSee(route('register'), false);
+    }
+
+    public function test_the_game_is_told_when_it_is_framed_by_the_site(): void
+    {
+        $this->assertFalse($this->bootData($this->get(route('play'))->getContent())['embedded']);
+        $this->assertTrue($this->bootData($this->get(route('play', ['embedded' => 1]))->getContent())['embedded']);
     }
 
     public function test_guests_can_open_the_game_and_get_a_guest_name(): void
@@ -44,6 +65,20 @@ class GamePageTest extends TestCase
 
         $this->assertSame('Jaina', $boot['user']['name']);
         $this->assertNull($boot['guestName']);
+    }
+
+    public function test_the_game_gets_the_players_profile_image_when_there_is_one(): void
+    {
+        $user = User::factory()->create();
+
+        $this->assertNull($this->bootData($this->actingAs($user)->get(route('play'))->getContent())['user']['avatar']);
+
+        $user->forceFill(['avatar' => 'avatars/1-abc.webp'])->save();
+
+        $this->assertSame(
+            asset('storage/avatars/1-abc.webp'),
+            $this->bootData($this->actingAs($user)->get(route('play'))->getContent())['user']['avatar']
+        );
     }
 
     private function bootData(string $html): array

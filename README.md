@@ -3,6 +3,10 @@
 A browser game with a Laravel site around it. Laravel provides accounts, the score API and
 (later) more pages; the game itself is a self-contained front-end served at `/play`.
 
+The landing page (`/`) is the site header - navigation, log in and register - with the game
+in a frame under it. `/play` is the game on its own, filling the window. `/highscores` is the
+leaderboard as a page.
+
 ## Layout
 
 ```
@@ -16,6 +20,11 @@ public/build/                          The built site CSS/JS (committed)
   session) and can type their own instead.
 - Logged-in players always score under their account name, and their scores are tied to
   their account.
+- Players can upload a profile image, cropped in the browser and stored as a 256px WebP under
+  `storage/app/public/avatars` (served through the `public/storage` link).
+- New passwords need 12 characters, must not appear in known breaches (checked with
+  haveibeenpwned.com, without sending the password) and must not contain the player's name
+  or email. The forms show a strength meter; it is advice, the rules above are enforced.
 - Scores live in the `scores` table. `GET /api/scores` returns the leaderboard,
   `POST /api/scores` adds a score (limited to 6 per minute per visitor).
 
@@ -32,7 +41,8 @@ php artisan key:generate
 php install.php
 ```
 
-`install.php` creates the database named in `DB_DATABASE` and runs the migrations. If that
+`install.php` creates the database named in `DB_DATABASE`, runs the migrations and links
+`public/storage` (for uploaded profile images). If that
 database already exists it changes nothing - run `php artisan migrate` yourself in that case
 (for example when the database was created empty by hand). The database user needs the right
 to create databases.
@@ -102,7 +112,8 @@ Before committing a release, run `npm run build:all` and commit the changes unde
 
 On the server, `.env` should have `APP_ENV=production`, `APP_DEBUG=false`, `GAME_SERVE=build`,
 the real `APP_URL` and the database settings. `storage/` and `bootstrap/cache/` must be
-writable by the web server user.
+writable by the web server user. If `public/storage` is missing (`install.php` was not used),
+run `php artisan storage:link` once.
 
 Password reset emails need a mail server: set the `MAIL_*` values in `.env`. With the default
 (`MAIL_MAILER=log`) they are only written to `storage/logs/laravel.log`.

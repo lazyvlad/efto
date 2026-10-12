@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Support\Avatar;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -50,6 +51,7 @@ class ProfileController extends Controller
 
         Auth::logout();
 
+        Avatar::remove($user);
         $user->delete();
 
         $request->session()->invalidate();

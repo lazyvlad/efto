@@ -1,6 +1,34 @@
 {
+  "node_modules/@zxcvbn-ts/core/dist/index.esm.js": {
+    "file": "assets/index.esm-yim4v-Ib.js",
+    "name": "index.esm",
+    "src": "node_modules/@zxcvbn-ts/core/dist/index.esm.js",
+    "isDynamicEntry": true
+  },
+  "node_modules/@zxcvbn-ts/language-common/dist/index.esm.js": {
+    "file": "assets/index.esm-bdamX4EN.js",
+    "name": "index.esm",
+    "src": "node_modules/@zxcvbn-ts/language-common/dist/index.esm.js",
+    "isDynamicEntry": true
+  },
+  "node_modules/@zxcvbn-ts/language-en/dist/index.esm.js": {
+    "file": "assets/index.esm-BDtqNyGO.js",
+    "name": "index.esm",
+    "src": "node_modules/@zxcvbn-ts/language-en/dist/index.esm.js",
+    "isDynamicEntry": true
+  },
+  "node_modules/cropperjs/dist/cropper.css": {
+    "file": "assets/cropper-D0aDPu-n.css",
+    "src": "node_modules/cropperjs/dist/cropper.css"
+  },
+  "node_modules/cropperjs/dist/cropper.esm.js": {
+    "file": "assets/cropper.esm-DCOG1SZY.js",
+    "name": "cropper.esm",
+    "src": "node_modules/cropperjs/dist/cropper.esm.js",
+    "isDynamicEntry": true
+  },
   "resources/css/app.css": {
-    "file": "assets/app-B2n-1LF0.css",
+    "file": "assets/app-D7iIjAC4.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
@@ -9,9 +37,15 @@
     ]
   },
   "resources/js/app.js": {
-    "file": "assets/app-WC-ZjLzv.js",
+    "file": "assets/app-BDKQhBLU.js",
     "name": "app",
     "src": "resources/js/app.js",
-    "isEntry": true
+    "isEntry": true,
+    "dynamicImports": [
+      "node_modules/cropperjs/dist/cropper.esm.js",
+      "node_modules/@zxcvbn-ts/core/dist/index.esm.js",
+      "node_modules/@zxcvbn-ts/language-common/dist/index.esm.js",
+      "node_modules/@zxcvbn-ts/language-en/dist/index.esm.js"
+    ]
   }
 }

@@ -93,4 +93,51 @@
         letter-spacing: 0.3em;
         text-shadow: 0 2px 0 #000, 0 0 12px rgba(255, 170, 0, 0.35);
     }
+
+    /* A player's picture: round, gold ring. Shows their initial when there is no picture. */
+    .avatar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        border-radius: 9999px;
+        border: 2px solid #b9902f;
+        box-shadow: 0 0 0 1px #000;
+        background: #241d16;
+        color: #e8c66a;
+        font-family: theme('fontFamily.display');
+        line-height: 1;
+    }
+
+    .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    /* The crop area on the profile page; the crop itself is square, previewed as a circle */
+    .avatar-cropper {
+        max-width: 28rem;
+        height: 20rem;
+        background: #000;
+        border: 1px solid #8f7a45;
+    }
+
+    .avatar-cropper img {
+        display: block;
+        max-width: 100%;
+    }
+
+    .avatar-cropper .cropper-view-box,
+    .avatar-cropper .cropper-face {
+        border-radius: 50%;
+    }
+
+    .avatar-cropper .cropper-view-box {
+        outline: 2px solid #ffd100;
+    }
+}
+
+[x-cloak] {
+    display: none !important;
 }

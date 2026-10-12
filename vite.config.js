@@ -8,4 +8,15 @@ export default defineConfig({
             refresh: true,
         }),
     ],
+
+    experimental: {
+        // Files that scripts load later (the image cropper, the password word lists) are
+        // addressed relative to the script that asks for them, not from the domain root, so
+        // one build works at a domain root and in a sub-folder alike.
+        renderBuiltUrl(filename, { hostType }) {
+            if (hostType === 'js') {
+                return { relative: true };
+            }
+        },
+    },
 });

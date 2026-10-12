@@ -25,6 +25,7 @@
                             name="password"
                             required autocomplete="new-password" />
 
+            <x-password-strength input="password" :related="['name', 'email']" />
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
 

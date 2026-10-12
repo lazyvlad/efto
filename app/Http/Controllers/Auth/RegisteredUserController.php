@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Closure;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -33,7 +34,7 @@ class RegisteredUserController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => ['required', 'confirmed', Rules\Password::defaults(), $this->notPersonal($request)],
         ]);
 
         $user = User::create([
@@ -46,6 +47,26 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('play', absolute: false));
+        return redirect(route('home', absolute: false));
+    }
+
+    /**
+     * A password built from the account's own name or email address is the first thing
+     * someone would guess.
+     */
+    private function notPersonal(Request $request): Closure
+    {
+        $words = preg_split('/[\s@._-]+/', mb_strtolower($request->string('name').' '.$request->string('email')));
+        $words = array_filter($words, fn (string $word) => mb_strlen($word) > 3);
+
+        return function (string $attribute, mixed $value, Closure $fail) use ($words) {
+            foreach ($words as $word) {
+                if (str_contains(mb_strtolower((string) $value), $word)) {
+                    $fail(__('The password must not contain your name or email address.'));
+
+                    return;
+                }
+            }
+        };
     }
 }

@@ -77,4 +77,10 @@ if ($status !== 0) {
     exit(1);
 }
 
+// Uploaded profile images are served through public/storage
+if (! file_exists(__DIR__.'/public/storage')) {
+    $kernel->call('storage:link');
+    echo $kernel->output();
+}
+
 echo "Done.\n";

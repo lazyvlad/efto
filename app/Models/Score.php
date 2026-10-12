@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -37,14 +38,22 @@ class Score extends Model
     }
 
     /**
-     * The top scores, in the shape the game's high score screen reads.
+     * The scores on the leaderboard, best first; equal scores rank by who got there first.
      */
-    public static function leaderboard(): array
+    public static function top(): Builder
     {
         return static::query()
             ->orderByDesc('score')
             ->orderBy('created_at')
-            ->limit(config('game.leaderboard_size'))
+            ->limit(config('game.leaderboard_size'));
+    }
+
+    /**
+     * The top scores, in the shape the game's high score screen reads.
+     */
+    public static function leaderboard(): array
+    {
+        return static::top()
             ->get()
             ->map(fn (Score $score) => [
                 'name' => $score->name,

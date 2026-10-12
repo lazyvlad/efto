@@ -1383,6 +1383,25 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .stat-value 
     font-size: 11px !important;
 }
 
+/* Compact mode drops the stock portrait, but a player's own picture keeps a small spot beside the name */
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .panel-header {
+    position: relative;
+}
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-portrait.is-profile-image {
+    display: block !important;
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 30px;
+    height: 30px;
+    border-width: 1px;
+}
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-portrait.is-profile-image + .player-identity .player-nameplate {
+    padding-right: 36px;
+}
+
 /* A stat row the game has switched off stays hidden (the device stylesheets force rows visible) */
 #itemsCollectionPanel#itemsCollectionPanel .stat-row[style*="display: none"] {
     display: none !important;

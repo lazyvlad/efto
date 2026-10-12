@@ -31,7 +31,7 @@ import { generateDynamicHelpContent as renderDynamicHelpContent } from './ui/hel
 import { updateSpellBar, updateHealthBar } from './ui/statusBars.js';
 import { updateCanvasOverlayVisibility } from './ui/canvasOverlay.js';
 import { menuScreenManager } from './ui/menuScreenManager.js';
-import { getAccountName, getGuestName, renderAccountBar } from './ui/accountBar.js';
+import { applyPortrait, getAccountName, getGuestName, getPortraitUrl, renderAccountBar, siteBoot } from './ui/accountBar.js';
 import { initializeScreenNavigation, updateScreenNavigation } from './ui/screenNavigation.js';
 import { bindSettingsScreen, resetSettingsScreen, setSettingsBackLabel, updateSettingsScreen } from './ui/settingsScreen.js';
 import { getDragonstalkerItemIconData, getShortenedDragonstalkerName } from './utils/dragonstalkerDisplay.js';
@@ -1717,9 +1717,15 @@ function setupUIEventHandlers() {
         });
     }
     
+    // A logged-in player's profile image replaces the stock portrait in the player panel
+    applyPortrait();
+
     if (viewScoresBtn) {
         console.log('Setting up High Scores button handler');
         viewScoresBtn.addEventListener('click', () => showHighScores());
+
+        // Under the site's header the high scores have a page of their own, linked from there
+        if (siteBoot && siteBoot.embedded) viewScoresBtn.style.display = 'none';
     } else {
         console.warn('viewScoresBtn not found!');
     }
@@ -2284,7 +2290,7 @@ function createMobileIntegratedLayout(gameState, gameItems) {
             <div class="player-health-section">
                 <div id="healthBar" class="compact-health-bar">
                     <div class="player-portrait">
-                        <img src="assets/player/efto.png" alt="Player Portrait">
+                        <img src="${getPortraitUrl()}" alt="Player Portrait" onerror="this.onerror=null;this.src='assets/player/efto.png'">
                     </div>
                     <div class="health-bar-container">
                         <div class="health-background">
