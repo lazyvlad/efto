@@ -220,11 +220,12 @@ class GameRecordTest extends TestCase
     {
         $seen = [];
 
+        // Chunk 8 covers seconds 240 to 270, by when every rarity may drop
         for ($i = 0; $i < 300; $i++) {
-            foreach (LootTable::rollChunk(4) as $drop) {
+            foreach (LootTable::rollChunk(8) as $drop) {
                 $this->assertTrue(LootTable::decides($drop['item_id']));
-                $this->assertGreaterThanOrEqual(120, $drop['at_seconds']);
-                $this->assertLessThan(150, $drop['at_seconds']);
+                $this->assertGreaterThanOrEqual(240, $drop['at_seconds']);
+                $this->assertLessThan(270, $drop['at_seconds']);
                 $seen[$drop['item_id']] = true;
             }
         }
@@ -235,16 +236,25 @@ class GameRecordTest extends TestCase
         }
     }
 
-    public function test_the_rarest_items_never_drop_in_the_first_minute_and_zee_only_once(): void
+    public function test_each_rarity_is_held_back_until_its_time_and_zee_drops_only_once(): void
     {
-        for ($i = 0; $i < 500; $i++) {
-            foreach ([0, 1] as $chunk) {
+        $typeOf = [];
+        foreach (config('loot.items') as $type => $ids) {
+            $typeOf += array_fill_keys($ids, $type);
+        }
+
+        for ($i = 0; $i < 200; $i++) {
+            foreach (range(0, 7) as $chunk) {
                 foreach (LootTable::rollChunk($chunk) as $drop) {
-                    $this->assertNotContains($drop['item_id'], ['ThunderFury', 'zee']);
+                    $notBefore = config('loot.not_before_seconds.'.$typeOf[$drop['item_id']], 0);
+                    $this->assertGreaterThanOrEqual($notBefore, $drop['at_seconds'], $drop['item_id'].' dropped too early');
                 }
             }
 
-            foreach (LootTable::rollChunk(5, ['zee']) as $drop) {
+            // Nothing rare at all in the first half minute
+            $this->assertSame([], LootTable::rollChunk(0));
+
+            foreach (LootTable::rollChunk(8, ['zee']) as $drop) {
                 $this->assertNotSame('zee', $drop['item_id']);
             }
         }

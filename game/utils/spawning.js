@@ -3,6 +3,7 @@ import { damageProjectiles } from '../data/damageProjectiles.js';
 import { powerUpItems } from '../data/powerUpItems.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { serverDecides } from '../systems/lootSystem.js';
+import { isUnlocked } from './progression.js';
 
 // Calculate item spawn probability based on level and type
 export function calculateItemProbability(item, gameState) {
@@ -23,6 +24,11 @@ export function calculateItemProbability(item, gameState) {
         } else if (healthPercent <= 0.7) {
             probability *= 1.15; // 15% bonus at ≤70% health
         }
+    }
+    
+    // Rarer kinds only drop once the player has reached their level
+    if (!isUnlocked(item.type, (gameState.currentLevel || 0) + 1, gameConfig.progression)) {
+        probability = 0;
     }
     
     // Apply frequency limits for ultra-rare items
@@ -48,6 +54,9 @@ export function calculateItemProbability(item, gameState) {
 
 // Calculate projectile spawn probability
 export function calculateProjectileProbability(projectile, gameState) {
+    // Some projectiles only appear from a level on (levels as the player sees them)
+    if (projectile.minLevel && (gameState.currentLevel || 0) + 1 < projectile.minLevel) return 0;
+    
     let probability = projectile.baseProbability;
     
     // Apply level scaling if enabled

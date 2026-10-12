@@ -85,11 +85,17 @@ return [
     // Offered at most once in a game
     'once_per_game' => ['zee'],
 
-    // Rarities that never drop this early, so opening games until one starts with a prize
-    // costs a minute of play each time
+    // Rarities that never drop this early. In the game each rarity unlocks at a level
+    // (progression.unlockLevel in game/config/gameConfig.js); these are the seconds of play
+    // below which even a player who catches everything cannot have reached that level, so a
+    // rare item is never offered to a game that could not show it. They also mean that opening
+    // games until one starts with a prize costs minutes of play each time.
     'not_before_seconds' => [
-        'legendary' => 60,
-        'zee_zgnan' => 60,
+        'epic' => 30,
+        'special' => 60,
+        'tier_set' => 90,
+        'legendary' => 150,
+        'zee_zgnan' => 210,
     ],
 
 ];

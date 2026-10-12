@@ -2,13 +2,19 @@ import { gameItems } from '../data/gameItems.js';
 import { gameConfig, cacheConfig } from '../config/gameConfig.js';
 import { GAME_VERSION } from '../config/gameVersion.js';
 import { gameClock } from './gameClock.js';
+import { levelProgress } from './progression.js';
 
 // Calculate level-specific speed multiplier using hybrid progression
 export function calculateLevelSpeedMultiplier(gameState) {
     const progressionType = gameConfig.levels.progressionType || "points";
     let currentLevel = 0;
     
-    if (progressionType === "hybrid" || progressionType === "time") {
+    if (progressionType === "xp") {
+        // Experience from catching items (levels are counted from 0 in the game state). A boss
+        // that still stands holds the level at the end of its zone (levelCap, set by bossSystem).
+        const earned = levelProgress(gameState.xp || 0, gameConfig.progression).level;
+        currentLevel = Math.min(earned, gameState.levelCap || Infinity) - 1;
+    } else if (progressionType === "hybrid" || progressionType === "time") {
         // Time-based or hybrid progression
         currentLevel = calculateTimeBasedLevel(gameState);
     } else {
@@ -342,6 +348,13 @@ export function trackActivity(gameState, activityType, amount = 1) {
 // Get progress towards next level (for UI display)
 export function getLevelProgress(gameState) {
     const progressionType = gameConfig.levels.progressionType || "points";
+    
+    if (progressionType === "xp") {
+        const { level, into, needed } = levelProgress(gameState.xp || 0, gameConfig.progression);
+        // Held at a boss: the level is complete
+        if (level > (gameState.levelCap || Infinity)) return { progress: 1, xpInto: needed, xpNeeded: needed };
+        return { progress: into / needed, xpInto: into, xpNeeded: needed };
+    }
     
     if (progressionType === "hybrid" || progressionType === "time") {
         if (!gameState.levelStartTime) return { progress: 0, timeRemaining: 45 };
@@ -1221,8 +1234,8 @@ export class ResponsiveScaler {
             enabled: true,
             heightPercent: 0.3,     // Consistent 30% across all devices
             showBorder: true,
-            borderColor: '#4ECDC4',
-            borderOpacity: this.deviceType === 'mobile' ? 0.4 : 0.3, // More visible on mobile
+            borderColor: '#e8c66a', // The interface's soft gold
+            borderOpacity: this.deviceType === 'mobile' ? 0.45 : 0.35, // More visible on mobile
             borderWidth: this.sizes.spacing.borderWidth
         };
     }
