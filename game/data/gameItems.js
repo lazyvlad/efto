@@ -22,6 +22,12 @@ export const gameItems = [
     { id: "pearl-gem", name: "Pearl Gem", image: assetRegistry.items.pearlGem, value: 3, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "" },
     { id: "hard-cheese", name: "Hard Cheese", image: assetRegistry.items.hardCheese, value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "" },
     { id: "bread", name: "Bread", image: assetRegistry.items.food09, value: 1, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "" },
+    // Crafting materials
+    { id: "light-feather", name: "Light Feather", image: assetRegistry.items.lightFeather, value: 1, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "" },
+    { id: "rugged-leather", name: "Rugged Leather", image: assetRegistry.items.ruggedLeather, value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "" },
+    { id: "kingsblood", name: "Kingsblood", image: assetRegistry.items.kingsblood, value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "" },
+    { id: "fadeleaf", name: "Fadeleaf", image: assetRegistry.items.fadeleaf, value: 3, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "" },
+    { id: "runecloth", name: "Runecloth", image: assetRegistry.items.runecloth, value: 3, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "" },
     { id: "fish", name: "Fresh Fish", image: assetRegistry.items.fish31, value: 2, collected: 0, type: "regular", baseProbability: gameConfig.itemProbabilities.regular, sound: "" },
     
     
@@ -33,6 +39,16 @@ export const gameItems = [
     { id: "gold-coin", name: "Gold Coin", image: assetRegistry.items.coin10, value: 3, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "" },
     { id: "silver-coin", name: "Silver Coin", image: assetRegistry.items.coin02, value: 2, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "" },
     { id: "bronze-coin", name: "Bronze Coin", image: assetRegistry.items.coin01, value: 1, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "" },
+    
+    // Rarer materials and reagents
+    { id: "mithril-bar", name: "Mithril Bar", image: assetRegistry.items.mithrilBar, value: 3, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "" },
+    { id: "thorium-bar", name: "Thorium Bar", image: assetRegistry.items.thoriumBar, value: 4, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "" },
+    { id: "essence-of-water", name: "Essence of Water", image: assetRegistry.items.essenceOfWater, value: 4, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "" },
+    { id: "dark-rune", name: "Dark Rune", image: assetRegistry.items.darkRune, value: 4, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "" },
+    { id: "righteous-orb", name: "Righteous Orb", image: assetRegistry.items.righteousOrb, value: 4, collected: 0, type: "green", baseProbability: gameConfig.itemProbabilities.green, sound: "" },
+    // Raid reagents
+    { id: "fiery-core", name: "Fiery Core", image: assetRegistry.items.fieryCore, value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "" },
+    { id: "lava-core", name: "Lava Core", image: assetRegistry.items.lavaCore, value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "" },
     
     // Tier set items
     { id: "ashjrethul", name: "Ashjre'thul, Crossbow of Smiting", image: assetRegistry.items.item4, value: 6, collected: 0, missed: 0, type: "tier_set", baseProbability: gameConfig.itemProbabilities.tier_set, sound: assetRegistry.audio.disenchant, setPosition: 9,

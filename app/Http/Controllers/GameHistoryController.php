@@ -38,7 +38,7 @@ class GameHistoryController extends Controller
 
         return view('games.history', [
             'games' => $games,
-            'catalog' => LootTable::catalog(),
+            'catalog' => LootTable::rareCatalog(),
             'found' => $found,
             'bosses' => BossLoot::catalog(),
             'bossLoot' => $bossLoot,
@@ -63,7 +63,7 @@ class GameHistoryController extends Controller
 
         $items = array_map(
             fn (array $item) => $item + ['times' => (int) ($found[$item['id']] ?? 0)],
-            array_values(LootTable::catalog())
+            array_values(LootTable::rareCatalog())
         );
 
         $bosses = [];

@@ -278,7 +278,7 @@ export const gameConfig = {
     bosses: {
         health: { base: 240, perZone: 257 },                    // Hogger (zone 2): 497. The first bosses go down quickly; the last has about 2550
         damage: { base: 8, perZone: 0.8 },                      // What one of the boss's attacks takes off the player: 8 for the first boss, about 15 for the last
-        throwEvery: { base: 100, perZone: 5, fastest: 70 },     // Steps on the move between one attack and winding up the next
+        throwEvery: { base: 75, perZone: 5, fastest: 45 },      // Steps on the move between one attack and winding up the next
         volleyEvery: { base: 450, perZone: 15, fastest: 300 },  // Steps between rows with one gap
         
         // Arrows
@@ -332,6 +332,16 @@ export const gameConfig = {
         // least it may be. A charge or a stomp, which the player has to get clear of, keeps more.
         windUp: { perZone: 0.05, least: 0.5, leastForHeavy: 0.7 },
         
+        // Standing right under a boss is not safe. A player who stays within its reach gets a
+        // swipe: it is wound up like any attack, so there is a moment to get out, and it comes
+        // on top of the boss's own round of attacks. Rushing in to shoot from close up is still
+        // worth it, but only for as long as the swipe takes to come.
+        melee: {
+            reach: 0.9,             // How far below the boss it reaches, in heights of its body
+            patience: 45,           // Steps a player may stay that close before it winds up
+            damage: 2,              // The swipe does this many times the boss's damage
+        },
+
         // Attacks that are more than a thrown thing hit harder: a charge, a blast, a stomp
         heavyDamage: 1.5,
         // A curse takes this share of the boss's damage every second, for this many seconds
@@ -420,9 +430,12 @@ export const gameConfig = {
     
     // === ITEM DROP PROBABILITIES ===
     itemProbabilities: {
-        regular: 0.4,               // Regular items base probability (40%)
-        green: 0.2,                // Green items base probability (20%)    
-        epic: 0.1,                 // Epic items base probability (10%)
+        // Each item of a rarity has this weight, so a rarity with more items comes up more
+        // often. When items are added, lower the weight to keep the rarity's share: these were
+        // 0.4, 0.2 and 0.1 when there were 15 regular, 6 green and 5 epic items.
+        regular: 0.3,               // 20 regular items
+        green: 0.11,                // 11 green items
+        epic: 0.07,                 // 7 epic items
         tier_set: 0.055,            // Tier set items base probability (5.5%) - Win condition items
         special: 0.032,              // Special items base probability (3.2%)
         legendary: 0.02,            // Legendary items base probability (2%)

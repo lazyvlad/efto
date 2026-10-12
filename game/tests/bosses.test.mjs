@@ -14,7 +14,7 @@ const { backgrounds } = await import(`data:text/javascript;base64,${backgroundSo
 const rules = {
     health: { base: 240, perZone: 257 },
     damage: { base: 8, perZone: 0.8 },
-    throwEvery: { base: 100, perZone: 5, fastest: 70 },
+    throwEvery: { base: 75, perZone: 5, fastest: 45 },
     volleyEvery: { base: 450, perZone: 15, fastest: 300 },
     weakenPerSecond: 0.02,
     maxWeakened: 2,

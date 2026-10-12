@@ -26,6 +26,7 @@ export let inputState = {
 // after each of those while a game runs, and given back as soon as the game is not running.
 
 let lockLostAt = -Infinity;     // When the lock was last lost, to tell its Esc from a second one
+let rawMovementRefused = false; // This browser cannot give the mouse's movement unadjusted
 
 function isPlaying(gameState) {
     return gameState.gameRunning && !gameState.showingPauseMenu && !gameState.gamePaused;
@@ -42,10 +43,19 @@ function wantsMouseLock(canvas, gameState) {
 function requestMouseLock(canvas, gameState) {
     if (!wantsMouseLock(canvas, gameState) || isMouseLocked(canvas)) return;
 
+    // Older browsers answer with nothing instead of a promise
+    const ask = options => Promise.resolve(canvas.requestPointerLock(options));
+
     try {
-        // Refused now and then (right after Esc, say): the next click or key press asks again
-        const asked = canvas.requestPointerLock();
-        if (asked && typeof asked.catch === 'function') asked.catch(() => {});
+        // The mouse's own movement is asked for, without the system's pointer acceleration:
+        // with it some browsers report sudden jumps, which throw the hunter across the field.
+        // Refused now and then (right after Esc, say): the next click or key press asks again.
+        const asked = rawMovementRefused ? ask() : ask({ unadjustedMovement: true }).catch(error => {
+            if (!error || error.name !== 'NotSupportedError') throw error;
+            rawMovementRefused = true;
+            return ask();
+        });
+        asked.catch(() => {});
     } catch (e) {
         // Not available here: the mouse is followed as before
     }
@@ -117,6 +127,8 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
         if (isMouseLocked(canvas)) {
             // A locked mouse has no position, only movement: keep our own, inside the field
             const rect = canvas.getBoundingClientRect();
+            // One report of half the field or more is a glitch, not a hand: leave it out
+            if (Math.abs(e.movementX) > rect.width / 2 || Math.abs(e.movementY) > rect.height / 2) return;
             const width = canvas.logicalWidth || canvas.width;
             const height = canvas.logicalHeight || canvas.height;
             inputState.mouseX = Math.max(0, Math.min(width, inputState.mouseX + e.movementX * (width / rect.width)));

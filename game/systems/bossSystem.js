@@ -31,7 +31,7 @@ const ATTACK_SPEED = { min: 1.2, max: 2.0 };  // How fast a boss's attack falls,
 // How long the first boss stands to wind up each attack, in steps (60 = 1 second); later
 // bosses are quicker. The charge and the stomp show the player where the danger will be for
 // the whole of theirs.
-const WIND_UP = { throw: 24, row: 36, fan: 24, vanish: 18, charge: 54, bolt: 24, curse: 36, bomb: 24, stomp: 66 };
+const WIND_UP = { throw: 24, row: 36, fan: 24, vanish: 18, charge: 54, bolt: 24, curse: 36, bomb: 24, stomp: 66, swipe: 30 };
 const VANISHED_STEPS = 60;
 const CHARGE_STEPS = 48;
 const BOMB_FLIGHT_STEPS = 40;
@@ -224,6 +224,7 @@ export function guardZone(gameState, canvas) {
         attackData: null,       // What that attack needs to remember (a lane, a safe patch)
         nextAttack: 0,          // Place in the behaviour's round of attacks
         sinceAttack: 0,
+        closeFor: 0,            // Steps the player has stayed within the boss's reach
         sweep: Math.random() * Math.PI * 2,     // Where it is in its sweep along the top
 
         // Sidestepping arrows
@@ -516,6 +517,27 @@ function move(context) {
 
 // ----- Attacks -----
 
+// Whether the player is right under the boss, where a swipe reaches
+function withinReach(context) {
+    const body = playerBody(context.player);
+    const box = hitBox(context.canvas);
+    const reach = box.height * gameConfig.bosses.melee.reach;
+
+    return body.y < box.y + box.height + reach
+        && body.x + body.width > box.x - box.width * 0.4
+        && body.x < box.x + box.width * 1.4;
+}
+
+// A player who stays within reach gets a swipe, outside the boss's round of attacks
+function windUpSwipe() {
+    fight.attack = 'swipe';
+    fight.doing = 'winding';
+    fight.doingSteps = 0;
+    fight.attackData = null;
+    fight.reactingFor = -1;
+    fight.closeFor = 0;
+}
+
 // Begin winding up the next attack in the boss's round
 function windUp(context) {
     const { canvas, player } = context;
@@ -560,6 +582,16 @@ function strike(context) {
             break;
         case 'row':
             throwRow(context);
+            break;
+        case 'swipe':
+            if (withinReach(context)) {
+                hurtPlayer(context, Math.round(fight.stats.damage * gameConfig.bosses.melee.damage * enrage()));
+                for (let i = 0; i < 24; i++) {
+                    particles.push(new Particle(body.centerX + (Math.random() - 0.5) * body.width * 2, body.centerY + (Math.random() - 0.5) * body.height, '#FF4500'));
+                }
+            }
+            // The round of attacks carries on from where it was
+            fight.sinceAttack = Math.round(fight.stats.throwEvery / 2);
             break;
         case 'fan':
             throwFan(context);
@@ -749,11 +781,17 @@ export function updateBoss(context) {
     fight.doingSteps++;
     if (fight.doing === 'moving') {
         move(context);
-        if (++fight.sinceAttack >= stats.throwEvery / rage && fight.dodgeSteps === 0) windUp(context);
+        // Too close for too long, and it swipes; stepping back cools it down again
+        fight.closeFor = withinReach(context) ? fight.closeFor + 1 : Math.max(0, fight.closeFor - 2);
+        if (fight.closeFor >= settings.melee.patience && fight.dodgeSteps === 0) {
+            windUpSwipe();
+        } else if (++fight.sinceAttack >= stats.throwEvery / rage && fight.dodgeSteps === 0) {
+            windUp(context);
+        }
     } else if (fight.doing === 'winding') {
         // It lines up on the lane it means to charge down; otherwise it stands where it is
         if (fight.attack === 'charge') moveTowards(canvas, fight.attackData.x, canvas.logicalWidth * settings.movement.speed * 2.5);
-        const share = fight.attack === 'charge' || fight.attack === 'stomp' ? stats.heavyWindUp : stats.windUp;
+        const share = fight.attack === 'charge' || fight.attack === 'stomp' || fight.attack === 'swipe' ? stats.heavyWindUp : stats.windUp;
         if (fight.doingSteps >= WIND_UP[fight.attack] * share / Math.sqrt(rage)) strike(context);
     } else {
         act(context);
@@ -838,6 +876,19 @@ function drawWarnings(ctx, canvas, place) {
         ctx.strokeStyle = `rgba(255, 190, 120, ${0.8 * pulse})`;
         ctx.lineWidth = 2;
         ctx.strokeRect(fight.attackData.x - width / 2, top, width, canvas.logicalHeight - top);
+    }
+
+    if (fight.attack === 'swipe' && fight.doing === 'winding') {
+        // The ground under the boss that the swipe will reach
+        const box = hitBox(canvas);
+        const reach = box.height * gameConfig.bosses.melee.reach;
+        const left = box.x - box.width * 0.4;
+        const width = box.width * 1.8;
+        ctx.fillStyle = `rgba(255, 60, 30, ${0.3 * pulse})`;
+        ctx.fillRect(left, box.y, width, box.height + reach);
+        ctx.strokeStyle = `rgba(255, 190, 120, ${0.85 * pulse})`;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(left, box.y, width, box.height + reach);
     }
 
     if (fight.attack === 'stomp' && fight.doing === 'winding') {

@@ -20,7 +20,14 @@
 
 const COLUMNS = 24;
 const ROWS = 30;
-const RESOLUTION = 512;             // Size of the canvas the grid is drawn on
+// The canvas the grid is drawn on is kept at the size the figure has on screen, within these
+// limits and in steps, so it is only resized when the game's layout changes. Stamping it onto
+// the game's canvas is the dearest thing in a frame, and the cost goes with its area: at a
+// fixed 512, shrunk to a third on the way, it was most of the frame and made the game stutter.
+// The picture is handed to WebGL at that same size, so nothing is shrunk while drawing.
+const LARGEST = 512;
+const SMALLEST = 96;
+const SIZE_STEP = 32;
 
 const COLLECT_SECONDS = 0.42;
 const HIT_SECONDS = 0.28;
@@ -75,8 +82,8 @@ export class CharacterAnimator {
         this.reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         this.canvas = document.createElement('canvas');
-        this.canvas.width = RESOLUTION;
-        this.canvas.height = RESOLUTION;
+        this.canvas.width = LARGEST;
+        this.canvas.height = LARGEST;
         this.gl = null;
 
         // A phone short of memory may take the WebGL context away, and may give it back
@@ -195,7 +202,8 @@ export class CharacterAnimator {
 
     // Set up the grid, the picture and the shaders. Leaves this.gl null if WebGL is not to be had.
     startWebGL() {
-        const gl = this.canvas.getContext('webgl', { alpha: true, premultipliedAlpha: true, antialias: true });
+        // No antialiasing: the picture's own soft edge is what shows, and it is one thing less per frame
+        const gl = this.canvas.getContext('webgl', { alpha: true, premultipliedAlpha: true, antialias: false });
         if (!gl) return;
 
         try {
@@ -255,6 +263,7 @@ export class CharacterAnimator {
             gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
             gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.image);
+            this.textureSize = 0;       // The picture as it came; draw() fits it to the canvas
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -263,7 +272,7 @@ export class CharacterAnimator {
             this.hitUniform = gl.getUniformLocation(program, 'u_hit');
             gl.enable(gl.BLEND);
             gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-            gl.viewport(0, 0, RESOLUTION, RESOLUTION);
+            gl.viewport(0, 0, this.canvas.width, this.canvas.height);
             gl.clearColor(0, 0, 0, 0);
 
             this.gl = gl;
@@ -271,6 +280,30 @@ export class CharacterAnimator {
             console.warn('Player animation falls back to the plain picture:', error);
             this.gl = null;
         }
+    }
+
+    // Make the canvas this many pixels a side, and hand WebGL the picture shrunk to match
+    resize(size) {
+        const gl = this.gl;
+
+        if (this.canvas.width !== size) {
+            this.canvas.width = size;
+            this.canvas.height = size;
+        }
+        gl.viewport(0, 0, size, size);
+
+        let picture = this.image;
+        if (size < Math.max(this.image.naturalWidth, this.image.naturalHeight)) {
+            picture = document.createElement('canvas');
+            picture.width = size;
+            picture.height = size;
+            const shrink = picture.getContext('2d');
+            shrink.imageSmoothingEnabled = true;
+            shrink.imageSmoothingQuality = 'high';
+            shrink.drawImage(this.image, 0, 0, size, size);
+        }
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, picture);
+        this.textureSize = size;
     }
 
     /**
@@ -289,10 +322,15 @@ export class CharacterAnimator {
 
         ctx.save();
         ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
 
         if (this.gl) {
             const gl = this.gl;
+
+            // Only as big as it needs to be for the size it is drawn at
+            const needed = Math.max(width, height) * (ctx.canvas.dpr || 1);
+            const size = Math.max(SMALLEST, Math.min(LARGEST, Math.ceil(needed / SIZE_STEP) * SIZE_STEP));
+            if (this.canvas.width !== size || this.textureSize !== size) this.resize(size);
+
             for (let index = 0; index < this.uvs.length; index += 2) {
                 const [x, y] = this.deform(this.uvs[index], this.uvs[index + 1], pose);
                 this.vertices[index] = x;

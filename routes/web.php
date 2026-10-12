@@ -4,6 +4,7 @@ use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\GameHistoryController;
 use App\Http\Controllers\GameRecordController;
+use App\Http\Controllers\ItemController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScoreController;
 use Illuminate\Support\Facades\Route;
@@ -14,6 +15,9 @@ Route::get('/', [GameController::class, 'home'])->name('home');
 Route::get('/play', [GameController::class, 'play'])->name('play');
 
 Route::get('/highscores', [ScoreController::class, 'page'])->name('highscores');
+
+// Every item in the game and what it pays in coins
+Route::get('/items', [ItemController::class, 'index'])->name('items');
 
 // High scores as data, for the game
 Route::get('/api/scores', [ScoreController::class, 'index'])->name('scores.index');

@@ -154,7 +154,21 @@ export const assetRegistry = {
         coin04: 'assets/items/copper-coin.webp',
         coin10: 'assets/items/gold-coin.webp',
         coin02: 'assets/items/silver-coin.webp',
-        coin01: 'assets/items/bronze-coin.webp'
+        coin01: 'assets/items/bronze-coin.webp',
+        
+        // Crafting materials and reagents
+        lightFeather: 'assets/items/light-feather.webp',
+        ruggedLeather: 'assets/items/rugged-leather.webp',
+        kingsblood: 'assets/items/kingsblood.webp',
+        fadeleaf: 'assets/items/fadeleaf.webp',
+        runecloth: 'assets/items/runecloth.webp',
+        mithrilBar: 'assets/items/mithril-bar.webp',
+        thoriumBar: 'assets/items/thorium-bar.webp',
+        essenceOfWater: 'assets/items/essence-of-water.webp',
+        darkRune: 'assets/items/dark-rune.webp',
+        righteousOrb: 'assets/items/righteous-orb.webp',
+        fieryCore: 'assets/items/fiery-core.webp',
+        lavaCore: 'assets/items/lava-core.webp'
     }
 };
 
@@ -193,7 +207,14 @@ export const assetCategories = {
         assetRegistry.items.coin04,
         assetRegistry.items.coin10,
         assetRegistry.items.coin02,
-        assetRegistry.items.coin01
+        assetRegistry.items.coin01,
+        
+        // Crafting materials: the common ones fall from the first level
+        assetRegistry.items.lightFeather,
+        assetRegistry.items.ruggedLeather,
+        assetRegistry.items.kingsblood,
+        assetRegistry.items.fadeleaf,
+        assetRegistry.items.runecloth
     ],
     
     // Important assets - load during startup
@@ -266,6 +287,15 @@ export const assetCategories = {
         assetRegistry.items.dft,
         assetRegistry.items.perditionsBlade,
         assetRegistry.items.item6,
+        
+        // The rarer crafting materials
+        assetRegistry.items.mithrilBar,
+        assetRegistry.items.thoriumBar,
+        assetRegistry.items.essenceOfWater,
+        assetRegistry.items.darkRune,
+        assetRegistry.items.righteousOrb,
+        assetRegistry.items.fieryCore,
+        assetRegistry.items.lavaCore,
         
         // Additional projectiles and effects
         assetRegistry.projectiles.shadowbolt,

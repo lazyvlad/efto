@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Support\LootTable;
 use Tests\TestCase;
 
 /**
@@ -39,10 +40,13 @@ class LootConfigTest extends TestCase
         $this->assertEqualsWithDelta((float) $match[1] * 60, config('loot.spawns_per_second'), 0.0001);
     }
 
-    public function test_the_catalog_covers_every_rare_item_with_the_game_s_name_and_a_picture_that_exists(): void
+    public function test_the_catalog_covers_every_item_with_the_game_s_name_and_a_picture_that_exists(): void
     {
+        $this->assertEqualsCanonicalizing(LootTable::itemIds(), array_keys(config('loot.catalog')));
+
         $rare = array_merge(...array_map(fn (string $type) => config("loot.items.$type"), config('loot.server_types')));
-        $this->assertEqualsCanonicalizing($rare, array_keys(config('loot.catalog')));
+        $this->assertEqualsCanonicalizing($rare, array_keys(LootTable::rareCatalog()));
+        $this->assertSame('regular', LootTable::catalog()['runecloth']['type']);
 
         $source = file_get_contents(base_path('game/data/gameItems.js'));
 

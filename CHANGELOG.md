@@ -1,5 +1,50 @@
 # Changelog
 
+## 2.19.0 - 2026-10-12
+
+### What's new
+
+- Twelve new items to catch, crafting materials and reagents from Classic:
+  - **Common:** Light Feather, Rugged Leather, Kingsblood, Fadeleaf, Runecloth.
+  - **Uncommon:** Mithril Bar, Thorium Bar, Essence of Water, Dark Rune, Righteous Orb.
+  - **Epic:** Fiery Core and Lava Core. Like the other epics they are decided by the
+    server and count towards the collection, which now has 23 rare items.
+- A new "Items" page on the site (in the menu next to High Scores, open to everyone) lists
+  every item in the game by rarity with its picture and what catching it pays in coins, and
+  every boss with what defeating it pays and the three items it can drop.
+- Each rarity still comes up as often as before: there are more items to a rarity, so each
+  single item is a little rarer. Dragonstalker pieces and the other rare items drop exactly
+  as often as they did.
+
+### Changed
+- Bosses attack more often: the pause between attacks is a quarter shorter for the first
+  bosses and over a third shorter for the last.
+- Standing right under a boss is no longer safe. Stay within its reach for three quarters of a second and
+  it winds up a swipe, shown as a red patch under it, that does twice its usual damage; step
+  back out and you are clear. Rushing in with Dragon Cry to Multishot from close up still
+  pays, but only in bursts between swipes.
+
+### Fixed
+- The game stuttered now and then, and after a stutter the hunter was somewhere else. The
+  cause was the animated hunter himself: every frame his picture was drawn far bigger than
+  he is on screen and shrunk on the way, which cost more than everything else in the frame
+  together. He is now drawn at the size he is shown at. In our test this one step takes a
+  sixth of the time it did.
+- With the mouse held inside the game, the game reads the mouse's own movement, without the
+  system's pointer acceleration, and leaves out the odd impossible jump a browser reports.
+
+### For developers
+- The swipe is `melee` under `bosses` in `game/config/gameConfig.js`.
+- The Items page is `/items` (`ItemController`, `resources/views/items.blade.php`), built
+  from the catalogue and the coin values in `config/loot.php` and from `config/boss_loot.php`.
+- The site's catalogue (`catalog` in `config/loot.php`) now lists every item in the game
+  with its name and picture, not only the rare ones. `LootTable::catalog()` returns them
+  all with their rarity; `LootTable::rareCatalog()` is the part a collection is made of.
+- An item's weight is per item, so the weights went down as the lists grew (regular 0.4 to
+  0.3, green 0.2 to 0.11, epic 0.1 to 0.07) to keep each rarity's share. They are in
+  `game/config/gameConfig.js` and `config/loot.php`, which must agree.
+- The art as delivered is `game-art/classic-loot-expansion.zip`, not in the repository.
+
 ## 2.18.0 - 2026-10-12
 
 ### What's new

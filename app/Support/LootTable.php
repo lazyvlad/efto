@@ -81,9 +81,9 @@ class LootTable
     }
 
     /**
-     * The rare items as the site shows them, rarest first.
+     * Every item in the game as the site shows it, rarest first.
      *
-     * @return array<string, array{id: string, name: string, image: string}>
+     * @return array<string, array{id: string, name: string, type: string, image: string}>
      */
     public static function catalog(): array
     {
@@ -92,11 +92,25 @@ class LootTable
             $catalog[$itemId] = [
                 'id' => $itemId,
                 'name' => $item['name'],
+                'type' => self::typeOf($itemId),
                 'image' => asset('game/'.$item['image']),
             ];
         }
 
         return $catalog;
+    }
+
+    /**
+     * The rare items only: the ones the server decides, which a player's collection is made of.
+     *
+     * @return array<string, array{id: string, name: string, type: string, image: string}>
+     */
+    public static function rareCatalog(): array
+    {
+        return array_filter(
+            self::catalog(),
+            fn (array $item) => in_array($item['type'], config('loot.server_types'), true)
+        );
     }
 
     /**
