@@ -383,6 +383,11 @@ function castCurse(context) {
     });
 }
 
+// The curse on the player, for showing it by their health bar: { secondsLeft, damage }, or null
+export function curseState() {
+    return curse ? { secondsLeft: Math.ceil(curse.stepsLeft / 60), damage: curse.damage } : null;
+}
+
 // Call every step, in a fight or not
 export function updateCurse(context) {
     if (!curse) return;

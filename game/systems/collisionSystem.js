@@ -316,7 +316,7 @@ export function checkCollisions(context) {
                     
                     // Add notification for freeze/shield effect
                     const freezeSeconds = Math.round((projectile.freezeDuration || gameConfig.powerUps.freezeTime.duration) / 60);
-                    addNotification(gameState, `❄️ All Items Frozen ${freezeSeconds}s`, 120, '#87CEEB');
+                    addNotification(gameState, `❄️ Harmful projectiles frozen ${freezeSeconds}s`, 120, '#87CEEB');
                     
                     // Special case: Frost Nova damages player despite beneficial effect
                     if (projectile.data.id === "frost_nova" && projectile.data.damage > 0) {

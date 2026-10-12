@@ -299,7 +299,7 @@ export class PowerUpItem extends FallingObject {
                 
                 // Add notification for freeze
                 const freezeSeconds = Math.round(gameConfig.powerUps.freezeTime.duration / 60);
-                addNotification(gameState, `❄️ All Items Frozen ${freezeSeconds}s`, 120, '#87CEEB');
+                addNotification(gameState, `❄️ Harmful projectiles frozen ${freezeSeconds}s`, 120, '#87CEEB');
                 break;
                 
             case "cut_time":

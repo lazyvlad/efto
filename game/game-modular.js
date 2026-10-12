@@ -3,7 +3,7 @@ import { gameConfig } from './config/gameConfig.js';
 import { GAME_VERSION } from './config/gameVersion.js';
 import { CombatText } from './classes/CombatText.js';
 import { gameItems } from './data/gameItems.js';
-import { damageProjectiles } from './data/damageProjectiles.js';
+import { damageProjectiles, isHarmfulProjectile } from './data/damageProjectiles.js';
 import { powerUpItems } from './data/powerUpItems.js';
 
 import { Player } from './classes/Player.js';
@@ -22,7 +22,7 @@ import { coinsForItem, coinsForBoss, formatCoins } from './utils/coins.js';
 import { quiverCapacity, startingArrows } from './utils/quiver.js';
 import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost, renderGameModePicker, getGameMode, gameModeCost } from './ui/startZone.js';
 import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
-import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, dropSupplies } from './systems/bossSystem.js';
+import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies } from './systems/bossSystem.js';
 import { BossProjectile } from './classes/BossProjectile.js';
 import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground } from './systems/backgroundSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState, updateMouseLock } from './systems/inputSystem.js';
@@ -597,6 +597,7 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     
     // A boss's curse keeps eating at the player, in the fight or after it
     updateCurse({ gameState, player, combatTexts, spellSystem });
+    player.debuffs = activeDebuffs();
     
     // Update all game objects (affected by bullet time)
     updateFallingItems(bulletTimeAdjustedDelta);
@@ -692,6 +693,33 @@ function updateBossRush() {
     }
     
     gameState.xp = Math.max(gameState.xp || 0, totalXpAtLevel(gameState.levelCap + 1, gameConfig.progression));
+}
+
+// What is hurting the player over time, to be named under the hunter's health bar
+function activeDebuffs() {
+    const debuffs = [];
+    
+    const curse = curseState();
+    if (curse) debuffs.push({ label: `Curse -${curse.damage}/s (${curse.secondsLeft}s)`, color: '#D9A8FF' });
+    
+    const dots = gameState.shadowboltDots || [];
+    if (dots.length > 0) {
+        const seconds = Math.ceil(Math.max(...dots.map(dot => dot.remainingDuration)) / 60);
+        const damage = dots.length * gameState.shadowboltDamagePerTick;
+        debuffs.push({ label: `Shadow burn -${damage}/s (${seconds}s)`, color: '#B9A0FF' });
+    }
+    
+    return debuffs;
+}
+
+// The player ends the game from the pause menu: it is handed in as it stands, like any game
+// that ran to its end
+function finishGameNow() {
+    if (!window.confirm('Finish this game now? It is recorded with the score you have.')) return;
+    
+    gameState.showingPauseMenu = false;
+    gameState.gamePaused = false;
+    endGame();
 }
 
 // Whether the logged-in player has found the large quiver (a boss drop, kept on the account)
@@ -1271,9 +1299,7 @@ function spawnPowerUps(deltaTimeMultiplier) {
 
 function updateFallingItems(deltaTimeMultiplier) {
     fallingItems = fallingItems.filter(item => {
-        if (gameState.freezeTimeActive) {
-            return true; // Don't update when time is frozen - freeze ALL items
-        }
+        // Frost Nova does not stop items: only the things that hurt (see updateProjectiles)
         
         // Apply spell speed effects to falling items
         const spellSpeedMultiplier = spellSystem.getItemSpeedMultiplier();
@@ -1318,8 +1344,10 @@ function updateFallingItems(deltaTimeMultiplier) {
 
 function updateProjectiles(deltaTimeMultiplier) {
     fireballs = fireballs.filter(projectile => {
-        if (gameState.freezeTimeActive) {
-            return true; // Don't update when time is frozen
+        // Frost Nova freezes what would hurt the player where it hangs; the helpful spells
+        // (and items and power-ups) keep falling
+        if (gameState.freezeTimeActive && isHarmfulProjectile(projectile.data)) {
+            return true;
         }
         
         // Apply spell speed effects to projectiles
@@ -1333,10 +1361,6 @@ function updateProjectiles(deltaTimeMultiplier) {
 
 function updatePowerUps(deltaTimeMultiplier) {
     powerUps = powerUps.filter(powerUp => {
-        if (gameState.freezeTimeActive) {
-            return true; // Don't update when time is frozen - freeze ALL power-ups
-        }
-        
         const stillActive = powerUp.update(gameState, deltaTimeMultiplier, canvas);
         return stillActive && !powerUp.missed;
     });
@@ -2048,6 +2072,9 @@ function setupUIEventHandlers() {
             showItemBonuses('menu');
         });
     }
+    
+    const finishPauseBtn = document.getElementById('finishPauseBtn');
+    if (finishPauseBtn) finishPauseBtn.addEventListener('click', finishGameNow);
     
     if (restartPauseBtn) {
         restartPauseBtn.addEventListener('click', function() {

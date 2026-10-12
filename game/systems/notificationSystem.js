@@ -158,7 +158,7 @@ class NotificationSystem {
         // Update freeze notifications
         if (gameState.freezeTimeActive && gameState.freezeTimeTimer > 0) {
             const seconds = Math.ceil(gameState.freezeTimeTimer / 60);
-            this.showPersistentNotification('freeze', `Time Frozen (${seconds}s)`, 'freeze', true);
+            this.showPersistentNotification('freeze', `Projectiles frozen (${seconds}s)`, 'freeze', true);
         } else {
             this.removePersistentNotification('freeze');
         }

@@ -169,6 +169,26 @@ export class Player {
         ctx.strokeStyle = '#b9902f';
         ctx.lineWidth = 1;
         ctx.strokeRect(x, y, width, height);
+        
+        // What is eating at his health without anything hitting him (a curse, a shadowbolt's
+        // burn), named right under the bar with the time it has left: this.debuffs is set by
+        // the game each frame as [{ label, color }]
+        const debuffs = this.debuffs || [];
+        if (debuffs.length > 0) {
+            const fontSize = Math.max(11, Math.round(this.width * 0.15));
+            ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.lineJoin = 'round';
+            debuffs.forEach((debuff, index) => {
+                const textY = y + height + 3 + index * (fontSize + 2);
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+                ctx.strokeText(debuff.label, x + width / 2, textY);
+                ctx.fillStyle = debuff.color;
+                ctx.fillText(debuff.label, x + width / 2, textY);
+            });
+        }
         ctx.restore();
     }
     

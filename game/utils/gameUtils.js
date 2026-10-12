@@ -510,7 +510,7 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
     if (gameState.freezeTimeActive && gameState.freezeTimeTimer > 0) {
         // Add/update buff in tracker
         if (typeof window.addBuff === 'function') {
-            window.addBuff('freezeTime', 'Freeze Time', 'All Items Frozen', gameState.freezeTimeTimer, 'freeze');
+            window.addBuff('freezeTime', 'Frost Nova', 'Harmful projectiles frozen', gameState.freezeTimeTimer, 'freeze');
         }
         
         gameState.freezeTimeTimer -= deltaTimeMultiplier;
@@ -739,6 +739,7 @@ export function addNotification(gameState, message, duration = 180, color = '#FF
         // Effects with persistent versions
         lowerMessage.includes('shield active') ||
         lowerMessage.includes('all items frozen') ||
+        lowerMessage.includes('harmful projectiles frozen') ||
         lowerMessage.includes('speed boost') ||
         lowerMessage.includes('time slow') ||
         lowerMessage.includes('reverse gravity') ||

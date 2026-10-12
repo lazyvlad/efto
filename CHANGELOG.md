@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.21.0 - 2026-10-12
+
+### What's new
+
+- **Finish Game.** The pause menu has a "Finish Game" button: it ends the game there and
+  then, after asking once, and records it with the score you have, like a game that ran to
+  its end.
+- **Debuffs by the health bar.** When a boss's curse or a shadowbolt's burn is eating at
+  your health, it is named right under the hunter's health bar with what it takes each
+  second and how long it has left ("Curse -2/s (4s)"), so damage with nothing hitting you
+  is no longer a mystery.
+
+### Changed
+- Frost Nova now freezes only what would hurt you: fireballs, bolts and the bosses' attacks
+  hang where they are, while items, power-ups and the helpful spells keep falling. It used
+  to freeze everything.
+
 ## 2.20.0 - 2026-10-12
 
 ### What's new
