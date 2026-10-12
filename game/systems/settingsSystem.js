@@ -13,6 +13,7 @@ const defaultSettings = {
     gameplay: {
     },
     ui: {
+        handedness: 'right',            // right: move with the right hand, shoot with the left; left: the other way round
         playerPanelStyle: 'auto',       // auto, desktop, mobile
         dragonstalkerPanelStyle: 'auto', // auto, desktop, mobile
         panelOpacity: 80                 // 60-100
@@ -128,6 +129,11 @@ function applySetting(category, key, value) {
         }
     } else if (category === 'ui') {
         switch (key) {
+            case 'handedness':
+                // The stylesheet places the two groups of spell buttons from this (spell-bar.css)
+                document.body.classList.toggle('hand-left', value === 'left');
+                document.body.classList.toggle('hand-right', value !== 'left');
+                break;
             case 'playerPanelStyle':
             case 'dragonstalkerPanelStyle':
                 // Apply panel style changes

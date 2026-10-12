@@ -1,5 +1,6 @@
 import { gameConfig } from '../config/gameConfig.js';
-import { renderCanvasHud } from './hudNotificationSystem.js';
+import { renderCanvasHud, hideMessagesAboveField } from './hudNotificationSystem.js';
+import { drawBoss } from './bossSystem.js';
 
 // The drawSettings function has been removed as it's replaced by HTML+CSS guide.
 
@@ -27,6 +28,9 @@ export function renderFrame({
     
     // Clear canvas using logical dimensions
     ctx.clearRect(0, 0, canvas.logicalWidth, canvas.logicalHeight);
+    
+    // Messages shown above the play field belong to a game in progress
+    if (!gameState.gameRunning) hideMessagesAboveField();
     
     if (gameState.gameRunning) {
         renderGame({
@@ -150,13 +154,14 @@ function renderGame({
         entity.y = y;
     };
     
+    drawBoss(ctx, canvas, alpha);
     particles.forEach(particle => drawEntity(particle));
     fallingItems.forEach(item => drawEntity(item, gameConfig));
     fireballs.forEach(projectile => drawEntity(projectile));
     powerUps.forEach(powerUp => drawEntity(powerUp));
     window.arrows.forEach(arrow => drawEntity(arrow));
     combatTexts.forEach(text => drawEntity(text));
-    player.draw(ctx, gameState.shieldActive);
+    player.draw(ctx, gameState.shieldActive, gameState.health / gameState.maxHealth);
     
     // Update DOM-based items panel (throttled for performance)
     // Only update every 10 frames to reduce DOM manipulation overhead

@@ -9,6 +9,17 @@ export default () => {
 
     return {
         asking: false,
+        // Whether a game is underway. On phones the header and footer are hidden while it is,
+        // so the game gets the whole screen (see .phone-hide in app.css).
+        playing: false,
+
+        init() {
+            // The game is another page in a frame: it is asked, not listened to
+            setInterval(() => {
+                const game = this.game();
+                this.playing = Boolean(game && game.inProgress());
+            }, 400);
+        },
 
         game() {
             try {

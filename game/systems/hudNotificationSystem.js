@@ -282,6 +282,69 @@ function getHudScale(canvas) {
     return isCompact ? baseScale * 0.72 : baseScale;
 }
 
+// ----- Messages above the play field -----
+// On screens where the play field does not reach the top (most phones, and any window with a
+// band above the frame), the messages are shown in that band as page elements, so they take no
+// room from the game. Where the field fills the screen they are drawn on it, as below.
+
+const ABOVE_LINE_HEIGHT = 30;   // Page pixels a line of message needs
+let messagesAboveField = false;
+let roomAbove = { value: 0, measuredAt: -Infinity };
+let aboveBar = null;
+let aboveShown = '';
+
+// Page pixels between the top of the screen and the play field
+function roomAboveField(canvas) {
+    const now = performance.now();
+    if (now - roomAbove.measuredAt > 500) {
+        roomAbove = { value: canvas.getBoundingClientRect().top, measuredAt: now };
+    }
+    return roomAbove.value;
+}
+
+// Nothing is shown above the field while no game is on screen
+export function hideMessagesAboveField() {
+    showAboveField([]);
+}
+
+// Whether the messages are being shown above the play field (the boss's health bar can then
+// sit right at the top of it)
+export function areMessagesAboveField() {
+    return messagesAboveField;
+}
+
+function showAboveField(items) {
+    // Only touch the page when what is shown changes
+    const shown = items.map(item => `${item.type}|${item.iconSrc || ''}|${item.message}`).join('\n');
+    if (shown === aboveShown) return;
+    aboveShown = shown;
+
+    if (!aboveBar) {
+        aboveBar = document.createElement('div');
+        aboveBar.id = 'messagesAboveField';
+        aboveBar.setAttribute('aria-live', 'polite');
+        document.body.appendChild(aboveBar);
+    }
+
+    aboveBar.replaceChildren(...items.map(item => {
+        const line = document.createElement('div');
+        line.className = 'message-above-field';
+        line.style.borderColor = colorForType(item.type);
+
+        if (getIconImage(item.iconSrc)) {
+            const icon = document.createElement('img');
+            icon.src = item.iconSrc;
+            icon.alt = '';
+            line.appendChild(icon);
+        }
+
+        const text = document.createElement('span');
+        text.textContent = item.message;
+        line.appendChild(text);
+        return line;
+    }));
+}
+
 // The bar at the top of the play field. It sits over the area things fall through, so it is kept
 // out of the way: one line on a phone, two elsewhere, only as wide as its text, see-through, and
 // the newest message replaces older ones rather than stacking.
@@ -291,12 +354,17 @@ function drawNotifications(ctx, canvas, uiScale) {
     const isCompact = canvas.deviceType === 'mobile' || canvas.logicalWidth <= 768;
     const maxVisible = isCompact ? 1 : 2;
 
+    // When the screen has room above the play field, the messages go there, off the field
+    const linesAbove = Math.min(maxVisible, Math.floor((roomAboveField(canvas) - 10) / ABOVE_LINE_HEIGHT));
+    messagesAboveField = linesAbove >= 1;
+
     const topItems = [
         ...notifications.slice().reverse(),
         ...Array.from(persistentNotifications.values())
-    ].slice(0, maxVisible);
+    ].slice(0, messagesAboveField ? linesAbove : maxVisible);
 
-    if (topItems.length === 0) return;
+    showAboveField(messagesAboveField ? topItems : []);
+    if (messagesAboveField || topItems.length === 0) return;
 
     // Phones keep text at a readable size whatever the HUD scale
     const fontSize = isCompact ? 11 : 13 * uiScale;

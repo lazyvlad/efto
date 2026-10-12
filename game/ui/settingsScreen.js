@@ -127,6 +127,7 @@ export function updateSettingsScreen() {
         gameModeRadio.checked = true;
     }
 
+    setValue('handedness', settings.ui?.handedness || 'right');
     setValue('playerPanelStyle', settings.ui?.playerPanelStyle || 'auto');
     setValue('dragonstalkerPanelStyle', settings.ui?.dragonstalkerPanelStyle || 'auto');
 
@@ -164,6 +165,7 @@ export function bindSettingsScreen() {
         });
     });
 
+    bindSelect('handedness', 'ui', 'handedness', 'Handedness');
     bindSelect('playerPanelStyle', 'ui', 'playerPanelStyle', 'Player panel style');
     bindSelect('dragonstalkerPanelStyle', 'ui', 'dragonstalkerPanelStyle', 'Dragonstalker panel style');
     bindRange('panelOpacity', 'panelOpacityValue', 'ui', 'panelOpacity');

@@ -19,7 +19,7 @@
              page of its own (it sizes itself to its window), so it sits in a frame. --}}
         <div class="h-screen h-dvh flex flex-col" x-data="gameGuard" @keydown.escape.window="asking && stay()">
             {{-- While a game is underway, header links ask before leaving (see game-guard.js) --}}
-            <div class="relative z-20 shrink-0" @click.capture="intercept($event)">
+            <div class="relative z-20 shrink-0" :class="{ 'phone-hide': playing }" @click.capture="intercept($event)">
                 @include('layouts.navigation')
             </div>
 
@@ -32,7 +32,9 @@
                 onload="this.contentWindow.focus()"
             ></iframe>
 
-            @include('layouts.footer')
+            <div class="shrink-0" :class="{ 'phone-hide': playing }">
+                @include('layouts.footer')
+            </div>
 
             <div
                 class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4"

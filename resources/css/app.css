@@ -141,3 +141,12 @@
 [x-cloak] {
     display: none !important;
 }
+
+/* Landing page, on phones (narrow, or short when held sideways): the header and footer step
+   aside while a game is underway so the game has the whole screen. They return at the main
+   menu and at game over. */
+@media (max-width: 639px), (max-height: 500px) {
+    .phone-hide {
+        display: none;
+    }
+}

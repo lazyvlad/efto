@@ -53,14 +53,13 @@ body, html {
     cursor: default;
 }
 
-/* Canvas border effects */
+/* The frame around the play field: the same bevelled gold trim as the menus and panels */
 .canvas-border {
     position: fixed;
-    background: linear-gradient(135deg, rgba(78, 205, 196, 0.6) 0%, rgba(255, 215, 0, 0.4) 50%, rgba(78, 205, 196, 0.6) 100%);
-    box-shadow: 0 0 10px rgba(78, 205, 196, 0.3), inset 0 0 5px rgba(255, 215, 0, 0.2);
+    background: linear-gradient(160deg, #f6e3a1 0%, #b9902f 18%, #6b4f16 42%, #a57f2a 60%, #efd88d 80%, #7a5a1a 100%);
+    box-shadow: 0 0 0 1px #000, 0 0 8px rgba(0, 0, 0, 0.7);
     z-index: 2;
     pointer-events: none;
-    backdrop-filter: blur(3px);
 }
 
 .canvas-border.top {
@@ -113,22 +112,47 @@ button:focus, input:focus {
     outline-offset: 2px;
 }
 
-/* Sponsor link styling */
-.sponsor-link-class {
+/* Messages shown in the band above the play field, when the screen has one (see
+   hudNotificationSystem.js): stacked upwards from just above the frame */
+#messagesAboveField {
     position: fixed;
-    bottom: 15px;
-    right: 15px;
-    font-size: 12px;
-    color:#f1f1f1
+    left: var(--letterbox-left, 0px);
+    width: var(--letterbox-width, 100vw);
+    bottom: calc(100vh - var(--letterbox-top, 0px) + 9px);
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: 4px;
+    z-index: 3;
+    pointer-events: none;
 }
 
-.sponsor-link-class a {
-    color: #4ECDC4;
-    text-decoration: none;
-    transition: color 0.3s ease;
+.message-above-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 96%;
+    padding: 3px 12px;
+    font: bold 13px Arial, sans-serif;
+    line-height: 18px;
+    color: #fff;
+    text-shadow: 0 1px 2px #000;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid #b9902f;
+    border-radius: 8px;
 }
 
-.sponsor-link-class a:hover {
-    color: #FFD700;
-    text-decoration: underline;
+.message-above-field img {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    flex: none;
+}
+
+.message-above-field span {
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
