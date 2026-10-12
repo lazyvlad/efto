@@ -373,6 +373,11 @@ export const gameConfig = {
         
         // Every power-up is the same size: this multiple of the base power-up size
         powerUpSize: 1.2,
+        // Phones: falling things keep the size they have next to the player on desktop. Raise the
+        // boost above 1 to draw them larger on phones; nothing is ever drawn bigger than
+        // mobileMaxSizeVsPlayer times the player's size.
+        mobileSizeBoost: 1.0,
+        mobileMaxSizeVsPlayer: 0.95,
         
         // Soft aura behind everything that isn't loot, so it reads at a glance:
         // helpful things (power-ups, beneficial spells) are greenish, harmful projectiles reddish

@@ -320,16 +320,15 @@ export function checkCollisions(context) {
                             // Player dodged the Frost Nova damage
                             showDodgeText(player.x + player.width/2, player.y);
                             trackDodge(projectile.data.damage); // Track HP saved from dodging Frost Nova
-                            addNotification(gameState, `💨 Dodged Frost Nova!`, 120, '#00FF00');
                         } else if (gameState.shieldActive) {
                             // Shield blocks the damage (only if dodge failed)
-                            addNotification(gameState, `🛡️ Damage Blocked!`, 120, '#FFD700');
+                            combatTexts.push(new CombatText(player.x + player.width/2, player.y, 'BLOCKED', '#FFD700', false));
                         } else {
                             // Track damage for hybrid progression
                             trackActivity(gameState, 'damage', projectile.data.damage);
                             
                             gameState.health = Math.max(0, gameState.health - projectile.data.damage);
-                            addNotification(gameState, `❄️ Frost Nova -${projectile.data.damage} HP`, 120, '#00BFFF');
+                            combatTexts.push(new CombatText(player.x + player.width/2, player.y, `-${projectile.data.damage}`, '#00BFFF', false));
                             
                             // Trigger player impact reaction
                             if (player.onHit) {
@@ -362,10 +361,9 @@ export function checkCollisions(context) {
                             // Player dodged the shadowbolt
                             showDodgeText(player.x + player.width/2, player.y);
                             trackDodge(0); // Track dodge but no immediate HP saved (prevents DOT application)
-                            addNotification(gameState, `💨 Dodged Shadowbolt!`, 120, '#00FF00');
                         } else if (gameState.shieldActive) {
                             // Shield blocks shadowbolt application (only if dodge failed)
-                            addNotification(gameState, `🛡️ Shadow Effect Blocked!`, 120, '#FFD700');
+                            combatTexts.push(new CombatText(player.x + player.width/2, player.y, 'BLOCKED', '#FFD700', false));
                         } else {
                             // Add a new shadowbolt DOT using projectile data
                             if (!gameState.shadowboltDots) {
@@ -399,14 +397,12 @@ export function checkCollisions(context) {
                             showDodgeText(player.x + player.width/2, player.y);
                             const damage = projectile.data.damage || 5;
                             trackDodge(damage); // Track HP saved from dodging projectile
-                            const dodgeMessage = `💨 Dodged ${projectile.data.name || 'Attack'}!`;
-                            addNotification(gameState, dodgeMessage, 120, '#00FF00');
                             
                             // Create dodge particles for visual feedback
                             createCollectionParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles, '#00FF00');
                         } else if (gameState.shieldActive) {
                             // Shield blocks the damage (only if dodge failed)
-                            addNotification(gameState, `🛡️ Damage Blocked!`, 120, '#FFD700');
+                            combatTexts.push(new CombatText(player.x + player.width/2, player.y, 'BLOCKED', '#FFD700', false));
                             
                             // Still create particles and play sound for feedback
                             createCollectionParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles, '#FFD700');
@@ -419,14 +415,9 @@ export function checkCollisions(context) {
                             
                             gameState.health = Math.max(0, gameState.health - damage);
                             
-                            // Add damage notification
-                            let damageIcon = '💥';
-                            let damageColor = '#FF4500';
-                            if (projectile.data.id === 'frostbolt') {
-                                damageIcon = '❄️';
-                                damageColor = '#00BFFF';
-                            }
-                            addNotification(gameState, `${damageIcon} ${projectile.data.name || 'Damage'} -${damage} HP`, 120, damageColor);
+                            // Float the damage taken above the player
+                            const damageColor = projectile.data.id === 'frostbolt' ? '#00BFFF' : '#FF4500';
+                            combatTexts.push(new CombatText(player.x + player.width/2, player.y, `-${damage}`, damageColor, false));
                             
                             // Trigger player impact reaction
                             if (player.onHit) {

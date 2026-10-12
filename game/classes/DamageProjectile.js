@@ -25,14 +25,8 @@ function gaussianRandom(mean = 0, stdDev = 1) {
 function calculateProjectileSize(projectileData) {
     const sizeMultiplier = projectileData.size_multiplier || 1;
     const baseProjectileSize = responsiveScaler.getSize('item', 'projectile');
-    let size = baseProjectileSize * sizeMultiplier;
 
-    if (responsiveScaler.deviceType === 'mobile') {
-        size *= 0.82;
-        size = Math.max(40, Math.min(52, size));
-    }
-
-    return size;
+    return responsiveScaler.capToPlayer(baseProjectileSize * sizeMultiplier);
 }
 
 export class DamageProjectile extends FallingObject {
@@ -63,7 +57,9 @@ export class DamageProjectile extends FallingObject {
         
         // Apply cut_time reduction as a subtraction from level multiplier, not final speed
         const effectiveProjectileMultiplier = Math.max(0.3, projectileSpeedMultiplier - gameState.permanentSpeedReduction);
-        const baseSpeed = gameState.baseDropSpeed * effectiveProjectileMultiplier * speedVariation;
+        // Scaled to the canvas height, so a projectile takes as long to arrive on a phone as on desktop
+        const fallSpeedScale = gameState.universalMultiplier?.projectileFallSpeed ?? 1;
+        const baseSpeed = gameState.baseDropSpeed * effectiveProjectileMultiplier * speedVariation * fallSpeedScale;
         this.baseSpeed = baseSpeed; // Store base speed for recalculation when speed boosts are applied
         this.speed = baseSpeed * projectileSpeedIncrease;
         

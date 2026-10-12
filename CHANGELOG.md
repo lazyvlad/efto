@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.4.0 - 2026-10-12
+
+### What's new
+
+**Phones**
+- Items, power-ups and projectiles are the same size next to the player as on desktop; they
+  used to be as big as the player or bigger.
+- Things take as long to fall down the screen as on desktop. Projectiles used to arrive in
+  about half the time, items about a quarter sooner.
+
+**A quieter message bar**
+- The bar at the top of the play field shows one message on phones and two elsewhere, is only
+  as wide as its text and is more see-through, so it covers less of what is falling.
+- Damage taken and blocked hits float above the player instead of appearing in the bar.
+- Dodges, critical hits and buffs starting or ending no longer appear in the bar; they already
+  show at the player or on the buff cards.
+
 ## 2.3.0 - 2026-10-12
 
 ### What's new

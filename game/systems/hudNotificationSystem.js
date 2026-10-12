@@ -282,41 +282,56 @@ function getHudScale(canvas) {
     return isCompact ? baseScale * 0.72 : baseScale;
 }
 
+// The bar at the top of the play field. It sits over the area things fall through, so it is kept
+// out of the way: one line on a phone, two elsewhere, only as wide as its text, see-through, and
+// the newest message replaces older ones rather than stacking.
 function drawNotifications(ctx, canvas, uiScale) {
     pruneExpiredHudNotifications();
 
+    const isCompact = canvas.deviceType === 'mobile' || canvas.logicalWidth <= 768;
+    const maxVisible = isCompact ? 1 : 2;
+
     const topItems = [
-        ...Array.from(persistentNotifications.values()),
-        ...notifications
-    ].slice(0, 4);
+        ...notifications.slice().reverse(),
+        ...Array.from(persistentNotifications.values())
+    ].slice(0, maxVisible);
 
     if (topItems.length === 0) return;
 
-    const width = Math.min(450 * uiScale, canvas.logicalWidth - (30 * uiScale));
-    const height = 32 * uiScale;
-    const gap = 4 * uiScale;
-    const x = (canvas.logicalWidth - width) / 2;
-    let y = 5 * uiScale;
+    // Phones keep text at a readable size whatever the HUD scale
+    const fontSize = isCompact ? 11 : 13 * uiScale;
+    const height = isCompact ? 22 : 26 * uiScale;
+    const iconSize = height - (isCompact ? 6 : 8 * uiScale);
+    const padding = isCompact ? 8 : 12 * uiScale;
+    const gap = isCompact ? 3 : 4 * uiScale;
+    const maxWidth = Math.min(450 * Math.max(1, uiScale), canvas.logicalWidth - 24);
+    let y = isCompact ? 4 : 5 * uiScale;
 
     ctx.save();
-    ctx.textAlign = 'center';
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
+    ctx.font = `bold ${fontSize}px Arial`;
 
     topItems.forEach(item => {
         const borderColor = colorForType(item.type);
-        drawCard(ctx, { x, y, width, height, borderColor, fillAlpha: 0.86 });
-        const iconSize = 22 * uiScale;
-        const iconX = x + (10 * uiScale);
-        const iconY = y + (height - iconSize) / 2;
-        const hasIcon = drawIcon(ctx, item.iconSrc, iconX, iconY, iconSize, borderColor);
-        const textX = hasIcon ? x + width / 2 + (10 * uiScale) : x + width / 2;
-        const textMaxWidth = hasIcon ? width - (58 * uiScale) : width - (24 * uiScale);
+        const hasIcon = Boolean(getIconImage(item.iconSrc));
+        const iconSpace = hasIcon ? iconSize + padding / 2 : 0;
+        const text = truncateText(ctx, item.message, maxWidth - padding * 2 - iconSpace);
+        const width = ctx.measureText(text).width + padding * 2 + iconSpace;
+        const x = (canvas.logicalWidth - width) / 2;
+
+        drawCard(ctx, { x, y, width, height, borderColor, fillAlpha: 0.6 });
+
+        if (hasIcon) {
+            drawIcon(ctx, item.iconSrc, x + padding / 2, y + (height - iconSize) / 2, iconSize, borderColor);
+        }
 
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = `bold ${14 * uiScale}px Arial`;
+        ctx.font = `bold ${fontSize}px Arial`;
         ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
         ctx.shadowBlur = 4;
-        ctx.fillText(truncateText(ctx, item.message, textMaxWidth), textX, y + height / 2);
+        ctx.fillText(text, x + padding + iconSpace, y + height / 2);
+        ctx.shadowBlur = 0;
 
         y += height + gap;
     });

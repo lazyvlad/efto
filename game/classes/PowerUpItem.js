@@ -6,19 +6,12 @@ import { playSoundEffect } from '../systems/audioSystem.js';
 import { drawAura, drawImageGlow } from '../utils/glow.js';
 import { getSprite } from '../utils/spriteCache.js';
 
-// Phones keep power-ups within a touch-friendly range
-const MOBILE_POWER_UP_SIZE = { min: 68, max: 78 };
-
 const REVERSE_GRAVITY = {
     angleRange: 65,          // Maximum deviation from straight up, in degrees
     speedFactor: 0.4,        // Slowed to 40% to give players more time to collect power-ups
     bounceRestitution: 0.8   // Speed kept when bouncing off the top and sides
 };
 const WALL_RESTITUTION = 0.8; // Power-ups retain more energy than items when bouncing off the side walls
-
-function clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-}
 
 function isPotionPowerUp(powerUpData) {
     return powerUpData.id === 'health_potion' || powerUpData.id === 'mana_potion';
@@ -28,11 +21,7 @@ function isPotionPowerUp(powerUpData) {
 function calculatePowerUpSize() {
     const size = responsiveScaler.getSize('item', 'powerUp') * gameConfig.items.powerUpSize;
 
-    if (responsiveScaler.deviceType !== 'mobile') {
-        return size;
-    }
-
-    return clamp(size * 0.92, MOBILE_POWER_UP_SIZE.min, MOBILE_POWER_UP_SIZE.max);
+    return responsiveScaler.capToPlayer(size);
 }
 
 export class PowerUpItem extends FallingObject {
@@ -60,7 +49,7 @@ export class PowerUpItem extends FallingObject {
         const effectiveLevelMultiplier = Math.max(0.2, gameState.levelSpeedMultiplier - gameState.permanentSpeedReduction);
         
         // Apply resolution scaling to base speed for consistent gameplay across resolutions
-        const baseSpeed = gameState.baseDropSpeed * effectiveLevelMultiplier * speedVariation * resolutionScale.average;
+        const baseSpeed = gameState.baseDropSpeed * effectiveLevelMultiplier * speedVariation * (gameState.universalMultiplier?.itemFallSpeed ?? resolutionScale.average);
         this.baseSpeed = baseSpeed; // Store base speed for recalculation when speed boosts are applied
         this.speed = baseSpeed * gameState.speedIncreaseMultiplier;
         

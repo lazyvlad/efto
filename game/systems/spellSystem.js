@@ -191,8 +191,11 @@ class SpellSystem {
                     buffType = 'flask';
                 }
                 
-                const message = `${activeSpell.spell.name} (${seconds}s)`;
-                notificationSystem.showPersistentNotification(`spell_${spellId}`, message, type, true);
+                // Spells with a buff card already show their countdown there
+                if (spellId !== 'dragon_cry' && spellId !== 'zandalari') {
+                    const message = `${activeSpell.spell.name} (${seconds}s)`;
+                    notificationSystem.showPersistentNotification(`spell_${spellId}`, message, type, true);
+                }
             }
         }
     }

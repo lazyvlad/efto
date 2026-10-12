@@ -1,6 +1,7 @@
 // Import all modules
 import { gameConfig } from './config/gameConfig.js';
 import { GAME_VERSION } from './config/gameVersion.js';
+import { CombatText } from './classes/CombatText.js';
 import { gameItems } from './data/gameItems.js';
 import { damageProjectiles } from './data/damageProjectiles.js';
 import { powerUpItems } from './data/powerUpItems.js';
@@ -1146,11 +1147,10 @@ function updateFallingItems(deltaTimeMultiplier) {
                     // Player dodged the missed item penalty
                     showDodgeText(player.x + player.width/2, player.y);
                     trackDodge(gameConfig.gameplay.healthLossOnMiss); // Track HP saved from dodging missed item
-                    addNotification(gameState, `💨 Dodged Item Miss!`, 120, '#00FF00');
                     playUffSound(); // Still play the sound for feedback
                 } else if (gameState.shieldActive) {
                     // Shield blocks the damage from missed items (only if dodge failed)
-                    addNotification(gameState, `🛡️ Shield Protected!`, 120, '#FFD700');
+                    combatTexts.push(new CombatText(player.x + player.width/2, player.y, 'BLOCKED', '#FFD700', false));
                 } else {
                     // Track damage for hybrid progression
                     trackActivity(gameState, 'damage', gameConfig.gameplay.healthLossOnMiss);

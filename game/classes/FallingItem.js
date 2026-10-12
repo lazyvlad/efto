@@ -6,18 +6,6 @@ import { drawImageGlow } from '../utils/glow.js';
 import { getSprite } from '../utils/spriteCache.js';
 import { getContentBounds } from '../utils/spriteFit.js';
 
-const MOBILE_ITEM_SIZE_BANDS = {
-    regular: { min: 42, max: 52 },
-    green: { min: 46, max: 56 },
-    epic: { min: 60, max: 76 },
-    special: { min: 58, max: 74 },
-    dragonstalker: { min: 54, max: 60 },
-    tier_set: { min: 62, max: 78 },
-    legendary: { min: 74, max: 84 },
-    zee_zgnan: { min: 78, max: 86 },
-    default: { min: 50, max: 66 }
-};
-
 const REVERSE_GRAVITY = {
     angleRange: 65,          // Maximum deviation from straight up, in degrees
     speedFactor: 0.4,        // Slowed to 40% to give players more time to collect items
@@ -25,28 +13,12 @@ const REVERSE_GRAVITY = {
 };
 const WALL_RESTITUTION = 0.6; // Items lose some energy when bouncing off the side walls
 
-function clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
-}
-
-function isDragonstalkerItem(itemData) {
-    return itemData.type === 'tier_set' && itemData.setPosition >= 1 && itemData.setPosition <= 8;
-}
-
 function calculateItemSize(itemData) {
     // One size per rarity (see items.sizeByType in gameConfig)
     const sizeMultiplier = gameConfig.items.sizeByType[itemData.type] || 1;
     const baseItemSize = responsiveScaler.getSize('item', 'base');
 
-    if (responsiveScaler.deviceType !== 'mobile') {
-        return baseItemSize * sizeMultiplier;
-    }
-
-    // Phones keep each rarity within a touch-friendly range
-    const bandKey = isDragonstalkerItem(itemData) ? 'dragonstalker' : itemData.type;
-    const band = MOBILE_ITEM_SIZE_BANDS[bandKey] || MOBILE_ITEM_SIZE_BANDS.default;
-    const compressedSize = baseItemSize * sizeMultiplier * 0.85;
-    return clamp(compressedSize, band.min, band.max);
+    return responsiveScaler.capToPlayer(baseItemSize * sizeMultiplier);
 }
 
 // Long, thin artwork is drawn larger than its box so it carries the same visual weight as a
@@ -88,7 +60,7 @@ export class FallingItem extends FallingObject {
         const effectiveLevelMultiplier = Math.max(0.2, gameState.levelSpeedMultiplier - gameState.permanentSpeedReduction);
         
         // Apply resolution scaling to base speed for consistent gameplay across resolutions
-        const baseSpeed = gameState.baseDropSpeed * effectiveLevelMultiplier * speedVariation * resolutionScale.average;
+        const baseSpeed = gameState.baseDropSpeed * effectiveLevelMultiplier * speedVariation * (gameState.universalMultiplier?.itemFallSpeed ?? resolutionScale.average);
         this.baseSpeed = baseSpeed; // Store base speed for recalculation when speed boosts are applied
         this.speed = baseSpeed * gameState.speedIncreaseMultiplier;
         

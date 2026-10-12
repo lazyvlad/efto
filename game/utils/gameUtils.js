@@ -408,16 +408,10 @@ export function getLogicalCanvasHeight(canvas) {
             gameConfig.canvas.desktop.height);
 }
 
-// Calculate resolution scaling factor for consistent gameplay across different screen sizes
-export function calculateResolutionScale(canvas) {
-    if (!gameConfig?.gameplay?.independence?.enabled) {
-        return { x: 1, y: 1, average: 1 };
-    }
-    
+// Resolution scaling factors for a canvas of the given logical size
+function resolutionScaleFor(currentWidth, currentHeight) {
     const config = gameConfig.gameplay.independence;
-    const currentWidth = getLogicalCanvasWidth(canvas);
-    const currentHeight = getLogicalCanvasHeight(canvas);
-    
+
     // Calculate scaling factors based on reference resolution
     let scaleX = currentWidth / config.referenceWidth;
     let scaleY = currentHeight / config.referenceHeight;
@@ -440,15 +434,36 @@ export function calculateResolutionScale(canvas) {
     };
 }
 
+// Calculate resolution scaling factor for consistent gameplay across different screen sizes
+export function calculateResolutionScale(canvas) {
+    if (!gameConfig?.gameplay?.independence?.enabled) {
+        return { x: 1, y: 1, average: 1 };
+    }
+
+    return resolutionScaleFor(getLogicalCanvasWidth(canvas), getLogicalCanvasHeight(canvas));
+}
+
 // Resolution scaling for speeds, sizes and spawn coordinates.
 // Frame rate independence is handled by the fixed-timestep loop (see gameClock.js).
 export function calculateUniversalMultiplier(canvas) {
     const resolutionScale = calculateResolutionScale(canvas);
+
+    // Fall speeds follow the height of the canvas, so an object takes the same time to cross
+    // the screen on a phone (a short canvas) as on the desktop canvas the speeds were tuned on.
+    // Desktop itself is unchanged: items keep its resolution scale, projectiles keep 1.
+    const desktop = gameConfig.canvas.desktop;
+    const heightRatio = getLogicalCanvasHeight(canvas) / desktop.height;
+    const desktopItemScale = gameConfig?.gameplay?.independence?.enabled
+        ? resolutionScaleFor(desktop.width, desktop.height).average
+        : 1;
     
     return {
         resolution: resolutionScale,
         // Multiplier for speeds
         speed: resolutionScale.average,
+        // Fall speed of items and power-ups, and of projectiles
+        itemFallSpeed: desktopItemScale * heightRatio,
+        projectileFallSpeed: heightRatio,
         // Size multiplier
         size: resolutionScale.average,
         // Position multiplier for spawn coordinates
@@ -689,8 +704,25 @@ export function addNotification(gameState, message, duration = 180, color = '#FF
     // Determine if duplicates should be allowed based on message type
     let allowDuplicates = false;
     
-    // Check if this should be suppressed (effects handled by persistent notifications or unwanted spam)
+    // The bar at the top of the play field is for things worth looking away from the action for:
+    // a new level, a set piece, a permanent gain, an answer to a button press. Everything below
+    // already shows somewhere better - floating text at the player, the health bar, or a timed
+    // buff card - so it stays off the bar.
     const shouldSuppress = 
+        // Moment-to-moment combat (floating text and the health bar cover these)
+        lowerMessage.includes('critical hit') ||
+        lowerMessage.includes('% points') ||
+        lowerMessage.includes('projectile destroyed') ||
+        lowerMessage.includes('dodged') ||
+        lowerMessage.includes('blocked') ||
+        lowerMessage.includes('shadow damage') ||
+        // Timed effects starting and ending (buff cards and the stats panel cover these)
+        lowerMessage.includes('aspect of the monkey') ||
+        lowerMessage.includes('temp crit') ||
+        lowerMessage.includes('temp dodge') ||
+        lowerMessage.includes('aftereffect') ||
+        /\bended\b/.test(lowerMessage) ||
+        ((lowerMessage.includes('trajectory modified') || lowerMessage.includes('fall angles modified')) && !lowerMessage.includes('permanent')) ||
         // Effects with persistent versions
         lowerMessage.includes('shield active') ||
         lowerMessage.includes('all items frozen') ||
@@ -1010,6 +1042,13 @@ export class ResponsiveScaler {
         this.uniformScale = Math.max(0.3, Math.min(2.0, this.uniformScale));
     }
     
+    // Phones: nothing that falls is drawn bigger than the player (items.mobileMaxSizeVsPlayer)
+    capToPlayer(size) {
+        if (this.deviceType !== 'mobile') return size;
+
+        return Math.min(size, this.sizes.player.width * gameConfig.items.mobileMaxSizeVsPlayer);
+    }
+    
     calculateElementSizes() {
         // Responsive border approach - larger boundary for better visibility
         const elementBorderSize = 155; // Larger boundary for substantial game elements
@@ -1076,17 +1115,12 @@ export class ResponsiveScaler {
             this.sizes.player.width = Math.min(this.sizes.player.width, maxMobileSize);
             this.sizes.player.height = Math.min(this.sizes.player.height, maxMobileSize); // Square aspect ratio
             
-            // Items keep their original scaling (no boundary cap)
-            // Only ensure minimum touch size for mobile
-            
-            // Ensure minimum touch size for items (original logic)
-            const minTouchSize = 60; // Back to original minimum
-            if (this.sizes.item.base < minTouchSize) {
-                const scaleFactor = minTouchSize / this.sizes.item.base;
-                this.sizes.item.base = minTouchSize;
-                this.sizes.item.powerUp = Math.round(this.sizes.item.powerUp * scaleFactor);
-                this.sizes.item.projectile = Math.round(this.sizes.item.projectile * scaleFactor);
-            }
+            // Falling things keep the proportions they have next to the player on desktop
+            // (items.mobileSizeBoost can draw them larger)
+            const boost = gameConfig.items.mobileSizeBoost;
+            this.sizes.item.base = Math.round(this.sizes.item.base * boost);
+            this.sizes.item.powerUp = Math.round(this.sizes.item.powerUp * boost);
+            this.sizes.item.projectile = Math.round(this.sizes.item.projectile * boost);
             
             // Smaller spell icons for mobile
             this.sizes.ui.spellIconSize = Math.round(this.sizes.ui.spellIconSize * 0.8);
