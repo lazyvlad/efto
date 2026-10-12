@@ -1,30 +1,24 @@
 {
-  "name": "efto-game",
-  "version": "2.2.0",
-  "description": "EFTO Game - Simple Build System",
-  "main": "game-modular.js",
-  "scripts": {
-    "build": "node build.js",
-    "build:dev": "node build.js --dev",
-    "test": "node --test tests/",
-    "assets:report": "node tools/optimize-assets.js",
-    "assets:optimize": "node tools/optimize-assets.js --dir dist --write",
-    "clean": "node -e \"const fs = require('fs-extra'); fs.removeSync('dist'); fs.removeSync('dev_dist');\""
-  },
-  "devDependencies": {
-    "chalk": "^4.1.2",
-    "clean-css": "^5.3.3",
-    "fs-extra": "^11.2.0",
-    "glob": "^10.3.10",
-    "readline-sync": "^1.4.10",
-    "sharp": "^0.35.5",
-    "terser": "^5.24.0"
-  },
-  "keywords": [
-    "game",
-    "javascript",
-    "html5"
-  ],
-  "author": "EFTO Team",
-  "license": "MIT"
+    "$schema": "https://www.schemastore.org/package.json",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "build": "vite build",
+        "dev": "vite",
+        "build:game": "npm --prefix game run build",
+        "build:all": "vite build && npm --prefix game run build",
+        "test:game": "npm --prefix game test"
+    },
+    "devDependencies": {
+        "@tailwindcss/forms": "^0.5.2",
+        "@tailwindcss/vite": "^4.0.0",
+        "alpinejs": "^3.4.2",
+        "autoprefixer": "^10.4.2",
+        "axios": "^1.11.0",
+        "concurrently": "^9.0.1",
+        "laravel-vite-plugin": "^2.0.0",
+        "postcss": "^8.4.31",
+        "tailwindcss": "^3.1.0",
+        "vite": "^7.0.7"
+    }
 }

@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.3.0 - 2026-10-12
+
+### What's new
+
+**The game is now I N P U T, and it has a site around it**
+- Create an account or log in from the main menu. Logged-in players score under their account.
+- Guests can still play straight away. They are given a random guest name they can find on the
+  leaderboard, or can type their own.
+- High scores are stored in a database instead of a file.
+
+**A new look**
+- Warcraft-style menus, a Dragonstalker set tracker and a unit-frame player panel.
+
+**Gameplay**
+- Arrows only shoot down harmful projectiles; items and helpful spells have to be caught.
+- Items of the same rarity are the same size, and every power-up is the same size.
+- Helpful things glow green, harmful projectiles glow red.
+
+**Sound**
+- Sound effects no longer interrupt the game when they start, and can overlap.
+
+### For developers
+- Laravel 12 with Breeze at the repository root; the game moved to `game/` and builds into
+  `public/game/`. See the README for setup, development and deployment.
+- `php artisan scores:import <file>` imports an old `highscores.json`.
+
 ## 2.2.0 - 2026-10-11
 
 ### What's new

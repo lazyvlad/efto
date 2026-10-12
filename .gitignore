@@ -1,65 +1,45 @@
-# Configuration files with sensitive data
-config/serverConfig.js
-config/gameVersion.js
-
-# Python cache files
-__pycache__/
-*.pyc
-*.pyo
-
-# Live high scores (each server keeps its own; the API creates the file)
-/highscores.json
-
-# Build output directories
-dist/
-dev_dist/
-
-# Dependencies
-node_modules/
-
-# Environment files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Log files
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Laravel
 *.log
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# OS generated files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
+.env
+.env.backup
+.env.production
+.phpactor.json
+.phpunit.result.cache
+/.fleet
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+Homestead.json
+Homestead.yaml
 Thumbs.db
+/database/*.sqlite
 
-# IDE files
-.vscode/
-.idea/
+# Built front-end assets ARE committed (public/build and public/game), so a production server
+# only needs "git pull" and "composer install" - no Node.js build there.
+
+# Game: generated per checkout by the game build
+/game/config/serverConfig.js
+/game/config/gameVersion.js
+/game/node_modules
+/game/dev_dist
+
+# Development only: lets /play serve the unbuilt game source (see README)
+/public/game-src
+
+# OS / editor leftovers
+._*
 *.swp
 *.swo
 *~
-
-# Temporary files
 *.tmp
-*.temp
-
-# Backup files
 *.bak
-*.backup
-config/*.bak
-
-# IDE files
-.vscode/settings.json 

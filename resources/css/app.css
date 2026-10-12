@@ -1,0 +1,96 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        background: radial-gradient(ellipse at 50% 0%, #2a1f14 0%, #0e0c0a 60%) fixed;
+        color: #f4ecd8;
+    }
+
+    h1, h2, h3, label, nav a, nav button {
+        font-family: theme('fontFamily.display');
+        font-weight: 400;
+        letter-spacing: 0.03em;
+    }
+
+    /* Form fields: dark wells with a thin metal edge */
+    [type='text'], [type='email'], [type='password'], [type='number'], [type='search'], select, textarea {
+        background-color: rgba(0, 0, 0, 0.6);
+        border-color: #8f7a45;
+        color: #fff;
+        caret-color: #ffd100;
+    }
+
+    [type='checkbox'] {
+        background-color: rgba(0, 0, 0, 0.6);
+        border-color: #8f7a45;
+        color: #b9902f;
+    }
+}
+
+@layer components {
+    /* A panel: stone inside a bevelled gold trim, as in the game's menus */
+    .panel {
+        background:
+            linear-gradient(180deg, #211c18 0%, #15110e 45%, #0c0a08 100%) padding-box,
+            linear-gradient(160deg, #f6e3a1 0%, #b9902f 18%, #6b4f16 42%, #a57f2a 60%, #efd88d 80%, #7a5a1a 100%) border-box;
+        border: 3px solid transparent;
+        border-radius: 8px;
+        box-shadow: 0 0 0 1px #000, 0 18px 50px rgba(0, 0, 0, 0.7), inset 0 0 0 1px #000;
+    }
+
+    /* The red interface button */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem 1.1rem;
+        font-family: theme('fontFamily.display');
+        font-size: 0.95rem;
+        letter-spacing: 0.04em;
+        color: #ffd100;
+        text-shadow: 1px 1px 0 #000;
+        background:
+            linear-gradient(180deg, #b3231a 0%, #8e120c 46%, #6c0a06 54%, #4a0503 100%) padding-box,
+            linear-gradient(160deg, #f6e3a1 0%, #b9902f 18%, #6b4f16 42%, #a57f2a 60%, #efd88d 80%, #7a5a1a 100%) border-box;
+        border: 2px solid transparent;
+        border-radius: 5px;
+        box-shadow: 0 0 0 1px #000, 0 2px 5px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 170, 130, 0.4);
+        transition: filter 0.12s, color 0.12s;
+    }
+
+    .btn:hover {
+        color: #fff5c2;
+        filter: brightness(1.2);
+    }
+
+    .btn:active {
+        filter: brightness(0.85);
+    }
+
+    .btn:focus-visible {
+        outline: 1px solid #f1d98a;
+        outline-offset: 2px;
+    }
+
+    .btn:disabled {
+        filter: grayscale(0.85) brightness(0.7);
+        cursor: not-allowed;
+    }
+
+    /* Quieter button for secondary actions */
+    .btn-secondary {
+        background:
+            linear-gradient(180deg, #2a221a, #120e0b) padding-box,
+            linear-gradient(160deg, #f6e3a1 0%, #b9902f 18%, #6b4f16 42%, #a57f2a 60%, #efd88d 80%, #7a5a1a 100%) border-box;
+        color: #e8c66a;
+    }
+
+    .site-title {
+        font-family: theme('fontFamily.display');
+        color: #ffd100;
+        letter-spacing: 0.3em;
+        text-shadow: 0 2px 0 #000, 0 0 12px rgba(255, 170, 0, 0.35);
+    }
+}

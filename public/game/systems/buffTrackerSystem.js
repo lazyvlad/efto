@@ -1,0 +1,1 @@
+import{addOrUpdateBuff,clearBuffStates,removeBuffState,updateBuffStates}from"./hudNotificationSystem.js";export function addBuff(f,t,e,u,a="default"){addOrUpdateBuff(f,t,e,u,a)}export function removeBuff(f){removeBuffState(f)}export function updateBuffTracker(f){updateBuffStates(f)}export function clearAllBuffs(){clearBuffStates()}

@@ -1,0 +1,1448 @@
+/* World of Warcraft style skin for the game menus and the Dragonstalker set tracker.
+ *
+ * Loaded after every other stylesheet. For the menus it only changes the look (fonts, colours,
+ * frames, buttons, form controls); sizes and layout stay with the stylesheets that own them,
+ * so the desktop and mobile layouts keep working unchanged.
+ *
+ * Everything is drawn with CSS - no game art is used.
+ */
+
+@font-face {
+    font-family: 'Marcellus';
+    src: url('../assets/fonts/marcellus-latin-ext.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+    font-family: 'Marcellus';
+    src: url('../assets/fonts/marcellus-latin.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+    --wow-font: 'Marcellus', 'Friz Quadrata TT', 'Friz Quadrata', Georgia, 'Times New Roman', serif;
+    /* Running text and figures: the display face draws 1 and 0 like the letters I and O */
+    --wow-body: 'Trebuchet MS', 'Lucida Grande', 'Segoe UI', Verdana, sans-serif;
+    --wow-numbers: 'Arial Narrow', 'Roboto Condensed', Arial, sans-serif;
+
+    /* Interface text colours */
+    --wow-gold: #ffd100;
+    --wow-gold-soft: #e8c66a;
+    --wow-text: #f4ecd8;
+    --wow-text-dim: #b9ad92;
+    --wow-disabled: #7f7f7f;
+    --wow-red: #ff2020;
+    --wow-green: #20ff20;
+
+    /* Item quality colours */
+    --wow-poor: #9d9d9d;
+    --wow-uncommon: #1eff00;
+    --wow-rare: #3d9bff;
+    --wow-epic: #b048f8;
+    --wow-legendary: #ff8000;
+
+    /* Frame materials */
+    --wow-stone: linear-gradient(180deg, #211c18 0%, #15110e 45%, #0c0a08 100%);
+    --wow-trim: linear-gradient(160deg, #f6e3a1 0%, #b9902f 18%, #6b4f16 42%, #a57f2a 60%, #efd88d 80%, #7a5a1a 100%);
+    --wow-trim-dark: #2a1e08;
+    --wow-inset: rgba(0, 0, 0, 0.42);
+    --wow-inset-border: #5d4c25;
+
+    /* The red interface button */
+    --wow-button: linear-gradient(180deg, #b3231a 0%, #8e120c 46%, #6c0a06 54%, #4a0503 100%);
+    --wow-button-hover: linear-gradient(180deg, #d32f22 0%, #a91a11 46%, #820e08 54%, #5c0704 100%);
+    --wow-button-pressed: linear-gradient(180deg, #4a0503 0%, #6c0a06 50%, #84100a 100%);
+}
+
+/* ===== Backdrop ===== */
+
+#pauseMenu {
+    background: radial-gradient(ellipse at center, rgba(8, 6, 4, 0.62) 0%, rgba(0, 0, 0, 0.9) 100%);
+    backdrop-filter: blur(3px);
+    font-family: var(--wow-font);
+    color: var(--wow-text);
+}
+
+#pauseMenu button,
+#pauseMenu input,
+#pauseMenu select,
+#pauseMenu label {
+    font-family: var(--wow-font);
+}
+
+/* ===== Frames ===== */
+
+#pauseMenu #pauseMenuContent.pause-content,
+#pauseMenu #settingsScreen,
+#pauseMenu #howToPlay,
+#pauseMenu #highScoresScreen,
+#pauseMenu #gameOver,
+#pauseMenu #itemBonusesScreen {
+    color: var(--wow-text);
+    /* Stone panel inside a bevelled gold trim.
+       !important: the mobile stylesheet forces its own frame colours on the main menu. */
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(255, 214, 120, 0.07) 0%, rgba(255, 214, 120, 0) 55%) padding-box,
+        repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.012) 0 2px, rgba(0, 0, 0, 0.02) 2px 5px) padding-box,
+        var(--wow-stone) padding-box,
+        var(--wow-trim) border-box !important;
+    border: 4px solid transparent !important;
+    border-radius: 8px;
+    box-shadow:
+        0 0 0 1px #000,
+        0 0 0 2px var(--wow-trim-dark),
+        0 18px 50px rgba(0, 0, 0, 0.85),
+        inset 0 0 0 1px #000,
+        inset 0 0 28px rgba(0, 0, 0, 0.85) !important;
+    scrollbar-color: #8a6a22 #0c0a08;
+    scrollbar-width: thin;
+}
+
+#pauseMenu ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+#pauseMenu ::-webkit-scrollbar-track {
+    background: #0c0a08;
+    border-left: 1px solid #2c2413;
+}
+
+#pauseMenu ::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, #6b4f16, #d8b95a 45%, #8a6a22);
+    border: 1px solid #000;
+    border-radius: 3px;
+}
+
+/* ===== Headings ===== */
+
+/* Screen title: gold lettering over a rule that fades out to both sides */
+#pauseMenu#pauseMenu h2 {
+    color: var(--wow-gold);
+    font-family: var(--wow-font);
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-shadow: 0 2px 0 #000, 0 0 12px rgba(255, 170, 0, 0.35);
+    text-align: center;
+}
+
+#pauseMenu h2::after {
+    content: '';
+    display: block;
+    width: min(340px, 80%);
+    height: 2px;
+    margin: 12px auto 0;
+    background: linear-gradient(90deg, rgba(214, 170, 60, 0), rgba(240, 205, 110, 0.95) 50%, rgba(214, 170, 60, 0));
+    box-shadow: 0 1px 0 #000;
+}
+
+#pauseMenu#pauseMenu h3 {
+    color: var(--wow-gold);
+    font-family: var(--wow-font);
+    font-weight: 400;
+    letter-spacing: 0.03em;
+    text-shadow: 0 1px 0 #000;
+}
+
+#pauseMenu p,
+#pauseMenu .spell-item,
+#pauseMenu .item-type,
+#pauseMenu .bonus-description,
+#pauseMenu .ios-notice-text {
+    color: var(--wow-text);
+    font-family: var(--wow-body);
+}
+
+#pauseMenu strong {
+    color: #fff;
+    font-family: var(--wow-font);
+    font-weight: 400;
+    letter-spacing: 0.02em;
+}
+
+/* Hints written inline in the guide */
+#pauseMenu .guide-section p[style] {
+    color: var(--wow-gold-soft) !important;
+    font-style: normal !important;
+}
+
+#pauseMenu .pause-subtitle,
+#pauseMenu .pause-hint,
+#pauseMenu .section-description,
+#pauseMenu .bonuses-subtitle,
+#pauseMenu #nameEntryContent > p {
+    color: var(--wow-text-dim) !important;
+    font-style: normal;
+}
+
+/* Icons sit in a dark socket with a thin metal edge, like action buttons */
+#pauseMenu .menu-button-icon,
+#pauseMenu .settings-heading-icon,
+#pauseMenu .guide-heading-icon,
+#pauseMenu .guide-item-icon,
+#pauseMenu .ios-notice-icon {
+    border: 1px solid #000;
+    border-radius: 4px;
+    background: #0a0806;
+    padding: 0;
+    object-fit: cover;
+    box-shadow: 0 0 0 1px #8a7440, 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+/* ===== Buttons ===== */
+
+#pauseMenu button {
+    font-family: var(--wow-font);
+    font-weight: 400;
+    letter-spacing: 0.03em;
+    color: var(--wow-gold);
+    text-shadow: 1px 1px 0 #000;
+    background: var(--wow-button) padding-box, var(--wow-trim) border-box;
+    border: 2px solid transparent;
+    border-radius: 5px;
+    box-shadow:
+        0 0 0 1px #000,
+        0 2px 5px rgba(0, 0, 0, 0.7),
+        inset 0 1px 0 rgba(255, 170, 130, 0.4),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.45);
+    cursor: pointer;
+    transform: none;
+    transition: filter 0.12s, box-shadow 0.12s, color 0.12s;
+}
+
+#pauseMenu button:hover {
+    color: #fff5c2;
+    background: var(--wow-button-hover) padding-box, var(--wow-trim) border-box;
+    box-shadow:
+        0 0 0 1px #000,
+        0 0 12px rgba(255, 190, 60, 0.45),
+        inset 0 1px 0 rgba(255, 190, 150, 0.5),
+        inset 0 -2px 4px rgba(0, 0, 0, 0.45);
+    transform: none;
+}
+
+#pauseMenu button:active {
+    background: var(--wow-button-pressed) padding-box, var(--wow-trim) border-box;
+    box-shadow: 0 0 0 1px #000, inset 0 2px 5px rgba(0, 0, 0, 0.7);
+    transform: translateY(1px);
+}
+
+#pauseMenu button:disabled {
+    color: var(--wow-disabled);
+    filter: grayscale(0.85) brightness(0.7);
+    cursor: not-allowed;
+}
+
+#pauseMenu button:focus,
+#pauseMenu input:focus,
+#pauseMenu select:focus {
+    outline: 1px solid rgba(255, 220, 120, 0.9);
+    outline-offset: 2px;
+}
+
+#pauseMenu button:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* The main menu is one tight column of equal buttons */
+#pauseMenu .pause-buttons {
+    gap: 10px;
+}
+
+#pauseMenu .pause-buttons .pause-btn {
+    margin: 0;
+    width: 100%;
+}
+
+/* ===== Text input ===== */
+
+#pauseMenu #playerNameInput {
+    font-family: var(--wow-font);
+    color: #fff;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid #8f7a45;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000, inset 0 2px 6px rgba(0, 0, 0, 0.9);
+    caret-color: var(--wow-gold);
+}
+
+#pauseMenu #playerNameInput::placeholder {
+    color: #7d7462;
+}
+
+#pauseMenu #playerNameInput:focus {
+    border-color: #f1d98a;
+    box-shadow: 0 0 0 1px #000, 0 0 10px rgba(255, 200, 80, 0.45), inset 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+/* Who you are playing as, with the links to log in or out */
+#pauseMenu .account-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px 14px;
+    margin: -8px 0 18px;
+    font-family: var(--wow-body);
+    font-size: 13px;
+    color: var(--wow-text-dim);
+}
+
+#pauseMenu .account-bar[hidden] {
+    display: none;
+}
+
+#pauseMenu .account-bar form {
+    display: inline;
+    margin: 0;
+}
+
+/* Plain text links, not interface buttons */
+#pauseMenu .account-bar a,
+#pauseMenu .account-bar .account-bar-link {
+    padding: 0;
+    font: inherit;
+    color: var(--wow-gold);
+    text-decoration: underline;
+    text-shadow: none;
+    background: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+#pauseMenu .account-bar a:hover,
+#pauseMenu .account-bar .account-bar-link:hover {
+    color: #fff5c2;
+    background: none;
+    box-shadow: none;
+}
+
+#pauseMenu #playerNameInput[readonly] {
+    color: var(--wow-gold);
+    border-color: #5d4c25;
+    cursor: default;
+}
+
+/* ===== Options panels ===== */
+
+#pauseMenu .settings-section,
+#pauseMenu .bonus-summary {
+    background: var(--wow-inset);
+    border: 1px solid var(--wow-inset-border);
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #000, inset 0 0 14px rgba(0, 0, 0, 0.6);
+}
+
+#pauseMenu .setting-item {
+    border-bottom: 1px solid rgba(214, 170, 60, 0.14);
+}
+
+#pauseMenu .setting-item:last-child {
+    border-bottom: none;
+}
+
+#pauseMenu .setting-item label {
+    color: var(--wow-gold);
+    font-weight: 400;
+    text-shadow: 1px 1px 0 #000;
+}
+
+/* Toggles become interface check boxes */
+#pauseMenu .toggle-switch {
+    width: 28px;
+    height: 28px;
+}
+
+#pauseMenu .toggle-switch .toggle-slider {
+    border-radius: 4px;
+    background: linear-gradient(180deg, #050403, #1c1712);
+    border: 1px solid #8f7a45;
+    box-shadow: 0 0 0 1px #000, inset 0 2px 5px rgba(0, 0, 0, 0.9);
+    transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+#pauseMenu .toggle-switch .toggle-slider::before {
+    left: 9px;
+    bottom: 7px;
+    width: 7px;
+    height: 14px;
+    background: none;
+    border: solid var(--wow-gold);
+    border-width: 0 3px 3px 0;
+    border-radius: 0;
+    transform: rotate(45deg) scale(0);
+    transform-origin: center;
+    filter: drop-shadow(0 0 3px rgba(255, 180, 0, 0.8));
+    transition: transform 0.12s;
+}
+
+#pauseMenu .toggle-switch input:checked + .toggle-slider {
+    background: linear-gradient(180deg, #050403, #1c1712);
+    border-color: #f1d98a;
+}
+
+#pauseMenu .toggle-switch input:checked + .toggle-slider::before {
+    transform: rotate(45deg) scale(1);
+}
+
+/* Sliders: a dark groove with a gold knob */
+#pauseMenu .volume-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 10px;
+    background: linear-gradient(180deg, #050403, #221b13);
+    border: 1px solid #6b5a2e;
+    border-radius: 5px;
+    box-shadow: 0 0 0 1px #000, inset 0 2px 4px rgba(0, 0, 0, 0.9);
+    opacity: 1;
+}
+
+#pauseMenu .volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 24px;
+    background: linear-gradient(180deg, #fbeeb5 0%, #d9b24a 40%, #8a6a22 100%);
+    border: 1px solid #000;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+#pauseMenu .volume-slider::-moz-range-thumb {
+    width: 16px;
+    height: 24px;
+    background: linear-gradient(180deg, #fbeeb5 0%, #d9b24a 40%, #8a6a22 100%);
+    border: 1px solid #000;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+#pauseMenu .volume-display {
+    color: #fff;
+    font-weight: 400;
+}
+
+/* Drop-downs */
+#pauseMenu .setting-select {
+    -webkit-appearance: none;
+    appearance: none;
+    color: #fff;
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23ffd100' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 10px center,
+        linear-gradient(180deg, #1c1712, #070605);
+    border: 1px solid #8f7a45;
+    border-radius: 4px;
+    padding-right: 30px;
+    box-shadow: 0 0 0 1px #000, inset 0 1px 0 rgba(255, 230, 160, 0.12);
+}
+
+#pauseMenu .setting-select:focus {
+    border-color: #f1d98a;
+}
+
+#pauseMenu .setting-select option {
+    background: #15110e;
+    color: #fff;
+}
+
+#pauseMenu .ios-notice {
+    background: rgba(6, 6, 16, 0.9);
+    border: 1px solid #a9a9a9;
+    border-radius: 6px;
+    animation: none;
+}
+
+#pauseMenu .ios-notice-text {
+    color: var(--wow-gold);
+}
+
+/* ===== Screen navigation bar ===== */
+
+#pauseMenu .screen-navigation {
+    background: none;
+    border: none;
+    border-bottom: 1px solid rgba(214, 170, 60, 0.35);
+    border-radius: 0;
+    box-shadow: 0 1px 0 #000;
+    padding: 0 0 12px;
+}
+
+/* On phones the bonuses bar sticks to the top while the list scrolls under it */
+@media (max-width: 600px) {
+    #pauseMenu #itemBonusesScreen .screen-navigation {
+        background: #1b1714;
+        padding-top: 8px;
+    }
+}
+
+#pauseMenu .screen-nav-menu-label {
+    color: var(--wow-text-dim);
+}
+
+/* The close button: a square red button with a gold cross */
+#pauseMenu .screen-nav-close {
+    color: var(--wow-gold);
+    font-weight: 400;
+}
+
+/* ===== High scores ===== */
+
+#pauseMenu .score-header {
+    color: var(--wow-gold);
+    font-weight: 400;
+    background: linear-gradient(180deg, #3a2a12, #1d150a);
+    border: 1px solid var(--wow-inset-border);
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000;
+    text-shadow: 1px 1px 0 #000;
+}
+
+#pauseMenu .score-header span {
+    color: var(--wow-gold);
+}
+
+#pauseMenu .score-entry {
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid transparent;
+    border-radius: 3px;
+    color: #fff;
+}
+
+#pauseMenu .score-entry:nth-child(odd) {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Row highlight, like a selected line in a list */
+#pauseMenu .score-entry:hover {
+    background: linear-gradient(90deg, rgba(255, 209, 0, 0.04), rgba(255, 209, 0, 0.2) 50%, rgba(255, 209, 0, 0.04));
+}
+
+#pauseMenu .score-entry.top3 {
+    border: 1px solid transparent;
+    background: linear-gradient(90deg, rgba(255, 128, 0, 0.14), rgba(255, 128, 0, 0.03));
+}
+
+#pauseMenu .score-entry span {
+    font-weight: 400;
+}
+
+#pauseMenu .score-entry .score-rank {
+    color: var(--wow-gold);
+}
+
+#pauseMenu .score-entry .score-name {
+    color: #fff;
+}
+
+/* The top three are named in legendary, epic and rare colours */
+#pauseMenu .score-rank.rank-first ~ .score-name {
+    color: var(--wow-legendary);
+}
+
+#pauseMenu .score-rank.rank-second ~ .score-name {
+    color: var(--wow-epic);
+}
+
+#pauseMenu .score-rank.rank-third ~ .score-name {
+    color: var(--wow-rare);
+}
+
+#pauseMenu .score-entry .score-points {
+    color: var(--wow-gold);
+}
+
+#pauseMenu .score-entry .score-level {
+    color: #fff;
+}
+
+#pauseMenu .score-entry .score-ds {
+    color: var(--wow-epic);
+}
+
+#pauseMenu .score-entry .score-crit {
+    color: var(--wow-legendary);
+}
+
+#pauseMenu .score-entry .score-dodge {
+    color: var(--wow-uncommon);
+}
+
+#pauseMenu .score-entry .score-date {
+    color: var(--wow-poor);
+}
+
+/* ===== How to play ===== */
+
+#pauseMenu#pauseMenu #howToPlay h3 {
+    color: var(--wow-gold);
+    border-bottom: none;
+    padding-bottom: 8px;
+    background: linear-gradient(90deg, rgba(214, 170, 60, 0.85), rgba(214, 170, 60, 0)) no-repeat left bottom / 100% 1px;
+}
+
+/* Entries read like tooltips: near-black blue panel, pale rounded edge */
+#pauseMenu .spell-item,
+#pauseMenu .item-type,
+#pauseMenu .bonus-item {
+    background: rgba(7, 8, 20, 0.88);
+    border: 1px solid #8e8e96;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #000, inset 0 0 10px rgba(0, 0, 0, 0.5);
+    color: var(--wow-text);
+}
+
+#pauseMenu .spell-item,
+#pauseMenu .item-type {
+    border-left-width: 3px;
+}
+
+#pauseMenu .spell-item.beneficial {
+    border-left-color: var(--wow-uncommon);
+}
+
+#pauseMenu .spell-item.beneficial strong {
+    color: var(--wow-uncommon);
+}
+
+#pauseMenu .spell-item.dangerous {
+    border-left-color: var(--wow-red);
+}
+
+#pauseMenu .spell-item.dangerous strong {
+    color: #ff5a4a;
+}
+
+#pauseMenu .spell-item.player-spell {
+    border-left-color: var(--wow-gold);
+}
+
+#pauseMenu .spell-item.player-spell strong,
+#pauseMenu .item-type strong {
+    color: var(--wow-gold);
+}
+
+#pauseMenu .item-type {
+    border-left-color: var(--wow-rare);
+}
+
+/* ===== Item bonuses ===== */
+
+#pauseMenu .summary-label {
+    color: var(--wow-gold);
+}
+
+#pauseMenu .summary-value {
+    color: #fff;
+    font-weight: 400;
+    text-shadow: 0 0 8px rgba(255, 200, 80, 0.45);
+}
+
+/* Tabs along the top of the list */
+#pauseMenu #itemBonusesScreen .bonuses-tabs {
+    border-bottom: 1px solid #8a7440;
+    box-shadow: 0 1px 0 #000;
+    gap: 4px;
+}
+
+#pauseMenu #itemBonusesScreen .bonus-tab {
+    color: var(--wow-text-dim);
+    background: linear-gradient(180deg, #2a221a, #120e0b) padding-box, var(--wow-trim) border-box;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    box-shadow: none;
+    font-weight: 400;
+    filter: brightness(0.8);
+}
+
+#pauseMenu #itemBonusesScreen .bonus-tab:hover {
+    color: #fff;
+    filter: none;
+}
+
+#pauseMenu #itemBonusesScreen .bonus-tab.active {
+    color: var(--wow-gold);
+    background: linear-gradient(180deg, #4a3413, #1f160a) padding-box, var(--wow-trim) border-box;
+    filter: none;
+    box-shadow: 0 -2px 8px rgba(255, 190, 60, 0.18);
+}
+
+#pauseMenu .bonus-item.no-bonuses {
+    border-style: solid;
+    border-color: #55555c;
+}
+
+#pauseMenu .bonus-item-name {
+    color: var(--wow-epic);
+    font-weight: 400;
+}
+
+#pauseMenu .bonus-item.no-bonuses .bonus-item-name {
+    color: var(--wow-poor);
+}
+
+#pauseMenu .bonus-description {
+    color: var(--wow-text);
+}
+
+#pauseMenu .bonus-value {
+    font-weight: 400;
+}
+
+#pauseMenu .bonus-value.crit {
+    color: var(--wow-legendary);
+}
+
+#pauseMenu .bonus-value.dodge {
+    color: var(--wow-uncommon);
+}
+
+#pauseMenu .bonus-value.temporary {
+    color: var(--wow-gold);
+}
+
+/* ===== Game over ===== */
+
+#pauseMenu#pauseMenu #gameOver h2 {
+    color: var(--wow-red);
+    text-shadow: 0 2px 0 #000, 0 0 14px rgba(255, 30, 30, 0.5);
+}
+
+#pauseMenu #gameOver h2::after {
+    background: linear-gradient(90deg, rgba(200, 50, 40, 0), rgba(230, 70, 50, 0.95) 50%, rgba(200, 50, 40, 0));
+}
+
+#pauseMenu #finalScore {
+    color: #fff;
+}
+
+#pauseMenu #newHighScore {
+    color: var(--wow-gold) !important;
+    font-weight: 400 !important;
+    text-shadow: 0 0 10px rgba(255, 190, 0, 0.6);
+}
+
+/* ===== Loading screen ===== */
+
+body #loadingScreen {
+    font-family: var(--wow-font);
+    background: radial-gradient(ellipse at center, #1a140e 0%, #050403 75%);
+}
+
+#loadingScreen .loading-content h2 {
+    color: var(--wow-gold);
+    font-family: var(--wow-font);
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    text-shadow: 0 2px 0 #000, 0 0 12px rgba(255, 170, 0, 0.35);
+}
+
+/* Progress bar in a metal casing */
+#loadingScreen .loading-content .loading-bar {
+    height: 18px;
+    background: linear-gradient(180deg, #050403, #1c1712) padding-box, var(--wow-trim) border-box;
+    border: 2px solid transparent;
+    border-radius: 5px;
+    box-shadow: 0 0 0 1px #000, inset 0 2px 6px rgba(0, 0, 0, 0.9);
+}
+
+#loadingScreen .loading-content .loading-progress {
+    background: linear-gradient(180deg, #ffe680 0%, #f0b400 45%, #b97800 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+#loadingScreen .loading-content #loadingText {
+    color: var(--wow-text-dim);
+    font-family: var(--wow-font);
+}
+
+/* ===== Numbers ===== */
+
+#pauseMenu .score-entry .score-rank,
+#pauseMenu .score-entry .score-points,
+#pauseMenu .score-entry .score-level,
+#pauseMenu .score-entry .score-ds,
+#pauseMenu .score-entry .score-crit,
+#pauseMenu .score-entry .score-dodge,
+#pauseMenu .score-entry .score-date,
+#pauseMenu .volume-display,
+#pauseMenu .summary-value,
+#pauseMenu .bonus-value,
+#pauseMenu #finalScore,
+#pauseMenu #newHighScore {
+    font-family: var(--wow-numbers);
+    font-variant-numeric: tabular-nums lining-nums;
+    letter-spacing: 0.02em;
+}
+
+/* ===== Dragonstalker set tracker (in-game panel) ===== */
+
+/* Where the panel sits and how big it is stays with game-panels.css / mobile.css; this section
+   restyles the frame and lays out what is inside it. The frame's background is left alone
+   because the Panel Transparency setting controls it. The selectors are deliberately heavy
+   (and use !important) to win over the per-device overrides in mobile.css. */
+
+html body #dragonstalkerProgressPanel {
+    border: 2px solid #8a6d2b !important;
+    border-radius: 6px !important;
+    box-shadow:
+        0 0 0 1px #000,
+        inset 0 0 0 1px rgba(255, 225, 150, 0.22),
+        0 6px 18px rgba(0, 0, 0, 0.6) !important;
+    font-family: var(--wow-font);
+    min-height: 0;
+}
+
+html body #dragonstalkerProgressPanel.victory {
+    border-color: var(--wow-gold) !important;
+    box-shadow:
+        0 0 0 1px #000,
+        inset 0 0 0 1px rgba(255, 240, 180, 0.4),
+        0 0 18px rgba(255, 200, 40, 0.55) !important;
+}
+
+/* Header: set name and count, like the set line of an item tooltip */
+html body #dragonstalkerProgressPanel .dragonstalker-panel-header {
+    padding: 7px 10px 6px !important;
+    border-bottom: 1px solid rgba(214, 170, 60, 0.3) !important;
+    text-align: left;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 0 5px !important;
+    color: var(--wow-gold);
+    font-size: 15px !important;
+    font-weight: 400;
+    letter-spacing: 0.03em;
+    line-height: 1.1;
+    text-shadow: 1px 1px 0 #000;
+    white-space: nowrap;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-count {
+    color: #fff;
+    font-family: var(--wow-numbers);
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+/* Progress: a slim bar in a metal casing, filled in the set's epic purple */
+html body #dragonstalkerProgressPanel .dragonstalker-progress-bar {
+    margin: 0 !important;
+}
+
+html body #dragonstalkerProgressPanel .progress-background {
+    height: 7px !important;
+    background: linear-gradient(180deg, #050403, #1c1712);
+    border: 1px solid #5d4c25;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000, inset 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+html body #dragonstalkerProgressPanel .progress-fill {
+    background: linear-gradient(180deg, #d9a6ff 0%, #a335ee 45%, #6a1fb0 100%);
+    border-radius: 3px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+html body #dragonstalkerProgressPanel .progress-fill.victory {
+    background: linear-gradient(180deg, #ffe680 0%, #f0b400 45%, #b97800 100%);
+}
+
+/* Ten equipment slots, five to a row */
+html body #dragonstalkerProgressPanel .dragonstalker-items-list {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    grid-auto-rows: auto !important;
+    gap: 8px 4px !important;
+    padding: 9px 8px 9px !important;
+    min-height: 0 !important;
+    height: auto !important;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 4px;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    background: none !important;
+    border: none !important;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-item-icon {
+    position: relative;
+    width: 40px !important;
+    height: 40px !important;
+    margin: 0 !important;
+    border: 1px solid #000 !important;
+    border-radius: 4px !important;
+    background: #0a0806 !important;
+    box-shadow: 0 0 0 1px #4a4a4a, 0 1px 3px rgba(0, 0, 0, 0.8) !important;
+    overflow: hidden;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-item-icon img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
+    display: block;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-item-name {
+    display: block !important;
+    margin: 0 !important;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    font-family: var(--wow-body);
+    font-size: 10px !important;
+    line-height: 1.1;
+    text-shadow: 1px 1px 0 #000;
+}
+
+/* The two weapons are long, thin artwork: turn them corner to corner so they fill the socket */
+html body #dragonstalkerProgressPanel .dragonstalker-item[data-item-id="ashkandi2"] .dragonstalker-item-icon img,
+html body #dragonstalkerProgressPanel .dragonstalker-item[data-item-id="ashjrethul"] .dragonstalker-item-icon img {
+    transform: rotate(-45deg) scale(1.45);
+}
+
+/* Still to find: a dimmed icon in a grey socket */
+html body #dragonstalkerProgressPanel .dragonstalker-item.pending .dragonstalker-item-icon img {
+    filter: grayscale(1) brightness(0.5);
+    opacity: 0.8;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-item.pending .dragonstalker-item-name {
+    color: #808080 !important;
+}
+
+/* Collected: full colour with an epic-quality edge */
+html body #dragonstalkerProgressPanel .dragonstalker-item.collected .dragonstalker-item-icon {
+    box-shadow: 0 0 0 1px var(--wow-epic), 0 0 9px rgba(176, 72, 248, 0.7) !important;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-item.collected .dragonstalker-item-name {
+    color: #ffff98 !important;
+}
+
+/* Missed: struck out in red */
+html body #dragonstalkerProgressPanel .dragonstalker-item.missed .dragonstalker-item-icon {
+    box-shadow: 0 0 0 1px var(--wow-red), 0 0 7px rgba(255, 32, 32, 0.5) !important;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-item.missed .dragonstalker-item-icon img {
+    filter: grayscale(1) brightness(0.4);
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-item.missed .dragonstalker-item-icon::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(45deg, transparent 46.5%, rgba(255, 40, 40, 0.9) 46.5% 53.5%, transparent 53.5%),
+        linear-gradient(-45deg, transparent 46.5%, rgba(255, 40, 40, 0.9) 46.5% 53.5%, transparent 53.5%);
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-item.missed .dragonstalker-item-name {
+    color: #ff4a4a !important;
+}
+
+/* Phones: the panel is a small card beside the player panel, so it drops the slot names */
+@media (max-width: 1024px) {
+    html body #dragonstalkerProgressPanel {
+        padding: 0 !important;
+        border: 2px solid #8a6d2b !important;
+    }
+
+    html body #dragonstalkerProgressPanel .dragonstalker-panel-header {
+        padding: 5px 7px 5px !important;
+    }
+
+    html body #dragonstalkerProgressPanel .dragonstalker-title {
+        font-size: 12px !important;
+        margin-bottom: 4px !important;
+    }
+
+    html body #dragonstalkerProgressPanel .dragonstalker-set-suffix {
+        display: none;
+    }
+
+    html body #dragonstalkerProgressPanel .dragonstalker-count {
+        font-size: 12px;
+    }
+
+    html body #dragonstalkerProgressPanel .progress-background {
+        height: 5px !important;
+    }
+
+    html body #dragonstalkerProgressPanel .dragonstalker-items-list {
+        gap: 6px 3px !important;
+        padding: 7px 6px !important;
+        flex: 1 1 auto;
+        align-content: center;
+    }
+
+    html body #dragonstalkerProgressPanel .dragonstalker-item-icon {
+        width: min(25px, 100%) !important;
+        height: auto !important;
+        aspect-ratio: 1;
+    }
+
+    html body #dragonstalkerProgressPanel .dragonstalker-item-name {
+        display: none !important;
+    }
+}
+
+/* ===== Player panel (in-game unit frame) ===== */
+
+/* Same approach as the set tracker: position and size stay with game-panels.css / mobile.css,
+   the background stays with the Panel Transparency setting, and everything inside is laid out
+   here. The doubled id is only there to outrank the per-device !important rules.
+   The panel has two modes, chosen by the Panel Style setting: full (body.force-desktop-panels)
+   and compact (body.force-mobile-panels). */
+
+html body #itemsCollectionPanel#itemsCollectionPanel {
+    border: 2px solid #8a6d2b !important;
+    border-radius: 6px !important;
+    box-shadow:
+        0 0 0 1px #000,
+        inset 0 0 0 1px rgba(255, 225, 150, 0.22),
+        0 6px 18px rgba(0, 0, 0, 0.6) !important;
+    padding: 0 !important;
+    font-family: var(--wow-body) !important;
+    color: var(--wow-text);
+}
+
+/* --- Unit frame --- */
+
+#itemsCollectionPanel#itemsCollectionPanel .panel-header {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 8px 10px;
+    padding: 10px 10px 9px !important;
+    margin: 0 !important;
+    background: none !important;
+    border: none !important;
+    border-bottom: 1px solid rgba(214, 170, 60, 0.3) !important;
+    text-align: left;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .player-portrait {
+    position: relative;
+    width: 52px;
+    height: 52px;
+    margin: 0;
+    border: 2px solid #c9a445;
+    border-radius: 50%;
+    background: #0a0806;
+    box-shadow: 0 0 0 1px #000, inset 0 0 0 1px #000, 0 2px 5px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .player-portrait img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border: none;
+    border-radius: 0;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .player-identity {
+    min-width: 0;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .player-nameplate {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 5px;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .player-name {
+    min-width: 0;
+    margin: 0 !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--wow-gold) !important;
+    font-family: var(--wow-font);
+    font-size: 16px !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.03em;
+    line-height: 1.15 !important;
+    text-shadow: 1px 1px 0 #000;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .player-level {
+    flex: 0 0 auto;
+    margin: 0 !important;
+    color: var(--wow-text) !important;
+    font-family: var(--wow-numbers);
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    line-height: 1.15 !important;
+    white-space: nowrap;
+}
+
+/* Health: figures sit inside the bar */
+#itemsCollectionPanel#itemsCollectionPanel .player-health-bar {
+    position: relative;
+    display: block !important;
+    margin: 0 !important;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .player-health-background {
+    width: auto !important;
+    height: 14px !important;
+    margin: 0 !important;
+    overflow: hidden;
+    background: linear-gradient(180deg, #050403, #1c1712) !important;
+    border: 1px solid #5d4c25 !important;
+    border-radius: 4px !important;
+    box-shadow: 0 0 0 1px #000, inset 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .player-health-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(180deg, #7dfa7d 0%, #1fc01f 45%, #0c7a0c 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    transition: width 0.25s;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .player-health-fill.medium {
+    background: linear-gradient(180deg, #ffe680 0%, #f0b400 45%, #b97800 100%);
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .player-health-fill.low {
+    background: linear-gradient(180deg, #ff8a7a 0%, #e02020 45%, #8e0c0c 100%);
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .player-health-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    min-width: 0 !important;
+    color: #fff !important;
+    font-family: var(--wow-numbers);
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.03em;
+    line-height: 1;
+    text-shadow: 1px 1px 0 #000, -1px 0 0 #000, 0 -1px 0 #000;
+}
+
+/* Score */
+#itemsCollectionPanel#itemsCollectionPanel .player-score-row {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .player-score-label {
+    color: var(--wow-gold-soft);
+    font-family: var(--wow-font);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+    text-shadow: 1px 1px 0 #000;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .player-score {
+    margin: 0 !important;
+    color: #fff !important;
+    font-family: var(--wow-numbers);
+    font-size: 26px !important;
+    font-weight: 700 !important;
+    font-variant-numeric: tabular-nums;
+    line-height: 1 !important;
+    text-shadow: 1px 1px 0 #000, 0 0 10px rgba(255, 200, 80, 0.35);
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .collection-summary {
+    grid-column: 1 / -1;
+    margin: -2px 0 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    color: var(--wow-text-dim) !important;
+    font-size: 11px !important;
+    text-align: right;
+}
+
+/* --- Stats --- */
+
+#itemsCollectionPanel#itemsCollectionPanel .player-stats {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 3px !important;
+    margin: 0 !important;
+    padding: 8px 10px !important;
+    background: none !important;
+    border: none !important;
+    border-bottom: 1px solid rgba(214, 170, 60, 0.3) !important;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .stat-row {
+    justify-content: space-between !important;
+    align-items: baseline !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    white-space: nowrap;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .stat-label {
+    color: var(--wow-gold-soft) !important;
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    text-shadow: 1px 1px 0 #000;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .stat-value {
+    color: #fff;
+    font-family: var(--wow-numbers);
+    font-size: 13px !important;
+    font-weight: 400 !important;
+    letter-spacing: 0.02em;
+    text-shadow: 1px 1px 0 #000 !important;
+}
+
+/* --- Loot list (full mode) --- */
+
+#itemsCollectionPanel#itemsCollectionPanel .items-list {
+    margin: 0 !important;
+    padding: 6px 10px 8px !important;
+    background: none !important;
+    border: none !important;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .item-entry {
+    display: flex !important;
+    align-items: baseline;
+    gap: 6px;
+    margin: 0 !important;
+    padding: 2px 0 !important;
+    background: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    font-size: 12px !important;
+}
+
+/* The loot names carry their quality colour; the emoji markers are dropped */
+#itemsCollectionPanel#itemsCollectionPanel .item-icon {
+    display: none !important;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .item-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #fff !important;
+    font-weight: 400 !important;
+    text-shadow: 1px 1px 0 #000;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .item-entry.green .item-name {
+    color: var(--wow-uncommon) !important;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .item-entry.special .item-name {
+    color: var(--wow-rare) !important;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .item-entry.epic .item-name,
+#itemsCollectionPanel#itemsCollectionPanel .item-entry.tier_set .item-name {
+    color: var(--wow-epic) !important;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .item-entry.legendary .item-name,
+#itemsCollectionPanel#itemsCollectionPanel .item-entry.zee_zgnan .item-name {
+    color: var(--wow-legendary) !important;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .item-count {
+    color: var(--wow-gold) !important;
+    font-family: var(--wow-numbers);
+    font-weight: 400 !important;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .item-points {
+    color: var(--wow-text-dim) !important;
+    font-family: var(--wow-numbers);
+    font-size: 11px !important;
+}
+
+#itemsCollectionPanel#itemsCollectionPanel .overflow-indicator {
+    margin: 0 !important;
+    padding: 0 10px 8px !important;
+    background: none !important;
+    border: none !important;
+    color: var(--wow-text-dim) !important;
+    font-size: 11px !important;
+    text-align: left;
+}
+
+/* --- Compact mode: unit frame on the left, stats on the right, no portrait or loot --- */
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel {
+    display: flex !important;
+    align-items: stretch !important;
+    padding: 0 !important;
+    border: 2px solid #8a6d2b !important;
+}
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .panel-header {
+    flex: 0 0 45% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: center !important;
+    gap: 6px;
+    min-width: 0;
+    padding: 6px 8px !important;
+    border-bottom: none !important;
+    border-right: 1px solid rgba(214, 170, 60, 0.3) !important;
+}
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-portrait,
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .collection-summary,
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .items-list,
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .overflow-indicator {
+    display: none !important;
+}
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name {
+    font-size: 13px !important;
+}
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-level {
+    font-size: 10px !important;
+}
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-nameplate {
+    margin-bottom: 4px;
+}
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-health-background {
+    height: 12px !important;
+}
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-health-text {
+    font-size: 10px !important;
+}
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-score-label {
+    font-size: 11px;
+}
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-score {
+    font-size: 20px !important;
+}
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-stats {
+    flex: 1 1 auto !important;
+    justify-content: center !important;
+    gap: 1px !important;
+    min-width: 0;
+    padding: 5px 8px !important;
+    border-bottom: none !important;
+}
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .stat-label {
+    font-size: 10px !important;
+}
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .stat-value {
+    font-size: 11px !important;
+}
+
+/* A stat row the game has switched off stays hidden (the device stylesheets force rows visible) */
+#itemsCollectionPanel#itemsCollectionPanel .stat-row[style*="display: none"] {
+    display: none !important;
+}
+
+/* Compact mode stacks the level under the name so long names keep their room */
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-nameplate {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name {
+    max-width: 100%;
+}
+
+/* Phones: the compact card is only about 200px wide */
+@media (max-width: 600px) {
+    body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .panel-header {
+        flex-basis: 42% !important;
+        gap: 5px;
+        padding: 5px 7px !important;
+    }
+
+    body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-score-label {
+        display: none;
+    }
+
+    body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-score-row {
+        justify-content: flex-start;
+    }
+
+    body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-score {
+        font-size: 19px !important;
+    }
+
+    body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-stats {
+        padding: 4px 6px !important;
+        overflow: hidden;
+    }
+
+    body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .stat-row {
+        gap: 4px;
+        min-height: 0 !important;
+    }
+
+    body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .stat-label {
+        font-size: 9px !important;
+    }
+
+    body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .stat-value {
+        font-size: 10px !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+@media (max-width: 600px) {
+    /* Match the white figures used on desktop (the device stylesheet forces them gold here) */
+    body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .stat-value {
+        color: #fff !important;
+    }
+}
