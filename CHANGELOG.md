@@ -14,6 +14,8 @@
 - New passwords need at least 12 characters and are checked against known data breaches. The
   forms show how strong a password is while it is typed.
 - The landing page is the game under a site header with the menu and the account links.
+- Clicking a menu link in the middle of a game pauses it and asks before leaving, so a game
+  is not lost by accident.
 
 **A new look**
 - Warcraft-style menus, a Dragonstalker set tracker and a unit-frame player panel.

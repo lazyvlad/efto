@@ -305,6 +305,27 @@ async function init() {
     
     // Expose mobile pause button visibility function for responsive scaling
     window.updateMobilePauseButtonVisibility = updateMobilePauseButtonVisibility;
+
+    // For the page around the game (the site header): is a game underway, and a way to pause
+    // it, so a click on a menu link can ask before the game is thrown away
+    let leaveAllowed = false;
+    window.INPUT_GAME = {
+        inProgress: () => gameState.health > 0 && (gameState.gameRunning || gameState.showingPauseMenu) && gameState.currentScreen !== 'menu',
+        pause: () => {
+            if (gameState.gameRunning && !gameState.showingPauseMenu) showPauseMenu();
+        },
+        allowLeave: () => {
+            leaveAllowed = true;
+        },
+    };
+
+    // Closing the tab, reloading or going back mid-game: let the browser ask first
+    window.addEventListener('beforeunload', (event) => {
+        if (!leaveAllowed && window.INPUT_GAME.inProgress()) {
+            event.preventDefault();
+            event.returnValue = '';
+        }
+    });
     
     // Set up spell system notification callback
     spellSystem.setNotificationCallback((message, duration, color) => {
