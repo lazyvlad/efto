@@ -96,6 +96,36 @@ export const damageProjectiles = [
         dotDuration: 300, // 5 seconds at 60fps
         dotTickRate: 60, // Damage every 60 frames (1 second)
         dotDamagePerTick: 2 // 2 HP damage per second
+    },
+    
+    // Holy spells, from the later zones on
+    {
+        id: "smite",
+        name: "Smite",
+        image: assetRegistry.projectiles.smite,
+        damage: 10,
+        type: "rare",
+        baseProbability: 0.012,
+        sound: assetRegistry.audio.frostbolt,
+        speed: { min: 1.8, max: 2.6 }, // A fast bolt
+        size_multiplier: 1.3,
+        color: "#FFE680",
+        effects: "holy",
+        minLevel: 7
+    },
+    {
+        id: "holy_shock",
+        name: "Holy Shock",
+        image: assetRegistry.projectiles.holyShock,
+        damage: 14,
+        type: "rare",
+        baseProbability: 0.008,
+        sound: assetRegistry.audio.fireballimpact,
+        speed: { min: 1.0, max: 1.6 }, // Slow, large and hard-hitting
+        size_multiplier: 1.6,
+        color: "#FFD27A",
+        effects: "holy",
+        minLevel: 11
     }
 ]; 
 

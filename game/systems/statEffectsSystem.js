@@ -1,3 +1,4 @@
+import { dodgeChance } from '../utils/combat.js';
 import { addNotification } from '../utils/gameUtils.js';
 import { CombatText } from '../classes/CombatText.js';
 
@@ -17,12 +18,15 @@ export function shouldCrit(gameState) {
 }
 
 // Utility function to check if the player should dodge an attack
-export function shouldDodge(gameState, spellSystem) {
+// Whether the player dodges an attack. "attackerLevel" is the level of whoever made it: a boss
+// counts as three levels above the player, which costs a little dodge (utils/combat.js).
+export function shouldDodge(gameState, spellSystem, attackerLevel = undefined) {
     const spellDodgeBonus = spellSystem.getDodgeRatingBonus ? spellSystem.getDodgeRatingBonus() : 0;
     const tempDodgeBonus = gameState.temporaryDodgeBoost || 0;
     const itemBasedDodgeRating = getCurrentTotalDodgeRating(gameState); // Includes permanent + temporary from items
-    const totalDodgeRating = Math.min(itemBasedDodgeRating + spellDodgeBonus + tempDodgeBonus, gameState.dodgeRatingCap);
-    return Math.random() < totalDodgeRating;
+    const playerLevel = (gameState.currentLevel || 0) + 1;
+    const chance = dodgeChance(itemBasedDodgeRating + spellDodgeBonus + tempDodgeBonus, playerLevel, attackerLevel ?? playerLevel, gameState.dodgeRatingCap);
+    return Math.random() < chance;
 }
 
 // Utility function to show combat text with dodge feedback

@@ -1,6 +1,13 @@
 import { Particle } from './Particle.js';
 import { responsiveScaler } from '../utils/gameUtils.js';
 
+// The player's arrow, drawn pointing up; turned to the direction each arrow flies in
+const ARROW_PICTURE = new Image();
+ARROW_PICTURE.src = 'assets/attacks/spells/07-aimed-shot.webp';
+const ARCANE_PICTURE = new Image();
+ARCANE_PICTURE.src = 'assets/attacks/spells/08-arcane-shot.webp';
+const ARROW_LENGTH = 110;        // Length an arrow is drawn at on the standard screen, before scaling
+
 export class Arrow {
     constructor(x, y, angle = -90, speed = null, sizeMultiplier = 1.0) {
         this.x = x;
@@ -58,22 +65,43 @@ export class Arrow {
         // Draw trail
         if (this.trail.length > 1) {
             ctx.save();
-            ctx.strokeStyle = this.trailColor;
+            ctx.strokeStyle = this.arcane ? '#B048F8' : this.trailColor;
             ctx.lineWidth = 2 * this.sizeMultiplier; // Scale trail thickness with arrow size
             ctx.globalAlpha = 0.6;
+            // Behind the arrow picture the trail is only a faint streak
+            const trailStrength = ARROW_PICTURE.complete && ARROW_PICTURE.naturalWidth ? 0.45 : 1;
             
             ctx.beginPath();
             ctx.moveTo(this.trail[0].x, this.trail[0].y);
             for (let i = 1; i < this.trail.length; i++) {
                 const alpha = i / this.trail.length;
-                ctx.globalAlpha = alpha * 0.6;
+                ctx.globalAlpha = alpha * 0.6 * trailStrength;
                 ctx.lineTo(this.trail[i].x, this.trail[i].y);
             }
             ctx.stroke();
             ctx.restore();
         }
 
-        // Draw arrow
+        // The arrow itself. Multishot arrows are drawn a little larger, not twice the size.
+        // An Arcane Shot (arrow.arcane, set by the spell) has its own picture
+        const picture = this.arcane ? ARCANE_PICTURE : ARROW_PICTURE;
+        if (picture.complete && picture.naturalWidth) {
+            const length = ARROW_LENGTH * responsiveScaler.uniformScale * (1 + (this.sizeMultiplier - 1) * 0.3);
+            const width = length * picture.naturalWidth / picture.naturalHeight;
+            
+            ctx.save();
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.translate(this.x + this.width/2, this.y + this.height/2);
+            // The picture points up, which is -90 degrees in the game's angles
+            ctx.rotate(this.angleRad + Math.PI / 2);
+            // The tip of the arrow is where the arrow is
+            ctx.drawImage(picture, -width / 2, 0, width, length);
+            ctx.restore();
+            return;
+        }
+
+        // Until the picture has loaded: a plain golden bolt
         ctx.save();
         ctx.translate(this.x + this.width/2, this.y + this.height/2);
         ctx.rotate(this.angleRad);

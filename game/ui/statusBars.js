@@ -5,7 +5,7 @@ import { gameClock } from '../utils/gameClock.js';
 const SPELL_BAR_SLOTS = [
     { id: 'dragon_cry', elementId: 'spell-dragon-cry' },
     { id: 'zandalari', elementId: 'spell-zandalari' },
-    { id: 'flask_of_titans', elementId: 'spell-flask-of-titans' },
+    { id: 'arcane_shot', elementId: 'spell-arcane-shot' },
     { id: 'autoshot', elementId: 'spell-autoshot' },
     { id: 'multishot', elementId: 'spell-multishot' }
 ];

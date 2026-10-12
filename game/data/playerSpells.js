@@ -44,22 +44,28 @@ export const playerSpells = [
         key: "W"
     },
     {
-        id: "flask_of_titans",
-        name: "Flask of Titans",
+        id: "arcane_shot",
+        name: "Arcane Shot",
         type: "instant",
-        description: "Removes one missed dragonstalker item, potentially making victory possible again", 
+        description: "Fires one arcane arrow that breaks a boss's shield, flies through projectiles and hits for 3 arrows' worth (uses 5 arrows)",
         duration: 0, // Instant effect
         effects: {
-            restore_missed_item: true
+            fire_arrow: {
+                count: 1,
+                angles: [-90], // Straight up
+                crit_bonus: 0,
+                arcane: true // Breaks boss shields and is not stopped by projectiles
+            }
         },
-        icon: assetRegistry.buffs.flaskOfTitans, // Flask of Titans buff icon
-        color: "#FF69B4",
+        icon: assetRegistry.buffs.arcaneShot,
+        color: "#B048F8",
         rarity: "rare",
-        cooldown: 7200, // 2 minutes (120 seconds) at 60fps
-        manaCost: 25,
-        castTime: 60, // 1 second
-        category: "utility",
-        key: "T"
+        cooldown: 90, // 1.5 second cooldown
+        manaCost: 0,
+        castTime: 0,
+        category: "combat",
+        key: "T",
+        ammoRequired: 5 // The cost of a Multishot, for less damage than five single arrows
     },
     {
         id: "autoshot",
@@ -107,4 +113,26 @@ export const playerSpells = [
         key: "R",
         ammoRequired: 5 // Requires 5 arrows (one per shot)
     }
-]; 
+];
+
+// Spells no longer on the spell bar, kept for later. Their effects are still in spellSystem.js.
+export const archivedSpells = [
+    {
+        id: "flask_of_titans",
+        name: "Flask of Titans",
+        type: "instant",
+        description: "Removes one missed dragonstalker item, potentially making victory possible again", 
+        duration: 0, // Instant effect
+        effects: {
+            restore_missed_item: true
+        },
+        icon: assetRegistry.buffs.flaskOfTitans, // Flask of Titans buff icon
+        color: "#FF69B4",
+        rarity: "rare",
+        cooldown: 7200, // 2 minutes (120 seconds) at 60fps
+        manaCost: 25,
+        castTime: 60, // 1 second
+        category: "utility",
+        key: "T"
+    }
+];

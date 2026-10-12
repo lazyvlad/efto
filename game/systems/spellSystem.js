@@ -566,13 +566,16 @@ class SpellSystem {
             return;
         }
 
+        // The hunter braces as he looses
+        if (player.onShoot) player.onShoot();
+
         // Access global arrows array
         if (typeof window !== 'undefined' && window.arrows) {
             // Fire arrows based on spell configuration
             const { count, angles, crit_bonus } = arrowData;
             
-            // Determine size multiplier - multishot arrows are double the size
-            const sizeMultiplier = spell.id === 'multishot' ? 2.0 : 1.0;
+            // Determine size multiplier - multishot arrows are double the size, an Arcane Shot in between
+            const sizeMultiplier = spell.id === 'multishot' ? 2.0 : arrowData.arcane ? 1.6 : 1.0;
             
             for (let i = 0; i < count; i++) {
                 const angle = angles[i] || -90; // Default to straight up
@@ -589,6 +592,11 @@ class SpellSystem {
                 // Add crit bonus for multishot arrows
                 if (crit_bonus) {
                     arrow.critBonus = crit_bonus;
+                }
+                
+                // An Arcane Shot breaks boss shields and is not stopped by projectiles
+                if (arrowData.arcane) {
+                    arrow.arcane = true;
                 }
                 
                 window.arrows.push(arrow);

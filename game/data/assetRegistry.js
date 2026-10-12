@@ -4,6 +4,11 @@
 export const assetRegistry = {
     // Player assets
     player: {
+        // The figures the player moves around, one for each side (data/playerCharacters.js)
+        hunter: 'assets/player/pajama-hunter.webp',
+        tauren: 'assets/player/horde-tauren.webp',
+        // The stock portrait in the player panel, and the pictures the player was drawn with
+        // before the hunter (no longer loaded by the game)
         normal: 'assets/player/efto.png',
         impact: 'assets/player/vano.png',
         celebration: 'assets/player/efto-win.png',
@@ -12,9 +17,11 @@ export const assetRegistry = {
     
     // Projectile assets
     projectiles: {
-        fireball: 'assets/projectiles/fireball.png',
-        frostbolt: 'assets/projectiles/frostbolt.png',
-        shadowbolt: 'assets/projectiles/shadowbolt.png',
+        fireball: 'assets/attacks/spells/01-fireball.webp',
+        frostbolt: 'assets/attacks/spells/02-frost-ball.webp',
+        shadowbolt: 'assets/attacks/spells/03-shadow-ball.webp',
+        smite: 'assets/attacks/spells/04-smite.webp',
+        holyShock: 'assets/attacks/spells/05-holy-shock.webp',
         thunder: 'assets/projectiles/thunder.png'
     },
     
@@ -42,6 +49,7 @@ export const assetRegistry = {
         zgBuff2: 'assets/spells/zg-buff2.png',
         blackLotuses: 'assets/spells/black-lotuses.webp',
         flaskOfTitans: 'assets/spells/flask_of_titans.webp',
+        arcaneShot: 'assets/spells/arcane_shot.webp',
         autoshot: 'assets/spells/autoshot.webp',
         multishot: 'assets/spells/multishot.webp'
     },
@@ -223,7 +231,7 @@ export const assetCategories = {
         assetRegistry.powerups.thoriumArrows,
         
         // Important special buffs and spell icons
-        assetRegistry.buffs.flaskOfTitans,
+        assetRegistry.buffs.arcaneShot,
         assetRegistry.buffs.autoshot,
         assetRegistry.buffs.multishot
     ],
@@ -322,10 +330,9 @@ export const commonAssets = {
     
     // Player-related assets
     player: [
-        assetRegistry.player.normal,
-        assetRegistry.player.impact,
-        assetRegistry.player.celebration,
-        assetRegistry.player.sando
+        assetRegistry.player.hunter,
+        assetRegistry.player.tauren,
+        assetRegistry.player.normal
     ],
     
     // Dragonstalker set (win condition items)

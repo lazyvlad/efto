@@ -4,6 +4,7 @@ import { createCollectionParticles, createImpactParticles, createShadowParticles
 import { Particle } from '../classes/Particle.js';
 import { CombatText } from '../classes/CombatText.js';
 import { isHarmfulProjectile } from '../data/damageProjectiles.js';
+import { itemValueAtLevel } from '../utils/progression.js';
 import { startBackgroundMusic, playDragonstalkerSound, playTotalSound, playItemSound, playThunderSound } from './audioSystem.js';
 
 export function checkCollisions(context) {
@@ -59,7 +60,9 @@ export function checkCollisions(context) {
                 
                 // Apply spell point multipliers
                 const pointMultiplier = spellSystem.getPointMultiplier();
-                const basePoints = otherItem.itemData.value;
+                // Items are worth more at higher levels; the same amount counts as experience
+                const basePoints = itemValueAtLevel(otherItem.itemData.value, gameState.currentLevel + 1, gameConfig.progression);
+                gameState.xp = (gameState.xp || 0) + basePoints;
                 let finalPoints = Math.round(basePoints * pointMultiplier);
                 
                 // Check for critical hit (include spell crit rating bonus)
@@ -133,7 +136,9 @@ export function checkCollisions(context) {
                 
                 // Apply spell point multipliers
                 const pointMultiplier = spellSystem.getPointMultiplier();
-                const basePoints = item.itemData.value;
+                // Items are worth more at higher levels; the same amount counts as experience
+                const basePoints = itemValueAtLevel(item.itemData.value, gameState.currentLevel + 1, gameConfig.progression);
+                gameState.xp = (gameState.xp || 0) + basePoints;
                 let finalPoints = Math.round(basePoints * pointMultiplier);
                 
                 // Check for critical hit (include spell crit rating bonus)
@@ -391,8 +396,9 @@ export function checkCollisions(context) {
                         // Create dark shadow particles for shadowbolt
                         createShadowParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles);
                     } else {
-                        // Regular harmful projectiles (fireball, frostbolt, etc.)
-                        if (shouldDodge()) {
+                        // Regular harmful projectiles (fireball, frostbolt, etc.). What a boss
+                        // throws in a fight is a little harder to dodge (see utils/combat.js).
+                        if (shouldDodge(projectile.data.attackerLevel)) {
                             // Player dodged the projectile
                             showDodgeText(player.x + player.width/2, player.y);
                             const damage = projectile.data.damage || 5;
@@ -422,6 +428,11 @@ export function checkCollisions(context) {
                             // Trigger player impact reaction
                             if (player.onHit) {
                                 player.onHit();
+                            }
+                            
+                            // Some attacks leave something behind (a boss's curse)
+                            if (projectile.onPlayerHit) {
+                                projectile.onPlayerHit();
                             }
                             
                             // Create menacing impact particles for harmful projectiles
@@ -483,8 +494,10 @@ export function checkCollisions(context) {
             
             addNotification(gameState, `🏹💥 Projectile Destroyed!`, 120, '#FFD700');
             
-            // Remove both arrow and projectile
+            // The projectile is gone, and so is the arrow - unless it is an Arcane Shot, which
+            // flies on through
             fireballs.splice(projectileIndex, 1);
+            if (arrow.arcane) continue;
             window.arrows.splice(arrowIndex, 1);
             break;
         }

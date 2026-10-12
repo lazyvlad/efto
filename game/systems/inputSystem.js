@@ -258,7 +258,7 @@ function initializeSpellTouchHandlers(gameState) {
     const spells = [
         { id: 'dragon_cry', key: 'q', elementId: 'spell-dragon-cry' },
         { id: 'zandalari', key: 'w', elementId: 'spell-zandalari' },
-        { id: 'flask_of_titans', key: 't', elementId: 'spell-flask-of-titans' },
+        { id: 'arcane_shot', key: 't', elementId: 'spell-arcane-shot' },
         { id: 'autoshot', key: 'e', elementId: 'spell-autoshot' },
         { id: 'multishot', key: 'r', elementId: 'spell-multishot' }
     ];
