@@ -29,8 +29,13 @@ composer install
 cp .env.example .env
 php artisan key:generate
 # edit .env: APP_URL and the DB_* settings
-php artisan migrate
+php install.php
 ```
+
+`install.php` creates the database named in `DB_DATABASE` and runs the migrations. If that
+database already exists it changes nothing - run `php artisan migrate` yourself in that case
+(for example when the database was created empty by hand). The database user needs the right
+to create databases.
 
 Scores from the old JSON file can be brought in once with:
 
@@ -88,6 +93,9 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 ```
+
+On a server's first deploy, set up `.env` and run `php install.php` in place of the `migrate`
+line (see "Setting up").
 
 Before committing a release, run `npm run build:all` and commit the changes under
 `public/game/` and `public/build/` together with the source.
