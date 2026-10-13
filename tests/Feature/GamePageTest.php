@@ -64,6 +64,23 @@ class GamePageTest extends TestCase
         $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertDontSee('googletagmanager');
     }
 
+    public function test_the_built_game_loads_its_scripts_and_styles_through_its_version_s_folder(): void
+    {
+        config(['game.serve' => 'build']);
+
+        $version = 'v'.json_decode(file_get_contents(public_path('game/build-info.json')), true)['gameVersion'];
+        $this->assertDirectoryExists(public_path("game/$version"), 'The build did not link the version folder');
+        $this->assertFileExists(public_path("game/$version/config/gameConfig.js"));
+
+        $html = $this->get(route('play'))->assertOk()->getContent();
+
+        // Every script and stylesheet of the game, and nothing else, goes through it
+        $this->assertMatchesRegularExpression('#<script type="module" src="'.preg_quote($version).'/game-modular\.[^"]+"#', $html);
+        $this->assertStringContainsString('href="'.$version.'/styles/base.css', $html);
+        $this->assertStringNotContainsString('href="styles/', $html);
+        $this->assertStringContainsString('<base href="'.asset('game').'/">', $html);
+    }
+
     public function test_pages_carry_the_footer_credit(): void
     {
         foreach (['/', route('highscores'), route('login'), route('register')] as $page) {

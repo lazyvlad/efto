@@ -89,10 +89,33 @@ class GameController extends Controller
             // Counted once: framed by the landing page, that page has already counted the visit
             .($request->boolean('embedded') ? '' : "\n    ".trim(view('layouts.analytics')->render()));
 
-        $html = preg_replace('/<head(\s[^>]*)?>/i', "$0\n    ".$head, file_get_contents($indexPath), 1);
+        $html = preg_replace('/<head(\s[^>]*)?>/i', "$0\n    ".$head, $this->versioned($folder, file_get_contents($indexPath)), 1);
 
         return response($html)
             ->header('Content-Type', 'text/html; charset=utf-8')
             ->header('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+
+    /**
+     * The built game's page with its scripts and styles addressed through the folder of its
+     * version ("v2.33.0/styles/base.css"). That folder is a link to the game's own, made by the
+     * build: the files are the same, but every version has addresses no browser has seen, so
+     * none can go on using a copy from the version before. The scripts load one another by
+     * relative address and so stay within it. Pictures and sounds keep their addresses.
+     */
+    private function versioned(string $folder, string $html): string
+    {
+        $info = json_decode((string) @file_get_contents(public_path($folder.'/build-info.json')), true);
+        $version = 'v'.($info['gameVersion'] ?? '');
+
+        if (! preg_match('/^v[\w.\-]+$/', $version) || ! is_dir(public_path($folder.'/'.$version))) {
+            return $html;
+        }
+
+        return preg_replace(
+            ['/(<script\b[^>]*\bsrc=")(?![a-z]+:|\/)/i', '/(<link\b[^>]*\bhref=")(?=styles\/)/i'],
+            '$1'.$version.'/',
+            $html
+        );
     }
 }

@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.33.1 - 2026-10-13
+
+### Fixed
+- After an update, a browser could go on running the version before until the page was
+  reloaded hard. The game's scripts load one another by plain file name, and the live
+  server gave browsers no instruction about keeping them, so old copies stayed in use, and
+  could even be mixed with new ones. Every version now loads its scripts and styles from
+  addresses of its own, which no browser can have a copy of: a normal visit after an update
+  gets the new version. Pictures and sounds keep their addresses and stay cached.
+
+### For developers
+- The build adds `public/game/v<version>`, a link to the folder itself. `GameController`
+  writes the page's script and stylesheet addresses through it; the scripts' own imports are
+  relative and so stay within it. Nothing needs changing in the web server.
+- This takes effect from the next update on: a browser holding copies from 2.33.0 or before
+  needs one last hard reload to reach this version.
+
 ## 2.33.0 - 2026-10-13
 
 ### What's new
