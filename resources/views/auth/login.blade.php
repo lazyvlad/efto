@@ -1,6 +1,7 @@
 <x-guest-layout>
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
+    <x-discord-status class="mb-4" />
 
     <form method="POST" action="{{ route('login') }}">
         @csrf
@@ -44,4 +45,10 @@
             </x-primary-button>
         </div>
     </form>
+
+    @if (\App\Support\Discord::enabled())
+        <div class="mt-6 pt-6 border-t border-gray-200 text-center">
+            <x-discord-button>{{ __('Log in with Discord') }}</x-discord-button>
+        </div>
+    @endif
 </x-guest-layout>

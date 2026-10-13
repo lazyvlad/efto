@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.28.0 - 2026-10-13
+
+### What's new
+
+**Discord: log in and activate with it**
+- "Log in with Discord" on the log in page and "Register with Discord" on the register page.
+  The first time, an account is made from the Discord name and email address, already
+  activated: Discord has checked the address, so no activation email is needed.
+- An account that is not activated yet can be activated by connecting Discord instead of
+  following the emailed link: "Activate with Discord" on the activation page, or "Connect
+  Discord" on the profile. The emailed link still works as before.
+- A Discord account whose verified email address matches an existing account logs into that
+  account. A Discord account can be connected to one account only.
+- An account made through Discord has no password the player knows. "Forgot your password?"
+  sets one, which is needed to change the password or delete the account from the profile.
+
+### For developers
+- Needs a Discord application: `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET` in `.env`,
+  and `<APP_URL>/auth/discord/callback` added as a redirect under OAuth2 in the Discord
+  developer portal. Until both are set, no Discord button is shown and the routes answer 404.
+- New migration: `discord_id` and `discord_name` on `users`.
+- `User::canUseRewards()` is now a verified email or a connected Discord account.
+- If an account with an unverified email is taken over by a Discord login with that same
+  address, its old password stops working: whoever registered it had not proved the address.
+
 ## 2.27.0 - 2026-10-13
 
 ### What's new

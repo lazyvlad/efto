@@ -28,4 +28,11 @@
             </button>
         </form>
     </div>
+
+    @if (\App\Support\Discord::enabled())
+        <div class="mt-6 pt-6 border-t border-gray-200 text-sm text-gray-600">
+            <p class="mb-4">{{ __('Or skip the email: connecting your Discord account activates your account straight away.') }}</p>
+            <x-discord-button>{{ __('Activate with Discord') }}</x-discord-button>
+        </div>
+    @endif
 </x-guest-layout>

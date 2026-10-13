@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
+use App\Http\Controllers\Auth\DiscordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
 use App\Http\Controllers\Auth\EmailVerificationPromptController;
 use App\Http\Controllers\Auth\NewPasswordController;
@@ -57,3 +58,9 @@ Route::middleware('auth')->group(function () {
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');
 });
+
+// Discord, for a visitor (log in) and for a player who is logged in (connect, which activates)
+Route::get('auth/discord', [DiscordController::class, 'redirect'])->name('discord.redirect');
+Route::get('auth/discord/callback', [DiscordController::class, 'callback'])
+    ->middleware('throttle:20,1')
+    ->name('discord.callback');

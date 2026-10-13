@@ -94,6 +94,19 @@
         text-shadow: 0 2px 0 #000, 0 0 12px rgba(255, 170, 0, 0.35);
     }
 
+    /* Discord's own colour, so the button is recognised for what it is */
+    .btn.btn-discord {
+        background: #5865f2;
+        border-color: #7983f5;
+        color: #fff;
+        text-shadow: none;
+    }
+
+    .btn.btn-discord:hover {
+        background: #4752c4;
+        color: #fff;
+    }
+
     /* The wordmark: sized by the text size given where it is used, never stretched */
     .site-logo {
         display: block;

@@ -1,4 +1,6 @@
 <x-guest-layout>
+    <x-discord-status class="mb-4" />
+
     <form method="POST" action="{{ route('register') }}">
         @csrf
 
@@ -50,4 +52,10 @@
             </x-primary-button>
         </div>
     </form>
+
+    @if (\App\Support\Discord::enabled())
+        <div class="mt-6 pt-6 border-t border-gray-200 text-center">
+            <x-discord-button>{{ __('Register with Discord') }}</x-discord-button>
+        </div>
+    @endif
 </x-guest-layout>

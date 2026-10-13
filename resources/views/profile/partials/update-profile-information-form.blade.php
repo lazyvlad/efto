@@ -31,7 +31,9 @@
             @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
                 <div>
                     <p class="text-sm mt-2 text-gray-800">
-                        {{ __('Your account is not activated yet: follow the link we emailed you.') }}
+                        {{ $user->canUseRewards()
+                            ? __('This email address is not confirmed yet: follow the link we emailed you.')
+                            : __('Your account is not activated yet: follow the link we emailed you.') }}
 
                         <button form="send-verification" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                             {{ __('Click here to send the activation email again.') }}

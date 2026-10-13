@@ -13,8 +13,8 @@ use Illuminate\Notifications\Notifiable;
 
 /**
  * A player's account. It works from the moment it is registered: the player can log in, play
- * and earn. Until they activate it through the link emailed to them (MustVerifyEmail), they
- * cannot use what they earn: see canUseRewards().
+ * and earn. Until they activate it, through the link emailed to them (MustVerifyEmail) or by
+ * connecting their Discord account, they cannot use what they earn: see canUseRewards().
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -64,7 +64,7 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function canUseRewards(): bool
     {
-        return $this->hasVerifiedEmail();
+        return $this->hasVerifiedEmail() || $this->discord_id !== null;
     }
 
     /**

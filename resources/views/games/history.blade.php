@@ -18,8 +18,8 @@
             @unless (auth()->user()->canUseRewards())
                 <div class="bg-white shadow sm:rounded-lg p-4 sm:p-6 text-sm text-gray-600">
                     <span class="text-amber-600">{{ __('Your account is not activated yet.') }}</span>
-                    {{ __('Everything you earn is kept, but you cannot spend coins, wear your sets or carry the large quiver until you follow the link we emailed you.') }}
-                    <a href="{{ route('verification.notice') }}" class="underline text-indigo-600 hover:text-indigo-700">{{ __('Send it again') }}</a>
+                    {{ __('Everything you earn is kept, but you cannot spend coins, wear your sets or carry the large quiver until you activate it, by the link we emailed you or with Discord.') }}
+                    <a href="{{ route('verification.notice') }}" class="underline text-indigo-600 hover:text-indigo-700">{{ __('Activate') }}</a>
                 </div>
             @endunless
 
