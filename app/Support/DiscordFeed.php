@@ -1,0 +1,88 @@
+<?php
+
+namespace App\Support;
+
+use App\Models\Game;
+use App\Models\Score;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Throwable;
+
+/**
+ * Posts to the guild's Discord channel when a game has been played, through a channel webhook
+ * (config/services.php, "discord.webhook"). Left empty, nothing is posted.
+ */
+class DiscordFeed
+{
+    /**
+     * Tell the channel about a game that just ended. Only games that count are told: played to
+     * the end with the server deciding the loot, and with something to show for it.
+     */
+    public static function gamePlayed(Game $game): void
+    {
+        $webhook = config('services.discord.webhook');
+
+        if (blank($webhook) || ! $game->isLegal() || $game->score <= 0) {
+            return;
+        }
+
+        $message = self::message($game);
+
+        // After the player has their answer: the game does not wait for Discord
+        defer(function () use ($webhook, $message) {
+            try {
+                Http::timeout(5)->post($webhook, [
+                    'content' => $message,
+                    // A player's name must not be able to ping anyone
+                    'allowed_mentions' => ['parse' => []],
+                ]);
+            } catch (Throwable $e) {
+                Log::warning('Discord did not take the game post: '.$e->getMessage());
+            }
+        });
+    }
+
+    /**
+     * The line posted for a game.
+     */
+    public static function message(Game $game): string
+    {
+        $name = '**'.self::plain($game->name).'**';
+        $bosses = $game->bossDrops()->orderBy('dropped_at')->pluck('boss_id');
+        $last = $bosses->isNotEmpty() ? BossLoot::boss($bosses->last()) : null;
+        $side = $game->faction ? ucfirst($game->faction) : null;
+
+        $won = $last !== null && $last['zone'] >= count(config('boss_loot.bosses.'.$last['faction'], []));
+
+        if ($game->isBossRush()) {
+            $line = $won
+                ? "{$name} cleared the {$side} Boss Rush: all {$bosses->count()} bosses down."
+                : "{$name} fell in the {$side} Boss Rush after {$bosses->count()} ".($bosses->count() === 1 ? 'boss' : 'bosses').'.';
+        } else {
+            $line = $won
+                ? "{$name} beat the game for the {$side}: {$last['name']} is down. Score ".number_format($game->score).'.'
+                : "{$name} scored ".number_format($game->score)." at level {$game->level}".($side ? " for the {$side}" : '').'.';
+
+            if (! $won && $last) {
+                $line .= " Last boss down: {$last['name']}.";
+            }
+
+            $rank = Score::query()->where('score', '>', $game->score)->count() + 1;
+            if ($rank <= 10) {
+                $line .= $rank === 1 ? ' That is the new top score.' : " That is #{$rank} on the leaderboard.";
+            }
+        }
+
+        return $line.' '.route('home');
+    }
+
+    /**
+     * A name as plain text: nothing in it that Discord would read as formatting or a link.
+     */
+    private static function plain(?string $name): string
+    {
+        $name = preg_replace('/[\\\\*_~`|>\[\]()@#:\/]/u', '', (string) $name);
+
+        return trim($name) !== '' ? trim($name) : 'Someone';
+    }
+}

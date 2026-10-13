@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.29.0 - 2026-10-13
+
+### What's new
+
+**Games are posted to the guild's Discord channel**
+- When a game ends, one line goes to the channel: who played, their score, level and side,
+  the last boss they brought down, and their place if it made the top ten ("That is the new
+  top score."). Beating the tenth boss and Boss Rush runs get their own wording.
+- Only games that count are posted: played to the end, with a score above zero. Games left
+  mid-way and games that ran without the server are not.
+- A player's name cannot ping anyone or add links or formatting in the channel.
+- The post is sent after the player has their result, so the game never waits for Discord,
+  and Discord being unreachable changes nothing in the game.
+
+### For developers
+- `DISCORD_WEBHOOK_URL` in `.env`: a webhook of the channel (Channel settings, Integrations,
+  Webhooks). Empty means nothing is posted. The address is a secret: anyone who has it can
+  post to the channel.
+
 ## 2.28.0 - 2026-10-13
 
 ### What's new

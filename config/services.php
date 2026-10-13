@@ -33,6 +33,8 @@ return [
     'discord' => [
         'client_id' => env('DISCORD_CLIENT_ID'),
         'client_secret' => env('DISCORD_CLIENT_SECRET'),
+        // A channel webhook: games that were played are posted there (App\Support\DiscordFeed)
+        'webhook' => env('DISCORD_WEBHOOK_URL'),
     ],
 
     'slack' => [

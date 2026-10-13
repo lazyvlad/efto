@@ -9,6 +9,7 @@ use App\Models\Score;
 use App\Models\User;
 use App\Support\BossLoot;
 use App\Support\Coins;
+use App\Support\DiscordFeed;
 use App\Support\GuestName;
 use App\Support\LootTable;
 use Illuminate\Http\JsonResponse;
@@ -204,6 +205,7 @@ class GameRecordController extends Controller
         // Handing the same game in twice changes nothing
         if ($game->isOpen()) {
             DB::transaction(fn () => $this->close($game, $data));
+            DiscordFeed::gamePlayed($game);
         }
 
         $entry = $game->scoreEntry;
