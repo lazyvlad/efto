@@ -400,9 +400,6 @@ class SpellSystem {
                     }
                 });
                 
-                if (removedCount > 0) {
-                    console.log(`Zandalari Reverse Gravity: Cleared ${removedCount} invisible items`);
-                }
             }
             
             // Clear invisible power-ups and reset reverse gravity state
@@ -419,9 +416,6 @@ class SpellSystem {
                     }
                 });
                 
-                if (removedPowerUpCount > 0) {
-                    console.log(`Zandalari Reverse Gravity: Cleared ${removedPowerUpCount} invisible power-ups`);
-                }
             }
             
             // Clear invisible projectiles and reset reverse gravity state
@@ -438,9 +432,6 @@ class SpellSystem {
                     }
                 });
                 
-                if (removedProjectileCount > 0) {
-                    console.log(`Zandalari Reverse Gravity: Cleared ${removedProjectileCount} invisible projectiles`);
-                }
             }
         }
     }

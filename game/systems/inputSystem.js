@@ -157,7 +157,6 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
     // Detect if this is a touch device on initialization
     if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
         inputState.isTouchDevice = true;
-        console.log('Touch device detected on initialization');
     }
     // Track mouse movement
     canvas.addEventListener('mousemove', (e) => {
@@ -346,7 +345,6 @@ function handleKeyDown(e, gameState, restartGame, startGame, deprecatedParam, sh
     if (e.ctrlKey && e.key.toLowerCase() === 'a' && gameState.gameRunning) {
         e.preventDefault();
         gameState.baseDropSpeed += 0.5; // Increase by 0.5 each press
-        console.log(`🚀 TESTING: Base Drop Speed increased to ${gameState.baseDropSpeed.toFixed(1)} (Ctrl+A to increase, was ${(gameState.baseDropSpeed - 0.5).toFixed(1)})`);
         return;
     }
     
@@ -429,12 +427,10 @@ function initializeSpellTouchHandlers(gameState) {
                 element.classList.remove('spell-touched');
             }, 200);
             
-            console.log(`Spell ${spell.id} cast via touch/click`);
         };
         
         // Consolidated touch start handler (combines spell activation + visual feedback)
         element.addEventListener('touchstart', (e) => {
-            console.log(`Touch detected on spell ${spell.id}!`);
             e.preventDefault();
             e.stopPropagation();
             
@@ -443,7 +439,6 @@ function initializeSpellTouchHandlers(gameState) {
             
             // Only cast spells during gameplay
             if (!gameState.gameRunning) {
-                console.log(`Game not running, spell ${spell.id} not cast`);
                 return;
             }
             
@@ -459,12 +454,10 @@ function initializeSpellTouchHandlers(gameState) {
                 element.classList.remove('spell-touched');
             }, 200);
             
-            console.log(`Spell ${spell.id} cast via touch - event prevented from bubbling`);
         }, { passive: false });
         
         // Click handler for desktop/mouse support
         element.addEventListener('click', (e) => {
-            console.log(`Click detected on spell ${spell.id}!`);
             handleSpellActivation(e);
         });
         
@@ -483,13 +476,11 @@ function initializeSpellTouchHandlers(gameState) {
         });
     });
     
-    console.log('Spell touch handlers initialized for mobile support');
 }
 
 // Reset input state for new game
 export function resetInputState() {
     inputState.playerInitialized = false;
-    console.log('Input state reset for new game');
 }
 
 // Update player position based on input
@@ -529,7 +520,6 @@ export function updatePlayerPosition(player, canvas, deltaTimeMultiplier, gameCo
         }
         
         inputState.playerInitialized = true;
-        console.log('Player initialized at position:', player.x, player.y);
     }
 
     let targetX = player.x;

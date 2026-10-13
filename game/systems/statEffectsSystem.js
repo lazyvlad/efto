@@ -82,7 +82,6 @@ function applyPermanentCritBonus(bonus, itemName, gameState) {
         const critPercent = Math.round(actualIncrease * 100);
         const newCritPercent = Math.round(gameState.critRating * 100);
         addNotification(gameState, `⚡ ${itemName}! Crit +${critPercent}% (Now: ${newCritPercent}%)`, 240, '#FF6B00');
-        console.log(`⚡ ${itemName} increased permanent crit rating by ${critPercent}% to ${newCritPercent}%`);
     } else {
         const maxCritPercent = Math.round(gameState.critRatingCap * 100);
         addNotification(gameState, `⚡ ${itemName}! Crit already maxed (${maxCritPercent}%)`, 180, '#FF6B00');
@@ -99,7 +98,6 @@ function applyPermanentDodgeBonus(bonus, itemName, gameState) {
         const dodgePercent = Math.round(actualIncrease * 100);
         const newDodgePercent = Math.round(gameState.dodgeRating * 100);
         addNotification(gameState, `💨 ${itemName}! Dodge +${dodgePercent}% (Now: ${newDodgePercent}%)`, 240, '#00FF00');
-        console.log(`💨 ${itemName} increased permanent dodge rating by ${dodgePercent}% to ${newDodgePercent}%`);
     } else {
         const maxDodgePercent = Math.round(gameState.dodgeRatingCap * 100);
         addNotification(gameState, `💨 ${itemName}! Dodge already maxed (${maxDodgePercent}%)`, 180, '#00FF00');
@@ -118,7 +116,6 @@ function applyTemporaryCritBonus(bonus, durationFrames, itemName, gameState) {
     const critPercent = Math.round(bonus * 100);
     const durationSeconds = Math.round(durationFrames / 60);
     addNotification(gameState, `⚡ ${itemName}! Temp Crit +${critPercent}% (${durationSeconds}s)`, 180, '#FFD700');
-    console.log(`⚡ ${itemName} applied temporary crit bonus: +${critPercent}% for ${durationSeconds} seconds`);
 }
 
 // Apply temporary dodge rating bonus
@@ -133,7 +130,6 @@ function applyTemporaryDodgeBonus(bonus, durationFrames, itemName, gameState) {
     const dodgePercent = Math.round(bonus * 100);
     const durationSeconds = Math.round(durationFrames / 60);
     addNotification(gameState, `💨 ${itemName}! Temp Dodge +${dodgePercent}% (${durationSeconds}s)`, 180, '#87CEEB');
-    console.log(`💨 ${itemName} applied temporary dodge bonus: +${dodgePercent}% for ${durationSeconds} seconds`);
 }
 
 // Update temporary stat effects (call each frame)

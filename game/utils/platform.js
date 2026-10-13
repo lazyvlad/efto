@@ -7,7 +7,6 @@ export function isIOS() {
 
 export function handleIOSAudioSettings() {
     if (isIOS()) {
-        console.log('iOS device detected - adjusting audio settings UI');
         
         // Show iOS notice
         const iosNotice = document.getElementById('iosVolumeNotice');

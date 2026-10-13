@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.33.3 - 2026-10-13
+
+### Changed
+- The game no longer writes its running commentary to the browser's console: 132 messages
+  about canvas sizes, panels, settings, sounds and the like are gone, with the bits of code
+  that existed only to produce them. Warnings and errors about things that have really gone
+  wrong are still written.
+
+### Fixed
+- Two pickups had no sound, because the files the game asked for did not exist:
+  - Power Word Shield and Frost Nova now play the guild's "follow up" clip. It was one of
+    the idle remarks and has been taken out of those, so it belongs to the shield alone.
+  - Time Cutter plays the new "na Marko" clip.
+
+### For developers
+- Removed an asset the game listed but never used and that did not exist
+  (`assets/items/2.png`).
+
 ## 2.33.2 - 2026-10-13
 
 ### Changed

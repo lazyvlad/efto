@@ -535,7 +535,9 @@ export const serverConfig = {
         
         const allCssFiles = [];
         for (const pattern of CONFIG.cssFiles) {
-            const files = await glob(pattern, { cwd: CONFIG.srcDir });
+            // styles/game.css only lists the others for the site's build (Vite); it is not a
+            // stylesheet of its own to minify here
+            const files = await glob(pattern, { cwd: CONFIG.srcDir, ignore: ['styles/game.css'] });
             allCssFiles.push(...files);
         }
 

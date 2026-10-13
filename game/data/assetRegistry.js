@@ -85,9 +85,12 @@ export const assetRegistry = {
         // Power-up and effect sounds
         manaDrink: 'assets/audio/sfx/mana_potion.wav',
         healDrink: 'assets/audio/sfx/health_potion.mp3',
-        timeCut: 'assets/audio/sfx/time_cut.mp3',
+        // A guild voice clip, about a second (OGG, or WAV where the browser cannot play OGG)
+        timeCut: `assets/audio/sfx/na-marko.${OGG_OR_WAV}`,
         speedboost: 'assets/audio/sfx/speedboost.wav',
-        shieldCast: 'assets/audio/sfx/shield_cast.mp3',
+        // A guild voice clip (OGG, or WAV where the browser cannot play OGG). It was one of the
+        // idle remarks (data/voiceLines.js) and now belongs to the shield alone.
+        shieldCast: `assets/audio/voice/04-follow-up.${OGG_OR_WAV}`,
         frostbolt: 'assets/audio/sfx/frostbolt.mp3',
         shadowImpact: 'assets/audio/sfx/shadow-bolt.mp3',
         chickenEat: 'assets/audio/sfx/neka_krka_peto.mp3',
@@ -136,7 +139,6 @@ export const assetRegistry = {
         cryptstalkerRing: 'assets/items/cryptstalker-ring.webp',
         
         // Numbered items
-        item2: 'assets/items/2.png',
         item33: 'assets/items/33.png',
         item4: 'assets/items/4.png',
         item5: 'assets/items/5.png',

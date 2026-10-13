@@ -400,7 +400,6 @@ export class AssetManager {
                 this.calculateScalingConstraints(path, img);
             }
         }
-        console.log(`🖼️ AssetManager: Recalculated scaling constraints for ${this.assets.size} images`);
     }
     
     // Get quality assessment for current display scaling
@@ -555,7 +554,6 @@ export class AssetManager {
             if (!this.assetManifest.tier1.includes(path)) {
                 this.assets.delete(path);
                 this.lastUsed.delete(path);
-                console.log(`AssetManager: Cleaned up old asset ${path}`);
             }
         }
     }

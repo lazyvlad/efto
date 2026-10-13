@@ -189,10 +189,6 @@ export class DamageProjectile extends FallingObject {
                 if (safeSize.wasConstrained) {
                     drawWidth = safeSize.width;
                     drawHeight = safeSize.height;
-                    // Optional: Log when scaling is constrained
-                    if (gameConfig.debug?.logScalingConstraints) {
-                        console.log(`Projectile ${this.data.id} scaling constrained: ${drawWidth}x${drawHeight} (max ${safeSize.maxScaleFactor}x)`);
-                    }
                 }
             }
         }

@@ -76,7 +76,6 @@ function calculateTimeBasedLevel(gameState) {
             damageReceived: 0
         };
         
-        console.log(`🕐 TIME-BASED LEVEL UP! Now level ${gameState.currentLevel + 1} (was ${oldLevel + 1})`);
         addNotification(gameState, `🕐 Level ${gameState.currentLevel + 1}! (Time-based)`, 180, '#FFD700');
     }
     
@@ -137,7 +136,6 @@ function calculateNextLevelTime(gameState) {
     // Calculate final time
     const finalTime = Math.max(10, baseTime - timeReduction + timeIncrease); // Minimum 10 seconds
     
-    console.log(`⏱️ Next level time: ${finalTime}s (base: ${baseTime}s, -${timeReduction}s, +${timeIncrease}s)`);
     return finalTime;
 }
 
@@ -206,7 +204,6 @@ function calculateSpeedFormula(level) {
 export function checkDragonstalkerCompletion(gameState, gameItems) {
     // Check if multiple completions are enabled
     if (!gameConfig.dragonstalker.enableMultipleCompletions && gameState.dragonstalkerCompletions > 0) {
-        console.log(`🚫 Multiple completions disabled, already have ${gameState.dragonstalkerCompletions} completions`);
         return false; // Only allow one completion if disabled
     }
     
@@ -235,23 +232,15 @@ export function checkDragonstalkerCompletion(gameState, gameItems) {
             const allowedReduction = Math.max(0, maxReduction - previousReduction);
             gameState.permanentSpeedReductionFromSets = previousReduction + allowedReduction;
             
-            if (allowedReduction > 0) {
-                console.log(`🛡️ Dragonstalker speed reduction capped to preserve bullet time access (applied: ${allowedReduction.toFixed(1)}x of ${speedReduction.toFixed(1)}x)`);
-            } else {
-                console.log(`🛡️ No speed reduction applied - maximum reached to preserve bullet time access`);
-            }
         }
         
         // Reset all Dragonstalker items for next collection cycle
-        console.log('🔄 Resetting Dragonstalker items for next cycle...');
         dragonstalkerItems.forEach(item => {
-            console.log(`  Resetting ${item.name}: collected ${item.collected} → 0, missed ${item.missed} → 0`);
             item.collected = 0;
             item.missed = 0;
         });
         
         // Reset tier set counters
-        console.log(`🔄 Resetting tier set counters: tierSetCollected ${gameState.tierSetCollected} → 0, tierSetMissed ${gameState.tierSetMissed} → 0`);
         gameState.tierSetCollected = 0;
         gameState.tierSetMissed = 0;
         
@@ -265,11 +254,9 @@ export function checkDragonstalkerCompletion(gameState, gameItems) {
             const critPercent = Math.round(actualIncrease * 100);
             const newCritPercent = Math.round(gameState.critRating * 100);
             addNotification(gameState, `💥 CRIT RATING INCREASED! +${critPercent}% (Now: ${newCritPercent}%)`, 300, '#FF6B00');
-            console.log(`💥 Crit rating increased by ${critPercent}% to ${newCritPercent}% (${gameState.critRating.toFixed(3)})`);
         } else {
             const maxCritPercent = Math.round(gameState.critRatingCap * 100);
             addNotification(gameState, `💥 CRIT RATING MAXED! (${maxCritPercent}%)`, 240, '#FF6B00');
-            console.log(`💥 Crit rating already at maximum: ${maxCritPercent}%`);
         }
         
         // Increase dodge rating by 1% for completing Dragonstalker set
@@ -282,11 +269,9 @@ export function checkDragonstalkerCompletion(gameState, gameItems) {
             const dodgePercent = Math.round(actualDodgeIncrease * 100);
             const newDodgePercent = Math.round(gameState.dodgeRating * 100);
             addNotification(gameState, `💨 DODGE RATING INCREASED! +${dodgePercent}% (Now: ${newDodgePercent}%)`, 300, '#00FF00');
-            console.log(`💨 Dodge rating increased by ${dodgePercent}% to ${newDodgePercent}% (${gameState.dodgeRating.toFixed(3)})`);
         } else {
             const maxDodgePercent = Math.round(gameState.dodgeRatingCap * 100);
             addNotification(gameState, `💨 DODGE RATING MAXED! (${maxDodgePercent}%)`, 240, '#00FF00');
-            console.log(`💨 Dodge rating already at maximum: ${maxDodgePercent}%`);
         }
         
         // Add completion notification with actual reduction applied
@@ -301,11 +286,7 @@ export function checkDragonstalkerCompletion(gameState, gameItems) {
         
         addNotification(gameState, notificationMessage, 480, '#FFD700');
         
-        console.log(`🏆 Dragonstalker set ${gameState.dragonstalkerCompletions} completed! Speed reduction: -${actualReduction.toFixed(1)}x (Total: -${gameState.permanentSpeedReductionFromSets.toFixed(1)}x)`);
         
-        if (bulletTimePreserved) {
-            console.log(`🎯 Bullet time access preserved - can still reach ${(gameConfig.levels.maxLevelSpeedMultiplier - gameState.permanentSpeedReductionFromSets).toFixed(1)}x speed`);
-        }
         
         return true; // Set was completed
     }
@@ -764,7 +745,6 @@ export function addNotification(gameState, message, duration = 180, color = '#FF
 
     // Skip unwanted notifications
     if (shouldSuppress) {
-        console.log(`Suppressing notification: ${message}`);
         return;
     }
 
@@ -905,11 +885,6 @@ export class ResponsiveScaler {
         this.sizes = {};
         this.calculateElementSizes();
         
-        console.log(`🎮 ResponsiveScaler initialized:
-            Device: ${this.deviceType}
-            Canvas: ${this.canvasDimensions.width}x${this.canvasDimensions.height}
-            Playable Area: ${this.playableArea.width}x${this.playableArea.height}
-            Scale: ${this.uniformScale.toFixed(2)}x (${this.scaleX.toFixed(2)}x width, ${this.scaleY.toFixed(2)}x height)`);
             
         // Listen for orientation changes (mobile-specific)
         window.addEventListener('orientationchange', () => {
@@ -934,16 +909,6 @@ export class ResponsiveScaler {
             // Recalculate AssetManager constraints on significant resize
             if (window.assetManager) {
                 window.assetManager.recalculateScalingConstraints();
-                
-                // Log quality assessment for large displays
-                const qualityAssessment = window.assetManager.getQualityAssessment();
-                if (qualityAssessment && qualityAssessment.displayScale > 1.8) {
-                    console.log(`🖼️ Display Quality Assessment:
-                        Quality: ${qualityAssessment.overallQuality}
-                        Display Scale: ${qualityAssessment.displayScale.toFixed(2)}x
-                        Avg Original Size: ${qualityAssessment.averageOriginalSize}px
-                        Recommendation: ${qualityAssessment.recommendation}`);
-                }
             }
         });
     }
@@ -1032,12 +997,6 @@ export class ResponsiveScaler {
             // Calculate playable height as percentage of total canvas height
             const playableHeight = constrainedHeight * positioning.playableHeightPercent;
             
-            console.log(`📱 Dynamic Mobile Canvas Sizing:
-                Viewport: ${viewportWidth}x${viewportHeight}
-                UI Space: ${positioning.topOffset + positioning.bottomOffset + positioning.safeAreaMargin}px (top: ${positioning.topOffset}px, bottom: ${positioning.bottomOffset}px, margin: ${positioning.safeAreaMargin}px)
-                Available: ${availableHeight}px
-                Canvas Height: ${constrainedHeight}px (constrained from ${availableHeight}px)
-                Playable Height: ${playableHeight.toFixed(0)}px (${(positioning.playableHeightPercent * 100)}% of canvas)`);
             
             return {
                 width: baseConfig.width,
@@ -1168,11 +1127,6 @@ export class ResponsiveScaler {
             this.sizes.ui.spellIconSize = Math.round(this.sizes.ui.spellIconSize * 0.8);
         }
         
-        console.log(`📏 Element sizes calculated (125px boundary):
-            Player: ${this.sizes.player.width}x${this.sizes.player.height} (max: ${this.sizes.player.maxBorderSize}px)
-            Items: ${this.sizes.item.base}px (base), ${this.sizes.item.powerUp}px (power-up), ${this.sizes.item.projectile}px (projectile)
-            Visual Boundary: ${this.sizes.visualBoundary.size}px
-            UI: ${this.sizes.ui.spellIconSize}px (spell icons)`);
     }
     
     updateScaling() {
@@ -1206,10 +1160,6 @@ export class ResponsiveScaler {
             this.applyDeviceScaleAdjustments();
             this.calculateElementSizes();
             
-            console.log(`🔄 Scaling updated (${oldDeviceType}→${this.deviceType}):
-                Canvas: ${this.canvasDimensions.width}x${this.canvasDimensions.height}
-                Playable Area: ${this.playableArea.width}x${this.playableArea.height}
-                Scale: ${this.uniformScale.toFixed(2)}x`);
         }
     }
     
@@ -1294,7 +1244,6 @@ export function getCacheBustedUrl(url, forceTimestamp = false) {
 
 // Force reload of critical game resources
 export function reloadGameResources() {
-    console.log('🔄 Forcing reload of game resources...');
     
     // List of critical resources to reload
     const criticalResources = [
@@ -1325,7 +1274,6 @@ export function checkGameVersion() {
     const storedVersion = localStorage.getItem(STORAGE_KEY);
     
     if (storedVersion && storedVersion !== GAME_VERSION) {
-        console.log(`🎮 Game updated: ${storedVersion} → ${GAME_VERSION}`);
         
         // Show update notification
         if (typeof addNotification !== 'undefined' && window.gameState) {
@@ -1413,7 +1361,6 @@ function showMobileUpdatePrompt() {
 
 // Clear all game-related cache
 export function clearGameCache() {
-    console.log('🧹 Clearing game cache...');
     
     // Clear localStorage game data (keep high scores and settings)
     const keysToKeep = ['dmtribut_high_scores', 'efto_settings', 'efto_audio_settings'];
@@ -1431,7 +1378,6 @@ export function clearGameCache() {
             cacheNames.forEach(cacheName => {
                 if (cacheName.includes('efto') || cacheName.includes('game')) {
                     caches.delete(cacheName);
-                    console.log(`🗑️ Cleared cache: ${cacheName}`);
                 }
             });
         });

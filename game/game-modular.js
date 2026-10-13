@@ -242,7 +242,6 @@ async function init() {
     showLoadingScreen();
     
     // Start asset loading with enhanced progress tracking
-    console.log('Starting asset preloading...');
     assetManager.onProgress((progress) => {
         updateLoadingProgress(progress * 0.7); // Reserve 30% for other initialization
     });
@@ -253,12 +252,10 @@ async function init() {
     assetManager.onTier1Ready(measureLoaded);
     
     assetManager.onTier2Ready(() => {
-        console.log('Tier 2 assets ready - starting background loading');
         measureLoaded();
     });
     
     assetManager.onTier3Ready(() => {
-        console.log('All assets loaded - optimal performance achieved');
         measureLoaded();
     });
     
@@ -270,7 +267,6 @@ async function init() {
         assetManager.onTier1Ready(resolve);
     });
     
-    console.log('Critical assets loaded, initializing game systems...');
     updateLoadingProgress(0.75);
     
     // Initialize player with logical canvas dimensions (supports portrait mode)
@@ -408,7 +404,6 @@ async function init() {
     hideLoadingScreen();
     showNameEntry();
     
-    console.log('Game initialization complete - ready for player interaction');
     
     // Start game loop
     gameLoop();
@@ -418,11 +413,6 @@ async function init() {
     
     // Handle iOS-specific audio settings UI
     handleIOSAudioSettings();
-    
-    // Enable performance monitoring for development (toggle with Ctrl+Shift+P)
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        console.log('Development mode: Press Ctrl+Shift+P to toggle asset performance monitor');
-    }
 }
 
 // Helper function to hide all UI elements during loading
@@ -591,7 +581,6 @@ function update(deltaTimeMultiplier, universalMultiplier) {
         // Preload assets for higher levels (async to avoid blocking)
         setTimeout(() => preloadLevelAssets(gameState.currentLevel), 0);
         
-        console.log(`Level up! Now level ${gameState.currentLevel + 1} (Speed: ${gameState.levelSpeedMultiplier.toFixed(2)}x) at score ${gameState.score}`);
         addNotification(gameState, `Level ${gameState.currentLevel + 1}!`, 2000, '#FFD700');
         say('levelUp');
         
@@ -958,7 +947,6 @@ function startGame() {
     // Experience starts at what the starting level needs (none, unless a later level is set for testing)
     gameState.xp = totalXpAtLevel(startingLevel + 1, gameConfig.progression);
     
-    console.log(`🚀 Starting at Level ${startingLevel + 1} with speed ${gameState.levelSpeedMultiplier}x${gameState.score > 0 ? ` (Score: ${gameState.score})` : ''}`);
     
     gameState.baseDropSpeed = gameConfig.gameplay.baseDropSpeed;
     gameState.permanentSpeedReduction = 0.0;
@@ -1122,7 +1110,6 @@ function startGame() {
         onOffline: () => addNotification(gameState, `⚠️ Connection lost - this game is offline and will not count`, 360, '#FF6B6B')
     });
     
-    console.log('Game started');
 }
 
 function restartGame() {
@@ -1203,7 +1190,6 @@ function restartGame() {
     
     gameState.xp = totalXpAtLevel(startingLevel + 1, gameConfig.progression);
     
-    console.log(`🔄 Restarting at Level ${startingLevel + 1} with speed ${gameState.levelSpeedMultiplier}x${gameState.score > 0 ? ` (Score: ${gameState.score})` : ''}`);
     
     gameState.missedItems = 0;
     gameState.perfectCollections = 0;
@@ -1759,7 +1745,6 @@ function closeActiveOverlayScreen() {
 
 // Show main menu (unified pause menu with name entry content)
 function showNameEntry() {
-    console.log('Showing main menu - game is ready for player interaction');
     hideAllUIElements();
     
     // Ensure proper game state for main menu
@@ -1831,7 +1816,6 @@ function updateMenuButtons() {
 
 // Show high scores screen
 function showHighScores(fromPause = false, fromGameOver = false, options = {}) {
-    console.log('Showing high scores screen');
     
     if (!fromPause && !fromGameOver) {
         hideAllUIElements();
@@ -1864,7 +1848,6 @@ function showHighScores(fromPause = false, fromGameOver = false, options = {}) {
 
 // Show how to play screen
 function showHowToPlay(fromPause = false, options = {}) {
-    console.log('Showing how to play screen');
     
     if (!fromPause) {
         hideAllUIElements();
@@ -1904,7 +1887,6 @@ function showItemsFromMenu() {
 }
 
 function showSettings(source = null) {
-    console.log('showSettings() called with source:', source);
     // Store where we came from for the back button
     if (source) {
         gameState.settingsSource = source;
@@ -1924,19 +1906,15 @@ function showSettings(source = null) {
     
     gameState.currentScreen = 'settings';
     
-    console.log('Settings screen displayed');
     
     setSettingsBackLabel(gameState.settingsSource);
     updateScreenNavigation('settings', { backLabel: getBackLabelForSource(gameState.settingsSource) });
     
     // Update UI elements with current settings
-    console.log('Updating settings UI...');
     updateSettingsScreen();
     
     // Set up event handlers for settings controls (do this each time settings opens)
-    console.log('Setting up event handlers...');
     bindSettingsScreen();
-    console.log('showSettings() complete');
 }
 
 function closeSettings() {
@@ -2013,7 +1991,6 @@ function restartGameFromUI() {
 
 // Set up UI event handlers
 function setupUIEventHandlers() {
-    console.log('Setting up UI event handlers...');
     
     // Which key does what can be changed under Settings (ui/keyBindingsScreen.js)
     initializeKeyBindings();
@@ -2090,7 +2067,6 @@ function setupUIEventHandlers() {
                 const name = e.target.value.trim();
                 if (name) {
                     localStorage.setItem('efto_playerName', name);
-                    console.log('Auto-saved player name:', name);
                 }
             }, 1000); // Save after 1 second of no typing
         });
@@ -2128,13 +2104,11 @@ function setupUIEventHandlers() {
         // Cache management shortcuts
         if (e.ctrlKey && e.shiftKey && e.key === 'C') {
             e.preventDefault();
-            console.log('Current cache stats:', assetManager.getCacheStats());
         }
         
         // Detailed stats shortcut
         if (e.ctrlKey && e.shiftKey && e.key === 'D') {
             e.preventDefault();
-            console.log('Detailed asset stats:', assetManager.getDetailedStats());
         }
     });
 
@@ -2176,7 +2150,6 @@ function setupUIEventHandlers() {
     applyPortrait();
 
     if (viewScoresBtn) {
-        console.log('Setting up High Scores button handler');
         viewScoresBtn.addEventListener('click', () => showHighScores());
 
         // Under the site's header the high scores have a page of their own, linked from there
@@ -2188,7 +2161,6 @@ function setupUIEventHandlers() {
     }
     
     if (howToPlayBtn) {
-        console.log('Setting up How to Play button handler');
         howToPlayBtn.addEventListener('click', () => showHowToPlay());
     } else {
         console.warn('howToPlayBtn not found!');
@@ -2317,7 +2289,6 @@ function setupUIEventHandlers() {
         mobilePauseBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Mobile pause button clicked');
             if (gameState.gameRunning && !gameState.showingPauseMenu) {
                 showPauseMenu();
             }
@@ -2327,7 +2298,6 @@ function setupUIEventHandlers() {
         mobilePauseBtn.addEventListener('touchstart', function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log('Mobile pause button touched');
             if (gameState.gameRunning && !gameState.showingPauseMenu) {
                 showPauseMenu();
             }
@@ -2365,7 +2335,6 @@ function showItemBonuses(source = null) {
     updateMobilePauseButtonVisibility();
     updateCanvasOverlay();
 
-    console.log('Item Bonuses screen opened from:', resolvedSource);
 }
 
 // Hide the Item Bonuses screen (delegates to unified back navigation)
@@ -2388,9 +2357,6 @@ function updateMobilePauseButtonVisibility() {
     
     mobilePauseBtn.style.display = shouldShow ? 'flex' : 'none';
     
-    if (shouldShow) {
-        console.log('🎮 Mobile pause button shown');
-    }
 }
 
 // Update the Item Bonuses window with current data
@@ -2601,7 +2567,6 @@ function switchBonusTab(tabName) {
     if (tabButton) tabButton.classList.add('active');
     if (tabList) tabList.classList.add('active');
     
-    console.log('Switched to bonus tab:', tabName);
 }
 
 // ===== HIGH SCORES FUNCTIONS =====
@@ -2615,12 +2580,10 @@ function safeDisplayHighScores() {
         // If it returns a Promise, handle it properly
         if (result && typeof result.catch === 'function') {
             result.catch(error => {
-                console.log('Async displayHighScores failed, using sync fallback:', error);
                 displayHighScoresSync();
             });
         }
     } catch (error) {
-        console.log('displayHighScores threw error, using sync fallback:', error);
         displayHighScoresSync();
     }
 }
@@ -3239,8 +3202,6 @@ function updateItemsList(sortedItems) {
     }
     itemsListCache.needsUpdate = false;
     
-    // Debug: console.log(`🔄 Items list updated: ${currentUniqueCount} unique, ${currentTotalCount} total`);
-    
     // Clear existing items
     itemsList.innerHTML = '';
     
@@ -3729,7 +3690,6 @@ function preloadLevelAssets(level) {
     const assetsToPreload = getAssetsByLevel(level);
     
     if (assetsToPreload.length > 0) {
-        console.log(`Level ${level}: Preloading ${assetsToPreload.length} assets for optimal performance`);
         assetManager.preloadAssets(assetsToPreload, false); // Background loading
         
         // Warmup cache for current level
@@ -3743,29 +3703,6 @@ window.closeSettings = closeSettings;
 window.showMainMenu = showMainMenu;
 window.resetSettings = resetSettingsScreen;
 
-// Debug function for checking display quality
-window.checkDisplayQuality = function() {
-    if (window.assetManager) {
-        const assessment = window.assetManager.getQualityAssessment();
-        if (assessment) {
-            console.log(`🖼️ Current Display Quality Assessment:
-                Overall Quality: ${assessment.overallQuality}
-                Display Scale: ${assessment.displayScale.toFixed(2)}x
-                Average Original Image Size: ${assessment.averageOriginalSize}px
-                Recommendation: ${assessment.recommendation}
-                
-                Window Size: ${window.innerWidth}x${window.innerHeight}
-                Responsive Scale: ${responsiveScaler.uniformScale.toFixed(2)}x
-                Device Type: ${responsiveScaler.deviceType}`);
-        } else {
-            console.log('🖼️ Display quality assessment not available yet');
-        }
-    } else {
-        console.log('🖼️ AssetManager not available');
-    }
-};
-
-console.log('💡 Type checkDisplayQuality() in console to check your current display quality');
 
 // High-DPI canvas setup function with device-specific dimensions and playable-area scaling
 function setupHighDPICanvas() {

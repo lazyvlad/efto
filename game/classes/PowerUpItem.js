@@ -144,10 +144,6 @@ export class PowerUpItem extends FallingObject {
                 if (safeSize.wasConstrained) {
                     baseWidth = safeSize.width;
                     baseHeight = safeSize.height;
-                    // Optional: Log when scaling is constrained
-                    if (gameConfig.debug?.logScalingConstraints) {
-                        console.log(`PowerUp ${this.data.name} scaling constrained: ${baseWidth}x${baseHeight} (max ${safeSize.maxScaleFactor}x)`);
-                    }
                 }
             }
         }
@@ -387,9 +383,6 @@ export class PowerUpItem extends FallingObject {
                     gameObjects.fallingItems = gameObjects.fallingItems.filter(item => item.y >= 0);
                     const removedCount = initialCount - gameObjects.fallingItems.length;
                     
-                    if (removedCount > 0) {
-                        console.log(`Reverse Gravity: Cleared ${removedCount} invisible items from queue`);
-                    }
                     
                     // RESET ALL ITEMS to be eligible for reverse gravity (fixes stacking issue)
                     gameObjects.fallingItems.forEach(item => {
@@ -407,9 +400,6 @@ export class PowerUpItem extends FallingObject {
                     gameObjects.powerUps = gameObjects.powerUps.filter(item => item.y >= 0);
                     const removedPowerUpCount = initialPowerUpCount - gameObjects.powerUps.length;
                     
-                    if (removedPowerUpCount > 0) {
-                        console.log(`Reverse Gravity: Cleared ${removedPowerUpCount} invisible power-ups from queue`);
-                    }
                     
                     // RESET ALL POWER-UPS to be eligible for reverse gravity
                     gameObjects.powerUps.forEach(item => {
@@ -427,9 +417,6 @@ export class PowerUpItem extends FallingObject {
                     gameObjects.fireballs = gameObjects.fireballs.filter(item => item.y >= 0);
                     const removedProjectileCount = initialProjectileCount - gameObjects.fireballs.length;
                     
-                    if (removedProjectileCount > 0) {
-                        console.log(`Reverse Gravity: Cleared ${removedProjectileCount} invisible projectiles from queue`);
-                    }
                     
                     // RESET ALL PROJECTILES to be eligible for reverse gravity
                     gameObjects.fireballs.forEach(projectile => {

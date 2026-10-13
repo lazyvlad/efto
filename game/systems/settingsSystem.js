@@ -42,7 +42,6 @@ export function loadSettings() {
                     (parsed.audio.masterVolume === undefined || 
                      parsed.audio.musicVolume === undefined || 
                      parsed.audio.effectsVolume === undefined)) {
-                    console.log('Migrating old volume setting to new separate volumes');
                     gameSettings.audio.masterVolume = parsed.audio.volume;
                     gameSettings.audio.musicVolume = Math.round(parsed.audio.volume * 0.7); // Make music 70% of old volume
                     gameSettings.audio.effectsVolume = Math.round(parsed.audio.volume * 1.1); // Make effects 110% of old volume
@@ -111,18 +110,15 @@ function applySetting(category, key, value) {
                 // Handle background music toggle using audio system
                 if (value) {
                     // Enable background music - start playing
-                    console.log('Settings: Enabling background music');
                     startBackgroundMusic();
                 } else {
                     // Disable background music - pause if playing
-                    console.log('Settings: Disabling background music');
                     // Import sounds from audio system
                     import('../systems/audioSystem.js').then(audioModule => {
                         if (audioModule.sounds && audioModule.sounds.background && !audioModule.sounds.background.paused) {
-                            console.log('Settings: Pausing background music');
                             audioModule.sounds.background.pause();
                         }
-                    }).catch(e => console.log('Failed to pause background music:', e.message));
+                    }).catch(e => {});
                 }
                 break;
             case 'soundEffects':
@@ -186,18 +182,6 @@ function applyPanelStyles() {
         dragonstalkerPanel.classList.remove('force-desktop', 'force-mobile');
         if (effectiveDragonstalkerStyle === 'desktop') dragonstalkerPanel.classList.add('force-desktop');
         if (effectiveDragonstalkerStyle === 'mobile') dragonstalkerPanel.classList.add('force-mobile');
-    }
-    
-    // Debug log for auto-detection
-    if (playerStyle === 'auto' || dragonstalkerStyle === 'auto') {
-        const spaceInfo = calculateAvailableSpace();
-        console.log(`📊 Auto Panel Detection:`, {
-            aspectRatio: spaceInfo.aspectRatio.toFixed(2),
-            availableSpace: spaceInfo.availableHorizontalSpace,
-            isSquarish: spaceInfo.isSquarish,
-            optimalStyle: optimalPlayerStyle,
-            reason: spaceInfo.reason
-        });
     }
 }
 

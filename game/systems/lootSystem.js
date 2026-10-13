@@ -392,7 +392,6 @@ export function finishGame() {
         })
         .catch(error => {
             // The stored record is handed in the next time the game is opened
-            console.log('Could not record the game:', error);
             return { legal: false, rank: null, scores: null };
         });
 }

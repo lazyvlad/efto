@@ -60,7 +60,6 @@ function bindSelect(id, section, key, label) {
     }
 
     element.addEventListener('change', function() {
-        console.log(`${label} changed to:`, this.value);
         updateSetting(section, key, this.value);
     });
 }
@@ -86,7 +85,6 @@ function bindToggle(id, key, label, category = 'audio') {
     }
 
     toggle.addEventListener('change', function() {
-        console.log(`${label} toggle changed to:`, this.checked);
         updateSetting(category, key, this.checked);
     });
 }
@@ -147,7 +145,6 @@ export function resetSettingsScreen() {
 }
 
 export function bindSettingsScreen() {
-    console.log('Setting up settings event handlers...');
 
     bindToggle('soundEffectsToggle', 'soundEffects', 'Sound effects');
     bindToggle('backgroundMusicToggle', 'backgroundMusic', 'Background music');
@@ -165,7 +162,6 @@ export function bindSettingsScreen() {
 
         radio.addEventListener('change', function() {
             if (this.checked) {
-                console.log('Game mode changed to:', this.value);
                 updateSetting('gameplay', 'gameMode', this.value);
             }
         });

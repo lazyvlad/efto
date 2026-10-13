@@ -55,8 +55,6 @@ export function renderFrame({
         renderVictory(ctx, canvas, gameState);
     } else if (gameState.health <= 0) {
         renderGameOver(ctx, canvas, gameState);
-    } else {
-        // renderHighScores();
     }
 }
 
@@ -216,10 +214,6 @@ export function setupHighDPICanvas({ canvas, ctx, responsiveScaler, refreshPanel
     const targetHeight = deviceCanvasDimensions.height;
     const targetAspectRatio = deviceCanvasDimensions.aspectRatio;
     
-    console.log(`🎮 Setting up canvas for ${responsiveScaler.deviceType}:
-        Canvas: ${targetWidth}x${targetHeight} (${targetAspectRatio.toFixed(2)} aspect ratio)
-        Playable Area: ${playableArea.width}x${playableArea.height}
-        Viewport: ${viewportWidth}x${viewportHeight}`);
     
     // Store current device type and mode for other systems to access
     canvas.deviceType = responsiveScaler.deviceType;
@@ -313,12 +307,6 @@ export function setupHighDPICanvas({ canvas, ctx, responsiveScaler, refreshPanel
             // Ensure we don't go above the panel or below the buttons
             topOffset = Math.max(topOffset_setting, Math.min(topOffset, viewportHeight - displayHeight - bottomOffset));
             
-            console.log(`📱 Mobile Portrait Canvas Positioning:
-                Canvas: ${displayWidth}x${displayHeight}
-                Viewport: ${viewportWidth}x${viewportHeight}  
-                Position: left=${leftOffset}px, top=${topOffset}px
-                Top offset: ${topOffset_setting}px, Bottom offset: ${bottomOffset}px
-                Available space: ${availableHeight}px`);
         } else {
             // Desktop/landscape: Standard centering
             leftOffset = (viewportWidth - displayWidth) / 2;
@@ -403,27 +391,6 @@ export function setupHighDPICanvas({ canvas, ctx, responsiveScaler, refreshPanel
         document.body.style.backgroundColor = gameConfig.canvas.scaling.letterboxColor;
     }
     
-    console.log(`👑 Playable-Area-Based Canvas Setup Complete:
-        Device: ${responsiveScaler.deviceType}
-        Logical: ${targetWidth}x${targetHeight}
-        Display: ${displayWidth}x${displayHeight} 
-        Scale: ${scale.toFixed(2)}x
-        DPR: ${pixelRatio}
-        Viewport: ${viewportWidth}x${viewportHeight}
-        Playable Area: ${playableArea.width}x${playableArea.height}
-        Item Scale: ${responsiveScaler.uniformScale.toFixed(2)}x
-        
-`);
-    
-    // Debug info for letterboxing
-    if (gameConfig.canvas.scaling.showLetterboxInfo) {
-        const viewportAspectRatio = viewportWidth / viewportHeight;
-        console.log(`Letterbox Info:
-            Viewport AR: ${viewportAspectRatio.toFixed(2)}
-            Target AR: ${targetAspectRatio.toFixed(2)}
-            Letterbox: ${Math.abs(viewportAspectRatio - targetAspectRatio) > 0.01 ? 'Yes' : 'No'}
-            Device Type: ${responsiveScaler.deviceType}`);
-    }
     
     // Refresh panel styles when canvas dimensions change
     // Small delay to ensure canvas properties are fully set

@@ -27,13 +27,11 @@ export async function loadHighScores() {
             throw new Error('Server unavailable');
         }
     } catch (e) {
-        console.log('Error loading high scores from server, using localStorage:', e);
         // Fallback to localStorage
         try {
             const scores = localStorage.getItem(HIGH_SCORES_KEY);
             return scores ? JSON.parse(scores) : [];
         } catch (localError) {
-            console.log('Error loading from localStorage:', localError);
             return [];
         }
     }
@@ -45,7 +43,6 @@ export function loadHighScoresSync() {
         const scores = localStorage.getItem(HIGH_SCORES_KEY);
         return scores ? JSON.parse(scores) : [];
     } catch (e) {
-        console.log('Error loading high scores:', e);
         return [];
     }
 }
@@ -55,7 +52,7 @@ export function cacheHighScores(scores) {
     try {
         localStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(scores));
     } catch (e) {
-        console.log('Error saving to localStorage:', e);
+        // Storage unavailable: the scores are simply not kept in this browser
     }
 }
 
@@ -65,7 +62,7 @@ export async function saveHighScores(scores) {
         // Always save to localStorage as backup
         localStorage.setItem(HIGH_SCORES_KEY, JSON.stringify(scores));
     } catch (e) {
-        console.log('Error saving to localStorage:', e);
+        // Storage unavailable: the scores are simply not kept in this browser
     }
 }
 
@@ -111,7 +108,6 @@ export async function addHighScore(playerName, score, itemsCollected, level, gam
         throw new Error('Server response not ok');
         
     } catch (e) {
-        console.log('Error saving to server, using localStorage fallback:', e);
         
         // Fallback to localStorage
         const scores = await loadHighScores();
@@ -157,7 +153,6 @@ export async function displayHighScores() {
         const scores = await loadHighScores();
         renderHighScoresList(scores);
     } catch (error) {
-        console.log('Error in displayHighScores, falling back to sync:', error);
         // Fallback to sync version
         const scores = loadHighScoresSync();
         renderHighScoresList(scores);

@@ -27,13 +27,11 @@ export function updateBulletTime(gameState, deltaTimeMultiplier) {
             addNotification(gameState, '🎯 FOCUS MODE', 3000, config.visualEffects.glowColor);
         }
         
-        console.log(`🎯 Bullet time activated at ${effectiveSpeed.toFixed(1)}x speed (${Math.round((1 - config.timeDilation) * 100)}% time dilation)`);
     } else if (!shouldActivate && gameState.bulletTimeActive) {
         // Deactivate bullet time
         gameState.bulletTimeActive = false;
         gameState.bulletTimeMultiplier = 1.0;
         
-        console.log(`⏰ Bullet time deactivated`);
     }
     
     // Update visual timer

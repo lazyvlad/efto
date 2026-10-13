@@ -59,9 +59,6 @@ export const serverConfig = {
             const detectedPath = pathParts.join('/');
             if (detectedPath !== '') {
                 serverConfig.basePath = detectedPath;
-                if (serverConfig.isDevelopment) {
-                    console.log('Auto-detected basePath:', detectedPath);
-                }
             }
         }
     }

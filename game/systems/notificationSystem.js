@@ -34,13 +34,6 @@ class NotificationSystem {
             return false;
         }
         
-        // Log mobile detection status
-        if (this.isMobile) {
-            console.log('📱 Mobile device detected - regular notifications disabled for performance. Buff tracker remains active.');
-        } else {
-            console.log('🖥️ Desktop device detected - all notifications enabled.');
-        }
-        
         return true;
     }
 

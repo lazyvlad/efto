@@ -14,7 +14,6 @@ export const clips = {
     'heal-call': { file: '01-heal-call', seconds: 2.5 },
     'unsure-response': { file: '02-unsure-response', seconds: 5.25 },
     'give-it-to-me': { file: '03-give-it-to-me', seconds: 2.33 },
-    'follow-up': { file: '04-follow-up', seconds: 2.62 },
     'bravo': { file: '05-bravo', seconds: 4.5 },
     'thunderfury': { file: '06-thunderfury', seconds: 6.55 },
     'look-at-that': { file: '07-look-at-that', seconds: 3.8 },
@@ -43,5 +42,5 @@ export const moments = {
     gameOver: { chance: 1, clips: ['final-retort', 'look-what-happened'] },
     victory: { chance: 1, clips: ['bravo'] },
     // Now and then, for no reason at all
-    banter: { chance: 1, clips: ['batvane', 'follow-up', 'unsure-response', 'i-want', 'adjusting-to-play'] }
+    banter: { chance: 1, clips: ['batvane', 'unsure-response', 'i-want', 'adjusting-to-play'] }
 };
