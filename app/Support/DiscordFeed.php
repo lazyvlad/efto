@@ -47,7 +47,8 @@ class DiscordFeed
      */
     public static function message(Game $game): string
     {
-        $name = '**'.self::plain($game->name).'**';
+        // A player who connected Discord is called what the channel knows them as
+        $name = '**'.self::plain($game->user?->discord_name ?: $game->name).'**';
         $bosses = $game->bossDrops()->orderBy('dropped_at')->pluck('boss_id');
         $last = $bosses->isNotEmpty() ? BossLoot::boss($bosses->last()) : null;
         $side = $game->faction ? ucfirst($game->faction) : null;
@@ -73,7 +74,8 @@ class DiscordFeed
             }
         }
 
-        return $line.' '.route('home');
+        // In angle brackets, so Discord does not unfold the site's card under every post
+        return $line.' <'.route('home').'>';
     }
 
     /**

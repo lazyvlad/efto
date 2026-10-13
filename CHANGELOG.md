@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.30.0 - 2026-10-13
+
+### What's new
+
+**A proper card when the site is shared**
+- Posting the site's address in Discord, a chat or on social media now shows a card: the
+  gold logo over the world map, the name, and a line about the game. Every page and the game
+  itself carry it.
+
+### Changed
+- In the channel posts, a player who has connected Discord is called by their Discord name;
+  everyone else by their player name as before.
+- The link at the end of a channel post no longer unfolds into the site's card under every
+  post.
+
+### For developers
+- The card is `resources/views/layouts/social.blade.php` (Open Graph and Twitter tags), with
+  the picture at `public/images/input-card.jpg` (1200x630).
+
 ## 2.29.0 - 2026-10-13
 
 ### What's new

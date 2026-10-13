@@ -9,6 +9,8 @@
 
         @include('layouts.favicons')
 
+        @include('layouts.social')
+
         @include('layouts.fonts')
 
         <!-- Scripts -->

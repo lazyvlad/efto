@@ -80,7 +80,9 @@ class GameController extends Controller
         $head = '<base href="'.e(asset($folder)).'/">'."\n"
             .'    <script>window.INPUT_BOOT = '
             .json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES)
-            .';</script>';
+            .';</script>'."\n    "
+            // The card shown when the game's address is posted in a chat or on social media
+            .trim(view('layouts.social')->render());
 
         $html = preg_replace('/<head(\s[^>]*)?>/i', "$0\n    ".$head, file_get_contents($indexPath), 1);
 

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Game;
+use App\Models\User;
 use App\Support\DiscordFeed;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request;
@@ -76,6 +77,16 @@ class DiscordFeedTest extends TestCase
         $game->bossDrops()->create(['boss_id' => 'sarkoth', 'item_id' => 'x', 'rarity' => 'common', 'dropped_at' => now()]);
 
         $this->assertStringContainsString('Last boss down: Sarkoth.', DiscordFeed::message($game));
+    }
+
+    public function test_a_player_with_discord_connected_goes_by_their_discord_name(): void
+    {
+        $user = User::factory()->create(['name' => 'Robert']);
+        $user->forceFill(['discord_id' => '1', 'discord_name' => 'Bobzilla'])->save();
+
+        $game = $this->actingAs($user)->play();
+
+        $this->assertStringStartsWith('**Bobzilla** scored', DiscordFeed::message($game));
     }
 
     public function test_a_name_cannot_ping_or_format(): void

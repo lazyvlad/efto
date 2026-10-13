@@ -30,6 +30,20 @@ class GamePageTest extends TestCase
             ->assertDontSee(route('register'), false);
     }
 
+    public function test_every_page_and_the_game_carry_the_card_for_sharing(): void
+    {
+        foreach (['home', 'play', 'about', 'highscores', 'items', 'login'] as $page) {
+            $this->get(route($page))
+                ->assertOk()
+                ->assertSee('<meta property="og:title" content="'.e(config('app.name')).'">', false)
+                ->assertSee('<meta property="og:image" content="'.asset('images/input-card.jpg').'">', false)
+                ->assertSee('<meta property="og:url" content="'.route($page).'">', false)
+                ->assertSee('<meta name="twitter:card" content="summary_large_image">', false);
+        }
+
+        $this->assertFileExists(public_path('images/input-card.jpg'));
+    }
+
     public function test_pages_carry_the_footer_credit(): void
     {
         foreach (['/', route('highscores'), route('login'), route('register')] as $page) {
