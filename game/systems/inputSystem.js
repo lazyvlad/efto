@@ -119,6 +119,39 @@ function toCanvasCoords(canvas, clientX, clientY) {
     return { x: rawX, y: rawY };
 }
 
+// ----- Touches that do not steer -----
+// On a phone the spell buttons and the pause button stand on the field. A thumb reaching for
+// one and landing just beside it touches the field instead, which would send the hunter
+// running there. So a band around each button is silent: a finger that comes down in it never
+// moves the hunter, wherever it slides afterwards.
+const SILENT_MARGIN = 16;           // Page pixels around a button that are silent
+const SILENT_AROUND = '#spellBar .spell-group, #mobilePauseBtn';
+const silentTouches = new Set();    // The fingers down now that started in a silent band
+
+function inSilentZone(pageX, pageY) {
+    for (const button of document.querySelectorAll(SILENT_AROUND)) {
+        const box = button.getBoundingClientRect();
+        if (box.width === 0 || box.height === 0) continue;
+
+        if (pageX >= box.left - SILENT_MARGIN && pageX <= box.right + SILENT_MARGIN
+            && pageY >= box.top - SILENT_MARGIN && pageY <= box.bottom + SILENT_MARGIN) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// The finger that steers: the first one on the field that did not start in a silent band.
+// Fingers resting on a button are not on the field and never count.
+function steeringTouch(e) {
+    for (const touch of e.targetTouches) {
+        if (!silentTouches.has(touch.identifier)) return touch;
+    }
+
+    return null;
+}
+
 // Initialize input event listeners
 export function initializeInputSystem(canvas, gameState, player, restartGame, startGame, deprecatedParam, showPauseMenu, displayHighScores, updateCanvasOverlay) {
     // Detect if this is a touch device on initialization
@@ -168,7 +201,14 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
         e.preventDefault();
         fallbackAudioInit(); // Try to initialize audio on user interaction
         
-        const touch = e.touches[0];
+        // A finger that came down just beside a button was meant for the button
+        for (const started of e.changedTouches) {
+            if (inSilentZone(started.clientX, started.clientY)) silentTouches.add(started.identifier);
+        }
+
+        const touch = steeringTouch(e);
+        if (!touch) return;
+
         const { x: touchX, y: touchY } = toCanvasCoords(canvas, touch.clientX, touch.clientY);
         
         inputState.touchActive = true;
@@ -181,17 +221,23 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
 
     canvas.addEventListener('touchmove', (e) => {
         e.preventDefault();
-        const touch = e.touches[0];
+        const touch = steeringTouch(e);
+        if (!touch) return;
+
         const position = toCanvasCoords(canvas, touch.clientX, touch.clientY);
         inputState.lastTouchX = position.x;
         inputState.lastTouchY = position.y;
     });
 
-    canvas.addEventListener('touchend', (e) => {
+    const touchLifted = (e) => {
         e.preventDefault();
-        inputState.touchActive = false;
+        for (const lifted of e.changedTouches) silentTouches.delete(lifted.identifier);
+        inputState.touchActive = steeringTouch(e) !== null;
         // Keep lastTouchX and lastTouchY - don't reset them so player stays at last position
-    });
+    };
+
+    canvas.addEventListener('touchend', touchLifted);
+    canvas.addEventListener('touchcancel', touchLifted);
 
     // Keyboard events
     document.addEventListener('keydown', (e) => {

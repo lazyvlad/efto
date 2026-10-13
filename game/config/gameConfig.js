@@ -67,15 +67,18 @@ export const gameConfig = {
             positioning: {
                 centerHorizontally: true,  // Center left/right
                 centerVertically: false,   // Don't center vertically
-                bottomOffset: 100,         // Pixels from bottom (above spell buttons)
+                bottomOffset: 10,          // Pixels kept clear under the field. The spell buttons stand on the field's edges, so nothing needs room there
                 topOffset: 125,            // Pixels from top (below both panels: 8px + 115px + 2px gap)
                 useCustomPositioning: true, // Enable mobile-specific positioning
                 
+                sideMargin: 4,             // Pixels kept clear left and right of the field, for its frame
+                maxDisplayScale: 2,        // The field is never drawn more than this many times its own width (a small tablet)
+
                 // Dynamic sizing parameters
                 minHeight: 400,            // Minimum canvas height for very small screens
-                maxHeight: 800,            // Maximum canvas height (original fixed value)
+                maxHeight: 900,            // Maximum canvas height
                 playableHeightPercent: 0.6, // 60% of available space for playable area
-                safeAreaMargin: 20         // Extra margin for safety
+                safeAreaMargin: 6          // Extra margin for safety
             }
         },
         
@@ -214,6 +217,7 @@ export const gameConfig = {
         startingHealth: 100,
         maxHealth: 100,
         moveSmoothing: 0.15,        // Movement smoothing factor (0.1 = slow, 0.3 = fast)
+        mobileScale: 0.78,          // On a phone's narrow field the hunter is drawn this much smaller, to leave room to step aside
         
         // === MOVABLE AREA SETTINGS ===
         movableArea: {
@@ -350,6 +354,11 @@ export const gameConfig = {
 
     bosses: {
         health: { base: 240, perZone: 257 },                    // Hogger (zone 2): 497. The first bosses go down quickly; the last has about 2550
+        // How big a boss is drawn: as tall as this share of the field's height, but never wider
+        // than a share of its width. On a field taller than it is wide (a phone held upright) it
+        // is as tall as the hunter times vsHunterOnNarrowField, so it has room to move about
+        // and is not hit by every shot.
+        size: { height: 0.3, width: 0.6, vsHunterOnNarrowField: 1.12 },
         damage: { base: 8, perZone: 0.8 },                      // What one of the boss's attacks takes off the player: 8 for the first boss, about 15 for the last
         throwEvery: { base: 75, perZone: 5, fastest: 45 },      // Steps on the move between one attack and winding up the next
         volleyEvery: { base: 450, perZone: 15, fastest: 300 },  // Steps between rows with one gap, which every boss sends down on top of its own attacks

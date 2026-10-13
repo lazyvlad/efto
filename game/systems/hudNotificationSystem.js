@@ -407,17 +407,48 @@ function drawNotifications(ctx, canvas, uiScale) {
     ctx.restore();
 }
 
+// On a phone held upright the round spell buttons stand in columns on the field's edges. The
+// buff cards go above the column at the left edge, out of the strip the hunter moves in. This
+// is where that column's top is, in the field's own measure (null when there is none there).
+let leftButtons = { top: null, measuredAt: -Infinity };
+
+function topOfLeftButtons(canvas) {
+    const now = performance.now();
+    if (now - leftButtons.measuredAt > 500) {
+        const field = canvas.getBoundingClientRect();
+        let top = null;
+
+        document.querySelectorAll('#spellBar .spell-group').forEach(group => {
+            const box = group.getBoundingClientRect();
+            const atLeftEdge = box.width > 0 && box.left < field.left + field.width / 2 && box.right > field.left;
+
+            if (atLeftEdge && box.top > field.top && box.top < field.bottom) {
+                top = (box.top - field.top) * canvas.logicalHeight / field.height;
+            }
+        });
+
+        leftButtons = { top, measuredAt: now };
+    }
+
+    return leftButtons.top;
+}
+
 function drawBuffs(ctx, canvas, uiScale) {
     const buffs = Array.from(activeBuffs.values());
     if (buffs.length === 0) return;
 
     const isCompact = canvas.logicalWidth <= 768 || canvas.logicalHeight <= 520;
-    const width = (isCompact ? 180 : 230) * uiScale;
+    const onPhone = canvas.deviceType === 'mobile';
+    const width = (onPhone ? 150 : isCompact ? 180 : 230) * uiScale;
     const height = (isCompact ? 42 : 50) * uiScale;
     const gap = (isCompact ? 5 : 8) * uiScale;
     const x = (isCompact ? 5 : 20) * uiScale;
     const bottom = (isCompact ? 120 : 100) * uiScale;
-    let y = canvas.logicalHeight - bottom - (buffs.length * height + (buffs.length - 1) * gap);
+    const stack = buffs.length * height + (buffs.length - 1) * gap;
+    const aboveButtons = onPhone ? topOfLeftButtons(canvas) : null;
+    let y = aboveButtons !== null
+        ? Math.max(height, aboveButtons - 8 - stack)
+        : canvas.logicalHeight - bottom - stack;
 
     ctx.save();
     ctx.textBaseline = 'middle';

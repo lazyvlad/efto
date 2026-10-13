@@ -203,6 +203,12 @@ function applyPanelStyles() {
 
 // Calculate optimal panel style based on available space and aspect ratio
 function calculateOptimalPanelStyle() {
+    // In a window wider than tall (a phone held sideways too) the panels stay as they are on
+    // a desktop and are scaled with the field (ui/hudLayout.js)
+    if (window.innerWidth >= window.innerHeight) {
+        return 'desktop';
+    }
+
     const spaceInfo = calculateAvailableSpace();
     
     // Factors that suggest using compact (mobile) panels:

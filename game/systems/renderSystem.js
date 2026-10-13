@@ -1,6 +1,7 @@
 import { gameConfig } from '../config/gameConfig.js';
 import { renderCanvasHud, hideMessagesAboveField } from './hudNotificationSystem.js';
 import { drawBoss } from './bossSystem.js';
+import { planHud, applyHud } from '../ui/hudLayout.js';
 
 // The drawSettings function has been removed as it's replaced by HTML+CSS guide.
 
@@ -238,9 +239,9 @@ export function setupHighDPICanvas({ canvas, ctx, responsiveScaler, refreshPanel
             // Use the smaller scale to ensure the entire canvas fits
             scale = Math.min(scaleX, scaleY);
             
-            // CRITICAL: Never scale above 1.0 to maintain exact target dimensions
-            // This ensures we never exceed 1440x810 pixels
-            scale = Math.min(scale, 1.0);
+            // Never drawn larger than its own size, except the phone's field, which is made as
+            // wide as the screen (displayScale, from ResponsiveScaler.getCanvasDimensions)
+            scale = Math.min(scale, deviceCanvasDimensions.displayScale || 1.0);
             
             displayWidth = targetWidth * scale;
             displayHeight = targetHeight * scale;
@@ -323,6 +324,25 @@ export function setupHighDPICanvas({ canvas, ctx, responsiveScaler, refreshPanel
             leftOffset = (viewportWidth - displayWidth) / 2;
             topOffset = (viewportHeight - displayHeight) / 2;
         }
+
+        // The interface is scaled to the field and the spell buttons found a place off it
+        // where there is one (ui/hudLayout.js). Under the field, the field moves up for them.
+        const viewport = { width: viewportWidth, height: viewportHeight };
+        const hud = isMobilePortrait ? null
+            : planHud(viewport, { left: leftOffset, top: topOffset, width: displayWidth, height: displayHeight });
+        if (hud) {
+            if (hud.shrink > 0) {
+                // No room to spare for the buttons: the field gives up their height
+                displayHeight -= hud.shrink;
+                displayWidth = displayHeight * targetAspectRatio;
+                scale = displayHeight / targetHeight;
+                leftOffset = (viewportWidth - displayWidth) / 2;
+                canvas.style.width = displayWidth + 'px';
+                canvas.style.height = displayHeight + 'px';
+            }
+            topOffset -= hud.lift;
+        }
+        applyHud(hud, viewport, { left: leftOffset, top: topOffset, width: displayWidth, height: displayHeight });
         
         canvas.style.position = 'fixed';
         canvas.style.left = leftOffset + 'px';

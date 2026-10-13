@@ -1922,6 +1922,15 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
     display: none;
 }
 
+/* Framed by the site, its header shows the logo just above: not twice */
+body.site-framed #pauseMenu .start-logo {
+    display: none !important;
+}
+
+body.site-framed #pauseMenu .start-header-side {
+    margin-left: auto;
+}
+
 /* The wordmark in place of the title: kept at its own shape, never stretched */
 #pauseMenu#pauseMenu .start-header h2.start-logo {
     line-height: 0;
@@ -2118,8 +2127,37 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
     margin: 10px 0 0;
 }
 
+/* Before a game the game's own panels have nothing to show; on a phone they stood above the
+   starting window and took its room (ui/menuScreenManager.js) */
+body.start-window-open #itemsCollectionPanel#itemsCollectionPanel,
+body.start-window-open #dragonstalkerProgressPanel#dragonstalkerProgressPanel {
+    display: none !important;
+}
+
+/* On a phone the menu windows stand lower to leave the panels in view. With the panels gone,
+   the starting window and the screens opened from it take the whole height. */
+@media (max-width: 600px) {
+    body.start-window-open #settingsScreen,
+    body.start-window-open #howToPlay,
+    body.start-window-open #highScoresScreen,
+    body.start-window-open #itemBonusesScreen,
+    body.start-window-open #pauseMenuContent.pause-content {
+        top: 8px !important;
+        height: calc(100vh - 16px) !important;
+        max-height: calc(100vh - 16px) !important;
+        height: calc(100dvh - 16px) !important;
+        max-height: calc(100dvh - 16px) !important;
+    }
+}
+
 /* Phones: who is playing and the way in first, the map under it, scrolling sideways */
 @media (max-width: 860px) {
+    /* The name box as wide as the button under it */
+    #pauseMenu .start-card #playerNameInput {
+        width: 100%;
+        max-width: none;
+    }
+
     #pauseMenu #pauseMenuContent.pause-content.start-map-open {
         width: 94vw !important;
         max-width: 94vw !important;
@@ -2207,5 +2245,56 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
 @media (max-width: 767px) {
     #pauseMenu .key-bindings.desktop-only {
         display: none;
+    }
+}
+
+
+/* ----- The stats box on a phone held upright -----
+   Half the width of a phone is not room for "Dodge Chance: 10%". The labels are said in one
+   word (label-short in index.html) and the numbers are never cut. */
+
+/* Everywhere else the full label */
+#itemsCollectionPanel .stat-label .label-short {
+    display: none;
+}
+
+@media (max-width: 600px) and (orientation: portrait) {
+    body #itemsCollectionPanel#itemsCollectionPanel .player-stats {
+        min-width: 0 !important;
+        padding-left: 6px !important;
+        padding-right: 6px !important;
+    }
+
+    body #itemsCollectionPanel#itemsCollectionPanel .stat-row {
+        display: flex !important;
+        justify-content: space-between !important;
+        gap: 6px !important;
+        min-width: 0 !important;
+    }
+
+    body #itemsCollectionPanel#itemsCollectionPanel .stat-label {
+        flex: none !important;
+        font-size: 11px !important;
+    }
+
+    #itemsCollectionPanel .stat-label .label-full {
+        display: none;
+    }
+
+    #itemsCollectionPanel .stat-label .label-short {
+        display: inline;
+    }
+
+    body #itemsCollectionPanel#itemsCollectionPanel .stat-value {
+        flex: none !important;
+        min-width: 0 !important;
+        overflow: visible !important;
+        text-overflow: clip !important;
+        white-space: nowrap !important;
+        font-size: 11px !important;
+    }
+
+    body #itemsCollectionPanel#itemsCollectionPanel .player-name {
+        font-size: 13px !important;
     }
 }

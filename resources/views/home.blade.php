@@ -36,7 +36,9 @@
                 onload="this.contentWindow.focus()"
             ></iframe>
 
-            <div class="shrink-0" :class="{ 'phone-hide': playing }">
+            {{-- Not on a phone: the game needs the room, and the browser's own bar lies over the
+                 bottom of the page there. Its links are in the menu. --}}
+            <div class="shrink-0 phone-gone" :class="{ 'phone-hide': playing }">
                 @include('layouts.footer')
             </div>
 

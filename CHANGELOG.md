@@ -1,5 +1,86 @@
 # Changelog
 
+## 2.33.0 - 2026-10-13
+
+### What's new
+
+**The interface fits the window**
+- With a mouse and keyboard, the spell buttons no longer lie over the playing field. They
+  stand beside it, a group against each edge (the shots on the left, or on the right for a
+  left-handed player), in a row or a column as the room allows. A window with no room at the
+  sides has the bar under the field, and a window the field fills exactly gives up a strip
+  of the field's height for it.
+- The spell buttons and the two panels are drawn smaller as the field gets smaller: a
+  zoomed-in browser, developer tools open or a small window no longer leaves them covering
+  the game. They never go below 60% of full size; when small, the buttons lose their names
+  and show the key larger.
+
+**Phones**
+- A phone held sideways gets the wide field, filling the height of the screen, with the round
+  spell buttons and the pause button in the empty margins beside it and the two panels small
+  in the top corners. Before, it kept the upright phone's narrow field in the middle, with a
+  panel stretched across it and the buttons on top of that.
+- The starting window uses the whole screen on a phone. The game's stats box no longer
+  shows above it before a game (it had nothing to show, and pushed "Start here" off the
+  bottom), nor above Settings and the other screens opened from there.
+- The name box on the starting window is as wide as the button under it.
+- Held upright, the playing field runs to the bottom of the screen: the strip of about 100
+  pixels that was kept empty under it is now part of the field.
+- And it is as wide as the screen. It was a fixed 360 pixels, which left bars at the sides
+  of a wider phone and was squeezed, with room wasted under it, on a narrower one. Now it is
+  worked out from the width as it is from the height, and again when either changes. A wider
+  phone shows the same field larger, not more of it, so the game plays the same on all.
+- The stats box no longer cuts its text off on a phone ("Crit Chance: 1.."). There the
+  labels are one word (Crit, Dodge, Saved, Area) and the numbers are always shown whole.
+- The round spell buttons stand tight against the sides of the field.
+- Settings, Controls: "Shooting buttons: on the left / on the right" says plainly what the
+  Handedness setting did, which side the shots stand on, with the other buttons opposite.
+  It works on a computer too, where the buttons stand beside the field.
+- The pause button on phones shows the two bars of "pause" (it was a potion bottle) and
+  stands in the top right corner of the field, away from the spell buttons. Held sideways it
+  is under the set panel at the right edge.
+- A touch that lands just beside a spell button or the pause button no longer sends the
+  hunter running there: a band of 16 pixels around each is silent. A finger that comes down
+  in it never steers, wherever it slides.
+- Holding a button with one thumb no longer takes the steering away from the other: only
+  fingers on the field itself steer.
+- On a phone held upright a boss is drawn a little larger than the hunter, where it took up
+  to 60% of the field's width: it has room to move about and is no longer hit by every shot. The
+  hunter and pet are about a fifth smaller too, to step around what is thrown. Loot keeps
+  its size.
+- The cards of the effects in force (Speed Boost, Frost Nova and the like) stand above the
+  buttons at the left edge of the field on a phone, narrower than before. They were in the
+  strip the hunter moves in.
+- Under the site's header the starting window no longer repeats the logo (on a computer
+  too), and on a phone the footer under the game is gone: the browser's own bar lay over it.
+  Its "Items" link is in the phone menu.
+
+**Full screen on phones**
+- On an Android phone or tablet, or an iPad, the game takes the whole screen when a game
+  starts and when it is continued, and gives it back when the pause button is pressed and at
+  game over. Under the site's header it is the game alone that fills the screen.
+- The iPhone's browser does not let a web page do this. There, the site can be added to the
+  home screen (Share, "Add to Home Screen"): opened from there it runs without the browser's
+  bars, with the new icon.
+
+### Changed
+- A small window on a computer keeps the wide desktop field, scaled down. Before, it was
+  taken for a tablet or a phone and given their narrower field and stacked panels. A laptop
+  with a touch screen counts as a computer too. Phones and tablets are as they were.
+
+### Fixed
+- When the window changed size, the canvas was laid out to the field's old size and only
+  caught up on the next change. The size is now worked out first.
+
+### For developers
+- `game/utils/hudLayout.js` decides the scale and the place of the buttons (tested in
+  `game/tests/hudLayout.test.mjs`); `game/ui/hudLayout.js` puts it on the page as body
+  classes (`hud-desktop`, `spells-sides`, `spells-below`, `spells-columns`, `hud-compact`)
+  and CSS variables, read by "The interface follows the field" in `styles/spell-bar.css`.
+  It runs each time the field is laid out (`setupHighDPICanvas`).
+- The scale is applied with CSS `zoom`, so lengths inside the scaled elements are in scaled
+  pixels: the script divides screen distances by the scale before handing them over.
+
 ## 2.32.0 - 2026-10-13
 
 ### What's new

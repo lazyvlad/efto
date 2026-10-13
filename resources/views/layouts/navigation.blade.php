@@ -99,6 +99,12 @@
             <x-responsive-nav-link :href="route('about')" :active="request()->routeIs('about')">
                 {{ __('About') }}
             </x-responsive-nav-link>
+            @guest
+                {{-- A logged-in player has it under their name below --}}
+                <x-responsive-nav-link :href="route('items')" :active="request()->routeIs('items')">
+                    {{ __('Items') }}
+                </x-responsive-nav-link>
+            @endguest
         </div>
 
         <!-- Responsive Settings Options -->

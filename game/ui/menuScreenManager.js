@@ -36,13 +36,26 @@ function showShell() {
     setDisplay(MENU_IDS.shell, 'flex');
 }
 
+// No game is running behind the starting window and the screens opened from it, so the
+// game's own panels have nothing to show there (styles/wow-theme.css hides them)
+function markStartWindow(open) {
+    document.body.classList.toggle('start-window-open', open);
+}
+
 export const menuScreenManager = {
+    // Screens are swapped by hiding all and showing one, so this alone does not mean the
+    // starting window has been left: a game starting does (gameStarted)
     hideAll() {
         setDisplay(MENU_IDS.shell, 'none');
         hideNestedScreens();
     },
 
+    gameStarted() {
+        markStartWindow(false);
+    },
+
     hideShell() {
+        markStartWindow(false);
         setDisplay(MENU_IDS.shell, 'none');
     },
 
@@ -54,6 +67,7 @@ export const menuScreenManager = {
         setDisplay(MENU_IDS.pauseGame, 'none');
         // The starting window is the world map, which wants the room of the whole screen
         document.getElementById(MENU_IDS.content)?.classList.add('start-map-open');
+        markStartWindow(true);
     },
 
     showPauseMenu() {
@@ -63,6 +77,7 @@ export const menuScreenManager = {
         setDisplay(MENU_IDS.nameEntry, 'none');
         setDisplay(MENU_IDS.pauseGame, 'block');
         document.getElementById(MENU_IDS.content)?.classList.remove('start-map-open');
+        markStartWindow(false);
     },
 
     showSettings() {
@@ -96,6 +111,7 @@ export const menuScreenManager = {
     },
 
     showGameOver() {
+        markStartWindow(false);
         showShell();
         setDisplay(MENU_IDS.content, 'none');
         setDisplay(MENU_IDS.settings, 'none');

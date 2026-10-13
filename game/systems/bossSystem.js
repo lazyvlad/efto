@@ -19,7 +19,8 @@ import { BossProjectile } from '../classes/BossProjectile.js';
 import { PowerUpItem } from '../classes/PowerUpItem.js';
 import { CombatText } from '../classes/CombatText.js';
 import { Particle } from '../classes/Particle.js';
-import { addNotification, trackActivity } from '../utils/gameUtils.js';
+import { addNotification, trackActivity, responsiveScaler } from '../utils/gameUtils.js';
+import { FIGURE_HEIGHT_TO_WIDTH } from '../classes/Player.js';
 import { playTotalSound, playScreamSound, playFireballImpactSound } from './audioSystem.js';
 import { areMessagesAboveField } from './hudNotificationSystem.js';
 import { keyName } from '../utils/keybindings.js';
@@ -111,7 +112,14 @@ function layout(canvas, boss) {
     const underMessages = canvas.logicalHeight * (areMessagesAboveField() ? 0.012 : 0.085);
     const barTop = Math.max(underMessages, spaceClearOfPanels(canvas).top + 8);
     const barHeight = Math.max(14, canvas.logicalHeight * 0.022);
-    const height = Math.min(canvas.logicalHeight * 0.3, canvas.logicalWidth * 0.6 / aspect);
+    const size = gameConfig.bosses.size;
+    // On a field taller than it is wide (a phone held upright) the boss is the hunter's size:
+    // anything bigger fills the width and leaves it nowhere to go
+    const narrow = canvas.logicalHeight > canvas.logicalWidth;
+    const tallest = narrow
+        ? responsiveScaler.getSize('player').width * FIGURE_HEIGHT_TO_WIDTH * size.vsHunterOnNarrowField
+        : canvas.logicalHeight * size.height;
+    const height = Math.min(tallest, canvas.logicalWidth * size.width / aspect);
     const width = height * aspect;
 
     return { barTop, barHeight, width, height, top: barTop + barHeight + 8 };

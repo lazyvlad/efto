@@ -961,8 +961,17 @@ export class ResponsiveScaler {
             userAgent.includes(agent)
         );
         
-        // Primary: Check if device has touch capability
-        if (hasTouch || isMobileUserAgent) {
+        // A phone or tablet: touch is how it is pointed at. A laptop that also has a touch
+        // screen is still worked with a mouse and keyboard, and gets the desktop field.
+        const touchFirst = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+
+        if ((hasTouch && touchFirst) || isMobileUserAgent) {
+            // A phone or small tablet held sideways has the wide field, scaled to fit: the
+            // phone's own field is for a screen taller than it is wide
+            if (width > height && maxDimension <= detection.mobileMaxWidth) {
+                return 'desktop';
+            }
+
             // Touch device - determine mobile vs tablet based on size
             if (maxDimension <= detection.mobileMaxWidth) {
                 return 'mobile';
@@ -972,6 +981,13 @@ export class ResponsiveScaler {
                 // Large touch device - still considered tablet
                 return 'tablet';
             }
+        }
+
+        // With a mouse and keyboard, a window wider than it is tall always has the desktop
+        // field, however small: zoomed in or with developer tools open it is scaled down, not
+        // swapped for the tablet's or the phone's (ui/hudLayout.js scales the interface to it)
+        if (width >= height) {
+            return 'desktop';
         }
 
         // Browser devtools/mobile-preview modes can resize the viewport without exposing touch
@@ -1002,11 +1018,16 @@ export class ResponsiveScaler {
             const viewportHeight = window.innerHeight;
             const positioning = baseConfig.positioning;
             
-            // Calculate available height after UI elements
-            const availableHeight = viewportHeight - positioning.topOffset - positioning.bottomOffset - positioning.safeAreaMargin;
+            // The field is as wide as the screen: it is drawn larger or smaller than its own
+            // width by this much, so a wider phone shows the same field bigger, not more of it
+            const displayScale = Math.max(0.5, Math.min(positioning.maxDisplayScale,
+                (viewportWidth - 2 * positioning.sideMargin) / baseConfig.width));
+
+            // Calculate available height after UI elements, in the field's own measure
+            const availableHeight = (viewportHeight - positioning.topOffset - positioning.bottomOffset - positioning.safeAreaMargin) / displayScale;
             
             // Constrain to min/max bounds
-            const constrainedHeight = Math.max(positioning.minHeight, Math.min(positioning.maxHeight, availableHeight));
+            const constrainedHeight = Math.round(Math.max(positioning.minHeight, Math.min(positioning.maxHeight, availableHeight)));
             
             // Calculate playable height as percentage of total canvas height
             const playableHeight = constrainedHeight * positioning.playableHeightPercent;
@@ -1024,6 +1045,7 @@ export class ResponsiveScaler {
                 aspectRatio: baseConfig.width / constrainedHeight,
                 playableWidth: baseConfig.width,
                 playableHeight: playableHeight,
+                displayScale: displayScale,
                 positioning: baseConfig.positioning
             };
         }
@@ -1060,7 +1082,8 @@ export class ResponsiveScaler {
     capToPlayer(size) {
         if (this.deviceType !== 'mobile') return size;
 
-        return Math.min(size, this.sizes.player.width * gameConfig.items.mobileMaxSizeVsPlayer);
+        // Against the hunter's full size: drawn smaller on a phone, he does not shrink the loot
+        return Math.min(size, this.sizes.player.fullWidth * gameConfig.items.mobileMaxSizeVsPlayer);
     }
     
     calculateElementSizes() {
@@ -1129,6 +1152,11 @@ export class ResponsiveScaler {
             this.sizes.player.width = Math.min(this.sizes.player.width, maxMobileSize);
             this.sizes.player.height = Math.min(this.sizes.player.height, maxMobileSize); // Square aspect ratio
             
+            // The field is narrow: a smaller hunter has room to step out from under things
+            this.sizes.player.fullWidth = this.sizes.player.width;
+            this.sizes.player.width = Math.round(this.sizes.player.width * gameConfig.player.mobileScale);
+            this.sizes.player.height = Math.round(this.sizes.player.height * gameConfig.player.mobileScale);
+
             // Falling things keep the proportions they have next to the player on desktop
             // (items.mobileSizeBoost can draw them larger)
             const boost = gameConfig.items.mobileSizeBoost;

@@ -52,18 +52,18 @@
     <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
-    <link rel="stylesheet" href="styles/base.css?v=2.32.0">
-    <link rel="stylesheet" href="styles/ui-components.css?v=2.32.0">
-    <link rel="stylesheet" href="styles/settings.css?v=2.32.0">
-    <link rel="stylesheet" href="styles/notifications.css?v=2.32.0">
-    <link rel="stylesheet" href="styles/game-panels.css?v=2.32.0">
-    <link rel="stylesheet" href="styles/spell-bar.css?v=2.32.0">
-    <link rel="stylesheet" href="styles/how-to-play.css?v=2.32.0">
-    <link rel="stylesheet" href="styles/mobile.css?v=2.32.0">
-    <link rel="stylesheet" href="styles/wow-theme.css?v=2.32.0">
-    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.32.0"> -->
+    <link rel="stylesheet" href="styles/base.css?v=2.33.0">
+    <link rel="stylesheet" href="styles/ui-components.css?v=2.33.0">
+    <link rel="stylesheet" href="styles/settings.css?v=2.33.0">
+    <link rel="stylesheet" href="styles/notifications.css?v=2.33.0">
+    <link rel="stylesheet" href="styles/game-panels.css?v=2.33.0">
+    <link rel="stylesheet" href="styles/spell-bar.css?v=2.33.0">
+    <link rel="stylesheet" href="styles/how-to-play.css?v=2.33.0">
+    <link rel="stylesheet" href="styles/mobile.css?v=2.33.0">
+    <link rel="stylesheet" href="styles/wow-theme.css?v=2.33.0">
+    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.33.0"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
-  <!-- Built: 2026-10-13T07:48:39.994Z | Version: 2.32.0 | Mode: Production -->
+  <!-- Built: 2026-10-13T19:38:16.100Z | Version: 2.33.0 | Mode: Production -->
 </head>
 <body>
     <!-- The background: two layers that fade from one picture to the next (backgroundSystem.js) -->
@@ -149,7 +149,7 @@
     
     <!-- Mobile Pause Button (floating) -->
     <button id="mobilePauseBtn" class="mobile-pause-btn" style="display: none;" title="Pause Game">
-        <img src="assets/powerups/time-cutter.webp" alt="" class="mobile-pause-icon">
+        <svg class="mobile-pause-bars" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.2"/><rect x="14" y="4" width="5" height="16" rx="1.2"/></svg>
     </button>
 
     <!-- Unified Pause Menu Screen -->
@@ -248,13 +248,13 @@
                 <!-- Controls Settings Section -->
                 <div class="settings-section">
                     <h3>Controls</h3>
-                    <p class="section-description">Which hand moves the character and which one shoots</p>
+                    <p class="section-description">Which side of the playing field the shooting buttons stand on. The other buttons take the other side.</p>
                     
                     <div class="setting-item">
-                        <label for="handedness">Handedness:</label>
+                        <label for="handedness">Shooting buttons:</label>
                         <select id="handedness" class="setting-select">
-                            <option value="right">Right-handed (move right, shoot left)</option>
-                            <option value="left">Left-handed (move left, shoot right)</option>
+                            <option value="right">On the left (move with the right hand)</option>
+                            <option value="left">On the right (move with the left hand)</option>
                         </select>
                     </div>
                     
@@ -627,37 +627,37 @@
         <!-- Player Stats Section -->
         <div class="player-stats">
             <div class="stat-row">
-                <span class="stat-label">Speed:</span>
+                <span class="stat-label"><span class="label-full">Speed:</span><span class="label-short">Speed</span></span>
                 <span class="stat-value" id="gameSpeed">1.0x</span>
             </div>
             <div class="stat-row" id="speedBoostRow" style="display: none;">
-                <span class="stat-label">Speed Boost:</span>
+                <span class="stat-label"><span class="label-full">Speed Boost:</span><span class="label-short">Boost</span></span>
                 <span class="stat-value" id="speedBoostValue">+0%</span>
             </div>
             <!-- Removed Actual Item Speed and Actual Projectile Speed - not needed -->
             <div class="stat-row">
-                <span class="stat-label">Crit Chance:</span>
+                <span class="stat-label"><span class="label-full">Crit Chance:</span><span class="label-short">Crit</span></span>
                 <span class="stat-value" id="critRating">10%</span>
             </div>
             <div class="stat-row">
-                <span class="stat-label">Dodge Chance:</span>
+                <span class="stat-label"><span class="label-full">Dodge Chance:</span><span class="label-short">Dodge</span></span>
                 <span class="stat-value" id="dodgeRating">0%</span>
             </div>
             <!-- Removed Dodges Made - not needed -->
             <div class="stat-row">
-                <span class="stat-label">Health Saved:</span>
+                <span class="stat-label"><span class="label-full">Health Saved:</span><span class="label-short">Saved</span></span>
                 <span class="stat-value" id="healthSavedFromDodges">0 HP</span>
             </div>
             <div class="stat-row">
-                <span class="stat-label">Dodge Area:</span>
+                <span class="stat-label"><span class="label-full">Dodge Area:</span><span class="label-short">Area</span></span>
                 <span class="stat-value" id="dodgeAreaExpansion">+0px</span>
             </div>
             <div class="stat-row">
-                <span class="stat-label">Arrows:</span>
+                <span class="stat-label"><span class="label-full">Arrows:</span><span class="label-short">Arrows</span></span>
                 <span class="stat-value" id="arrowCount">0</span>
             </div>
             <div class="stat-row">
-                <span class="stat-label">Coins:</span>
+                <span class="stat-label"><span class="label-full">Coins:</span><span class="label-short">Coins</span></span>
                 <span class="stat-value" id="coinCount">0c</span>
             </div>
         </div>
@@ -694,7 +694,7 @@
     </div>
 
     <!-- Game Script -->
-    <script type="module" src="game-modular.q9kyporn.js?v=2.32.0"></script>
+    <script type="module" src="game-modular.2thubjff.js?v=2.33.0"></script>
     
 
 

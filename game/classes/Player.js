@@ -8,7 +8,7 @@ import { characterFor } from '../data/playerCharacters.js';
 // The player is a whole figure (data/playerCharacters.js has one for each side), so the
 // player's box is this many times taller than it is wide. The figure stands as tall as the
 // box; a broad one reaches a little outside it to either side.
-const FIGURE_HEIGHT_TO_WIDTH = 1.88;
+export const FIGURE_HEIGHT_TO_WIDTH = 1.88;
 // Under the feet, inside the player's box, is room for a small health bar: this much of the
 // box's width, top to bottom.
 const HEALTH_BAR_ROOM = 0.16;

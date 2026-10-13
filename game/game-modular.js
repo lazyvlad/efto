@@ -29,6 +29,7 @@ import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
 import { showTravelMap } from './ui/travelMap.js';
 import { initializeKeyBindings } from './ui/keyBindingsScreen.js';
 import { initializeMusicButton } from './ui/musicButton.js';
+import { enterFullscreen, leaveFullscreen } from './ui/fullscreen.js';
 import { actionFor, keyName, resetKeys } from './utils/keybindings.js';
 import { say, preloadVoiceLines, resetVoiceLines, updateBanter, watchHealth, forgetHealth } from './systems/voiceSystem.js';
 import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies } from './systems/bossSystem.js';
@@ -431,11 +432,11 @@ function hideAllUIElements() {
 
 // Handle window resize to maintain fullscreen and reposition all game objects
 window.addEventListener('resize', () => {
+    // The size of the field is worked out afresh first, then the canvas is laid out to it
+    responsiveScaler.updateScaling();
+    
     // Use high-DPI canvas setup instead of simple width/height assignment
     setupHighDPICanvas();
-    
-    // Update responsive scaling
-    responsiveScaler.updateScaling();
     
     // Reposition player if needed - use logical canvas dimensions (supports portrait mode)
     if (player && player.repositionOnResize) {
@@ -877,6 +878,9 @@ function startGame() {
     gameState.score = 0;
     gameState.health = gameState.maxHealth;
     gameState.gameRunning = true;
+    menuScreenManager.gameStarted();
+    // A phone gives the game its whole screen while it is played (ui/fullscreen.js)
+    enterFullscreen();
     gameState.gamePaused = false;
     gameState.currentScreen = 'game';
     
@@ -1334,6 +1338,7 @@ function showPauseMenu() {
     gameState.showingPauseMenu = true;
     gameState.gameRunning = false;
     gameState.gamePaused = true;
+    leaveFullscreen();
     
     // Update pause menu content to show appropriate view
     updatePauseMenuContent();
@@ -1351,6 +1356,7 @@ function hidePauseMenu() {
     gameState.showingPauseMenu = false;
     gameState.gameRunning = true; // Resume the game when hiding pause menu
     gameState.gamePaused = false;
+    enterFullscreen();
     
     // Hide HTML pause menu
     menuScreenManager.hideShell();
@@ -2175,6 +2181,8 @@ function setupUIEventHandlers() {
 
         // Under the site's header the high scores have a page of their own, linked from there
         if (siteBoot && siteBoot.embedded) viewScoresBtn.style.display = 'none';
+        // Under the site's header, which carries the logo already (styles/wow-theme.css)
+        document.body.classList.toggle('site-framed', Boolean(siteBoot && siteBoot.embedded));
     } else {
         console.warn('viewScoresBtn not found!');
     }
@@ -2371,7 +2379,9 @@ function updateMobilePauseButtonVisibility() {
     if (!mobilePauseBtn) return;
     
     // Show button only on mobile devices during active gameplay
-    const shouldShow = responsiveScaler.deviceType === 'mobile' && 
+    // On a phone or tablet however it is held: there is no Esc key to press
+    const touchFirst = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+    const shouldShow = (responsiveScaler.deviceType === 'mobile' || touchFirst) && 
                       gameState.gameRunning && 
                       !gameState.showingPauseMenu &&
                       gameState.currentScreen === 'game';
@@ -3640,6 +3650,7 @@ function endGame() {
     }
     
     // Show pause menu container and hide pause content to display game over screen
+    leaveFullscreen();
     menuScreenManager.showGameOver();
     gameState.currentScreen = 'gameOver';
     updateScreenNavigation('gameOver', { backLabel: getBackLabelForSource('menu') });
@@ -3698,6 +3709,7 @@ function winGame() {
     }
     
     // Show pause menu container and hide pause content to display game over screen
+    leaveFullscreen();
     menuScreenManager.showGameOver();
     gameState.currentScreen = 'gameOver';
     updateScreenNavigation('gameOver', { backLabel: getBackLabelForSource('menu') });
