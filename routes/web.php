@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin;
 use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\GameHistoryController;
@@ -53,6 +54,30 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/profile/avatar', [AvatarController::class, 'store'])->name('profile.avatar.store');
     Route::delete('/profile/avatar', [AvatarController::class, 'destroy'])->name('profile.avatar.destroy');
+});
+
+// The admin section: for accounts made admins with "php artisan input:admin <email>"
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/', Admin\DashboardController::class)->name('dashboard');
+
+    Route::get('/users', [Admin\UserController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}', [Admin\UserController::class, 'show'])->name('users.show');
+    Route::post('/users/{user}/activate', [Admin\UserController::class, 'activate'])->name('users.activate');
+    Route::post('/users/{user}/coins', [Admin\UserController::class, 'coins'])->name('users.coins');
+    Route::post('/users/{user}/block', [Admin\UserController::class, 'block'])->name('users.block');
+    Route::post('/users/{user}/unblock', [Admin\UserController::class, 'unblock'])->name('users.unblock');
+    Route::post('/users/{user}/admin', [Admin\UserController::class, 'admin'])->name('users.admin');
+    Route::delete('/users/{user}', [Admin\UserController::class, 'destroy'])->name('users.destroy');
+
+    Route::get('/games', [Admin\GameController::class, 'index'])->name('games.index');
+    Route::delete('/scores/{score}', [Admin\GameController::class, 'removeScore'])->name('scores.destroy');
+
+    Route::get('/announcements', [Admin\AnnouncementController::class, 'index'])->name('announcements.index');
+    Route::post('/announcements', [Admin\AnnouncementController::class, 'send'])->name('announcements.send');
+
+    Route::get('/settings', [Admin\SettingsController::class, 'edit'])->name('settings.edit');
+    Route::post('/settings', [Admin\SettingsController::class, 'update'])->name('settings.update');
+    Route::post('/settings/reset', [Admin\SettingsController::class, 'reset'])->name('settings.reset');
 });
 
 require __DIR__.'/auth.php';

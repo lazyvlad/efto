@@ -1,5 +1,71 @@
 # Changelog
 
+## 2.31.0 - 2026-10-13
+
+### What's new
+
+**An admin section**
+- At `/admin`, for accounts that have been made admins; "Admin" appears in their menu. To
+  everyone else the pages do not exist.
+- **Overview**: accounts (all, new this week, activated, with Discord, blocked), games
+  (today, this week, all, by guests, being played now), scores, bosses brought down and the
+  coins in all purses, with the latest games and newest accounts.
+- **Accounts**: every account, searched by name, email or Discord name, or narrowed to not
+  activated, with Discord, blocked or admins. An account's page shows what it has (games,
+  best score, boss loot, set pieces, quiver, purse) and its latest games, and lets an admin:
+  - activate it by hand, for a player the email never reached;
+  - set its purse;
+  - block or unblock it;
+  - make it an admin or take that away;
+  - delete it, after typing its email address.
+- **Games**: every game played, newest first, searched by player name or narrowed to the
+  leaderboard, guests, Boss Rush or games that ran without the server. A score can be taken
+  off the leaderboard; the game stays on record.
+- A blocked account cannot log in, by password or Discord, and is logged out wherever it is
+  logged in. Its player can still play as a guest.
+- An admin cannot block, demote or delete their own account from here.
+
+**Announcements from the admin section**
+- Admin, Announcements: write a message to the players (subject, message in Markdown, an
+  optional button) and send it. "Send to me only" sends it to your own address first, and
+  the form comes back as it was; "Send to everyone" asks before it goes.
+- Everyone means players who confirmed their email address, kept news emails on and are not
+  blocked; the page says how many that is. One address that fails does not stop the rest.
+- What was sent is listed under the form: subject, text, to how many, when and by whom.
+
+**Game settings without a new version**
+- Admin, Settings: 28 numbers of the game that can be changed from the site.
+  - Bosses: health and attack damage (for the first boss, and added per zone), the health
+    given back for a kill, the damage of an arrow.
+  - The hunter: health lost for a missed item, quiver slots filled at the start, how often
+    the pet fetches.
+  - How often each rarity of item falls, and the copper each pays.
+  - Boss loot and prices: the large quiver's chance, the price of skipping a zone and of a
+    Boss Rush, the copper a boss pays.
+  - The leaderboard's length.
+- Each shows the game's own value beside it and is marked when it differs. Every value has a
+  range it must stay within. One button puts everything back.
+- A change counts for games started after it is saved. A game already running keeps what it
+  started with until the page is reloaded.
+
+**Google Analytics**
+- Visits to the site and the game are counted by Google Analytics where its id is set
+  (`GOOGLE_ANALYTICS_ID` in `.env`). A visit to the landing page counts once, not again for
+  the game framed inside it, and the admin pages are not counted.
+
+### For developers
+- The first admin is made on the server: `php artisan input:admin someone@example.com`
+  (`--remove` takes it away). After that, admins can make others from the account's page.
+- New migration: `is_admin` and `blocked_at` on `users`.
+- New migration: the `announcements` and `settings` tables.
+- The settings an admin can change are listed in `config/game_settings.php`: each names the
+  server value it replaces (`config`), its place in the game's `gameConfig` (`game`), or
+  both, with its range. Changed values are rows of `settings`, laid over the config when the
+  application starts (`App\Support\GameSettings`) and handed to the game with its page
+  (`INPUT_BOOT.settings`, applied at the end of `game/config/gameConfig.js`).
+- The values in the files stay the defaults: changing a number in the admin section does not
+  touch them, and the tests that compare the game's files with the server's still hold.
+
 ## 2.30.0 - 2026-10-13
 
 ### What's new

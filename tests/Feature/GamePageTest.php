@@ -44,6 +44,26 @@ class GamePageTest extends TestCase
         $this->assertFileExists(public_path('images/input-card.jpg'));
     }
 
+    public function test_visits_are_counted_once_and_only_where_an_id_is_set(): void
+    {
+        foreach (['home', 'play', 'about', 'login'] as $page) {
+            $this->get(route($page))->assertDontSee('googletagmanager');
+        }
+
+        config(['services.google.analytics' => 'G-TEST123']);
+
+        foreach (['home', 'play', 'about', 'login'] as $page) {
+            $this->get(route($page))->assertSee('googletagmanager.com/gtag/js?id=G-TEST123', false);
+        }
+
+        // Framed by the landing page, the game leaves the counting to that page
+        $this->get(route('play', ['embedded' => 1]))->assertDontSee('googletagmanager');
+
+        $admin = \App\Models\User::factory()->create();
+        $admin->forceFill(['is_admin' => true])->save();
+        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertDontSee('googletagmanager');
+    }
+
     public function test_pages_carry_the_footer_credit(): void
     {
         foreach (['/', route('highscores'), route('login'), route('register')] as $page) {

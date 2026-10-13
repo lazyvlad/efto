@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Support\BossLoot;
+use App\Support\GameSettings;
 use App\Support\GuestName;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -60,6 +61,8 @@ class GameController extends Controller
             ] : null,
             // Boss Rush: what a logged-in player pays to enter
             'rush' => $user?->canUseRewards() ? ['fee' => (int) config('boss_loot.rush.entry_fee')] : null,
+            // Settings changed in the admin section, by their place in the game's gameConfig
+            'settings' => (object) app(GameSettings::class)->forGame(),
             'csrfToken' => csrf_token(),
             // Framed by the landing page, whose header already has the account links
             'embedded' => $request->boolean('embedded'),
@@ -82,7 +85,9 @@ class GameController extends Controller
             .json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES)
             .';</script>'."\n    "
             // The card shown when the game's address is posted in a chat or on social media
-            .trim(view('layouts.social')->render());
+            .trim(view('layouts.social')->render())
+            // Counted once: framed by the landing page, that page has already counted the visit
+            .($request->boolean('embedded') ? '' : "\n    ".trim(view('layouts.analytics')->render()));
 
         $html = preg_replace('/<head(\s[^>]*)?>/i', "$0\n    ".$head, file_get_contents($indexPath), 1);
 

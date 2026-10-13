@@ -11,6 +11,8 @@
 
         @include('layouts.social')
 
+        @include('layouts.analytics')
+
         @include('layouts.fonts')
 
         <!-- Scripts -->

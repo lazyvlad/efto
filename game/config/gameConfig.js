@@ -1,4 +1,5 @@
 import { serverConfig } from './serverConfig.js';
+import { applySettings } from '../utils/applySettings.js';
 
 // Cache busting configuration
 export const cacheConfig = {
@@ -630,6 +631,10 @@ export const gameConfig = {
         }
     },
 };
+
+// Settings changed in the site's admin section come with the page. They are laid over the
+// ones above here, before anything else in the game has read them.
+applySettings(gameConfig, globalThis.INPUT_BOOT?.settings);
 
 // High Scores System Configuration
 export const HIGH_SCORES_KEY = 'dmtribut_high_scores';

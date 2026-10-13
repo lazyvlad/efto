@@ -1,0 +1,1 @@
+export function applySettings(t,e){const o=[];for(const[n,p]of Object.entries(e||{})){const e=n.split("."),i=e.pop(),r=e.reduce((t,e)=>t&&"object"==typeof t?t[e]:void 0,t);r&&"number"==typeof r[i]&&Number.isFinite(p)&&(r[i]=p,o.push(n))}return o}

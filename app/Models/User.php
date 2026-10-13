@@ -55,6 +55,8 @@ class User extends Authenticatable implements MustVerifyEmail
             'coins' => 'integer',
             'quiver' => 'boolean',
             'news_emails' => 'boolean',
+            'is_admin' => 'boolean',
+            'blocked_at' => 'datetime',
         ];
     }
 
@@ -65,6 +67,14 @@ class User extends Authenticatable implements MustVerifyEmail
     public function canUseRewards(): bool
     {
         return $this->hasVerifiedEmail() || $this->discord_id !== null;
+    }
+
+    /**
+     * Shut out of the site by an admin: cannot log in, and is logged out where it is.
+     */
+    public function isBlocked(): bool
+    {
+        return $this->blocked_at !== null;
     }
 
     /**
