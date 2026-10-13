@@ -7,6 +7,7 @@
 
 import { siteBoot } from './accountBar.js';
 import { backgrounds } from '../data/backgrounds.js';
+import { bossForZone } from '../data/bosses.js';
 import { formatCoins } from '../utils/coins.js';
 
 function skip() {
@@ -69,26 +70,52 @@ function rushFee() {
 }
 
 // ----- Boss fight -----
-// The boss of the chosen zone and nothing else: no zone to play through first. Anyone may
-// fight the first boss; a later one is open, and paid for, as starting in its zone is.
+// The boss of the chosen zone and nothing else: no zone to play through first. Only a boss
+// the logged-in player has beaten before (INPUT_BOOT.user.bosses), and paid for as starting
+// in its zone is. It is for going back to a boss, not a way past the zones.
 
-// Fill the choice between a normal game, one boss fight and Boss Rush
-export function renderGameModePicker() {
+// Whether the player has beaten the boss of this zone before
+export function hasBeaten(faction, zone) {
+    const boss = faction ? bossForZone(faction, zone) : null;
+    const beaten = siteBoot && siteBoot.user && siteBoot.user.bosses;
+
+    return Boolean(boss && beaten && beaten.includes(boss.id));
+}
+
+// The player beat a boss: it may be fought on its own from now on
+export function rememberBeaten(bossId) {
+    if (siteBoot && siteBoot.user && siteBoot.user.bosses && !siteBoot.user.bosses.includes(bossId)) {
+        siteBoot.user.bosses.push(bossId);
+    }
+}
+
+// The side and zone the choice of mode was last filled for
+let pickedFor = { faction: null, zone: 1 };
+
+// Fill the choice between a normal game, one boss fight and Boss Rush, for the place picked
+export function renderGameModePicker(faction = pickedFor.faction, zone = pickedFor.zone) {
     const picker = document.getElementById('gameModePicker');
     const select = document.getElementById('gameMode');
     if (!picker || !select) return;
 
+    pickedFor = { faction, zone };
+
     const chosen = select.value;
     const fee = rushFee();
-    picker.hidden = false;
+    // Guests have nothing but the normal game to choose
+    picker.hidden = !(siteBoot && siteBoot.user);
     select.textContent = '';
+    if (picker.hidden) return;
 
     const normal = document.createElement('option');
     normal.value = 'normal';
     normal.textContent = 'Normal game';
     const fight = document.createElement('option');
     fight.value = 'boss_fight';
-    fight.textContent = 'Boss fight: only this zone\'s boss';
+    fight.disabled = !hasBeaten(faction, zone);
+    fight.textContent = fight.disabled
+        ? 'Boss fight: beat this zone\'s boss in a game first'
+        : 'Boss fight: only this zone\'s boss';
     select.append(normal, fight);
 
     if (fee !== null) {
@@ -108,7 +135,7 @@ export function getGameMode() {
     const select = document.getElementById('gameMode');
     const fee = rushFee();
 
-    if (select && select.value === 'boss_fight') return 'boss_fight';
+    if (select && select.value === 'boss_fight' && hasBeaten(pickedFor.faction, pickedFor.zone)) return 'boss_fight';
 
     return select && select.value === 'boss_rush' && fee !== null && fee <= (siteBoot.user.coins || 0) ? 'boss_rush' : 'normal';
 }

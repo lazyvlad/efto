@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\BossDrop;
 use App\Models\Game;
 use App\Models\User;
 use App\Support\DiscordFeed;
@@ -91,10 +92,14 @@ class DiscordFeedTest extends TestCase
 
     public function test_a_boss_fight_is_told_only_when_the_boss_went_down(): void
     {
-        $this->play(['mode' => 'boss_fight']);
+        $user = User::factory()->create(['name' => 'Bob']);
+        BossDrop::create(['user_id' => $user->id, 'boss_id' => 'sarkoth', 'item_id' => 'x', 'rarity' => 'uncommon', 'dropped_at' => now()]);
+
+        // Lost: the boss was not brought down
+        $this->actingAs($user)->play(['mode' => 'boss_fight']);
         Http::assertNothingSent();
 
-        $token = $this->postJson(route('games.open'), ['name' => 'Bob', 'faction' => 'horde', 'mode' => 'boss_fight'])->json('game');
+        $token = $this->postJson(route('games.open'), ['faction' => 'horde', 'mode' => 'boss_fight'])->json('game');
         $this->travel(25)->seconds();
         $this->postJson(route('games.boss', $token), ['boss' => 'sarkoth'])->assertOk();
         $this->postJson(route('games.finish', $token), ['score' => 100, 'gameTime' => 20])->assertOk();

@@ -51,6 +51,8 @@ class GameController extends Controller
                 'verified' => $user->canUseRewards(),
                 'quiver' => $user->canUseRewards() && $user->quiver,
                 'pieces' => $user->canUseRewards() ? $user->setPieces() : [],
+                // The bosses the player has beaten: the ones they may fight again on their own
+                'bosses' => $user->bossDrops()->distinct()->pluck('boss_id')->all(),
             ] : null,
             'guestName' => $user ? null : GuestName::forSession($request),
             // Skipping ahead: the price per zone and the furthest zone open to the player on each side

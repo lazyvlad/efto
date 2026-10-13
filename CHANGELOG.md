@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.34.1 - 2026-10-13
+
+### Changed
+- **A boss fight is only for a boss already beaten.** In 2.34.0 the boss of any zone open to
+  the player could be fought on its own, the next unbeaten one included, and anyone, guests
+  too, could fight the first. That made it a way past the zones: beat a boss on its own, and
+  the zone after it opened. Now the mode is offered only for a boss the player has beaten
+  before in a game played through to it, on their account. For the others the choice is
+  greyed out and says "beat this zone's boss in a game first". Guests are not offered it.
+
 ## 2.34.0 - 2026-10-13
 
 ### What's new

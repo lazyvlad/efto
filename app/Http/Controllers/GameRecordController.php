@@ -62,10 +62,18 @@ class GameRecordController extends Controller
             abort_if($paid === 0, 422, 'Not enough coins.');
         }
 
-        // A boss fight is the boss of the zone the game starts in, alone. Anyone may fight the
-        // first; a later one is reached, and paid for, as skipping to its zone is (below).
+        // A boss fight is the boss of the zone the game starts in, alone: only a boss the
+        // player has beaten before, in a game played through to it. It is reached, and paid
+        // for, as skipping to its zone is (below).
         if ($mode === Game::BOSS_FIGHT) {
-            abort_unless(isset($data['faction']), 422, 'Choose a side for the boss fight.');
+            abort_unless($user && isset($data['faction']), 422, 'Log in to fight a boss on its own.');
+
+            $bossId = array_keys(config('boss_loot.bosses.'.$data['faction']))[(int) ($data['startZone'] ?? 1) - 1] ?? null;
+            abort_unless(
+                $bossId !== null && $user->bossDrops()->where('boss_id', $bossId)->exists(),
+                422,
+                'Defeat this boss in a game first.'
+            );
         }
 
         // Skipping ahead: only past bosses the player has beaten before, and it costs coins

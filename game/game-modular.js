@@ -24,7 +24,7 @@ import { coinsForItem, coinsForBoss, formatCoins } from './utils/coins.js';
 import { quiverCapacity, startingArrows } from './utils/quiver.js';
 import { setById, piecesOf, ownedCount, setBonus, nextStep, bonusText } from './utils/sets.js';
 import { Pet } from './classes/Pet.js';
-import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost, renderGameModePicker, getGameMode, gameModeCost } from './ui/startZone.js';
+import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost, renderGameModePicker, getGameMode, gameModeCost, rememberBeaten } from './ui/startZone.js';
 import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
 import { showTravelMap } from './ui/travelMap.js';
 import { initializeKeyBindings } from './ui/keyBindingsScreen.js';
@@ -870,6 +870,8 @@ function showStartMap() {
             renderStartZonePicker(faction);
             const startZone = document.getElementById('startZone');
             if (startZone) startZone.value = open && zone > 1 ? String(zone) : '1';
+            // A boss fight is offered for a place whose boss the player has beaten
+            renderGameModePicker(faction, open ? zone : 1);
             
             // The picture of the place, behind the menu
             showBackgroundForLevel((zone - 1) * gameConfig.backgrounds.levelsPerBackground, true);
@@ -3535,6 +3537,8 @@ function onBossDefeated(boss) {
     lootSystem.reportBoss(boss.id).then(drop => {
         if (!drop) return;
         setUnlockedZone(boss.faction, drop.unlockedZone);
+        // Beaten, and kept on the account: it may be fought on its own from now on
+        if (drop.kept) rememberBeaten(boss.id);
         
         // The large quiver, found once in an account's life: it holds more from this moment on
         if (drop.quiver && siteBoot && siteBoot.user) {

@@ -339,12 +339,13 @@ class BossLootTest extends TestCase
         $this->assertStringContainsString('"rush":{"fee":5000}', $html);
     }
 
-    public function test_a_boss_fight_is_the_one_boss_at_once_and_stays_off_the_leaderboard(): void
+    public function test_a_boss_fight_is_one_boss_the_player_has_beaten_before_at_once_and_off_the_leaderboard(): void
     {
         config(['boss_loot.quiver.chance' => 0]);
+        $user = User::factory()->create();
+        BossDrop::create(['user_id' => $user->id, 'boss_id' => 'garrick-padfoot', 'item_id' => 'x', 'rarity' => 'uncommon', 'dropped_at' => now()]);
 
-        // A guest may fight the first boss, for nothing
-        $response = $this->postJson(route('games.open'), ['name' => 'Bob', 'faction' => 'alliance', 'mode' => 'boss_fight'])->assertOk();
+        $response = $this->actingAs($user)->postJson(route('games.open'), ['faction' => 'alliance', 'mode' => 'boss_fight'])->assertOk();
         $game = Game::where('token', $response->json('game'))->firstOrFail();
         $this->assertTrue($game->isBossFight());
         $this->assertSame(1, $game->start_zone);
@@ -352,7 +353,7 @@ class BossLootTest extends TestCase
         // Ten seconds in: far too early in a normal game, fine here. No other boss counts.
         $this->travel(10)->seconds();
         $this->postJson(route('games.boss', $game), ['boss' => 'hogger'])->assertStatus(422);
-        $this->postJson(route('games.boss', $game), ['boss' => 'garrick-padfoot'])->assertOk();
+        $this->postJson(route('games.boss', $game), ['boss' => 'garrick-padfoot'])->assertOk()->assertJsonPath('kept', true);
 
         $this->postJson(route('games.finish', $game), ['score' => 100, 'gameTime' => 9])
             ->assertOk()
@@ -361,36 +362,36 @@ class BossLootTest extends TestCase
             ->assertJsonPath('rank', null)
             ->assertJsonPath('coins.earned', 100);
         $this->assertDatabaseCount('scores', 0);
+        $this->get(route('games.history'))->assertSee('Boss fight');
+
+        // The game is told which bosses those are
+        $this->get(route('play'))->assertSee('"bosses":["garrick-padfoot"]', false);
     }
 
-    public function test_a_later_boss_is_fought_on_the_terms_of_skipping_to_its_zone(): void
+    public function test_only_a_boss_beaten_before_can_be_fought_on_its_own(): void
     {
-        config(['boss_loot.quiver.chance' => 0]);
-
-        // Not for a guest, nor past bosses that have not been beaten
-        $this->postJson(route('games.open'), ['faction' => 'alliance', 'mode' => 'boss_fight', 'startZone' => 2])->assertStatus(422);
+        // Not for a guest, not even the first boss
+        $this->postJson(route('games.open'), ['name' => 'Bob', 'faction' => 'alliance', 'mode' => 'boss_fight'])->assertStatus(422);
 
         $user = User::factory()->create();
         $user->forceFill(['coins' => 6000])->save();
-        $this->actingAs($user)->postJson(route('games.open'), ['faction' => 'alliance', 'mode' => 'boss_fight', 'startZone' => 2])->assertStatus(422);
 
+        // Nor for a player who has not beaten it: not the first, and not the next one in line
+        $this->actingAs($user)->postJson(route('games.open'), ['faction' => 'alliance', 'mode' => 'boss_fight'])->assertStatus(422);
         BossDrop::create(['user_id' => $user->id, 'boss_id' => 'garrick-padfoot', 'item_id' => 'x', 'rarity' => 'uncommon', 'dropped_at' => now()]);
+        // Zone 2 is open to start a game in, but its boss, Hogger, has not been beaten
+        $this->assertSame(2, BossLoot::unlockedZone($user, 'alliance'));
+        $this->postJson(route('games.open'), ['faction' => 'alliance', 'mode' => 'boss_fight', 'startZone' => 2])->assertStatus(422);
+        // The same boss on the other side is another boss
+        $this->postJson(route('games.open'), ['faction' => 'horde', 'mode' => 'boss_fight'])->assertStatus(422);
+        $this->postJson(route('games.open'), ['mode' => 'boss_fight'])->assertStatus(422);
+        $this->assertSame(6000, $user->fresh()->coins);
 
-        // The price of skipping one zone
-        $response = $this->postJson(route('games.open'), ['faction' => 'alliance', 'mode' => 'boss_fight', 'startZone' => 2])
+        // Beaten, it costs what skipping to its zone costs
+        BossDrop::create(['user_id' => $user->id, 'boss_id' => 'hogger', 'item_id' => 'y', 'rarity' => 'uncommon', 'dropped_at' => now()]);
+        $this->postJson(route('games.open'), ['faction' => 'alliance', 'mode' => 'boss_fight', 'startZone' => 2])
             ->assertOk()
             ->assertJsonPath('coins', 1000);
-        $game = Game::where('token', $response->json('game'))->firstOrFail();
-
-        $this->travel(10)->seconds();
-        $this->postJson(route('games.boss', $game), ['boss' => 'garrick-padfoot'])->assertStatus(422);
-        $this->postJson(route('games.boss', $game), ['boss' => 'hogger'])->assertOk()->assertJsonPath('kept', true);
-
-        $this->postJson(route('games.finish', $game), ['score' => 150, 'gameTime' => 9])->assertOk();
-        $this->get(route('games.history'))->assertSee('Boss fight');
-
-        // It needs a side
-        $this->postJson(route('games.open'), ['mode' => 'boss_fight'])->assertStatus(422);
     }
 
     public function test_set_pieces_a_player_picks_up_are_theirs_whichever_way_the_game_ends(): void
