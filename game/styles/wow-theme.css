@@ -1759,73 +1759,7 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
 .item-entry.boss-loot-rare .item-name { color: #4d9bff; }
 .item-entry.boss-loot-epic .item-name { color: #c77dff; }
 
-/* ----- The world map (ui/travelMap.js) ----- */
-
-#pauseMenu .world-map-btn {
-    display: block;
-    width: 100%;
-    margin-top: 12px;
-    padding: 8px 10px;
-    color: #f5e6b8;
-    font-size: 15px;
-    background: linear-gradient(180deg, #2a2219, #100d0a);
-    border: 1px solid #8f7a45;
-    border-radius: 4px;
-    box-shadow: 0 0 0 1px #000, inset 0 1px 0 rgba(255, 230, 160, 0.12);
-    cursor: pointer;
-}
-
-#pauseMenu .world-map-btn:hover {
-    border-color: #f1d98a;
-    filter: brightness(1.15);
-}
-
-#pauseMenu .travel-map {
-    position: fixed;
-    inset: 0;
-    z-index: 50;
-    overflow-y: auto;
-    padding: 18px clamp(12px, 3vw, 36px) 24px;
-    background: rgba(8, 6, 4, 0.97);
-    color: var(--wow-text);
-}
-
-#pauseMenu .travel-map[hidden] {
-    display: none;
-}
-
-#pauseMenu .travel-map-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    max-width: 1500px;
-    margin: 0 auto 14px;
-}
-
-#pauseMenu#pauseMenu .travel-map-header h2 {
-    margin: 0;
-    font-size: 28px;
-}
-
-#pauseMenu .travel-map-close {
-    padding: 8px 18px;
-    color: #f5e6b8;
-    font-size: 15px;
-    background: linear-gradient(180deg, #2a2219, #100d0a);
-    border: 1px solid #8f7a45;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-#pauseMenu .travel-layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 300px;
-    gap: 18px;
-    align-items: start;
-    max-width: 1500px;
-    margin: 0 auto;
-}
+/* ----- The starting window: the world map (ui/travelMap.js) ----- */
 
 #pauseMenu .travel-atlas-scroll {
     overflow: auto;
@@ -1947,17 +1881,6 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
 #pauseMenu .travel-card-why { color: #ffd100; }
 #pauseMenu .travel-card-why.travel-why-locked { color: #a89a78; }
 
-#pauseMenu .travel-card .travel-choose {
-    width: 100%;
-    margin: 6px 0 0;
-}
-
-#pauseMenu .travel-card .travel-choose:disabled {
-    opacity: 0.45;
-    cursor: default;
-    filter: grayscale(0.7);
-}
-
 #pauseMenu .travel-legend {
     max-width: 1500px;
     margin: 12px auto 0;
@@ -1966,14 +1889,196 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
     font-size: 12px;
 }
 
-/* Phones: the map scrolls sideways, with the chosen place under it */
+/* The starting window takes the room of the whole screen */
+#pauseMenu #pauseMenuContent.pause-content.start-map-open {
+    width: min(1500px, 96vw);
+    max-width: 96vw;
+    height: min(940px, 94vh);
+    max-height: 94vh;
+    padding: 18px 22px;
+    align-items: flex-start;
+}
+
+#pauseMenu #nameEntryContent.start-map {
+    width: 100% !important;
+    margin: 0;
+}
+
+#pauseMenu .start-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+#pauseMenu#pauseMenu .start-header h2 {
+    margin: 0;
+    font-size: 28px;
+    white-space: nowrap;
+}
+
+#pauseMenu .start-header h2::after {
+    display: none;
+}
+
+#pauseMenu .start-header-side {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+}
+
+#pauseMenu .start-header .account-bar {
+    margin: 0;
+    justify-content: flex-end;
+}
+
+/* The game's other screens, under one button */
+#pauseMenu .game-menu {
+    position: relative;
+}
+
+#pauseMenu .game-menu-btn {
+    padding: 8px 30px 8px 16px;
+    color: #f5e6b8;
+    font-size: 15px;
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23ffd100' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 10px center,
+        linear-gradient(180deg, #2a2219, #100d0a);
+    border: 1px solid #8f7a45;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000, inset 0 1px 0 rgba(255, 230, 160, 0.12);
+    cursor: pointer;
+}
+
+#pauseMenu .game-menu-btn:hover {
+    border-color: #f1d98a;
+}
+
+#pauseMenu .game-menu-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 20;
+    min-width: 190px;
+    padding: 4px;
+    background: #15110e;
+    border: 1px solid #8f7a45;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000, 0 8px 24px rgba(0, 0, 0, 0.7);
+}
+
+#pauseMenu .game-menu-list[hidden] {
+    display: none;
+}
+
+#pauseMenu .game-menu-list button {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 9px 12px;
+    color: #f5e6b8;
+    font-size: 15px;
+    text-align: left;
+    background: none;
+    border: none;
+    border-radius: 3px;
+    box-shadow: none;
+    transform: none;
+    cursor: pointer;
+}
+
+#pauseMenu .game-menu-list button:hover {
+    color: #fff5c2;
+    background: rgba(255, 209, 0, 0.12);
+    transform: none;
+}
+
+#pauseMenu .start-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 310px;
+    gap: 18px;
+    align-items: start;
+}
+
+/* Beside the map: the place picked, who is playing, and the way in */
+#pauseMenu .start-card #nameEntryPrompt {
+    margin: 10px 0 8px;
+    color: #cfc4ad;
+    font-size: 13px;
+}
+
+#pauseMenu .start-card #playerNameInput {
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0 0 10px;
+}
+
+#pauseMenu .start-card .login-offer {
+    margin: 4px 0 0;
+}
+
+/* The side and the starting zone are picked on the map: what held them is kept out of sight */
+#pauseMenu .faction-picker.map-driven {
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+}
+
+#pauseMenu .map-driven .faction-options,
+#pauseMenu .map-driven #startZonePicker {
+    display: none !important;
+}
+
+#pauseMenu .map-driven #gameModePicker {
+    margin: 0 0 10px;
+}
+
+#pauseMenu .start-card .pause-buttons {
+    display: block;
+    margin: 0;
+}
+
+#pauseMenu .start-card .pause-buttons .pause-btn {
+    width: 100%;
+    margin: 0 0 8px;
+}
+
+#pauseMenu .start-card #startGameBtn:disabled {
+    opacity: 0.45;
+    cursor: default;
+    filter: grayscale(0.7);
+}
+
+#pauseMenu .start-map .travel-legend {
+    margin: 10px 0 0;
+}
+
+/* Phones: who is playing and the way in first, the map under it, scrolling sideways */
 @media (max-width: 860px) {
-    #pauseMenu .travel-layout {
+    #pauseMenu #pauseMenuContent.pause-content.start-map-open {
+        width: 94vw !important;
+        max-width: 94vw !important;
+        padding: 12px 10px !important;
+        align-items: flex-start !important;
+    }
+
+    #pauseMenu .start-layout {
         grid-template-columns: minmax(0, 1fr);
     }
 
-    /* Clear of the player panel, which stays on top of the menu on phones */
-    #pauseMenu .travel-map {
-        padding-top: 132px;
+    #pauseMenu .start-card {
+        order: -1;
+    }
+
+    #pauseMenu .start-card .travel-card-picture {
+        aspect-ratio: 3 / 1;
+    }
+
+    #pauseMenu .start-header {
+        flex-wrap: wrap;
     }
 }

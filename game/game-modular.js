@@ -14,7 +14,7 @@ import { DamageProjectile } from './classes/DamageProjectile.js';
 import { PowerUpItem } from './classes/PowerUpItem.js';
 import { Arrow } from './classes/Arrow.js';
 
-import { tryAutoInitAudio, startBackgroundMusic, playUffSound, playScreamSound, playTotalSound, playFireballImpactSound, sounds } from './systems/audioSystem.js';
+import { tryAutoInitAudio, startBackgroundMusic, playUffSound, playScreamSound, playTotalSound, playFireballImpactSound, playSoundEffect, playSnapSound, sounds } from './systems/audioSystem.js';
 import { initializeVisibilitySystem, getVisibilitySystemStatus, updateVisibilityConfig } from './systems/visibilitySystem.js';
 import { initializeSettings, loadSettings, saveSettings, resetSettings, getSettings, updateSetting, areSoundEffectsEnabled, isBackgroundMusicEnabled, getVolume, getVolumeDecimal, getMasterVolume, getMusicVolume, getEffectsVolume, getMasterVolumeDecimal, getMusicVolumeDecimal, getEffectsVolumeDecimal, getPlayerPanelStyle, getDragonstalkerPanelStyle, getPanelOpacity, refreshPanelStyles } from './systems/settingsSystem.js';
 import { loadHighScores, addHighScore, cacheHighScores, isHighScore, displayHighScores, displayHighScoresSync } from './systems/highScoreSystem.js';
@@ -26,7 +26,7 @@ import { setById, piecesOf, ownedCount, setBonus, nextStep, bonusText } from './
 import { Pet } from './classes/Pet.js';
 import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost, renderGameModePicker, getGameMode, gameModeCost } from './ui/startZone.js';
 import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
-import { openTravelMap } from './ui/travelMap.js';
+import { showTravelMap } from './ui/travelMap.js';
 import { say, preloadVoiceLines, resetVoiceLines, updateBanter, watchHealth, forgetHealth } from './systems/voiceSystem.js';
 import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies } from './systems/bossSystem.js';
 import { BossProjectile } from './classes/BossProjectile.js';
@@ -589,6 +589,7 @@ function update(deltaTimeMultiplier, universalMultiplier) {
         
         console.log(`Level up! Now level ${gameState.currentLevel + 1} (Speed: ${gameState.levelSpeedMultiplier.toFixed(2)}x) at score ${gameState.score}`);
         addNotification(gameState, `Level ${gameState.currentLevel + 1}!`, 2000, '#FFD700');
+        say('levelUp');
         
         // Move on to the next background when this level is played somewhere new
         const arrivedAt = showBackgroundForLevel(gameState.currentLevel);
@@ -637,6 +638,12 @@ function update(deltaTimeMultiplier, universalMultiplier) {
                 particles.push(new Particle(bitten.x + bitten.width / 2 + (Math.random() - 0.5) * bitten.width, bitten.y + bitten.height / 2 + (Math.random() - 0.5) * bitten.height, '#FF8C42'));
             }
             combatTexts.push(new CombatText(bitten.x + bitten.width / 2, bitten.y, 'Chomp!', '#9FE870', false));
+            // Every third bite is the voiced one; the others are a plain snap of jaws
+            if (player.pet.bites % gameConfig.pet.voicedBiteEvery === 0) {
+                playSoundEffect(assetRegistry.audio.petChomp);
+            } else {
+                playSnapSound();
+            }
         }
     }
     updatePowerUps(bulletTimeAdjustedDelta);
@@ -830,6 +837,31 @@ function wearSet(setId, announce = true) {
 function wearNextSet() {
     const index = gameConfig.sets.findIndex(set => set.id === gameState.wornSet);
     wearSet(gameConfig.sets[(index + 1) % gameConfig.sets.length].id);
+}
+
+// The starting window is the world map: what is picked there is the side and the zone the game
+// starts in. Each pick is set where the rest of the code looks for it (the side, the starting
+// zone), shown behind the menu, and decides whether "Start here" may be pressed.
+function showStartMap() {
+    showTravelMap({
+        faction: getFaction(),
+        onSelect: ({ faction, zone, open }) => {
+            const startBtn = document.getElementById('startGameBtn');
+            if (startBtn) startBtn.disabled = !open;
+            if (!faction) return;   // A place that is not in the game yet
+            
+            setFaction(faction);
+            document.querySelectorAll('#factionPicker input[name="faction"]').forEach(option => {
+                option.checked = option.value === faction;
+            });
+            renderStartZonePicker(faction);
+            const startZone = document.getElementById('startZone');
+            if (startZone) startZone.value = open && zone > 1 ? String(zone) : '1';
+            
+            // The picture of the place, behind the menu
+            showBackgroundForLevel((zone - 1) * gameConfig.backgrounds.levelsPerBackground, true);
+        }
+    });
 }
 
 // Whether the logged-in player has found the large quiver (a boss drop, kept on the account)
@@ -1755,9 +1787,8 @@ function showNameEntry() {
     document.querySelectorAll('#factionPicker input[name="faction"]').forEach(option => {
         option.checked = option.value === getFaction();
     });
-    renderStartZonePicker(getFaction());
     renderGameModePicker();
-    showStartingBackground();
+    showStartMap();
     
     // Update canvas overlay
     updateCanvasOverlay();
@@ -1919,6 +1950,10 @@ function startGameFromUI() {
         return;
     }
     
+    // A place on the map that cannot be started at yet
+    const startBtn = document.getElementById('startGameBtn');
+    if (startBtn && startBtn.disabled) return;
+    
     // The side decides which backgrounds the game moves through
     if (!getFaction()) {
         const picker = document.getElementById('factionPicker');
@@ -1987,33 +2022,20 @@ function setupUIEventHandlers() {
         });
     }
     
-    // The world map: the side and the starting zone, chosen on a map. What is chosen there is
-    // set on the menu, as if picked by hand, and the game starts at once.
-    const worldMapBtn = document.getElementById('worldMapBtn');
-    if (worldMapBtn) {
-        worldMapBtn.addEventListener('click', () => {
-            openTravelMap({
-                faction: getFaction(),
-                zone: getStartZone(getFaction()),
-                onChoose: ({ faction, zone }) => {
-                    setFaction(faction);
-                    document.querySelectorAll('#factionPicker input[name="faction"]').forEach(option => {
-                        option.checked = option.value === faction;
-                    });
-                    document.getElementById('factionPicker').classList.remove('needs-choice');
-                    showStartingBackground();
-                    
-                    // A later zone is a normal game that skips ahead
-                    const mode = document.getElementById('gameMode');
-                    if (mode && zone > 1) mode.value = 'normal';
-                    renderStartZonePicker(faction);
-                    const startZone = document.getElementById('startZone');
-                    if (startZone && zone > 1) startZone.value = String(zone);
-                    
-                    startGameFromUI();
-                }
-            });
+    // The "Game" menu on the starting window: the game's other screens, under one button
+    const gameMenuBtn = document.getElementById('gameMenuBtn');
+    const gameMenuList = document.getElementById('gameMenuList');
+    if (gameMenuBtn && gameMenuList) {
+        const toggleGameMenu = open => {
+            gameMenuList.hidden = !open;
+            gameMenuBtn.setAttribute('aria-expanded', String(open));
+        };
+        gameMenuBtn.addEventListener('click', event => {
+            event.stopPropagation();
+            toggleGameMenu(gameMenuList.hidden);
         });
+        // Picking something from it, or clicking anywhere else, closes it
+        document.addEventListener('click', () => toggleGameMenu(false));
     }
     
     // Boss Rush always starts with the first boss, so the choice of starting zone goes away

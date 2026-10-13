@@ -217,6 +217,48 @@ export function playSoundEffect(path, { key = path, volume = 1, priority = false
     return true;
 }
 
+// A short snap of jaws: two quick clicks of filtered noise, made here, not played from a file.
+// The pet's everyday bite; its voiced bite is a clip (assetRegistry.audio.petChomp).
+let snapNoise = null;
+
+export function playSnapSound(volume = 0.7) {
+    const context = getAudioContext();
+    if (!context || !soundEffectsEnabled() || context.state !== 'running') return false;
+
+    if (!snapNoise) {
+        // A tenth of a second of noise, dying away fast
+        const length = Math.floor(context.sampleRate * 0.1);
+        snapNoise = context.createBuffer(1, length, context.sampleRate);
+        const samples = snapNoise.getChannelData(0);
+        for (let i = 0; i < length; i++) {
+            samples[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 3);
+        }
+    }
+
+    effectsBus.gain.value = getEffectsVolume();
+    // The jaws closing, then the teeth meeting: the second click a little later and sharper
+    for (const [delay, pitch, loudness] of [[0, 1400, 0.8], [0.055, 2600, 1]]) {
+        const source = context.createBufferSource();
+        const filter = context.createBiquadFilter();
+        const gain = context.createGain();
+        source.buffer = snapNoise;
+        filter.type = 'bandpass';
+        filter.frequency.value = pitch;
+        filter.Q.value = 1.2;
+        gain.gain.value = clampVolume(volume * loudness);
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(effectsBus);
+        source.onended = () => {
+            source.disconnect();
+            filter.disconnect();
+            gain.disconnect();
+        };
+        source.start(context.currentTime + delay);
+    }
+    return true;
+}
+
 export function playVoiceSound() {
     playSoundEffect(assetRegistry.audio.voice);
 }

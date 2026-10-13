@@ -52,6 +52,8 @@ export const menuScreenManager = {
         setDisplay(MENU_IDS.content, 'block');
         setDisplay(MENU_IDS.nameEntry, 'block');
         setDisplay(MENU_IDS.pauseGame, 'none');
+        // The starting window is the world map, which wants the room of the whole screen
+        document.getElementById(MENU_IDS.content)?.classList.add('start-map-open');
     },
 
     showPauseMenu() {
@@ -60,6 +62,7 @@ export const menuScreenManager = {
         setDisplay(MENU_IDS.content, 'block');
         setDisplay(MENU_IDS.nameEntry, 'none');
         setDisplay(MENU_IDS.pauseGame, 'block');
+        document.getElementById(MENU_IDS.content)?.classList.remove('start-map-open');
     },
 
     showSettings() {

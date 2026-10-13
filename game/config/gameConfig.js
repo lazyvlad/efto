@@ -268,7 +268,6 @@ export const gameConfig = {
         banterEvery: { least: 50, most: 110 },  // Seconds between remarks made for no reason
         lowHealth: 0.25,            // The share of health below which someone calls for a healer
         heavyBlow: 14,              // Health lost in one step that counts as a heavy blow
-        bigHeal: 15,                // Health gained in one step that draws a remark
     },
 
     // === THE PET ===
@@ -280,6 +279,7 @@ export const gameConfig = {
         every: 1200,                // Steps from one fetched item to the next (20 seconds)
         rest: 150,                  // Steps it rests after fetching or biting something (2.5 seconds)
         leapHeight: 0.9,            // How high it can leap at a projectile, against the hunter's height
+        voicedBiteEvery: 3,         // Every so many bites is the voiced one; the rest are a plain snap of jaws
         lookAgain: 30,              // Steps before it looks again when nothing was worth the run
         speed: 0.012,               // How fast it runs, as a share of the field's width per step
         height: 0.52,               // How tall it is drawn, against the hunter

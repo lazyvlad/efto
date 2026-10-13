@@ -50,18 +50,18 @@
     <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
-    <link rel="stylesheet" href="styles/base.css?v=2.25.0">
-    <link rel="stylesheet" href="styles/ui-components.css?v=2.25.0">
-    <link rel="stylesheet" href="styles/settings.css?v=2.25.0">
-    <link rel="stylesheet" href="styles/notifications.css?v=2.25.0">
-    <link rel="stylesheet" href="styles/game-panels.css?v=2.25.0">
-    <link rel="stylesheet" href="styles/spell-bar.css?v=2.25.0">
-    <link rel="stylesheet" href="styles/how-to-play.css?v=2.25.0">
-    <link rel="stylesheet" href="styles/mobile.css?v=2.25.0">
-    <link rel="stylesheet" href="styles/wow-theme.css?v=2.25.0">
-    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.25.0"> -->
+    <link rel="stylesheet" href="styles/base.css?v=2.26.0">
+    <link rel="stylesheet" href="styles/ui-components.css?v=2.26.0">
+    <link rel="stylesheet" href="styles/settings.css?v=2.26.0">
+    <link rel="stylesheet" href="styles/notifications.css?v=2.26.0">
+    <link rel="stylesheet" href="styles/game-panels.css?v=2.26.0">
+    <link rel="stylesheet" href="styles/spell-bar.css?v=2.26.0">
+    <link rel="stylesheet" href="styles/how-to-play.css?v=2.26.0">
+    <link rel="stylesheet" href="styles/mobile.css?v=2.26.0">
+    <link rel="stylesheet" href="styles/wow-theme.css?v=2.26.0">
+    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.26.0"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
-  <!-- Built: 2026-10-13T00:13:44.163Z | Version: 2.25.0 | Mode: Production -->
+  <!-- Built: 2026-10-13T01:33:21.798Z | Version: 2.26.0 | Mode: Production -->
 </head>
 <body>
     <!-- The background: two layers that fade from one picture to the next (backgroundSystem.js) -->
@@ -154,63 +154,60 @@
     <div id="pauseMenu" style="display: none;">
         <div id="pauseMenuContent" class="pause-content">
             <!-- Name Entry Content (shown when no game is running) -->
-            <div id="nameEntryContent" style="display: none;">
-                <h2>I N P U T</h2>
-                <!-- For guests under the site: the way in to an account, ahead of the name box (ui/accountBar.js) -->
-                <div id="loginOffer" class="login-offer" hidden></div>
-                <p id="nameEntryPrompt" style="margin-bottom: 14px; color: #ccc;">Enter your name to start playing</p>
-                <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" />
-                <div id="accountBar" class="account-bar" hidden></div>
-                <!-- The side the player is on decides which backgrounds the game moves through -->
-                <div id="factionPicker" class="faction-picker" role="radiogroup" aria-labelledby="factionPrompt">
-                    <h3 id="factionPrompt" class="faction-prompt">Choose Your Side</h3>
-                    <div class="faction-options">
-                        <label class="faction-option faction-alliance">
-                            <input type="radio" name="faction" value="alliance">
-                            <span class="faction-plaque">
-                                <svg class="faction-crest" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 3v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5l8-3z"/><path class="faction-crest-detail" d="M12 5.2l5 1.9V11c0 3.4-2.1 6.2-5 7.8V5.2z"/></svg>
-                                <span class="faction-name">Alliance</span>
-                            </span>
-                        </label>
-                        <label class="faction-option faction-horde">
-                            <input type="radio" name="faction" value="horde">
-                            <span class="faction-plaque">
-                                <svg class="faction-crest" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5l2.6 6.2 6.4-2.4-2.9 6.2 2.9 6.2-6.4-2.4L12 22.5l-2.6-7.2L3 17.7l2.9-6.2L3 5.3l6.4 2.4L12 1.5z"/><circle class="faction-crest-detail" cx="12" cy="11.6" r="2.6"/></svg>
-                                <span class="faction-name">Horde</span>
-                            </span>
-                        </label>
-                    </div>
-                    <!-- The same choice on a map: the side and where to start (ui/travelMap.js) -->
-                    <button type="button" id="worldMapBtn" class="world-map-btn">Choose on the world map</button>
-                    <!-- Skipping ahead: for players who have beaten bosses before (ui/startZone.js) -->
-                    <div id="startZonePicker" class="start-zone-picker" hidden>
-                        <label for="startZone">Start in</label>
-                        <select id="startZone" class="setting-select"></select>
-                    </div>
-                    <!-- Boss Rush: for logged-in players (ui/startZone.js) -->
-                    <div id="gameModePicker" class="start-zone-picker" hidden>
-                        <label for="gameMode">Mode</label>
-                        <select id="gameMode" class="setting-select"></select>
+            <div id="nameEntryContent" class="start-map" style="display: none;">
+                <!-- The starting window is the world map: a pin for every zone, and beside it the
+                     place that is picked with what is needed to start there (ui/travelMap.js) -->
+                <div class="start-header">
+                    <h2>I N P U T</h2>
+                    <div class="start-header-side">
+                        <div id="accountBar" class="account-bar" hidden></div>
+                        <!-- The other screens of the game, under one menu -->
+                        <div class="game-menu">
+                            <button type="button" id="gameMenuBtn" class="game-menu-btn" aria-haspopup="true" aria-expanded="false">Game</button>
+                            <div id="gameMenuList" class="game-menu-list" hidden>
+                                <button type="button" id="howToPlayBtn">How to Play</button>
+                                <button type="button" id="itemBonusesMenuBtn">Loot &amp; Bonuses</button>
+                                <button type="button" id="viewScoresBtn">High Scores</button>
+                                <button type="button" id="settingsBtn">Settings</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="pause-buttons">
-                    <button id="startGameBtn" class="pause-btn continue-btn">Start Game
-                    </button>
-                    <button id="continueGameBtn" class="pause-btn continue-btn" style="display: none;">Continue Game
-                    </button>
-                    <button id="restartGameBtn" class="pause-btn restart-btn" style="display: none;">Restart Game
-                    </button>
-                    <button id="viewScoresBtn" class="pause-btn info-btn">High Scores
-                    </button>
-                    <button id="howToPlayBtn" class="pause-btn info-btn">How to Play
-                    </button>
-                    <button id="settingsBtn" class="pause-btn settings-btn">Settings
-                    </button>
-                    <button id="itemBonusesMenuBtn" class="pause-btn bonuses-btn desktop-only">
-                        <span class="menu-button-label-full">Loot &amp; Bonuses</span>
-                        <span class="menu-button-label-short">Loot</span>
-                    </button>
+                <div class="start-layout">
+                    <div id="startAtlas" class="travel-atlas-scroll"></div>
+                    <div class="start-card travel-card">
+                        <div id="startPlace"></div>
+                        <!-- For guests under the site: the way in to an account, ahead of the name box (ui/accountBar.js) -->
+                        <div id="loginOffer" class="login-offer" hidden></div>
+                        <p id="nameEntryPrompt">Enter your name to start playing</p>
+                        <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20" />
+                        <!-- The side and the starting zone are picked on the map; these hold the choice
+                             for the rest of the game's code. Only the mode is still chosen here. -->
+                        <div id="factionPicker" class="faction-picker map-driven">
+                            <div class="faction-options">
+                                <label class="faction-option faction-alliance"><input type="radio" name="faction" value="alliance"></label>
+                                <label class="faction-option faction-horde"><input type="radio" name="faction" value="horde"></label>
+                            </div>
+                            <div id="startZonePicker" class="start-zone-picker" hidden>
+                                <select id="startZone" class="setting-select"></select>
+                            </div>
+                            <!-- Boss Rush: for logged-in players (ui/startZone.js) -->
+                            <div id="gameModePicker" class="start-zone-picker" hidden>
+                                <label for="gameMode">Mode</label>
+                                <select id="gameMode" class="setting-select"></select>
+                            </div>
+                        </div>
+                        <div class="pause-buttons">
+                            <button id="startGameBtn" class="pause-btn continue-btn">Start here
+                            </button>
+                            <button id="continueGameBtn" class="pause-btn continue-btn" style="display: none;">Continue Game
+                            </button>
+                            <button id="restartGameBtn" class="pause-btn restart-btn" style="display: none;">Restart Game
+                            </button>
+                        </div>
+                    </div>
                 </div>
+                <p class="travel-legend">Blue pins are the Alliance's zones, red the Horde's; the number is the zone. A faded pin cannot be started in yet: select it to see why.</p>
             </div>
 
             <!-- Pause Game Content (shown when game is running and paused) -->
@@ -236,9 +233,6 @@
                 <p class="pause-hint">Press ESC to continue or tap pause button</p>
             </div>
         </div>
-
-        <!-- The world map, over the main menu (ui/travelMap.js fills it) -->
-        <div id="travelMap" class="travel-map" hidden></div>
 
         <!-- Settings Screen (moved inside pause menu) -->
         <div id="settingsScreen" class="screen" style="display: none;">
@@ -687,7 +681,7 @@
     </div>
 
     <!-- Game Script -->
-    <script type="module" src="game-modular.h7yxd2o6.js?v=2.25.0"></script>
+    <script type="module" src="game-modular.bmev6bl3.js?v=2.26.0"></script>
     
 
 

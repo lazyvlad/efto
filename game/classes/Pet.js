@@ -48,6 +48,7 @@ export class Pet {
         this.rest = rules ? rules.rest : 0;             // Steps it rests at the hunter's side
         this.leap = 0;              // Steps left of a leap
         this.bitten = null;         // The projectile it has just bitten, until the game has been told
+        this.bites = 0;             // How many it has bitten this game
         this.facing = 1;            // 1 facing right, -1 facing left
         this.moving = false;
         this.fetched = null;        // The item it has just fetched, until the game has been told
@@ -121,6 +122,7 @@ export class Pet {
                 const low = target.y + target.height >= ground - player.figureHeight() * rules.leapHeight;
                 if (near && low) {
                     this.bitten = target;
+                    this.bites++;
                     this.leap = LEAP_STEPS;
                     this.target = null;
                     this.state = 'returning';

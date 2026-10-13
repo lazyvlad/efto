@@ -1,11 +1,13 @@
-// The world map on the main menu: choosing where a game starts.
+// The world map: the game's starting window.
 //
 // Every zone of both sides has a pin on the painted map (data/worldMap.js). A pin can be
-// looked at whatever its state; it can be chosen when the player may start there. The first
-// zone of each side is open to everyone. A later zone follows the rules of skipping ahead
-// (ui/startZone.js): an activated account, the earlier bosses of that side beaten before, and
-// the coins it costs. Choosing a place sets the side and the starting zone and starts the
-// game there and then, which is when the coins are taken.
+// looked at whatever its state; a game can be started at it when the player may start there.
+// The first zone of each side is open to everyone. A later zone follows the rules of skipping
+// ahead (ui/startZone.js): an activated account, the earlier bosses of that side beaten
+// before, and the coins it costs, which are taken when the game starts.
+//
+// The map only shows and reports what is picked; the game sets the side and the starting zone
+// from it and starts the game (game-modular.js).
 
 import { siteBoot } from './accountBar.js';
 import { unlockedZone, skipCost } from './startZone.js';
@@ -51,41 +53,20 @@ function describe(place) {
 }
 
 /**
- * Open the map.
+ * Draw the map and the place that is picked. Called every time the starting window comes up,
+ * so what is open follows the player's coins and the bosses they have beaten since.
  * @param {object}   options
- * @param {string}   options.faction   The side chosen on the menu, if any
- * @param {number}   options.zone      The starting zone chosen on the menu
- * @param {Function} options.onChoose  Called with { faction, zone } when a place is chosen
+ * @param {string}   options.faction   The side last played, if any: its first zone is picked
+ * @param {Function} options.onSelect  Called with the place picked, now and on every pick:
+ *                                     { faction, zone, open, name }
  */
-export function openTravelMap({ faction, zone, onChoose }) {
-    const root = document.getElementById('travelMap');
-    if (!root) return;
+export function showTravelMap({ faction, onSelect }) {
+    const atlasRoot = document.getElementById('startAtlas');
+    const cardRoot = document.getElementById('startPlace');
+    if (!atlasRoot || !cardRoot) return;
 
     const all = places.map(describe);
-    let selected = all.find(place => place.faction === faction && place.zone === (zone || 1)) || all[0];
-
-    root.textContent = '';
-    root.hidden = false;
-
-    const close = () => {
-        root.hidden = true;
-        root.textContent = '';
-        document.removeEventListener('keydown', onKey, true);
-    };
-    // Esc closes the map and nothing else
-    const onKey = event => {
-        if (event.key !== 'Escape') return;
-        event.stopPropagation();
-        event.preventDefault();
-        close();
-    };
-    document.addEventListener('keydown', onKey, true);
-
-    const header = element('div', 'travel-map-header');
-    const closeButton = element('button', 'travel-map-close', 'Back');
-    closeButton.type = 'button';
-    closeButton.addEventListener('click', close);
-    header.append(element('h2', '', 'World Map'), closeButton);
+    const first = all.find(place => place.faction === (faction || 'alliance') && place.zone === 1) || all[0];
 
     // The painted map and its pins
     const atlas = element('div', 'travel-atlas');
@@ -106,11 +87,9 @@ export function openTravelMap({ faction, zone, onChoose }) {
         atlas.append(pin);
         pins.set(place, pin);
     }
-    const scroll = element('div', 'travel-atlas-scroll');
-    scroll.append(atlas);
+    atlasRoot.replaceChildren(atlas);
 
-    // The place that is selected
-    const card = element('div', 'travel-card');
+    // The place that is picked
     const cardPicture = element('img', 'travel-card-picture');
     cardPicture.alt = '';
     const side = element('div', 'travel-card-side');
@@ -118,35 +97,30 @@ export function openTravelMap({ faction, zone, onChoose }) {
     const description = element('p', 'travel-card-description');
     const guard = element('p', 'travel-card-guard');
     const why = element('p', 'travel-card-why');
-    const choose = element('button', 'pause-btn continue-btn travel-choose', 'Start here');
-    choose.type = 'button';
-    choose.addEventListener('click', () => {
-        if (!selected.open) return;
-        onChoose({ faction: selected.faction, zone: selected.zone });
-        close();
-    });
-    card.append(cardPicture, side, name, description, guard, why, choose);
-
-    const layout = element('div', 'travel-layout');
-    layout.append(scroll, card);
-    const legend = element('p', 'travel-legend', 'Blue pins are the Alliance\'s zones, red the Horde\'s; the number is the zone. A faded pin cannot be started in yet: select it to see why.');
-    root.append(header, layout, legend);
+    cardRoot.replaceChildren(cardPicture, side, name, description, guard, why);
 
     function select(place) {
-        selected = place;
         pins.forEach((pin, of) => pin.classList.toggle('travel-selected', of === place));
 
         cardPicture.src = place.image;
-        side.textContent = place.zone ? `${place.side} \u00b7 zone ${place.zone}` : place.side;
+        side.textContent = place.zone ? `${place.side} · zone ${place.zone}` : place.side;
         name.textContent = place.name;
         description.textContent = place.description;
         guard.textContent = place.boss ? `Guarded by ${place.boss.name}` : '';
         guard.hidden = !place.boss;
         why.textContent = place.why;
         why.classList.toggle('travel-why-locked', !place.open);
-        choose.disabled = !place.open;
+
+        // On a narrow screen the map scrolls sideways: bring the place picked into view
+        const pin = pins.get(place);
+        requestAnimationFrame(() => {
+            if (atlasRoot.scrollWidth > atlasRoot.clientWidth) {
+                atlasRoot.scrollLeft = pin.offsetLeft - atlasRoot.clientWidth / 2;
+            }
+        });
+
+        onSelect({ faction: place.faction, zone: place.zone, open: place.open, name: place.name });
     }
 
-    select(selected);
-    closeButton.focus();
+    select(first);
 }

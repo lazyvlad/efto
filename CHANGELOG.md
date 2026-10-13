@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.26.0 - 2026-10-13
+
+### What's new
+
+**The world map is the starting window**
+- The game now opens on the world map. Pick a pin and press "Start here": the place you
+  pick is the side you play and the zone you start in. The old starting window, with its
+  Alliance and Horde buttons and its "Start in" list, is gone; the map does both.
+- Beside the map is the place picked (its picture, the boss that guards it, what it costs
+  or why it is closed), your name or the way to log in, and for logged-in players the
+  choice of Boss Rush. The side you played last is picked when the window opens.
+- How to Play, Loot & Bonuses, High Scores and Settings are under one "Game" menu at the
+  top right of the window.
+- On phones the place picked and the start button come first, with the map under them; the
+  map scrolls sideways and moves to the place picked.
+
+### Changed
+- The pet's bite has sounds of its own: a short snap of jaws on most bites, and a voiced
+  clip on every third.
+- A new voice clip, "Zlatko Zgnan", is said when the hunter reaches a new level.
+- The "no need" voice clip is gone: it had other voices in it. A big heal no longer draws a
+  remark.
+
+### For developers
+- The starting window is `#nameEntryContent` in `game/index.html`, drawn by
+  `game/ui/travelMap.js` (`showTravelMap`) and wired in `showStartMap` in
+  `game/game-modular.js`. The side's radio buttons and the starting-zone list are still in
+  the page, out of sight: the map sets them, and the rest of the code reads them as before.
+
 ## 2.25.0 - 2026-10-12
 
 ### What's new

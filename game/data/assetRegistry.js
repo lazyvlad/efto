@@ -1,6 +1,11 @@
 // assetRegistry.js - Centralized asset path management
 // This file defines ALL game assets in one place to avoid path duplication
 
+// Sounds that come in two formats: OGG where the browser plays it, WAV elsewhere (and when
+// this file is read outside a browser, by the build tools)
+const OGG_OR_WAV = typeof document !== 'undefined'
+    && document.createElement('audio').canPlayType('audio/ogg; codecs="vorbis"') ? 'ogg' : 'wav';
+
 export const assetRegistry = {
     // Player assets
     player: {
@@ -86,7 +91,10 @@ export const assetRegistry = {
         frostbolt: 'assets/audio/sfx/frostbolt.mp3',
         shadowImpact: 'assets/audio/sfx/shadow-bolt.mp3',
         chickenEat: 'assets/audio/sfx/neka_krka_peto.mp3',
-        reverseGravity: 'assets/audio/sfx/reverse_gravity.mp3'
+        reverseGravity: 'assets/audio/sfx/reverse_gravity.mp3',
+        
+        // The pet bites a projectile out of the air (OGG, or WAV where the browser cannot play OGG)
+        petChomp: `assets/audio/sfx/pet-chomp.${OGG_OR_WAV}`
     },
 
     // Regular items

@@ -78,7 +78,7 @@ export function updateBanter(quiet = false) {
 }
 
 // What the hunter's health did since the last step: a cry for a healer when it falls below a
-// quarter, a remark when a heavy blow lands or a good deal comes back at once
+// quarter, a remark when a heavy blow lands
 let healthBefore = null;
 
 export function watchHealth(health, maxHealth) {
@@ -92,8 +92,6 @@ export function watchHealth(health, maxHealth) {
         say('lowHealth');
     } else if (before - health >= rules.heavyBlow) {
         say('hurt');
-    } else if (health - before >= rules.bigHeal) {
-        say('healed');
     }
 }
 
