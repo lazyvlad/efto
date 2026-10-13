@@ -1,3 +1,4 @@
+import { resetKeys } from '../utils/keybindings.js';
 import { getSettings, resetSettings, updateSetting } from '../systems/settingsSystem.js';
 
 function byId(id) {
@@ -140,6 +141,7 @@ export function updateSettingsScreen() {
 
 export function resetSettingsScreen() {
     resetSettings();
+    resetKeys();
     updateSettingsScreen();
     alert('Settings have been reset to defaults!');
 }

@@ -7,6 +7,12 @@
 
     <div class="py-8 sm:py-12">
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
+            {{-- The guild's short film. It starts only when asked: it has sound. --}}
+            <video class="about-film shadow sm:rounded-lg" controls playsinline preload="metadata"
+                   src="{{ asset('videos/input-hero.mp4') }}#t=0.1">
+                <a href="{{ asset('videos/input-hero.mp4') }}">{{ __('Watch the I N P U T film') }}</a>
+            </video>
+
             <div class="bg-white shadow sm:rounded-lg p-6 sm:p-8 space-y-4 text-gray-600">
                 <h3 class="text-lg text-gray-900">{{ __('Who is I N P U T?') }}</h3>
                 <p>

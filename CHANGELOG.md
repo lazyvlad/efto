@@ -1,5 +1,40 @@
 # Changelog
 
+## 2.27.0 - 2026-10-13
+
+### What's new
+
+**Choose your own keys**
+- Settings, Controls now lists every key the game uses: the five spells (Autoshot,
+  Multishot, Arcane Shot, Dragon Cry, Zandalari), wearing each of the three sets, and
+  opening Settings. Click a key, then press the one you want there. Esc leaves it as it is.
+- Give an action a key that another one has and the two change places, so no key ever does
+  two things. "Usual keys" puts them all back, and so does "Reset to Defaults".
+- The choice is kept in the browser. The keys on the spell buttons, in How to Play and in
+  the game's messages ("Break it with Arcane Shot (T)") follow it.
+- Esc stays the pause key: the browser itself uses it to let the mouse go.
+
+**A logo and a new icon**
+- The gold "INPUT" wordmark replaces the plain text title on the game's starting window, in
+  the site's header and on the log in and register pages.
+- The browser tab, bookmarks and a phone's home screen show the new gold "I" icon, on the
+  game and on every page of the site.
+
+**A film on the About page**
+- The About page opens with the guild's short film (16 seconds, with sound). It plays when
+  you press play, never on its own.
+
+### Fixed
+- The keys work whatever the keyboard is set to type. The game now goes by where a key is
+  on the keyboard, not by the letter it types, so on a Cyrillic layout the key in E's place
+  still shoots. Before, the spell keys did nothing unless the keyboard was set to Latin.
+
+### For developers
+- The actions, their usual keys and the player's changes are `game/utils/keybindings.js`
+  (keys are the browser's `event.code`); the Settings section is
+  `game/ui/keyBindingsScreen.js`. Anything in the page marked `data-key-of="<action>"` has
+  its text kept as that action's key.
+
 ## 2.26.1 - 2026-10-13
 
 ### Fixed

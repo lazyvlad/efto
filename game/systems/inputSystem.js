@@ -3,6 +3,10 @@ import { spellSystem } from './spellSystem.js';
 import { responsiveScaler } from '../utils/gameUtils.js';
 import { gameClock } from '../utils/gameClock.js';
 import { isMouseLockEnabled } from './settingsSystem.js';
+import { actionFor } from '../utils/keybindings.js';
+
+// The actions that cast a spell: each is named as its spell (data/playerSpells.js)
+const SPELL_ACTIONS = new Set(['autoshot', 'multishot', 'arcane_shot', 'dragon_cry', 'zandalari']);
 
 // Input system state
 export let inputState = {
@@ -281,6 +285,17 @@ function handleKeyDown(e, gameState, restartGame, startGame, deprecatedParam, sh
         return;
     }
     
+    // The keys that cast: whichever the player has given each spell (utils/keybindings.js).
+    // First of all the game's own keys, so a spell on Space or H is not taken for a menu key.
+    if (gameState.gameRunning && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        const action = actionFor(e.code);
+        if (SPELL_ACTIONS.has(action)) {
+            e.preventDefault();
+            spellSystem.castSpell(action, gameClock.now());
+            return;
+        }
+    }
+    
     // Testing: Increase Base Speed (Ctrl+A) - during gameplay
     if (e.ctrlKey && e.key.toLowerCase() === 'a' && gameState.gameRunning) {
         e.preventDefault();
@@ -335,12 +350,6 @@ function handleKeyDown(e, gameState, restartGame, startGame, deprecatedParam, sh
         return;
     }
     
-    // Spell casting keys (Q, W, T, E, R) - only during gameplay
-    if (gameState.gameRunning && ['q', 'w', 't', 'e', 'r'].includes(e.key.toLowerCase())) {
-        e.preventDefault();
-        spellSystem.castSpellByKey(e.key, gameClock.now());
-        return;
-    }
 }
 
 // Initialize spell touch/click handlers for mobile support
@@ -366,7 +375,7 @@ function initializeSpellTouchHandlers(gameState) {
             if (!gameState.gameRunning) return;
             
             // Cast the spell
-            spellSystem.castSpellByKey(spell.key, gameClock.now());
+            spellSystem.castSpell(spell.id, gameClock.now());
             
             // Add visual feedback for touch
             element.classList.add('spell-touched');
@@ -396,7 +405,7 @@ function initializeSpellTouchHandlers(gameState) {
             fallbackAudioInit();
             
             // Cast the spell
-            spellSystem.castSpellByKey(spell.key, gameClock.now());
+            spellSystem.castSpell(spell.id, gameClock.now());
             
             // Add touch feedback animation
             element.classList.add('spell-touched');

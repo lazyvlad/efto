@@ -27,6 +27,8 @@ import { Pet } from './classes/Pet.js';
 import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost, renderGameModePicker, getGameMode, gameModeCost } from './ui/startZone.js';
 import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
 import { showTravelMap } from './ui/travelMap.js';
+import { initializeKeyBindings } from './ui/keyBindingsScreen.js';
+import { actionFor, keyName, resetKeys } from './utils/keybindings.js';
 import { say, preloadVoiceLines, resetVoiceLines, updateBanter, watchHealth, forgetHealth } from './systems/voiceSystem.js';
 import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies } from './systems/bossSystem.js';
 import { BossProjectile } from './classes/BossProjectile.js';
@@ -2006,10 +2008,13 @@ function restartGameFromUI() {
 function setupUIEventHandlers() {
     console.log('Setting up UI event handlers...');
     
-    // Wearing another hunter set: 1, 2 or 3 while playing, or a tap on the set panel (it only
-    // takes taps while the game is paused)
+    // Which key does what can be changed under Settings (ui/keyBindingsScreen.js)
+    initializeKeyBindings();
+    
+    // Wearing another hunter set: its key while playing (1, 2 and 3 unless the player changed
+    // them), or a tap on the set panel (it only takes taps while the game is paused)
     document.addEventListener('keydown', event => {
-        const index = ['1', '2', '3'].indexOf(event.key);
+        const index = ['set_1', 'set_2', 'set_3'].indexOf(actionFor(event.code));
         const typing = document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
         if (index < 0 || typing || !gameState.gameRunning || !gameConfig.sets[index]) return;
         
@@ -2085,8 +2090,8 @@ function setupUIEventHandlers() {
     
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
-        // Settings shortcut (S key)
-        if (e.key === 's' || e.key === 'S') {
+        // The key for Settings (S, unless the player changed it)
+        if (actionFor(e.code) === 'settings' && !e.ctrlKey && !e.altKey && !e.metaKey) {
             // Only if not typing in an input field
             if (!e.target.matches('input, textarea')) {
                 e.preventDefault();
@@ -3442,7 +3447,7 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
         nameElement.append(suffix);
         nameElement.dataset.set = set.id;
     }
-    panel.title = 'Press 1, 2 or 3 to wear another set';
+    panel.title = `Press ${keyName('set_1')}, ${keyName('set_2')} or ${keyName('set_3')} to wear another set`;
     
     // Update progress bar
     const progressFill = document.getElementById('dragonstalkerProgressFill');

@@ -1922,6 +1922,20 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
     display: none;
 }
 
+/* The wordmark in place of the title: kept at its own shape, never stretched */
+#pauseMenu#pauseMenu .start-header h2.start-logo {
+    line-height: 0;
+    flex: none;
+}
+
+#pauseMenu .start-logo img {
+    display: block;
+    height: 56px;
+    width: auto;
+    max-width: 60vw;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
 #pauseMenu .start-header-side {
     display: flex;
     align-items: center;
@@ -2101,5 +2115,71 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
 
     #pauseMenu .start-header {
         flex-wrap: wrap;
+    }
+}
+
+/* ----- Key bindings (Settings, Controls; ui/keyBindingsScreen.js) ----- */
+
+#pauseMenu .key-bindings {
+    display: block;
+    margin: 4px 0 14px;
+}
+
+#pauseMenu .key-bindings-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 6px 18px;
+    margin: 8px 0 10px;
+}
+
+#pauseMenu .key-binding {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+#pauseMenu .key-binding-name {
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    color: var(--wow-text);
+}
+
+#pauseMenu .key-binding-key {
+    min-width: 76px;
+    margin: 0;
+    padding: 6px 10px;
+    color: #ffd100;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    background: linear-gradient(180deg, #1c1712, #070605);
+    border: 1px solid #8f7a45;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000, inset 0 1px 0 rgba(255, 230, 160, 0.12);
+    transform: none;
+    cursor: pointer;
+}
+
+#pauseMenu .key-binding-key:hover {
+    border-color: #f1d98a;
+    transform: none;
+}
+
+#pauseMenu .key-binding-key.key-binding-waiting {
+    color: #fff;
+    border-color: #f1d98a;
+    box-shadow: 0 0 0 1px #000, 0 0 10px rgba(255, 200, 80, 0.6);
+}
+
+#pauseMenu .key-bindings-reset {
+    margin: 0;
+    padding: 6px 14px;
+    font-size: 13px;
+}
+
+@media (max-width: 767px) {
+    #pauseMenu .key-bindings.desktop-only {
+        display: none;
     }
 }

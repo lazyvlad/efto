@@ -7,7 +7,7 @@
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
-        <link rel="icon" href="{{ asset('favicon.ico') }}">
+        @include('layouts.favicons')
 
         @include('layouts.fonts')
 

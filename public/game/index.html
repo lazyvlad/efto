@@ -21,10 +21,12 @@
     <title>I N P U T</title>
     
     <!-- Favicon -->
+    <link rel="icon" href="favicon.ico" sizes="any">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <link rel="manifest" href="site.webmanifest">
+    <meta name="theme-color" content="#0d211a">
     
     <!-- A side chosen on an earlier visit: fetch the picture it starts on before the game's
          code has loaded, so it is there when the menu comes up (systems/backgroundSystem.js) -->
@@ -50,18 +52,18 @@
     <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
-    <link rel="stylesheet" href="styles/base.css?v=2.26.1">
-    <link rel="stylesheet" href="styles/ui-components.css?v=2.26.1">
-    <link rel="stylesheet" href="styles/settings.css?v=2.26.1">
-    <link rel="stylesheet" href="styles/notifications.css?v=2.26.1">
-    <link rel="stylesheet" href="styles/game-panels.css?v=2.26.1">
-    <link rel="stylesheet" href="styles/spell-bar.css?v=2.26.1">
-    <link rel="stylesheet" href="styles/how-to-play.css?v=2.26.1">
-    <link rel="stylesheet" href="styles/mobile.css?v=2.26.1">
-    <link rel="stylesheet" href="styles/wow-theme.css?v=2.26.1">
-    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.26.1"> -->
+    <link rel="stylesheet" href="styles/base.css?v=2.27.0">
+    <link rel="stylesheet" href="styles/ui-components.css?v=2.27.0">
+    <link rel="stylesheet" href="styles/settings.css?v=2.27.0">
+    <link rel="stylesheet" href="styles/notifications.css?v=2.27.0">
+    <link rel="stylesheet" href="styles/game-panels.css?v=2.27.0">
+    <link rel="stylesheet" href="styles/spell-bar.css?v=2.27.0">
+    <link rel="stylesheet" href="styles/how-to-play.css?v=2.27.0">
+    <link rel="stylesheet" href="styles/mobile.css?v=2.27.0">
+    <link rel="stylesheet" href="styles/wow-theme.css?v=2.27.0">
+    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.27.0"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
-  <!-- Built: 2026-10-13T01:35:12.938Z | Version: 2.26.1 | Mode: Production -->
+  <!-- Built: 2026-10-13T02:06:28.814Z | Version: 2.27.0 | Mode: Production -->
 </head>
 <body>
     <!-- The background: two layers that fade from one picture to the next (backgroundSystem.js) -->
@@ -97,7 +99,7 @@
                     <div class="spell-icon">
                         <img src="assets/spells/onyxia-buff.png" alt="Dragon Cry" class="spell-image">
                     </div>
-                    <div class="spell-key">Q</div>
+                    <div class="spell-key" data-key-of="dragon_cry">Q</div>
                     <div class="spell-name">Dragon Cry</div>
                     <div class="spell-timer" id="spell-dragon-cry-timer"></div>
                     <div class="spell-cooldown-overlay" id="spell-dragon-cry-cooldown"></div>
@@ -107,7 +109,7 @@
                     <div class="spell-icon">
                         <img src="assets/spells/zandalari.webp" alt="Zandalari" class="spell-image">
                     </div>
-                    <div class="spell-key">W</div>
+                    <div class="spell-key" data-key-of="zandalari">W</div>
                     <div class="spell-name">Zandalari</div>
                     <div class="spell-timer" id="spell-zandalari-timer"></div>
                     <div class="spell-cooldown-overlay" id="spell-zandalari-cooldown"></div>
@@ -118,7 +120,7 @@
                     <div class="spell-icon">
                         <img src="assets/spells/autoshot.webp" alt="Autoshot" class="spell-image">
                     </div>
-                    <div class="spell-key">E</div>
+                    <div class="spell-key" data-key-of="autoshot">E</div>
                     <div class="spell-name">Autoshot</div>
                     <div class="spell-timer" id="spell-autoshot-timer"></div>
                     <div class="spell-cooldown-overlay" id="spell-autoshot-cooldown"></div>
@@ -127,7 +129,7 @@
                     <div class="spell-icon">
                         <img src="assets/spells/multishot.webp" alt="Multishot" class="spell-image">
                     </div>
-                    <div class="spell-key">R</div>
+                    <div class="spell-key" data-key-of="multishot">R</div>
                     <div class="spell-name">Multishot</div>
                     <div class="spell-timer" id="spell-multishot-timer"></div>
                     <div class="spell-cooldown-overlay" id="spell-multishot-cooldown"></div>
@@ -136,7 +138,7 @@
                     <div class="spell-icon">
                         <img src="assets/spells/arcane_shot.webp" alt="Arcane Shot" class="spell-image">
                     </div>
-                    <div class="spell-key">T</div>
+                    <div class="spell-key" data-key-of="arcane_shot">T</div>
                     <div class="spell-name">Arcane Shot</div>
                     <div class="spell-timer" id="spell-arcane-shot-timer"></div>
                     <div class="spell-cooldown-overlay" id="spell-arcane-shot-cooldown"></div>
@@ -158,7 +160,7 @@
                 <!-- The starting window is the world map: a pin for every zone, and beside it the
                      place that is picked with what is needed to start there (ui/travelMap.js) -->
                 <div class="start-header">
-                    <h2>I N P U T</h2>
+                    <h2 class="start-logo"><img src="assets/ui/input-logo.webp" alt="I N P U T" width="840" height="229"></h2>
                     <div class="start-header-side">
                         <!-- A logged-in player's coins (ui/accountBar.js) -->
                         <div id="startPurse" class="start-purse" hidden></div>
@@ -252,6 +254,13 @@
                             <option value="right">Right-handed (move right, shoot left)</option>
                             <option value="left">Left-handed (move left, shoot right)</option>
                         </select>
+                    </div>
+                    
+                    <!-- Which key does what (utils/keybindings.js); filled in by ui/keyBindingsScreen.js -->
+                    <div class="key-bindings desktop-only">
+                        <p class="section-description">Keys: click one, then press the key you want there. Esc leaves it as it is.</p>
+                        <div id="keyBindingsList" class="key-bindings-list"></div>
+                        <button type="button" id="resetKeysBtn" class="menu-btn secondary key-bindings-reset">Usual keys</button>
                     </div>
                     
                     <div class="setting-item desktop-only">
@@ -383,7 +392,7 @@
                     <p><strong>Mobile:</strong> Touch screen to move your character</p>
                     <p><strong>Your pet:</strong> every 20 seconds it fetches one item you were not going to reach, and in between it bites harmful projectiles out of the air</p>
                     <p><strong>ESC:</strong> Pause game. While you play the mouse is kept inside the game; Esc lets it go (this can be turned off in Settings)</p>
-                    <p><strong>S:</strong> Open/close settings</p>
+                    <p><strong><span data-key-of="settings">S</span>:</strong> Open/close settings</p>
                 </div>
 
                 <div class="guide-section">
@@ -403,22 +412,22 @@
 
                 <div class="guide-section">
                     <h3>Player Spells</h3>
-                    <p style="color: #4ECDC4; font-style: italic; margin-bottom: 15px;">Desktop: Press Q/W/T/E/R keys | Mobile: Touch the spell icons!</p>
+                    <p style="color: #4ECDC4; font-style: italic; margin-bottom: 15px;">Desktop: press each spell's key (shown on its button; change them under Settings, Controls) | Mobile: touch the spell icons!</p>
                     <div class="spell-grid">
                         <div class="spell-item player-spell">
-                            <strong>Q - Dragon Cry:</strong> Move anywhere on screen + 5% crit chance (30s cooldown)
+                            <strong><span data-key-of="dragon_cry">Q</span> - Dragon Cry:</strong> Move anywhere on screen + 5% crit chance (30s cooldown)
                         </div>
                         <div class="spell-item player-spell">
-                            <strong>W - Zandalari:</strong> +100% points, slow projectiles and items (45s cooldown)
+                            <strong><span data-key-of="zandalari">W</span> - Zandalari:</strong> +100% points, slow projectiles and items (45s cooldown)
                         </div>
                         <div class="spell-item player-spell">
-                            <strong>T - Arcane Shot:</strong> Breaks a boss's shield and hits for 3 arrows' worth; flies through projectiles (uses 5 arrows, 1.5s cooldown)
+                            <strong><span data-key-of="arcane_shot">T</span> - Arcane Shot:</strong> Breaks a boss's shield and hits for 3 arrows' worth; flies through projectiles (uses 5 arrows, 1.5s cooldown)
                         </div>
                         <div class="spell-item player-spell">
-                            <strong>E - Autoshot:</strong> Fire 1 arrow straight up (0.5s cooldown)
+                            <strong><span data-key-of="autoshot">E</span> - Autoshot:</strong> Fire 1 arrow straight up (0.5s cooldown)
                         </div>
                         <div class="spell-item player-spell">
-                            <strong>R - Multishot:</strong> Fire 5 arrows in wide spread (0.5s cooldown)
+                            <strong><span data-key-of="multishot">R</span> - Multishot:</strong> Fire 5 arrows in wide spread (0.5s cooldown)
                         </div>
                     </div>
                 </div>
@@ -494,7 +503,7 @@
                     <p>• Use Zandalari spell for +20% points and to slow down all falling objects</p>
                     <p>• Collect Speed Boost projectiles to increase game speed and scoring</p>
                     <p>• Thunder Fury automatically collects all items on screen AND increases crit chance</p>
-                    <p>• Wear the hunter set that suits the moment: press 1, 2 or 3 to change it (or tap the set panel while paused)</p>
+                    <p>• Wear the hunter set that suits the moment: press <span data-key-of="set_1">1</span>, <span data-key-of="set_2">2</span> or <span data-key-of="set_3">3</span> to change it (or tap the set panel while paused)</p>
                     <p>• Higher game speeds = more items = higher scores</p>
                 </div>
             </div>
@@ -683,7 +692,7 @@
     </div>
 
     <!-- Game Script -->
-    <script type="module" src="game-modular.e06a7kxb.js?v=2.26.1"></script>
+    <script type="module" src="game-modular.i7l4r4el.js?v=2.27.0"></script>
     
 
 

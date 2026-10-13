@@ -22,6 +22,7 @@ import { Particle } from '../classes/Particle.js';
 import { addNotification, trackActivity } from '../utils/gameUtils.js';
 import { playTotalSound, playScreamSound, playFireballImpactSound } from './audioSystem.js';
 import { areMessagesAboveField } from './hudNotificationSystem.js';
+import { keyName } from '../utils/keybindings.js';
 
 const INTRO_STEPS = 120;
 const DYING_STEPS = 90;
@@ -378,7 +379,7 @@ function castCurse(context) {
         follows: true,
         onPlayerHit: () => {
             curse = { stepsLeft: gameConfig.bosses.curse.seconds * 60, damage };
-            addNotification(gameState, `${name} has cursed you! Dragon Cry (Q) lifts it`, 300, '#B048F8');
+            addNotification(gameState, `${name} has cursed you! Dragon Cry (${keyName('dragon_cry')}) lifts it`, 300, '#B048F8');
         }
     });
 }
@@ -913,7 +914,7 @@ export function updateBoss(context) {
         fight.shieldIn -= 1 / 60;
         if (fight.shieldIn <= 0) {
             fight.shielded = true;
-            addNotification(gameState, `${boss.name} is shielded! Break it with Arcane Shot (T)`, 300, '#B048F8');
+            addNotification(gameState, `${boss.name} is shielded! Break it with Arcane Shot (${keyName('arcane_shot')})`, 300, '#B048F8');
         }
     }
 

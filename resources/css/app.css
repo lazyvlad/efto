@@ -94,6 +94,25 @@
         text-shadow: 0 2px 0 #000, 0 0 12px rgba(255, 170, 0, 0.35);
     }
 
+    /* The wordmark: sized by the text size given where it is used, never stretched */
+    .site-logo {
+        display: block;
+        height: 2.2em;
+        width: auto;
+        max-width: 90vw;
+        filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
+    }
+
+    /* The film on the About page: square, so it is kept from filling the whole column */
+    .about-film {
+        display: block;
+        width: min(100%, 480px);
+        aspect-ratio: 1;
+        margin-inline: auto;
+        background: #000;
+        border: 1px solid #6b4f16;
+    }
+
     /* A player's picture: round, gold ring. Shows their initial when there is no picture. */
     .avatar {
         display: inline-flex;
