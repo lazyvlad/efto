@@ -6,7 +6,7 @@
         "build": "vite build",
         "dev": "vite",
         "build:game": "npm --prefix game run build",
-        "build:all": "vite build && npm --prefix game run build",
+        "build:all": "npm --prefix game run build && vite build",
         "test:game": "npm --prefix game test"
     },
     "devDependencies": {

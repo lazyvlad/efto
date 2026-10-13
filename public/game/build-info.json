@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-13T19:47:17.181Z",
-  "buildTimestamp": 1791920837186,
+  "buildTime": "2026-10-13T19:53:20.742Z",
+  "buildTimestamp": 1791921200747,
   "mode": "production",
-  "gameVersion": "2.33.1",
-  "cacheHash": "eezh9iwz",
+  "gameVersion": "2.33.2",
+  "cacheHash": "m7i6bdjj",
   "fileMap": {
-    "game-modular.js": "game-modular.eezh9iwz.js"
+    "game-modular.js": "game-modular.m7i6bdjj.js"
   },
-  "buildSystemVersion": "2.33.1"
+  "buildSystemVersion": "2.33.2"
 }

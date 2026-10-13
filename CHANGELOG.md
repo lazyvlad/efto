@@ -1,5 +1,26 @@
 # Changelog
 
+## 2.33.2 - 2026-10-13
+
+### Changed
+- The game's scripts and styles now come from the site's own build (Vite), like the rest of
+  the site: one script and one stylesheet, each with a name made from its contents. A file
+  that changes gets a new name, so a browser can never use an old copy after an update, and
+  a file that did not change stays cached. It also loads faster: one script where there
+  were 74.
+- This replaces the version folder of 2.33.1, which is gone.
+
+### For developers
+- `vite.config.js` has two more inputs, `game/game-modular.js` and `game/styles/game.css`
+  (which imports the game's stylesheets in the order `game/index.html` links them; a test
+  keeps the two lists the same). `GameController` swaps the page's own script and stylesheet
+  links for the built ones when it serves the built game.
+- `npm run build:all` now builds the game first and the site second: the game's build writes
+  `game/config/gameVersion.js` and `serverConfig.js`, which the site's build reads.
+- Pictures, sounds and the page itself are still in `public/game`. The unbundled scripts
+  there are no longer used by the site. A development server (`GAME_SERVE=source`) is
+  unchanged: it serves the game's files as they are.
+
 ## 2.33.1 - 2026-10-13
 
 ### Fixed

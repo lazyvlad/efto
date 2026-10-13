@@ -788,21 +788,6 @@ export const serverConfig = {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
     }
 
-    // The game's scripts import one another by plain file name, so a browser holding an older
-    // copy of one beside newer copies of the rest would run a mix of two versions. To give
-    // every version addresses of its own without depending on how the web server is set up,
-    // the folder is also reachable as "v<version>/" (a link to itself): the site loads the
-    // scripts and styles through it (GameController), pictures and sounds by their usual
-    // addresses, which stay cached from one version to the next.
-    async linkVersion() {
-        const link = path.join(CONFIG.distDir, `v${this.gameVersion}`);
-
-        await fs.remove(link);
-        await fs.symlink('.', link, 'dir');
-
-        this.log(`🔗 Scripts and styles are served under v${this.gameVersion}/`, 'success');
-    }
-
     async run() {
         try {
             await this.init();
@@ -814,7 +799,6 @@ export const serverConfig = {
             await this.copyAssets();
             await this.optimizeAssets();
             await this.generateBuildInfo();
-            await this.linkVersion();
             
             this.log(`🎉 Build completed successfully! Output: ${CONFIG.distDir}/`, 'success');
             this.log(`🏷️  Game Version: ${this.gameVersion}`, 'info');

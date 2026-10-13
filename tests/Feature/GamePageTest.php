@@ -64,21 +64,49 @@ class GamePageTest extends TestCase
         $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertDontSee('googletagmanager');
     }
 
-    public function test_the_built_game_loads_its_scripts_and_styles_through_its_version_s_folder(): void
+    public function test_the_built_game_takes_its_script_and_styles_from_the_site_s_build(): void
     {
         config(['game.serve' => 'build']);
 
-        $version = 'v'.json_decode(file_get_contents(public_path('game/build-info.json')), true)['gameVersion'];
-        $this->assertDirectoryExists(public_path("game/$version"), 'The build did not link the version folder');
-        $this->assertFileExists(public_path("game/$version/config/gameConfig.js"));
+        $manifest = json_decode(file_get_contents(public_path('build/manifest.json')), true);
+        $script = $manifest['game/game-modular.js']['file'];
+        $styles = $manifest['game/styles/game.css']['file'];
+
+        $this->assertFileExists(public_path('build/'.$script));
+        $this->assertFileExists(public_path('build/'.$styles));
 
         $html = $this->get(route('play'))->assertOk()->getContent();
 
-        // Every script and stylesheet of the game, and nothing else, goes through it
-        $this->assertMatchesRegularExpression('#<script type="module" src="'.preg_quote($version).'/game-modular\.[^"]+"#', $html);
-        $this->assertStringContainsString('href="'.$version.'/styles/base.css', $html);
+        // One script and one stylesheet, each named after its contents, and none of the game's own
+        $this->assertStringContainsString('<script type="module" src="'.asset('build/'.$script).'"></script>', $html);
+        $this->assertStringContainsString('<link rel="stylesheet" href="'.asset('build/'.$styles).'">', $html);
         $this->assertStringNotContainsString('href="styles/', $html);
+        $this->assertStringNotContainsString('src="game-modular', $html);
+
+        // Pictures and sounds are still found in the game's folder
         $this->assertStringContainsString('<base href="'.asset('game').'/">', $html);
+    }
+
+    public function test_the_unbuilt_game_keeps_its_own_links(): void
+    {
+        config(['game.serve' => 'source']);
+
+        if (! is_file(public_path('game-src/index.html'))) {
+            $this->markTestSkipped('No development link to the unbuilt game here.');
+        }
+
+        $this->get(route('play'))->assertOk()
+            ->assertSee('href="styles/base.css"', false)
+            ->assertSee('src="game-modular.js', false);
+    }
+
+    public function test_the_stylesheet_the_site_builds_lists_the_game_s_stylesheets_in_their_order(): void
+    {
+        preg_match_all('/^\s*<link rel="stylesheet" href="styles\/([^"?]+)/m', file_get_contents(base_path('game/index.html')), $linked);
+        preg_match_all("/^@import '\.\/([^']+)';/m", file_get_contents(base_path('game/styles/game.css')), $imported);
+
+        $this->assertNotEmpty($linked[1]);
+        $this->assertSame($linked[1], $imported[1]);
     }
 
     public function test_pages_carry_the_footer_credit(): void

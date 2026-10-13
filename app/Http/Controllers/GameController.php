@@ -7,7 +7,9 @@ use App\Support\GameSettings;
 use App\Support\GuestName;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\View\View;
+use Throwable;
 
 class GameController extends Controller
 {
@@ -89,7 +91,7 @@ class GameController extends Controller
             // Counted once: framed by the landing page, that page has already counted the visit
             .($request->boolean('embedded') ? '' : "\n    ".trim(view('layouts.analytics')->render()));
 
-        $html = preg_replace('/<head(\s[^>]*)?>/i', "$0\n    ".$head, $this->versioned($folder, file_get_contents($indexPath)), 1);
+        $html = preg_replace('/<head(\s[^>]*)?>/i', "$0\n    ".$head, $this->hashed($folder, file_get_contents($indexPath)), 1);
 
         return response($html)
             ->header('Content-Type', 'text/html; charset=utf-8')
@@ -97,25 +99,36 @@ class GameController extends Controller
     }
 
     /**
-     * The built game's page with its scripts and styles addressed through the folder of its
-     * version ("v2.33.0/styles/base.css"). That folder is a link to the game's own, made by the
-     * build: the files are the same, but every version has addresses no browser has seen, so
-     * none can go on using a copy from the version before. The scripts load one another by
-     * relative address and so stay within it. Pictures and sounds keep their addresses.
+     * The built game's page with its scripts and styles taken from the site's own build
+     * (Vite): one script and one stylesheet, each named after its contents, so every change
+     * has an address no browser has seen and none can go on using an older copy. Pictures and
+     * sounds keep their addresses in the game's folder.
+     *
+     * The unbuilt game (a development server) keeps the links of its own page.
      */
-    private function versioned(string $folder, string $html): string
+    private function hashed(string $folder, string $html): string
     {
-        $info = json_decode((string) @file_get_contents(public_path($folder.'/build-info.json')), true);
-        $version = 'v'.($info['gameVersion'] ?? '');
-
-        if (! preg_match('/^v[\w.\-]+$/', $version) || ! is_dir(public_path($folder.'/'.$version))) {
+        if ($folder !== 'game') {
             return $html;
         }
 
+        try {
+            $styles = Vite::asset('game/styles/game.css');
+            $script = Vite::asset('game/game-modular.js');
+        } catch (Throwable) {
+            // The site was built without the game: the page's own links still work
+            return $html;
+        }
+
+        // The stylesheets, as one, where the first of them was
+        $html = preg_replace('/<link\b[^>]*\bhref="styles\/[^"]*"[^>]*>/i', '<link rel="stylesheet" href="'.e($styles).'">', $html, 1);
+        $html = preg_replace('/\s*<link\b[^>]*\bhref="styles\/[^"]*"[^>]*>/i', '', $html);
+
         return preg_replace(
-            ['/(<script\b[^>]*\bsrc=")(?![a-z]+:|\/)/i', '/(<link\b[^>]*\bhref=")(?=styles\/)/i'],
-            '$1'.$version.'/',
-            $html
+            '/<script\b[^>]*\bsrc="game-modular[^"]*"[^>]*><\/script>/i',
+            '<script type="module" src="'.e($script).'"></script>',
+            $html,
+            1
         );
     }
 }
