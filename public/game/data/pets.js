@@ -1,0 +1,1 @@
+const pets={alliance:{id:"nightsaber",name:"Nightsaber"},horde:{id:"prairie-wolf",name:"Prairie Wolf"}};export function petFor(e){const s=pets[e]||pets.alliance;return{...s,sit:`assets/pets/${s.id}-sit.webp`,run:`assets/pets/${s.id}-run.webp`}}

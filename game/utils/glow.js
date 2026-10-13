@@ -12,9 +12,13 @@
 // All `blur` arguments use the same units as ctx.shadowBlur on the game canvas (device pixels),
 // so values can be carried over unchanged from shadow-based drawing code.
 
-const HALO_CACHE_LIMIT = 160;
+// A pulsing glow needs a halo for every strength it passes through, for every picture that
+// glows. With some seventy items that was several hundred halos against a cache of 160, so
+// halos were thrown away and made again all through a game, a few every second. Coarser
+// steps (half as many strengths) and a cache with room for them all stop that.
+const HALO_CACHE_LIMIT = 420;
 const HALO_SIZE_STEP = 8;     // Cached halo sizes are rounded up to this and scaled to fit
-const HALO_BLUR_STEP = 4;     // Animated blur values snap to this many pixels
+const HALO_BLUR_STEP = 8;     // Animated blur values snap to this many pixels
 
 const haloCache = new Map();
 

@@ -1,5 +1,72 @@
 # Changelog
 
+## 2.25.0 - 2026-10-12
+
+### What's new
+
+**The hunter's pet**
+- Every hunter has a pet: a nightsaber cat for the Alliance, a prairie wolf for the Horde.
+  It stays at his side when there is nothing to do and trots along when he moves.
+- Every 20 seconds it runs to fetch one falling item the hunter is not going to reach, and
+  comes back. A fetched item counts exactly as if he had caught it: points, coins, set
+  pieces and all. "Fetched!" shows over the pet.
+- In between it goes for the things that would hurt the hunter: it runs under a falling
+  fireball, bolt or boss attack, leaps and bites it out of the air ("Chomp!"). After each
+  fetch or bite it rests two and a half seconds at his side. It does this in boss fights
+  and in Boss Rush too.
+
+**The world map**
+- The main menu has a "Choose on the world map" button. It opens a painted map of Kalimdor
+  and the Eastern Kingdoms with a pin for every zone of both sides, twenty in all, and one
+  for Blackrock Depths, which is not in the game yet.
+- Select a pin to see the zone: its picture, the boss that guards it, and whether you may
+  start there. The first zone of each side is open to everyone; a later one follows the
+  rules for skipping ahead (the earlier bosses beaten, an activated account, the coins), and
+  a pin you cannot start at says why.
+- "Start here" starts the game in that zone at once, on that zone's side, and takes any
+  coins it costs.
+
+**Guild voice lines**
+- Fourteen clips of the guild's own voices are said at moments in the game: when a boss
+  comes in and when it goes down, when Thunder Fury or another rare item is caught, when
+  health falls below a quarter, on a heavy blow or a big heal, when the game is lost or won,
+  and now and then for no reason at all.
+- One line at a time, with at least six seconds of quiet after each. They follow the sound
+  effects volume, and "Guild voice lines" under Settings, Audio turns them off on their own.
+
+**The site**
+- A new About page says who I N P U T is: a World of Warcraft guild that plays Classic
+  content, and a game made on its Discord for guildies to joke about.
+- "My Games" and "Items" have moved from the top menu into the menu under the player's
+  name. The top menu is now Play, High Scores and About. The foot of every page links to
+  About and Items, so guests can still reach the item list.
+
+### Changed
+- Defeating a boss gives back 10 health, down from 30. You no longer walk out of a fight
+  close to full health; what the fight cost is carried into the next zone.
+
+### Fixed
+- Dropped frames during play. Two causes, both grown worse as items were added: the glow
+  behind falling items was being thrown away and redrawn all through a game, a few times a
+  second, and every picture was measured the first time it appeared, in the middle of the
+  game. Glows are now kept, and pictures are measured ahead while the game loads.
+
+### For developers
+- The pets are `game/data/pets.js` (two pictures each in `game/assets/pets/`), the
+  behaviour `game/classes/Pet.js`, and how often, how fast and how big `pet` in
+  `game/config/gameConfig.js`. A later pet is a pair of pictures and an entry in the data.
+- The art as delivered is `game-art/hunter-companion-pets.zip`, not in the repository.
+- Which clip is said at which moment is `game/data/voiceLines.js`: a first assignment made
+  from the clips' labels, to be corrected by ear. The clips are in
+  `game/assets/audio/voice/` (OGG, and WAV for browsers without OGG), played by
+  `game/systems/voiceSystem.js`; how often is `voice` in `game/config/gameConfig.js`, where
+  `explicit: false` leaves out the one clip with swearing. Cut from
+  `game-art/game-voice-clips.zip`, not in the repository.
+- The world map is `game/ui/travelMap.js`, with the pins in `game/data/worldMap.js` and the
+  picture `game/assets/ui/world-map.webp`. It was built from `game-art/travel-map-pack.zip`:
+  the map, the pin positions and the descriptions are the pack's, the selector is the game's
+  own (the pack's script and its copies of the backgrounds are not used).
+
 ## 2.24.0 - 2026-10-12
 
 ### What's new

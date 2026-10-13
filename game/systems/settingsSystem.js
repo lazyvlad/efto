@@ -6,6 +6,7 @@ const defaultSettings = {
     audio: {
         soundEffects: true,
         backgroundMusic: true,
+        voiceLines: true,      // The guild's voice lines, said at moments in the game
         masterVolume: 70,      // Master volume control (0-100)
         musicVolume: 50,       // Background music volume (0-100) 
         effectsVolume: 80      // Sound effects volume (0-100)
@@ -355,6 +356,11 @@ export function initializeSettings() {
 // Whether the mouse is kept inside the game while playing
 export function isMouseLockEnabled() {
     return gameSettings.ui.lockMouse !== false;
+}
+
+// Whether the guild's voice lines are played
+export function areVoiceLinesEnabled() {
+    return gameSettings.audio.voiceLines !== false;
 }
 
 // Check if sound effects are enabled

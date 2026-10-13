@@ -108,6 +108,7 @@ export function updateSettingsScreen() {
 
     setChecked('soundEffectsToggle', settings.audio.soundEffects);
     setChecked('backgroundMusicToggle', settings.audio.backgroundMusic);
+    setChecked('voiceLinesToggle', settings.audio.voiceLines !== false);
 
     const masterVolume = settings.audio.masterVolume || settings.audio.volume || 70;
     setValue('masterVolumeSlider', masterVolume);
@@ -148,6 +149,7 @@ export function bindSettingsScreen() {
 
     bindToggle('soundEffectsToggle', 'soundEffects', 'Sound effects');
     bindToggle('backgroundMusicToggle', 'backgroundMusic', 'Background music');
+    bindToggle('voiceLinesToggle', 'voiceLines', 'Voice lines');
     bindToggle('lockMouseToggle', 'lockMouse', 'Mouse lock', 'ui');
 
     bindRange('masterVolumeSlider', 'masterVolumeValue', 'audio', 'masterVolume');

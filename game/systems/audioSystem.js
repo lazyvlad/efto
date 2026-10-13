@@ -111,6 +111,11 @@ function preloadSoundEffects() {
     return Promise.all([...paths].map(loadBuffer));
 }
 
+// Decode sounds that are not in the asset registry (the voice lines) ahead of their first use
+export function preloadSounds(paths) {
+    return Promise.all(paths.map(loadBuffer));
+}
+
 // Browsers keep audio suspended until the player interacts with the page
 function unlockAudio() {
     const context = getAudioContext();

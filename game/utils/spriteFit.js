@@ -64,3 +64,19 @@ function measureContentBounds(image) {
     const bottom = Math.min(sourceHeight, Math.ceil((maxY + 2) / scale));
     return { x, y, width: right - x, height: bottom - y };
 }
+
+// Measure pictures ahead of their first use, a few at a time while the browser is idle.
+// Measuring reads a picture's pixels back, which can hold a frame up: done ahead, that never
+// happens in the middle of the game, the first time an item falls.
+export function measureAhead(images) {
+    const waiting = images.filter(image => image && image.complete && image.naturalWidth);
+    const later = window.requestIdleCallback || (callback => setTimeout(() => callback({ timeRemaining: () => 8 }), 50));
+
+    const work = deadline => {
+        while (waiting.length > 0 && deadline.timeRemaining() > 4) {
+            getContentBounds(waiting.pop());
+        }
+        if (waiting.length > 0) later(work);
+    };
+    later(work);
+}

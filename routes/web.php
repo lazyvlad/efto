@@ -17,6 +17,9 @@ Route::get('/play', [GameController::class, 'play'])->name('play');
 
 Route::get('/highscores', [ScoreController::class, 'page'])->name('highscores');
 
+// Who is behind the game
+Route::view('/about', 'about')->name('about');
+
 // Every item in the game and what it pays in coins
 Route::get('/items', [ItemController::class, 'index'])->name('items');
 

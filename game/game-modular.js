@@ -2,6 +2,8 @@
 import { gameConfig } from './config/gameConfig.js';
 import { GAME_VERSION } from './config/gameVersion.js';
 import { CombatText } from './classes/CombatText.js';
+import { measureAhead } from './utils/spriteFit.js';
+import { Particle } from './classes/Particle.js';
 import { gameItems } from './data/gameItems.js';
 import { damageProjectiles, isHarmfulProjectile } from './data/damageProjectiles.js';
 import { powerUpItems } from './data/powerUpItems.js';
@@ -21,8 +23,11 @@ import { totalXpAtLevel } from './utils/progression.js';
 import { coinsForItem, coinsForBoss, formatCoins } from './utils/coins.js';
 import { quiverCapacity, startingArrows } from './utils/quiver.js';
 import { setById, piecesOf, ownedCount, setBonus, nextStep, bonusText } from './utils/sets.js';
+import { Pet } from './classes/Pet.js';
 import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost, renderGameModePicker, getGameMode, gameModeCost } from './ui/startZone.js';
 import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
+import { openTravelMap } from './ui/travelMap.js';
+import { say, preloadVoiceLines, resetVoiceLines, updateBanter, watchHealth, forgetHealth } from './systems/voiceSystem.js';
 import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies } from './systems/bossSystem.js';
 import { BossProjectile } from './classes/BossProjectile.js';
 import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground } from './systems/backgroundSystem.js';
@@ -239,12 +244,18 @@ async function init() {
     });
     
     // Set up additional asset manager callbacks
+    // As each tier of pictures arrives, measure them ahead of their first use (utils/spriteFit.js)
+    const measureLoaded = () => measureAhead([...assetManager.assets.values()].filter(asset => asset instanceof HTMLImageElement));
+    assetManager.onTier1Ready(measureLoaded);
+    
     assetManager.onTier2Ready(() => {
         console.log('Tier 2 assets ready - starting background loading');
+        measureLoaded();
     });
     
     assetManager.onTier3Ready(() => {
         console.log('All assets loaded - optimal performance achieved');
+        measureLoaded();
     });
     
     // Start loading assets
@@ -564,7 +575,7 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     // A zone's boss stands between the player and the next zone: the level stops at the end of
     // the zone until the boss, who comes in when the player has the experience to move on, is
     // defeated.
-    guardZone(gameState, canvas);
+    if (guardZone(gameState, canvas)) say('bossAppears');
     
     // Calculate new level and speed multiplier from the experience earned
     if (!isBossFightActive()) {
@@ -612,6 +623,22 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     // Update all game objects (affected by bullet time)
     updateFallingItems(bulletTimeAdjustedDelta);
     updateProjectiles(bulletTimeAdjustedDelta);
+    // The pet keeps at the hunter's side and goes after an item now and then. After the items
+    // and projectiles have moved, so it can see how fast each one is falling.
+    if (player.pet) {
+        player.pet.update(player, fallingItems, fireballs, canvas, gameConfig.pet);
+        
+        // What it bit is gone from the air
+        const bitten = player.pet.takeBitten();
+        const at = bitten ? fireballs.indexOf(bitten) : -1;
+        if (at >= 0) {
+            fireballs.splice(at, 1);
+            for (let i = 0; i < 12; i++) {
+                particles.push(new Particle(bitten.x + bitten.width / 2 + (Math.random() - 0.5) * bitten.width, bitten.y + bitten.height / 2 + (Math.random() - 0.5) * bitten.height, '#FF8C42'));
+            }
+            combatTexts.push(new CombatText(bitten.x + bitten.width / 2, bitten.y, 'Chomp!', '#9FE870', false));
+        }
+    }
     updatePowerUps(bulletTimeAdjustedDelta);
     updateArrows(bulletTimeAdjustedDelta);
     updateParticles(bulletTimeAdjustedDelta);
@@ -621,6 +648,10 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     
     // Check collisions
     checkCollisions();
+    
+    // The guild has something to say: about his health, or about nothing at all
+    watchHealth(gameState.health, gameState.maxHealth);
+    updateBanter(isBossFightActive());
     
     // Check end conditions
     checkGameEndConditions();
@@ -1030,6 +1061,16 @@ function startGame() {
     gameState.nextPowerUpTime = undefined;
     showBackgroundForLevel(gameState.currentLevel, true);
     player.setCharacter(gameState.faction);
+    
+    // The guild's voices: fetched now, quiet for a while
+    preloadVoiceLines();
+    resetVoiceLines();
+    forgetHealth();
+    
+    // His pet: the one of his side, at his side
+    if (!player.pet) player.pet = new Pet();
+    player.pet.setKind(gameState.faction);
+    player.pet.reset(gameConfig.pet);
     resetBosses(gameState.faction, gameState.currentLevel + 1);
     heldDrops = [];
     heldDropWait = 0;
@@ -1482,6 +1523,12 @@ function checkCollisions() {
         showDodgeText,
         trackDodge
     });
+    
+    // Say so when the pet fetched something
+    const fetched = player.pet ? player.pet.takeFetched() : null;
+    if (fetched) {
+        combatTexts.push(new CombatText(player.pet.x, player.groundY() - player.figureHeight() * 0.7, 'Fetched!', '#9FE870', false));
+    }
 }
 
 function checkGameEndConditions() {
@@ -1937,6 +1984,35 @@ function setupUIEventHandlers() {
     if (setPanelHeader) {
         setPanelHeader.addEventListener('click', () => {
             if (gameState.currentScreen === 'game') wearNextSet();
+        });
+    }
+    
+    // The world map: the side and the starting zone, chosen on a map. What is chosen there is
+    // set on the menu, as if picked by hand, and the game starts at once.
+    const worldMapBtn = document.getElementById('worldMapBtn');
+    if (worldMapBtn) {
+        worldMapBtn.addEventListener('click', () => {
+            openTravelMap({
+                faction: getFaction(),
+                zone: getStartZone(getFaction()),
+                onChoose: ({ faction, zone }) => {
+                    setFaction(faction);
+                    document.querySelectorAll('#factionPicker input[name="faction"]').forEach(option => {
+                        option.checked = option.value === faction;
+                    });
+                    document.getElementById('factionPicker').classList.remove('needs-choice');
+                    showStartingBackground();
+                    
+                    // A later zone is a normal game that skips ahead
+                    const mode = document.getElementById('gameMode');
+                    if (mode && zone > 1) mode.value = 'normal';
+                    renderStartZonePicker(faction);
+                    const startZone = document.getElementById('startZone');
+                    if (startZone && zone > 1) startZone.value = String(zone);
+                    
+                    startGameFromUI();
+                }
+            });
         });
     }
     
@@ -3248,6 +3324,13 @@ function onItemCollected(itemData, fallingItem = null) {
         gameState.coins += coinsForItem(itemData.type, gameConfig.coins);
     }
     
+    // A rare catch may draw a remark, Thunder Fury always its own
+    if (itemData.id === 'ThunderFury') {
+        say('thunderfury');
+    } else if (['epic', 'special', 'set_piece', 'legendary', 'zee_zgnan'].includes(itemData.type)) {
+        say('rareCaught');
+    }
+    
     // A piece of a hunter set: it counts towards what the worn set gives from this moment, and
     // a logged-in player keeps it (the site records the pickup)
     if (itemData.type === 'set_piece') {
@@ -3403,6 +3486,7 @@ const BOSS_LOOT_COLORS = { uncommon: '#1EFF00', rare: '#4D9BFF', epic: '#C77DFF'
 // A boss went down: it pays coins, and the site decides what it dropped. A logged-in player
 // keeps the item on their account; a guest is only shown it.
 function onBossDefeated(boss) {
+    say('bossDefeated');
     gameState.coins += coinsForBoss(boss.zone, gameConfig.coins);
     if (gameState.mode === 'boss_rush') gameState.rushPause = gameConfig.bossRush.breather;
     
@@ -3512,6 +3596,7 @@ function endGame() {
     }
     
     showCoinsEarned();
+    say(gameState.victory || gameState.rushComplete ? 'victory' : 'gameOver');
     
     const gameOverTitle = document.getElementById('gameOverTitle');
     if (gameOverTitle) {

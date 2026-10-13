@@ -122,7 +122,9 @@ export function checkCollisions(context) {
 
     // Check item collisions
     fallingItems.forEach((item, itemIndex) => {
-        if (item.checkCollision && item.checkCollision(player)) {
+        // Caught by the hunter, or fetched by his pet: either way it counts the same
+        const fetched = Boolean(player.pet) && player.pet.catches(item, player, gameConfig.pet);
+        if (fetched || (item.checkCollision && item.checkCollision(player))) {
             // Update item data and score
             if (item.itemData) {
                 item.itemData.collected++;

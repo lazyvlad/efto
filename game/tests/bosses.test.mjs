@@ -21,7 +21,7 @@ const rules = {
     frenzy: { base: 0.6, perZone: 0.15, most: 2 },
     shield: { fromZone: 2, firstAfter: 12, every: 30, perZone: 1.5, shortest: 15 },
     enrage: { after: 100, perZone: 5, soonest: 50, atStart: 1.5, perSecond: 0.03, most: 4 },
-    reward: { score: 100, scorePerZone: 50, health: 30 },
+    reward: { score: 100, scorePerZone: 50, health: 10 },
     dodge: { reaction: { base: 20, perZone: 1.5, fastest: 6 }, cooldown: { base: 100, perZone: 8, shortest: 28 } },
     windUp: { perZone: 0.05, least: 0.5, leastForHeavy: 0.7 },
     movement: { sweep: { base: 15, perZone: 0.8, fastest: 8 } },

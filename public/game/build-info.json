@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-12T23:17:52.268Z",
-  "buildTimestamp": 1791847072273,
+  "buildTime": "2026-10-13T00:13:44.163Z",
+  "buildTimestamp": 1791850424170,
   "mode": "production",
-  "gameVersion": "2.24.0",
-  "cacheHash": "hdm41wkt",
+  "gameVersion": "2.25.0",
+  "cacheHash": "h7yxd2o6",
   "fileMap": {
-    "game-modular.js": "game-modular.hdm41wkt.js"
+    "game-modular.js": "game-modular.h7yxd2o6.js"
   },
-  "buildSystemVersion": "2.24.0"
+  "buildSystemVersion": "2.25.0"
 }

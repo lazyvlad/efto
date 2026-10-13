@@ -1758,3 +1758,222 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
 .item-entry.boss-loot-uncommon .item-name { color: #1eff00; }
 .item-entry.boss-loot-rare .item-name { color: #4d9bff; }
 .item-entry.boss-loot-epic .item-name { color: #c77dff; }
+
+/* ----- The world map (ui/travelMap.js) ----- */
+
+#pauseMenu .world-map-btn {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+    padding: 8px 10px;
+    color: #f5e6b8;
+    font-size: 15px;
+    background: linear-gradient(180deg, #2a2219, #100d0a);
+    border: 1px solid #8f7a45;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000, inset 0 1px 0 rgba(255, 230, 160, 0.12);
+    cursor: pointer;
+}
+
+#pauseMenu .world-map-btn:hover {
+    border-color: #f1d98a;
+    filter: brightness(1.15);
+}
+
+#pauseMenu .travel-map {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    overflow-y: auto;
+    padding: 18px clamp(12px, 3vw, 36px) 24px;
+    background: rgba(8, 6, 4, 0.97);
+    color: var(--wow-text);
+}
+
+#pauseMenu .travel-map[hidden] {
+    display: none;
+}
+
+#pauseMenu .travel-map-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    max-width: 1500px;
+    margin: 0 auto 14px;
+}
+
+#pauseMenu#pauseMenu .travel-map-header h2 {
+    margin: 0;
+    font-size: 28px;
+}
+
+#pauseMenu .travel-map-close {
+    padding: 8px 18px;
+    color: #f5e6b8;
+    font-size: 15px;
+    background: linear-gradient(180deg, #2a2219, #100d0a);
+    border: 1px solid #8f7a45;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#pauseMenu .travel-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 18px;
+    align-items: start;
+    max-width: 1500px;
+    margin: 0 auto;
+}
+
+#pauseMenu .travel-atlas-scroll {
+    overflow: auto;
+    border: 1px solid #8f7a45;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #000, 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+
+#pauseMenu .travel-atlas {
+    position: relative;
+    aspect-ratio: 3 / 2;
+    min-width: 640px;
+}
+
+#pauseMenu .travel-atlas-art {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+#pauseMenu .travel-continent {
+    position: absolute;
+    top: 5%;
+    transform: translateX(-50%);
+    color: #f8e5b5;
+    font-size: clamp(12px, 1.2vw, 19px);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 4px #000, 0 0 12px #000;
+    pointer-events: none;
+}
+
+#pauseMenu .travel-kalimdor { left: 28%; }
+#pauseMenu .travel-eastern { left: 75%; }
+
+#pauseMenu .travel-pin {
+    position: absolute;
+    z-index: 2;
+    width: 30px;
+    height: 30px;
+    /* Centred on its spot by its margins, not a transform: the menu's buttons move on
+       hover by a transform, which would throw the pin out from under the pointer */
+    margin: -15px 0 0 -15px;
+    padding: 0;
+    transform: none !important;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    background: #215b96;
+    border: 2px solid #edd7a4;
+    border-radius: 50%;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+    cursor: pointer;
+}
+
+#pauseMenu .travel-pin.travel-horde { background: #9d352e; }
+#pauseMenu .travel-pin.travel-dungeon { background: #764420; }
+
+#pauseMenu .travel-pin.travel-locked {
+    opacity: 0.55;
+    filter: grayscale(0.6);
+}
+
+#pauseMenu .travel-pin:hover,
+#pauseMenu .travel-pin:focus-visible {
+    z-index: 3;
+    opacity: 1;
+    box-shadow: 0 0 0 3px rgba(251, 209, 122, 0.5), 0 2px 5px rgba(0, 0, 0, 0.7);
+}
+
+#pauseMenu .travel-pin.travel-selected {
+    z-index: 4;
+    opacity: 1;
+    border-color: #fff2ba;
+    box-shadow: 0 0 0 5px rgba(251, 209, 122, 0.45), 0 0 15px #fff3af;
+}
+
+#pauseMenu .travel-card {
+    padding: 0 14px 14px;
+    background: var(--wow-inset);
+    border: 1px solid var(--wow-inset-border);
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #000;
+    text-align: left;
+}
+
+#pauseMenu .travel-card-picture {
+    display: block;
+    width: calc(100% + 28px);
+    margin: 0 -14px 12px;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 6px 6px 0 0;
+}
+
+#pauseMenu .travel-card-side {
+    color: #a89a78;
+    font-family: Arial, sans-serif;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+#pauseMenu#pauseMenu .travel-card-name {
+    margin: 4px 0 8px;
+    font-size: 22px;
+    text-align: left;
+}
+
+#pauseMenu .travel-card p {
+    margin: 0 0 8px;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+#pauseMenu .travel-card-guard { color: #ffb3a8; }
+#pauseMenu .travel-card-why { color: #ffd100; }
+#pauseMenu .travel-card-why.travel-why-locked { color: #a89a78; }
+
+#pauseMenu .travel-card .travel-choose {
+    width: 100%;
+    margin: 6px 0 0;
+}
+
+#pauseMenu .travel-card .travel-choose:disabled {
+    opacity: 0.45;
+    cursor: default;
+    filter: grayscale(0.7);
+}
+
+#pauseMenu .travel-legend {
+    max-width: 1500px;
+    margin: 12px auto 0;
+    color: #a89a78;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+}
+
+/* Phones: the map scrolls sideways, with the chosen place under it */
+@media (max-width: 860px) {
+    #pauseMenu .travel-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    /* Clear of the player panel, which stays on top of the menu on phones */
+    #pauseMenu .travel-map {
+        padding-top: 132px;
+    }
+}

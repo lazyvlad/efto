@@ -179,6 +179,8 @@
                             </span>
                         </label>
                     </div>
+                    <!-- The same choice on a map: the side and where to start (ui/travelMap.js) -->
+                    <button type="button" id="worldMapBtn" class="world-map-btn">Choose on the world map</button>
                     <!-- Skipping ahead: for players who have beaten bosses before (ui/startZone.js) -->
                     <div id="startZonePicker" class="start-zone-picker" hidden>
                         <label for="startZone">Start in</label>
@@ -233,6 +235,9 @@
                 <p class="pause-hint">Press ESC to continue or tap pause button</p>
             </div>
         </div>
+
+        <!-- The world map, over the main menu (ui/travelMap.js fills it) -->
+        <div id="travelMap" class="travel-map" hidden></div>
 
         <!-- Settings Screen (moved inside pause menu) -->
         <div id="settingsScreen" class="screen" style="display: none;">
@@ -323,6 +328,14 @@
                         </div>
                     </div>
                     
+                    <div class="setting-item">
+                        <label for="voiceLinesToggle">Guild voice lines:</label>
+                        <div class="toggle-switch">
+                            <input type="checkbox" id="voiceLinesToggle" checked>
+                            <span class="toggle-slider"></span>
+                        </div>
+                    </div>
+                    
                     <!-- Volume Controls - Hidden on iOS -->
                     <div id="volumeControls" class="volume-controls-section">
                         <div class="setting-item">
@@ -371,6 +384,7 @@
                     <h3>Controls</h3>
                     <p><strong>Desktop:</strong> Mouse to move your character</p>
                     <p><strong>Mobile:</strong> Touch screen to move your character</p>
+                    <p><strong>Your pet:</strong> every 20 seconds it fetches one item you were not going to reach, and in between it bites harmful projectiles out of the air</p>
                     <p><strong>ESC:</strong> Pause game. While you play the mouse is kept inside the game; Esc lets it go (this can be turned off in Settings)</p>
                     <p><strong>S:</strong> Open/close settings</p>
                 </div>

@@ -99,6 +99,9 @@ export class Player {
         const barRoom = this.width * HEALTH_BAR_ROOM;
         const figureHeight = this.height - barRoom;
         
+        // His pet, on the ground beside him (the game gives him one: classes/Pet.js)
+        if (this.pet) this.pet.draw(ctx, this, gameConfig.pet);
+        
         ctx.save();
         
         // Draw shield border if active
@@ -141,6 +144,15 @@ export class Player {
         ctx.restore();
         
         this.drawHealthBar(ctx, this.y + figureHeight, barRoom, health);
+    }
+    
+    // How tall the figure is, and where the ground under his feet is (his pet stands on it)
+    figureHeight() {
+        return this.height - this.width * HEALTH_BAR_ROOM;
+    }
+    
+    groundY() {
+        return this.y + this.figureHeight();
     }
     
     // A small health bar under his feet: a dark well with a gold edge, as on the panels, filled

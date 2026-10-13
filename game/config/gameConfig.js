@@ -258,6 +258,34 @@ export const gameConfig = {
     // Who the bosses are is in data/bosses.js. A boss's strength comes from its zone (1 to 10)
     // and the numbers here: "base" is the first zone's boss, "perZone" what each later zone
     // adds or takes off. 60 steps = 1 second.
+    // === VOICE LINES ===
+    // The guild's own voices, said at moments in the game (data/voiceLines.js says which clip
+    // at which moment; systems/voiceSystem.js plays them). One at a time, with a pause between.
+    voice: {
+        volume: 1,                  // Against the other sound effects (0 to 1)
+        pause: 6,                   // Seconds of quiet after a line before another may begin
+        explicit: true,             // Whether the clips with swearing in them are played
+        banterEvery: { least: 50, most: 110 },  // Seconds between remarks made for no reason
+        lowHealth: 0.25,            // The share of health below which someone calls for a healer
+        heavyBlow: 14,              // Health lost in one step that counts as a heavy blow
+        bigHeal: 15,                // Health gained in one step that draws a remark
+    },
+
+    // === THE PET ===
+    // Every hunter has a pet (data/pets.js has one for each side). It keeps busy: every so
+    // often it fetches one item he is not going to reach (a fetched item counts as caught),
+    // and in between it leaps at the things that would hurt him and bites them out of the
+    // air, in a boss fight too. After each it rests a moment at his side.
+    pet: {
+        every: 1200,                // Steps from one fetched item to the next (20 seconds)
+        rest: 150,                  // Steps it rests after fetching or biting something (2.5 seconds)
+        leapHeight: 0.9,            // How high it can leap at a projectile, against the hunter's height
+        lookAgain: 30,              // Steps before it looks again when nothing was worth the run
+        speed: 0.012,               // How fast it runs, as a share of the field's width per step
+        height: 0.52,               // How tall it is drawn, against the hunter
+        length: 0.8,                // The most room it takes lengthways, against the hunter's height
+    },
+
     // === HUNTER SETS ===
     // Three armour sets, collected piece by piece over many games. A logged-in player keeps
     // every piece they catch on their account; a guest has only what this game gave them. Each
@@ -358,7 +386,7 @@ export const gameConfig = {
             most: 4,                // Never more than this
         },
         
-        reward: { score: 100, scorePerZone: 50, health: 30 },
+        reward: { score: 100, scorePerZone: 50, health: 10 },   // Health comes back sparingly: a fight should still be felt in the next zone
         
         // A boss keeps on the move: it sweeps along the top and is drawn towards the player,
         // so it passes over them without ever settling there
