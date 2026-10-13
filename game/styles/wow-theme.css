@@ -1934,6 +1934,27 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
     justify-content: flex-end;
 }
 
+/* What the player has to spend */
+#pauseMenu .start-purse {
+    padding: 6px 12px;
+    color: #cfc4ad;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    white-space: nowrap;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid #5d4c25;
+    border-radius: 4px;
+}
+
+#pauseMenu .start-purse[hidden] {
+    display: none;
+}
+
+#pauseMenu .start-purse strong {
+    color: #ffd100;
+    font-size: 16px;
+}
+
 /* The game's other screens, under one button */
 #pauseMenu .game-menu {
     position: relative;

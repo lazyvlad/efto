@@ -100,9 +100,26 @@ function renderLoginOffer() {
     offer.append(buttons);
 }
 
+// A logged-in player's coins, at the top of the starting window. Shown under the site's
+// header too, which has the account links but not the purse.
+function renderPurse() {
+    const purse = document.getElementById('startPurse');
+    if (!purse) return;
+
+    const user = siteBoot ? siteBoot.user : null;
+    purse.hidden = !user;
+    purse.textContent = '';
+    if (!user) return;
+
+    const amount = document.createElement('strong');
+    amount.textContent = formatCoins(user.coins);
+    purse.append('Purse: ', amount);
+}
+
 // Fill the line under the name box: who you are playing as, and the way in or out
 export function renderAccountBar() {
     renderLoginOffer();
+    renderPurse();
 
     const bar = document.getElementById('accountBar');
     if (!bar) return;
@@ -120,7 +137,7 @@ export function renderAccountBar() {
     label.className = 'account-bar-label';
 
     if (accountName) {
-        label.textContent = `Logged in as ${accountName} · ${formatCoins(siteBoot.user.coins)}`;
+        label.textContent = `Logged in as ${accountName}`;
 
         // Logging out is a POST, so it needs a real form with the session token
         const form = document.createElement('form');

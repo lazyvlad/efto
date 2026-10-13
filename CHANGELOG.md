@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.26.1 - 2026-10-13
+
+### Fixed
+- The starting window now shows a logged-in player's purse, at the top beside the Game
+  menu. Under the site's header it was not shown anywhere on that window, though the map's
+  prices are in coins. It follows what a game earned and what a skip or Boss Rush cost.
+
 ## 2.26.0 - 2026-10-13
 
 ### What's new
