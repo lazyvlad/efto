@@ -28,6 +28,7 @@ import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost, renderG
 import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
 import { showTravelMap } from './ui/travelMap.js';
 import { initializeKeyBindings } from './ui/keyBindingsScreen.js';
+import { initializeMusicButton } from './ui/musicButton.js';
 import { actionFor, keyName, resetKeys } from './utils/keybindings.js';
 import { say, preloadVoiceLines, resetVoiceLines, updateBanter, watchHealth, forgetHealth } from './systems/voiceSystem.js';
 import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies } from './systems/bossSystem.js';
@@ -2010,6 +2011,7 @@ function setupUIEventHandlers() {
     
     // Which key does what can be changed under Settings (ui/keyBindingsScreen.js)
     initializeKeyBindings();
+    initializeMusicButton();
     
     // Wearing another hunter set: its key while playing (1, 2 and 3 unless the player changed
     // them), or a tap on the set panel (it only takes taps while the game is paused)

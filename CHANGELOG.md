@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.32.0 - 2026-10-13
+
+### What's new
+
+**A music button on the starting window**
+- "Music: On / Off" sits beside the Game menu. One press stops the background music, another
+  brings it back. It is the same setting as "Play Background Music" in Settings, so the two
+  agree, and the choice is remembered for next time.
+
 ## 2.31.0 - 2026-10-13
 
 ### What's new

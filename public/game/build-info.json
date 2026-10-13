@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-13T03:07:18.857Z",
-  "buildTimestamp": 1791860838861,
+  "buildTime": "2026-10-13T07:48:39.994Z",
+  "buildTimestamp": 1791877720001,
   "mode": "production",
-  "gameVersion": "2.31.0",
-  "cacheHash": "ofz2dtma",
+  "gameVersion": "2.32.0",
+  "cacheHash": "q9kyporn",
   "fileMap": {
-    "game-modular.js": "game-modular.ofz2dtma.js"
+    "game-modular.js": "game-modular.q9kyporn.js"
   },
-  "buildSystemVersion": "2.31.0"
+  "buildSystemVersion": "2.32.0"
 }

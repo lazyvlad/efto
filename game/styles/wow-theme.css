@@ -1991,6 +1991,32 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
     border-color: #f1d98a;
 }
 
+/* The music button beside it (ui/musicButton.js): the same look, dimmed when the music is off */
+#pauseMenu .music-toggle {
+    padding: 8px 16px;
+    color: #f5e6b8;
+    font-size: 15px;
+    white-space: nowrap;
+    background: linear-gradient(180deg, #2a2219, #100d0a);
+    border: 1px solid #8f7a45;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000, inset 0 1px 0 rgba(255, 230, 160, 0.12);
+    cursor: pointer;
+    transform: none;
+}
+
+#pauseMenu .music-toggle:hover,
+#pauseMenu .music-toggle:active {
+    background: linear-gradient(180deg, #2a2219, #100d0a);
+    border-color: #f1d98a;
+    transform: none;
+}
+
+#pauseMenu .music-toggle.is-off {
+    color: #8c8371;
+    border-color: #4d4330;
+}
+
 #pauseMenu .game-menu-list {
     position: absolute;
     top: calc(100% + 4px);
