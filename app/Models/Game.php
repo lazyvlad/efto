@@ -25,6 +25,9 @@ class Game extends Model
 
     public const BOSS_RUSH = 'boss_rush';
 
+    // One boss and nothing else: the boss of the zone the game starts in
+    public const BOSS_FIGHT = 'boss_fight';
+
     protected $fillable = [
         'token',
         'user_id',
@@ -119,6 +122,19 @@ class Game extends Model
     public function isBossRush(): bool
     {
         return $this->mode === self::BOSS_RUSH;
+    }
+
+    public function isBossFight(): bool
+    {
+        return $this->mode === self::BOSS_FIGHT;
+    }
+
+    /**
+     * A game of nothing but bosses: they come at once, with no zone to play through first.
+     */
+    public function isOnlyBosses(): bool
+    {
+        return $this->isBossRush() || $this->isBossFight();
     }
 
     public function isLegal(): bool

@@ -89,6 +89,20 @@ class DiscordFeedTest extends TestCase
         $this->assertStringStartsWith('**Bobzilla** scored', DiscordFeed::message($game));
     }
 
+    public function test_a_boss_fight_is_told_only_when_the_boss_went_down(): void
+    {
+        $this->play(['mode' => 'boss_fight']);
+        Http::assertNothingSent();
+
+        $token = $this->postJson(route('games.open'), ['name' => 'Bob', 'faction' => 'horde', 'mode' => 'boss_fight'])->json('game');
+        $this->travel(25)->seconds();
+        $this->postJson(route('games.boss', $token), ['boss' => 'sarkoth'])->assertOk();
+        $this->postJson(route('games.finish', $token), ['score' => 100, 'gameTime' => 20])->assertOk();
+
+        Http::assertSent(fn (Request $request) => str_contains($request['content'], '**Bob** brought down Sarkoth in a boss fight.'));
+        Http::assertSentCount(1);
+    }
+
     public function test_a_name_cannot_ping_or_format(): void
     {
         $game = $this->play(['name' => '@everyone **hi** [x](http://a.b)']);

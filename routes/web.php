@@ -67,6 +67,12 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/users/{user}/block', [Admin\UserController::class, 'block'])->name('users.block');
     Route::post('/users/{user}/unblock', [Admin\UserController::class, 'unblock'])->name('users.unblock');
     Route::post('/users/{user}/admin', [Admin\UserController::class, 'admin'])->name('users.admin');
+    // Opening content for a player without their having earned it (App\Support\Grants)
+    Route::post('/users/{user}/zones', [Admin\UserController::class, 'zones'])->name('users.zones');
+    Route::post('/users/{user}/zones/lock', [Admin\UserController::class, 'lockZones'])->name('users.zones.lock');
+    Route::post('/users/{user}/quiver', [Admin\UserController::class, 'quiver'])->name('users.quiver');
+    Route::post('/users/{user}/set', [Admin\UserController::class, 'set'])->name('users.set');
+    Route::post('/users/{user}/unlock-all', [Admin\UserController::class, 'unlockAll'])->name('users.unlock-all');
     Route::delete('/users/{user}', [Admin\UserController::class, 'destroy'])->name('users.destroy');
 
     Route::get('/games', [Admin\GameController::class, 'index'])->name('games.index');

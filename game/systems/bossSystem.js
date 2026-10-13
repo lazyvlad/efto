@@ -26,6 +26,8 @@ import { areMessagesAboveField } from './hudNotificationSystem.js';
 import { keyName } from '../utils/keybindings.js';
 
 const INTRO_STEPS = 120;
+// In a boss fight (the one boss and nothing else) it is there almost at once
+const SHORT_INTRO_STEPS = 30;
 const DYING_STEPS = 90;
 const HIT_FLASH_STEPS = 6;
 const ATTACK_SPEED = { min: 1.2, max: 2.0 };  // How fast a boss's attack falls, as the game's other projectiles
@@ -33,7 +35,7 @@ const ATTACK_SPEED = { min: 1.2, max: 2.0 };  // How fast a boss's attack falls,
 // How long the first boss stands to wind up each attack, in steps (60 = 1 second); later
 // bosses are quicker. The charge and the stomp show the player where the danger will be for
 // the whole of theirs.
-const WIND_UP = { throw: 24, row: 36, fan: 24, vanish: 18, charge: 54, bolt: 24, curse: 36, bomb: 24, stomp: 66, swipe: 30 };
+const WIND_UP = { throw: 24, row: 36, fan: 24, vanish: 18, charge: 54, bolt: 24, curse: 36, bomb: 24, stomp: 66, swipe: 30, riot: 48 };
 const VANISHED_STEPS = 60;
 const CHARGE_STEPS = 48;
 const BOMB_FLIGHT_STEPS = 40;
@@ -209,11 +211,13 @@ export function guardZone(gameState, canvas) {
     const stats = bossStats(boss, rules());
     // Its storm's picture is fetched now, to be there when the storm is called
     if (boss.storm) load(boss.storm.image);
+    if (behaviours[boss.behaviour].includes('riot')) load(gameConfig.bosses.riot.image);
 
     fight = {
         boss,
         stats,
         phase: 'intro',
+        introSteps: gameState.mode === 'boss_fight' ? SHORT_INTRO_STEPS : INTRO_STEPS,
         steps: 0,               // Steps spent in the current phase
         health: stats.health,
         x: canvas.logicalWidth / 2,
@@ -293,6 +297,34 @@ function throwProjectile(context, x, extra = {}, speed = null) {
     return projectile;
 }
 
+// A riot in progress: one stone after another comes in from the sides of the field, by turns,
+// flying inwards as it falls. The boss carries on with its own round meanwhile.
+function updateRiot(context) {
+    const riot = fight.riot;
+    if (!riot) return;
+
+    const { canvas } = context;
+    const settings = gameConfig.bosses.riot;
+
+    if (riot.steps++ % settings.every !== 0) return;
+
+    const stone = throwProjectile(context, 0, {
+        id: 'riot-stone',
+        name: 'Thrown Stone',
+        image: settings.image,
+        size: settings.size,
+        spin: settings.spin,
+        damage: Math.round(fight.stats.damage * settings.damage * enrage()),
+    });
+
+    stone.x = riot.fromLeft ? 0 : canvas.logicalWidth - stone.width;
+    stone.y = canvas.logicalHeight * (settings.from.top + Math.random() * (settings.from.bottom - settings.from.top));
+    stone.vx = stone.speed * settings.lean * (riot.fromLeft ? 1 : -1);
+
+    riot.fromLeft = !riot.fromLeft;
+    if (++riot.thrown >= settings.stones) fight.riot = null;
+}
+
 // A row of projectiles across the screen, all at one speed, with one gap to stand in
 function throwRow(context) {
     const { canvas } = context;
@@ -308,7 +340,11 @@ function throwRow(context) {
         if (slot === gap) continue;
         const projectile = throwProjectile(context, slotWidth * (slot + 0.5), {}, speed);
         projectile.y = layout(canvas, fight.boss).top;
+        projectile.fromRow = true;
     }
+
+    // Where the way through is, for a stomp that comes while the row is still falling
+    fight.rowGap = slotWidth * (gap + 0.5);
 }
 
 // Five at once, spreading out as they fall
@@ -706,7 +742,11 @@ function windUp(context) {
         const width = body.width * 2.6;
         const side = body.centerX < canvas.logicalWidth / 2 ? 1 : -1;
         const away = canvas.logicalWidth * (0.18 + Math.random() * 0.14);
-        const center = Math.max(width / 2, Math.min(canvas.logicalWidth - width / 2, body.centerX + side * away));
+        // With a row still coming down, the safe patch is under the gap in it: the two can be
+        // lived through by moving, without having to shoot a way out
+        const rowFalling = fight.rowGap !== undefined && (context.fireballs || []).some(projectile => projectile.fromRow);
+        const wanted = rowFalling ? fight.rowGap : body.centerX + side * away;
+        const center = Math.max(width / 2, Math.min(canvas.logicalWidth - width / 2, wanted));
         fight.attackData = { left: center - width / 2, right: center + width / 2 };
     }
 }
@@ -728,6 +768,10 @@ function strike(context) {
             break;
         case 'row':
             throwRow(context);
+            break;
+        case 'riot':
+            fight.riot = { steps: 0, thrown: 0, fromLeft: Math.random() < 0.5 };
+            addNotification(context.gameState, `${fight.boss.name} starts a riot! Watch the sides`, 240, '#FF6B35');
             break;
         case 'swipe':
             if (withinReach(context)) {
@@ -892,7 +936,7 @@ export function updateBoss(context) {
     if (fight.hitFlash > 0) fight.hitFlash--;
 
     if (fight.phase === 'intro') {
-        if (fight.steps >= INTRO_STEPS) {
+        if (fight.steps >= fight.introSteps) {
             fight.phase = 'fight';
             fight.steps = 0;
             // Something to shoot with from the first moment
@@ -956,6 +1000,7 @@ export function updateBoss(context) {
 
     updateBombs(context);
     updateStorm(context);
+    updateRiot(context);
 
     if (++fight.sinceArrows >= settings.arrowsEvery) {
         fight.sinceArrows = 0;
@@ -1051,6 +1096,25 @@ function drawWarnings(ctx, canvas, place) {
         ctx.strokeRect(left, box.y, width, box.height + reach);
     }
 
+    if ((fight.attack === 'riot' && fight.doing === 'winding') || fight.riot) {
+        // Both edges of the field, where the stones will come in from: bright while the riot
+        // is being called, fainter once it is under way
+        const settings = gameConfig.bosses.riot;
+        const top = canvas.logicalHeight * settings.from.top;
+        const height = canvas.logicalHeight * (settings.from.bottom - settings.from.top);
+        const width = canvas.logicalWidth * 0.06;
+        const strength = (fight.riot ? 0.3 : 0.6) * pulse;
+
+        for (const fromLeft of [true, false]) {
+            const edge = fromLeft ? 0 : canvas.logicalWidth;
+            const glow = ctx.createLinearGradient(edge, 0, edge + (fromLeft ? width : -width), 0);
+            glow.addColorStop(0, `rgba(255, 60, 30, ${strength})`);
+            glow.addColorStop(1, 'rgba(255, 60, 30, 0)');
+            ctx.fillStyle = glow;
+            ctx.fillRect(fromLeft ? 0 : canvas.logicalWidth - width, top, width, height);
+        }
+    }
+
     if (fight.attack === 'stomp' && fight.doing === 'winding') {
         const { left, right } = fight.attackData;
         const height = canvas.logicalHeight - floorTop;
@@ -1112,7 +1176,7 @@ export function drawBoss(ctx, canvas, alpha = 1) {
 
     if (fight.phase === 'intro') {
         // Comes down from above the screen
-        const progress = Math.min(1, fight.steps / INTRO_STEPS);
+        const progress = Math.min(1, fight.steps / fight.introSteps);
         y = place.top - (1 - progress) * (place.top + place.height);
     } else if (fight.phase === 'dying') {
         // Sinks and fades

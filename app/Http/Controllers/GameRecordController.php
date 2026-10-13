@@ -40,7 +40,7 @@ class GameRecordController extends Controller
             'faction' => ['nullable', 'in:alliance,horde'],
             'version' => ['nullable', 'string', 'max:20'],
             'startZone' => ['nullable', 'integer', 'min:1', 'max:10'],
-            'mode' => ['nullable', 'in:normal,boss_rush'],
+            'mode' => ['nullable', 'in:normal,boss_rush,boss_fight'],
         ]);
 
         // Logged-in players always play under their account name. Guests use the name they
@@ -60,6 +60,12 @@ class GameRecordController extends Controller
             $fee = (int) config('boss_loot.rush.entry_fee');
             $paid = User::whereKey($user->id)->where('coins', '>=', $fee)->decrement('coins', $fee);
             abort_if($paid === 0, 422, 'Not enough coins.');
+        }
+
+        // A boss fight is the boss of the zone the game starts in, alone. Anyone may fight the
+        // first; a later one is reached, and paid for, as skipping to its zone is (below).
+        if ($mode === Game::BOSS_FIGHT) {
+            abort_unless(isset($data['faction']), 422, 'Choose a side for the boss fight.');
         }
 
         // Skipping ahead: only past bosses the player has beaten before, and it costs coins
@@ -138,7 +144,10 @@ class GameRecordController extends Controller
 
         abort_if($boss['zone'] < $game->start_zone, 422, 'This game started past that boss.');
 
-        $earliest = ($boss['zone'] - $game->start_zone + 1) * ($game->isBossRush()
+        // A boss fight has the one boss, of the zone it started in
+        abort_if($game->isBossFight() && $boss['zone'] !== $game->start_zone, 422, 'This game is a fight with one boss.');
+
+        $earliest = ($boss['zone'] - $game->start_zone + 1) * ($game->isOnlyBosses()
             ? config('boss_loot.rush.min_seconds_per_boss')
             : config('boss_loot.min_seconds_per_zone'));
         abort_if($game->secondsSinceStart() < $earliest, 425, 'Too early for this boss.');
@@ -260,8 +269,9 @@ class GameRecordController extends Controller
             $game->user()->increment('coins', $coins);
         }
 
-        // Only games that count go on the leaderboard, and Boss Rush is not played for points
-        if ($game->isLegal() && ! $game->isBossRush()) {
+        // Only games that count go on the leaderboard, and Boss Rush and boss fights are not
+        // played for points
+        if ($game->isLegal() && ! $game->isOnlyBosses()) {
             Score::create([
                 'game_id' => $game->id,
                 'user_id' => $game->user_id,

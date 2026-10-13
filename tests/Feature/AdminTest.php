@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\BossDrop;
 use App\Models\Game;
 use App\Models\Score;
 use App\Models\User;
+use App\Support\BossLoot;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -101,6 +103,90 @@ class AdminTest extends TestCase
 
         $this->assertTrue($player->fresh()->canUseRewards());
         $this->assertSame(23004, $player->fresh()->coins);
+    }
+
+    public function test_an_admin_can_open_zones_for_a_player_and_take_them_back(): void
+    {
+        $admin = $this->admin();
+        $player = User::factory()->create();
+        // The first boss the player beat themselves
+        BossDrop::create(['user_id' => $player->id, 'boss_id' => 'sarkoth', 'item_id' => 'x', 'rarity' => 'rare', 'dropped_at' => now()]);
+
+        $this->actingAs($admin)->get(route('admin.users.show', $player))->assertOk()->assertSee('Unlock content')->assertSee('Horde zones');
+
+        // Six bosses counted as beaten opens zone 7
+        $this->actingAs($admin)->post(route('admin.users.zones', $player), ['faction' => 'horde', 'bosses' => 6])->assertSessionHas('status');
+        $this->assertSame(7, BossLoot::unlockedZone($player, 'horde'));
+        $this->assertSame(1, BossLoot::unlockedZone($player, 'alliance'));
+        // The boss already beaten was left as it was
+        $this->assertSame(1, $player->bossDrops()->where('boss_id', 'sarkoth')->count());
+        $this->assertSame(5, $player->bossDrops()->where('granted', true)->count());
+
+        // The game hands the player what was opened
+        $this->actingAs($player)->get(route('play'))->assertSee('"horde":7', false);
+
+        // Taken back, what the player earned stays
+        $this->actingAs($admin)->post(route('admin.users.zones.lock', $player), ['faction' => 'horde']);
+        $this->assertSame(2, BossLoot::unlockedZone($player, 'horde'));
+        $this->assertSame(1, $player->bossDrops()->count());
+
+        $this->actingAs($admin)->post(route('admin.users.zones', $player), ['faction' => 'horde', 'bosses' => 11])->assertSessionHasErrors('bosses');
+        $this->actingAs($admin)->post(route('admin.users.zones', $player), ['faction' => 'scourge', 'bosses' => 2])->assertSessionHasErrors('faction');
+    }
+
+    public function test_an_admin_can_give_sets_and_the_quiver_and_take_them_back(): void
+    {
+        $admin = $this->admin();
+        $player = User::factory()->create();
+        // One piece the player caught
+        $game = $this->playedGame($player);
+        $game->drops()->create(['item_id' => 'giantstalker-helmet', 'chunk' => 0, 'at_seconds' => 3, 'claimed_at' => now()]);
+
+        $this->actingAs($admin)->post(route('admin.users.set', $player), ['set' => 'giantstalker'])->assertSessionHas('status');
+        $player->refresh();
+        $this->assertCount(8, $player->setPieces());
+        $this->assertCount(7, $player->granted_pieces);
+
+        $this->actingAs($admin)->post(route('admin.users.quiver', $player));
+        $this->assertTrue($player->fresh()->quiver);
+
+        $this->actingAs($player->fresh())->get(route('play'))->assertSee('giantstalker-boots', false)->assertSee('"quiver":true', false);
+
+        // Taken back: the piece that was caught is still theirs
+        $this->actingAs($admin)->post(route('admin.users.set', $player), ['set' => 'giantstalker', 'take' => 1]);
+        $this->actingAs($admin)->post(route('admin.users.quiver', $player));
+        $player->refresh();
+        $this->assertSame(['giantstalker-helmet'], $player->setPieces());
+        $this->assertFalse($player->quiver);
+
+        $this->actingAs($admin)->post(route('admin.users.set', $player), ['set' => 'made-up'])->assertSessionHasErrors('set');
+    }
+
+    public function test_everything_can_be_unlocked_at_once(): void
+    {
+        $admin = $this->admin();
+        $player = User::factory()->create();
+
+        $this->actingAs($admin)->post(route('admin.users.unlock-all', $player))->assertSessionHas('status');
+
+        $player->refresh();
+        $this->assertSame(10, BossLoot::unlockedZone($player, 'alliance'));
+        $this->assertSame(10, BossLoot::unlockedZone($player, 'horde'));
+        $this->assertSame(20, $player->bossDrops()->distinct()->count('boss_id'));
+        $this->assertEqualsCanonicalizing(config('loot.items.set_piece'), $player->setPieces());
+        $this->assertTrue($player->quiver);
+    }
+
+    public function test_unlocking_is_for_admins_only(): void
+    {
+        $player = User::factory()->create();
+
+        foreach (['admin.users.unlock-all', 'admin.users.quiver', 'admin.users.zones', 'admin.users.set'] as $action) {
+            $this->actingAs($player)->post(route($action, $player), ['faction' => 'horde', 'bosses' => 9, 'set' => 'giantstalker'])->assertNotFound();
+        }
+
+        $this->assertFalse($player->fresh()->quiver);
+        $this->assertSame(0, $player->bossDrops()->count());
     }
 
     public function test_a_blocked_account_is_logged_out_and_cannot_log_back_in(): void

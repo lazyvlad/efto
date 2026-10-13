@@ -283,6 +283,97 @@
     box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
 }
 
+/* The three sets to choose from, under the panel's heading: a button each, with its key.
+   They take the mouse and the finger although the rest of the panel lets them through. */
+.set-switch {
+    display: flex;
+    gap: 4px;
+    padding: 5px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    pointer-events: auto;
+}
+
+.set-switch-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 4px 2px;
+    font: 700 11px Arial, sans-serif;
+    color: #b9ae96;
+    white-space: nowrap;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid #5c4d2c;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.set-switch-btn:hover {
+    color: #f5e6b8;
+    border-color: #b9902f;
+}
+
+.set-switch-btn.is-worn {
+    color: #ffd100;
+    background: rgba(90, 60, 10, 0.55);
+    border-color: #f1d98a;
+    box-shadow: 0 0 6px rgba(255, 209, 0, 0.35);
+}
+
+.set-switch-key {
+    min-width: 14px;
+    padding: 0 3px;
+    color: #ffd100;
+    font-size: 10px;
+    line-height: 14px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid #8f7a45;
+    border-radius: 3px;
+}
+
+.set-switch-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Where keys mean nothing (phones and tablets) and where room is short: the name alone, short */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+    .set-switch-key,
+    .set-switch-rest {
+        display: none;
+    }
+
+    .set-switch {
+        padding: 3px 4px;
+        gap: 3px;
+    }
+
+    .set-switch-btn {
+        padding: 5px 1px;
+        font-size: 10px;
+    }
+}
+
+/* A phone held upright has a short panel: the bar under the heading makes way for the buttons
+   (the count beside the name says the same), so the pieces keep their height */
+@media (max-width: 600px) and (orientation: portrait) {
+    #dragonstalkerProgressPanel .dragonstalker-progress-bar {
+        display: none !important;
+    }
+
+    #dragonstalkerProgressPanel .set-switch-btn {
+        padding: 3px 1px;
+    }
+}
+
+/* Pressed with a finger or the mouse it is lit as worn; the ring is for the keyboard only */
+.set-switch-btn:focus:not(:focus-visible) {
+    outline: none;
+}
+
 /* Dragonstalker Panel Header */
 .dragonstalker-panel-header {
     padding: 4px;

@@ -36,7 +36,7 @@
                         </td>
                     @endunless
                     <td class="py-2.5 px-2 text-gray-600">
-                        {{ $game->faction ? ucfirst($game->faction) : '–' }}@if ($game->isBossRush()), {{ __('Boss Rush') }}@elseif ($game->start_zone > 1), {{ __('from zone :zone', ['zone' => $game->start_zone]) }}@endif
+                        {{ $game->faction ? ucfirst($game->faction) : '–' }}@if ($game->isBossFight()), {{ __('boss fight, zone :zone', ['zone' => $game->start_zone]) }}@elseif ($game->isBossRush()), {{ __('Boss Rush') }}@elseif ($game->start_zone > 1), {{ __('from zone :zone', ['zone' => $game->start_zone]) }}@endif
                         <span class="text-xs text-gray-500">{{ $game->game_version }}</span>
                     </td>
                     <td class="py-2.5 px-2 text-right tabular-nums text-indigo-600">{{ number_format($game->score) }}</td>

@@ -68,32 +68,47 @@ function rushFee() {
     return siteBoot && siteBoot.user && siteBoot.rush ? siteBoot.rush.fee : null;
 }
 
-// Fill the choice between a normal game and Boss Rush
+// ----- Boss fight -----
+// The boss of the chosen zone and nothing else: no zone to play through first. Anyone may
+// fight the first boss; a later one is open, and paid for, as starting in its zone is.
+
+// Fill the choice between a normal game, one boss fight and Boss Rush
 export function renderGameModePicker() {
     const picker = document.getElementById('gameModePicker');
     const select = document.getElementById('gameMode');
     if (!picker || !select) return;
 
+    const chosen = select.value;
     const fee = rushFee();
-    picker.hidden = fee === null;
+    picker.hidden = false;
     select.textContent = '';
-    if (fee === null) return;
 
     const normal = document.createElement('option');
     normal.value = 'normal';
     normal.textContent = 'Normal game';
-    const rush = document.createElement('option');
-    rush.value = 'boss_rush';
-    rush.textContent = `Boss Rush: only the bosses - ${formatCoins(fee)}`;
-    rush.disabled = fee > (siteBoot.user.coins || 0);
-    select.append(normal, rush);
-    select.value = 'normal';
+    const fight = document.createElement('option');
+    fight.value = 'boss_fight';
+    fight.textContent = 'Boss fight: only this zone\'s boss';
+    select.append(normal, fight);
+
+    if (fee !== null) {
+        const rush = document.createElement('option');
+        rush.value = 'boss_rush';
+        rush.textContent = `Boss Rush: every boss in turn - ${formatCoins(fee)}`;
+        rush.disabled = fee > (siteBoot.user.coins || 0);
+        select.append(rush);
+    }
+
+    // Kept when the list is filled again (another place picked on the map)
+    select.value = [...select.options].some(option => option.value === chosen && !option.disabled) ? chosen : 'normal';
 }
 
 // The mode chosen: Boss Rush only if it can be paid for
 export function getGameMode() {
     const select = document.getElementById('gameMode');
     const fee = rushFee();
+
+    if (select && select.value === 'boss_fight') return 'boss_fight';
 
     return select && select.value === 'boss_rush' && fee !== null && fee <= (siteBoot.user.coins || 0) ? 'boss_rush' : 'normal';
 }

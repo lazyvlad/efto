@@ -443,6 +443,20 @@ export const gameConfig = {
             damage: 0.6,            // Each hit does this many times the boss's damage
         },
 
+        // A riot (Bazil Thredd): the boss calls on the mob, and for a while stones come flying in
+        // from both sides of the field, on top of whatever the boss itself is doing. They can
+        // be shot down or stepped around like anything else thrown.
+        riot: {
+            stones: 8,              // How many are thrown in one riot
+            every: 26,              // Steps from one stone to the next
+            image: 'assets/attacks/alliance/08-fozruk-boulder.webp',
+            size: 0.8,              // Against the standard projectile
+            spin: 0.14,
+            lean: 0.75,             // How fast a stone moves sideways, against how fast it falls
+            from: { top: 0.28, bottom: 0.5 },   // The height at the field's edge stones come in at, as shares of the field's height
+            damage: 0.7,            // A stone does this many times the boss's damage
+        },
+
         // Attacks that are more than a thrown thing hit harder: a charge, a blast, a stomp
         heavyDamage: 1.5,
         // A curse takes this share of the boss's damage every second, for this many seconds

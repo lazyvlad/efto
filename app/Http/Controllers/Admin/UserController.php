@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Avatar;
+use App\Support\BossLoot;
+use App\Support\Grants;
+use App\Support\LootTable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -43,6 +46,14 @@ class UserController extends Controller
             'user' => $user->loadCount(['games', 'bossDrops']),
             'best' => $user->games()->legal()->max('score'),
             'pieces' => count($user->setPieces()),
+            // What can be opened for the player from here (App\Support\Grants)
+            'sides' => collect(config('boss_loot.bosses'))->map(fn (array $bosses, string $faction) => [
+                'bosses' => count($bosses),
+                'openTo' => BossLoot::unlockedZone($user, $faction),
+                'granted' => Grants::grantedBosses($user, $faction),
+            ]),
+            'sets' => LootTable::sets($user->setPieces()),
+            'grantedPieces' => $user->granted_pieces ?? [],
             'games' => $user->games()->withCount('bossDrops')->latest('started_at')->limit(15)->get(),
         ]);
     }
@@ -91,6 +102,89 @@ class UserController extends Controller
         $user->forceFill(['blocked_at' => null])->save();
 
         return back()->with('status', __(':name is no longer blocked.', ['name' => $user->name]));
+    }
+
+    /**
+     * Open the zones of a side for the player, as far as the admin says: the bosses before
+     * them are counted as beaten.
+     */
+    public function zones(Request $request, User $user): RedirectResponse
+    {
+        $data = $request->validate([
+            'faction' => ['required', 'in:'.implode(',', array_keys(config('boss_loot.bosses')))],
+            'bosses' => ['required', 'integer', 'min:1', 'max:'.count(config('boss_loot.bosses.'.$request->input('faction'), [1]))],
+        ]);
+
+        Grants::beatBosses($user, $data['faction'], (int) $data['bosses']);
+
+        return back()->with('status', __(':name may now start as far as zone :zone for the :side.', [
+            'name' => $user->name,
+            'zone' => BossLoot::unlockedZone($user, $data['faction']),
+            'side' => ucfirst($data['faction']),
+        ]));
+    }
+
+    /**
+     * Take back the bosses counted as beaten on a side. What the player beat themselves stays.
+     */
+    public function lockZones(Request $request, User $user): RedirectResponse
+    {
+        $data = $request->validate([
+            'faction' => ['required', 'in:'.implode(',', array_keys(config('boss_loot.bosses')))],
+        ]);
+
+        Grants::takeBackBosses($user, $data['faction']);
+
+        return back()->with('status', __('What was opened for :name on the :side side was taken back: they may start as far as zone :zone.', [
+            'name' => $user->name,
+            'side' => ucfirst($data['faction']),
+            'zone' => BossLoot::unlockedZone($user, $data['faction']),
+        ]));
+    }
+
+    /**
+     * Give the large quiver, or take it away.
+     */
+    public function quiver(User $user): RedirectResponse
+    {
+        $user->forceFill(['quiver' => ! $user->quiver])->save();
+
+        return back()->with('status', $user->quiver
+            ? __(':name has the large quiver.', ['name' => $user->name])
+            : __(':name no longer has the large quiver.', ['name' => $user->name]));
+    }
+
+    /**
+     * Give every piece of a hunter set, or take back the pieces that were given.
+     */
+    public function set(Request $request, User $user): RedirectResponse
+    {
+        $data = $request->validate([
+            'set' => ['required', 'in:'.implode(',', array_keys(config('loot.sets')))],
+            'take' => ['nullable', 'boolean'],
+        ]);
+
+        $name = config('loot.sets.'.$data['set'].'.name');
+
+        if ($data['take'] ?? false) {
+            Grants::takeBackSet($user, $data['set']);
+
+            return back()->with('status', __('The given pieces of :set were taken back from :name.', ['set' => $name, 'name' => $user->name]));
+        }
+
+        Grants::giveSet($user, $data['set']);
+
+        return back()->with('status', __(':name has every piece of :set.', ['name' => $user->name, 'set' => $name]));
+    }
+
+    /**
+     * Everything at once: all zones of both sides, the large quiver, every set.
+     */
+    public function unlockAll(User $user): RedirectResponse
+    {
+        Grants::everything($user);
+
+        return back()->with('status', __('Everything is open for :name: every zone of both sides, the large quiver and all the sets.', ['name' => $user->name]));
     }
 
     /**

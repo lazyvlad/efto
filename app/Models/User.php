@@ -55,6 +55,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'coins' => 'integer',
             'quiver' => 'boolean',
             'news_emails' => 'boolean',
+            'granted_pieces' => 'array',
             'is_admin' => 'boolean',
             'blocked_at' => 'datetime',
         ];
@@ -110,12 +111,22 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * The pieces of the hunter sets this player has picked up, in any of their games: a piece
-     * caught is theirs for good, however that game ended.
+     * The pieces of the hunter sets this player has: picked up in any of their games (a piece
+     * caught is theirs for good, however that game ended) or given to them by an admin.
      *
      * @return array<int, string>
      */
     public function setPieces(): array
+    {
+        return array_values(array_unique(array_merge($this->caughtPieces(), $this->granted_pieces ?? [])));
+    }
+
+    /**
+     * The set pieces the player picked up themselves, in any of their games.
+     *
+     * @return array<int, string>
+     */
+    public function caughtPieces(): array
     {
         return GameDrop::query()
             ->whereNotNull('claimed_at')

@@ -42,7 +42,7 @@ const roster = {
     alliance: [
         { id: 'garrick-padfoot', behaviour: 'thrower', name: 'Garrick Padfoot', image: '01-garrick-padfoot', attack: { name: 'Throwing Dagger', image: '01-garrick-dagger', size: 1.2, spin: 0.22 } },
         { id: 'hogger', behaviour: 'brawler', name: 'Hogger', image: '02-hogger', attack: { name: 'Thrown Axe', image: '02-hogger-axe', size: 1.5, spin: 0.12 } },
-        { id: 'bazil-thredd', behaviour: 'assassin', name: 'Bazil Thredd', image: '03-bazil-thredd', attack: { name: 'Prison Shiv', image: '03-bazil-shiv', size: 1.2, spin: 0.22 } },
+        { id: 'bazil-thredd', behaviour: 'cutthroat', name: 'Bazil Thredd', image: '03-bazil-thredd', attack: { name: 'Prison Shiv', image: '03-bazil-shiv', size: 1.2, spin: 0.22 } },
         { id: 'edwin-vancleef', behaviour: 'assassin', name: 'Edwin VanCleef', image: '04-edwin-vancleef', attack: { name: 'Defias Throwing Knife', image: '04-vancleef-knife', size: 1.2, spin: 0.22 } },
         { id: 'gath-ilzogg', behaviour: 'warlord', name: "Gath'Ilzogg", image: '05-gath-ilzogg', attack: { name: 'Blackrock War Axe', image: '05-gath-war-axe', size: 1.6, spin: 0.12 } },
         { id: 'stitches', behaviour: 'thrower', name: 'Stitches', image: '06-stitches', attack: { name: 'Thrown Cleaver', image: '06-stitches-cleaver', size: 1.6, spin: 0.12 } },
@@ -55,13 +55,13 @@ const roster = {
         { id: 'sarkoth', behaviour: 'caster', name: 'Sarkoth', image: '01-sarkoth', attack: { name: 'Venom Sting', image: '01-sarkoth-venom', size: 1.3 } },
         { id: 'zalazane', behaviour: 'caster', name: 'Zalazane', image: '02-zalazane', attack: { name: 'Voodoo Spirit Bolt', image: '02-zalazane-voodoo', size: 1.4 } },
         { id: 'taragaman', behaviour: 'caster', name: 'Taragaman the Hungerer', image: '03-taragaman', attack: { name: 'Demon Flame Bolt', image: '03-taragaman-flame', size: 1.4 } },
-        { id: 'echeyakee', behaviour: 'charger', name: 'Echeyakee', image: '04-echeyakee', attack: { name: 'Lion Claw Rake', image: '04-echeyakee-claws', size: 2.2 } },
+        { id: 'echeyakee', behaviour: 'charger', name: 'Echeyakee', image: '04-echeyakee', attack: { name: 'Lion Claw Rake', image: '04-echeyakee-claws', size: 1.5 } },
         { id: 'gerenzo-wrenchwhistle', behaviour: 'bomber', name: 'Gerenzo Wrenchwhistle', image: '05-gerenzo-wrenchwhistle', attack: { name: 'Clockwork Bomb', image: '05-gerenzo-bomb', size: 1.5, spin: 0.06 } },
-        { id: 'shadumbra', behaviour: 'charger', name: 'Shadumbra', image: '06-shadumbra', attack: { name: 'Shadow Claw Slash', image: '06-shadumbra-claws', size: 2.2 } },
-        { id: 'arnak-grimtotem', behaviour: 'pounder', name: 'Arnak Grimtotem', image: '07-arnak-grimtotem', attack: { name: 'War Stomp Shockwave', image: '07-arnak-shockwave', size: 2.4 } },
-        { id: 'big-samras', behaviour: 'charger', name: 'Big Samras', image: '08-big-samras', attack: { name: 'Heavy Bear Swipe', image: '08-samras-swipe', size: 2.2 } },
+        { id: 'shadumbra', behaviour: 'charger', name: 'Shadumbra', image: '06-shadumbra', attack: { name: 'Shadow Claw Slash', image: '06-shadumbra-claws', size: 1.5 } },
+        { id: 'arnak-grimtotem', behaviour: 'pounder', name: 'Arnak Grimtotem', image: '07-arnak-grimtotem', attack: { name: 'War Stomp Shockwave', image: '07-arnak-shockwave', size: 1.7 } },
+        { id: 'big-samras', behaviour: 'charger', name: 'Big Samras', image: '08-big-samras', attack: { name: 'Heavy Bear Swipe', image: '08-samras-swipe', size: 1.6 } },
         { id: 'khan-dezhepah', behaviour: 'pounder', name: "Khan Dez'hepah", image: '09-khan-dezhepah', attack: { name: 'Thrown Centaur Spear', image: '09-khan-spear', size: 1.5 } },
-        { id: 'chief-ukorz-sandscalp', behaviour: 'pounder', name: 'Chief Ukorz Sandscalp', image: '10-chief-ukorz-sandscalp', storm: { name: 'Blizzard', image: '10-blizzard', color: '90, 170, 255' }, attack: { name: 'Sand Cleave', image: '10-ukorz-sand-cleave', size: 2.2 } }
+        { id: 'chief-ukorz-sandscalp', behaviour: 'pounder', name: 'Chief Ukorz Sandscalp', image: '10-chief-ukorz-sandscalp', storm: { name: 'Blizzard', image: '10-blizzard', color: '90, 170, 255' }, attack: { name: 'Sand Cleave', image: '10-ukorz-sand-cleave', size: 1.6 } }
     ]
 };
 
@@ -69,10 +69,13 @@ const roster = {
 export const behaviours = {
     thrower: ['throw', 'throw', 'throw', 'row'],
     assassin: ['fan', 'fan', 'vanish'],
+    // Knives singly and by the handful, and then the riot: stones from both sides of the field
+    cutthroat: ['throw', 'fan', 'throw', 'riot'],
     charger: ['throw', 'charge', 'throw', 'charge'],
     caster: ['bolt', 'bolt', 'curse'],
     bomber: ['bomb', 'throw', 'bomb', 'row'],
-    pounder: ['throw', 'stomp', 'throw', 'stomp'],
+    // One stomp in three: with every other attack a stomp, the player lived in the safe patch
+    pounder: ['throw', 'throw', 'stomp'],
     warlord: ['fan', 'charge', 'throw', 'row'],
     brawler: ['throw', 'throw', 'charge', 'row']
 };

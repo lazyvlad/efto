@@ -26,6 +26,11 @@ class DiscordFeed
             return;
         }
 
+        // A single boss fight is worth telling only when the boss went down
+        if ($game->isBossFight() && $game->bossDrops()->doesntExist()) {
+            return;
+        }
+
         $message = self::message($game);
 
         // After the player has their answer: the game does not wait for Discord
@@ -55,7 +60,11 @@ class DiscordFeed
 
         $won = $last !== null && $last['zone'] >= count(config('boss_loot.bosses.'.$last['faction'], []));
 
-        if ($game->isBossRush()) {
+        if ($game->isBossFight()) {
+            $line = $last
+                ? "{$name} brought down {$last['name']} in a boss fight."
+                : "{$name} lost a boss fight.";
+        } elseif ($game->isBossRush()) {
             $line = $won
                 ? "{$name} cleared the {$side} Boss Rush: all {$bosses->count()} bosses down."
                 : "{$name} fell in the {$side} Boss Rush after {$bosses->count()} ".($bosses->count() === 1 ? 'boss' : 'bosses').'.';

@@ -190,7 +190,8 @@ let gameState = {
     wornSet: 'giantstalker', // The hunter set being worn (utils/sets.js); the player may change it at any time
     setBonus: { crit: 0, dodge: 0, bossDamage: 0 }, // What wearing it gives with the pieces owned
     victory: false, // The last boss of the side is down: the game is won
-    mode: 'normal', // 'normal', or 'boss_rush': nothing but the bosses, back to back
+    mode: 'normal', // 'normal'; 'boss_rush': nothing but the bosses, back to back; 'boss_fight': the starting zone's boss alone
+    bossFightWon: false, // Boss fight: the one boss is down
     rushPause: 0, // Boss Rush: steps left of the breather before the next boss comes in
     rushComplete: false, // Boss Rush: every boss of the side is down
     startZone: 1, // The zone the game starts in: above 1 when the player paid to skip ahead (ui/startZone.js)
@@ -556,11 +557,12 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     const oldLevel = gameState.currentLevel;
     const oldSpeedMultiplier = gameState.levelSpeedMultiplier;
     
-    // Boss Rush brings the next boss in itself
+    // Boss Rush brings the next boss in itself, and a boss fight its one boss
     if (gameState.mode === 'boss_rush' && !isBossFightActive()) updateBossRush();
+    if (gameState.mode === 'boss_fight' && !isBossFightActive() && updateBossFight()) return;
     
     // The goal of the game: with the last boss of the side down, it is won
-    if (gameState.mode !== 'boss_rush' && !isBossFightActive() && gameState.levelCap === Infinity && !gameState.victory && lastBossIsDown()) {
+    if (gameState.mode === 'normal' && !isBossFightActive() && gameState.levelCap === Infinity && !gameState.victory && lastBossIsDown()) {
         gameState.victory = true;
         endGame();
         return;
@@ -601,7 +603,7 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     // Spawn new items, projectiles, and power-ups (affected by bullet time).
     // During a boss fight the boss does the throwing; the game's own drops wait.
     // Boss Rush has nothing but the bosses.
-    const onlyBosses = gameState.mode === 'boss_rush';
+    const onlyBosses = gameState.mode !== 'normal';
     if (!onlyBosses) spawnItems(bulletTimeAdjustedDelta);
     if (isBossFightActive()) {
         updateBoss({ gameState, canvas, player, fireballs, powerUps, particles, combatTexts, spellSystem, isValidYPosition, recentDropYPositions, shouldDodge, showDodgeText, trackDodge, onBossDefeated });
@@ -721,6 +723,24 @@ const AFTER_LAST_BOSS_STEPS = 180;
 function lastBossIsDown() {
     gameState.afterLastBoss = (gameState.afterLastBoss || 0) + 1;
     return gameState.afterLastBoss >= AFTER_LAST_BOSS_STEPS;
+}
+
+// A boss fight, outside the fight itself: before it, the experience the zone's boss waits for,
+// so it comes in at once; after it, a moment to see what it dropped, and the game is over.
+// Returns true once the game has ended.
+function updateBossFight() {
+    if (gameState.levelCap === undefined) return false;   // The first step: not yet known who stands
+    
+    if (gameState.bossDownFor === undefined) {
+        gameState.xp = Math.max(gameState.xp || 0, totalXpAtLevel(gameState.levelCap + 1, gameConfig.progression));
+        return false;
+    }
+    
+    if (++gameState.bossDownFor < AFTER_LAST_BOSS_STEPS) return false;
+    
+    gameState.bossFightWon = true;
+    endGame();
+    return true;
 }
 
 // Boss Rush, between fights: a breather with something to restock, then the experience the
@@ -1023,13 +1043,16 @@ function startGame() {
     gameState.healthSavedFromDodges = 0;
     gameState.dodgeAreaExpansion = 0;
     
-    // The quiver: some of its slots filled, and bigger for a player who has found the large one
+    // The quiver: some of its slots filled, and bigger for a player who has found the large one.
+    // A boss fight has no zone before it to gather arrows in, so it starts with the quiver full.
     gameState.quiverCapacity = quiverCapacity(gameConfig.quiver, hasLargeQuiver());
-    gameState.arrowCount = startingArrows(gameConfig.quiver);
+    gameState.arrowCount = gameState.mode === 'boss_fight' ? gameState.quiverCapacity : startingArrows(gameConfig.quiver);
     
     // Boss Rush: the first boss comes in after a moment
     gameState.rushPause = 60;
     gameState.rushComplete = false;
+    gameState.bossFightWon = false;
+    gameState.bossDownFor = undefined;
     gameState.victory = false;
     gameState.afterLastBoss = 0;
     gameState.levelCap = undefined;
@@ -1266,13 +1289,16 @@ function restartGame() {
     gameState.healthSavedFromDodges = 0;
     gameState.dodgeAreaExpansion = 0;
     
-    // The quiver: some of its slots filled, and bigger for a player who has found the large one
+    // The quiver: some of its slots filled, and bigger for a player who has found the large one.
+    // A boss fight has no zone before it to gather arrows in, so it starts with the quiver full.
     gameState.quiverCapacity = quiverCapacity(gameConfig.quiver, hasLargeQuiver());
-    gameState.arrowCount = startingArrows(gameConfig.quiver);
+    gameState.arrowCount = gameState.mode === 'boss_fight' ? gameState.quiverCapacity : startingArrows(gameConfig.quiver);
     
     // Boss Rush: the first boss comes in after a moment
     gameState.rushPause = 60;
     gameState.rushComplete = false;
+    gameState.bossFightWon = false;
+    gameState.bossDownFor = undefined;
     gameState.victory = false;
     gameState.afterLastBoss = 0;
     gameState.levelCap = undefined;
@@ -1955,6 +1981,7 @@ function startGameFromUI() {
     // Boss Rush and skipping ahead are paid for as the game opens; the site has the last word
     // on the purse. Boss Rush always starts with the first boss.
     gameState.mode = getGameMode();
+    // A boss fight is with the boss of the zone picked on the map
     gameState.startZone = gameState.mode === 'boss_rush' ? 1 : getStartZone(gameState.faction);
     if (gameState.mode === 'boss_rush') {
         siteBoot.user.coins -= gameModeCost(gameState.mode);
@@ -2004,6 +2031,14 @@ function setupUIEventHandlers() {
         if (index < 0 || typing || !gameState.gameRunning || !gameConfig.sets[index]) return;
         
         wearSet(gameConfig.sets[index].id);
+    });
+    // The three buttons on the set panel: they say that there is a choice, and make it by
+    // mouse or finger
+    document.querySelectorAll('#setSwitch .set-switch-btn').forEach(button => {
+        button.addEventListener('click', event => {
+            event.stopPropagation();
+            if (gameState.currentScreen === 'game') wearSet(button.dataset.set);
+        });
     });
     const setPanelHeader = document.querySelector('#dragonstalkerProgressPanel .dragonstalker-panel-header');
     if (setPanelHeader) {
@@ -3421,6 +3456,12 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
         nameElement.dataset.set = set.id;
     }
     panel.title = `Press ${keyName('set_1')}, ${keyName('set_2')} or ${keyName('set_3')} to wear another set`;
+    // The button of the set being worn is lit
+    document.querySelectorAll('#setSwitch .set-switch-btn').forEach(button => {
+        const worn = button.dataset.set === gameState.wornSet;
+        button.classList.toggle('is-worn', worn);
+        button.setAttribute('aria-pressed', String(worn));
+    });
     
     // Update progress bar
     const progressFill = document.getElementById('dragonstalkerProgressFill');
@@ -3489,6 +3530,7 @@ function onBossDefeated(boss) {
     say('bossDefeated');
     gameState.coins += coinsForBoss(boss.zone, gameConfig.coins);
     if (gameState.mode === 'boss_rush') gameState.rushPause = gameConfig.bossRush.breather;
+    if (gameState.mode === 'boss_fight') gameState.bossDownFor = 0;
     
     lootSystem.reportBoss(boss.id).then(drop => {
         if (!drop) return;
@@ -3563,9 +3605,11 @@ function endGame() {
                 if (result.scores) cacheHighScores(result.scores);
                 if (result.coins) showCoinsEarned(result.coins);
                 
-                if (result.mode === 'boss_rush') {
+                if (result.mode === 'boss_rush' || result.mode === 'boss_fight') {
                     if (newHighScoreElement) {
-                        newHighScoreElement.textContent = 'Boss Rush is not played for the leaderboard';
+                        newHighScoreElement.textContent = result.mode === 'boss_fight'
+                            ? 'A boss fight is not played for the leaderboard'
+                            : 'Boss Rush is not played for the leaderboard';
                         newHighScoreElement.style.display = 'block';
                     }
                 } else if (result.legal) {
@@ -3596,11 +3640,13 @@ function endGame() {
     }
     
     showCoinsEarned();
-    say(gameState.victory || gameState.rushComplete ? 'victory' : 'gameOver');
+    // A boss fight won has had its cheer already, when the boss fell
+    if (!gameState.bossFightWon) say(gameState.victory || gameState.rushComplete ? 'victory' : 'gameOver');
     
     const gameOverTitle = document.getElementById('gameOverTitle');
     if (gameOverTitle) {
-        gameOverTitle.textContent = gameState.rushComplete ? 'Boss Rush complete!' : gameState.victory ? 'Victory!' : 'Game Over!';
+        gameOverTitle.textContent = gameState.bossFightWon ? 'Boss defeated!'
+            : gameState.rushComplete ? 'Boss Rush complete!' : gameState.victory ? 'Victory!' : 'Game Over!';
     }
     
     // Update final score display

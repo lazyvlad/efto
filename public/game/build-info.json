@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-13T20:12:36.366Z",
-  "buildTimestamp": 1791922356373,
+  "buildTime": "2026-10-13T22:18:20.027Z",
+  "buildTimestamp": 1791929900031,
   "mode": "production",
-  "gameVersion": "2.33.3",
-  "cacheHash": "az769w5t",
+  "gameVersion": "2.34.0",
+  "cacheHash": "snx120jo",
   "fileMap": {
-    "game-modular.js": "game-modular.az769w5t.js"
+    "game-modular.js": "game-modular.snx120jo.js"
   },
-  "buildSystemVersion": "2.33.3"
+  "buildSystemVersion": "2.34.0"
 }

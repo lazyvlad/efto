@@ -12,7 +12,7 @@
     "src": "game/assets/fonts/marcellus-latin.woff2"
   },
   "game/game-modular.js": {
-    "file": "assets/game-modular-D6AXzKzH.js",
+    "file": "assets/game-modular-UgdhF1kA.js",
     "name": "game-modular",
     "src": "game/game-modular.js",
     "isEntry": true,
@@ -21,7 +21,7 @@
     ]
   },
   "game/styles/game.css": {
-    "file": "assets/game-CiR9ileg.css",
+    "file": "assets/game-C05XFPRG.css",
     "src": "game/styles/game.css",
     "isEntry": true,
     "name": "game",

@@ -155,7 +155,9 @@
                                     <td class="py-2.5 ps-4 sm:ps-6 pe-2 whitespace-nowrap">
                                         <span class="text-gray-800">{{ $game->started_at->format('M j, Y') }}</span>
                                         <span class="text-gray-500 hidden sm:inline">{{ $game->started_at->format('H:i') }}</span>
-                                        @if ($game->isBossRush())
+                                        @if ($game->isBossFight())
+                                            <span class="block text-xs text-amber-700">{{ __('Boss fight') }}</span>
+                                        @elseif ($game->isBossRush())
                                             <span class="block text-xs text-amber-700">{{ __('Boss Rush') }}</span>
                                         @endif
                                         @if ($game->start_zone > 1)

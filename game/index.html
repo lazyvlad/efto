@@ -196,7 +196,7 @@
                             <div id="startZonePicker" class="start-zone-picker" hidden>
                                 <select id="startZone" class="setting-select"></select>
                             </div>
-                            <!-- Boss Rush: for logged-in players (ui/startZone.js) -->
+                            <!-- A normal game, one boss fight, or Boss Rush for logged-in players (ui/startZone.js) -->
                             <div id="gameModePicker" class="start-zone-picker" hidden>
                                 <label for="gameMode">Mode</label>
                                 <select id="gameMode" class="setting-select"></select>
@@ -686,6 +686,14 @@
             </div>
         </div>
         
+        <!-- The three hunter sets: press one (or its key) to wear it. The one being worn is lit.
+             The names are the sets' in config/gameConfig.js. -->
+        <div class="set-switch" id="setSwitch" role="group" aria-label="Wear a hunter set">
+            <button type="button" class="set-switch-btn" data-set="giantstalker"><span class="set-switch-key" data-key-of="set_1">1</span><span class="set-switch-name">Giant<span class="set-switch-rest">stalker</span></span></button>
+            <button type="button" class="set-switch-btn" data-set="dragonstalker"><span class="set-switch-key" data-key-of="set_2">2</span><span class="set-switch-name">Dragon<span class="set-switch-rest">stalker</span></span></button>
+            <button type="button" class="set-switch-btn" data-set="cryptstalker"><span class="set-switch-key" data-key-of="set_3">3</span><span class="set-switch-name">Crypt<span class="set-switch-rest">stalker</span></span></button>
+        </div>
+
         <div class="dragonstalker-items-list" id="dragonstalkerItemsList">
             <!-- Dragonstalker items will be populated here -->
         </div>

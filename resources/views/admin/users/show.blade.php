@@ -99,6 +99,110 @@
                 </div>
             </div>
 
+            {{-- Opening content for the player without their having earned it (App\Support\Grants) --}}
+            <div class="bg-white shadow sm:rounded-lg p-4 sm:p-6 text-sm space-y-6">
+                <div class="flex flex-wrap items-start justify-between gap-4">
+                    <div>
+                        <h3 class="text-lg text-gray-900">{{ __('Unlock content') }}</h3>
+                        <p class="text-gray-600">
+                            {{ __('Open for this player what they have not earned yet. What is given here is kept apart from what they earned, and only what was given can be taken back.') }}
+                        </p>
+                    </div>
+                    <form method="POST" action="{{ route('admin.users.unlock-all', $user) }}"
+                          onsubmit="return confirm(@js(__('Open every zone of both sides, give the large quiver and all the sets?')))">
+                        @csrf
+                        <x-primary-button>{{ __('Unlock everything') }}</x-primary-button>
+                    </form>
+                </div>
+
+                <div class="grid gap-6 md:grid-cols-2">
+                    @foreach ($sides as $faction => $side)
+                        <div class="pt-4 border-t border-gray-200">
+                            <h4 class="text-gray-900">{{ __(':side zones', ['side' => ucfirst($faction)]) }}</h4>
+                            <p class="text-gray-600 mb-3">
+                                {{ __('May start as far as zone :zone.', ['zone' => $side['openTo']]) }}
+                                @if ($side['granted'])
+                                    {{ trans_choice('{1} :count boss was counted as beaten from here.|[2,*] :count bosses were counted as beaten from here.', $side['granted'], ['count' => $side['granted']]) }}
+                                @endif
+                            </p>
+                            <div class="flex flex-wrap items-end gap-3">
+                                <form method="POST" action="{{ route('admin.users.zones', $user) }}" class="flex flex-wrap items-end gap-3">
+                                    @csrf
+                                    <input type="hidden" name="faction" value="{{ $faction }}">
+                                    <label class="block">
+                                        <span class="text-gray-600">{{ __('Open up to') }}</span>
+                                        <select name="bosses" class="block mt-1 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm !py-1.5">
+                                            @for ($beaten = 1; $beaten <= $side['bosses']; $beaten++)
+                                                <option value="{{ $beaten }}" @selected($beaten === $side['bosses'])>
+                                                    {{ $beaten < $side['bosses'] ? __('Zone :zone', ['zone' => $beaten + 1]) : __('Zone :zone, its boss beaten too', ['zone' => $beaten]) }}
+                                                </option>
+                                            @endfor
+                                        </select>
+                                    </label>
+                                    <x-primary-button>{{ __('Open') }}</x-primary-button>
+                                </form>
+                                @if ($side['granted'])
+                                    <form method="POST" action="{{ route('admin.users.zones.lock', $user) }}">
+                                        @csrf
+                                        <input type="hidden" name="faction" value="{{ $faction }}">
+                                        <x-secondary-button type="submit">{{ __('Take back') }}</x-secondary-button>
+                                    </form>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="pt-4 border-t border-gray-200">
+                    <h4 class="text-gray-900 mb-3">{{ __('Hunter sets and the quiver') }}</h4>
+                    <ul class="divide-y divide-gray-200">
+                        @foreach ($sets as $set)
+                            @php
+                                $pieceIds = array_column($set['pieces'], 'id');
+                                $given = count(array_intersect($pieceIds, $grantedPieces));
+                            @endphp
+                            <li class="py-2.5 flex flex-wrap items-center justify-between gap-3">
+                                <span>
+                                    <span class="text-gray-900">{{ $set['name'] }}</span>
+                                    <span class="text-gray-600">· {{ __(':owned of :all pieces', ['owned' => $set['owned'], 'all' => count($set['pieces'])]) }}@if ($given), {{ __(':count given from here', ['count' => $given]) }}@endif</span>
+                                </span>
+                                <span class="flex gap-3">
+                                    @if ($set['owned'] < count($set['pieces']))
+                                        <form method="POST" action="{{ route('admin.users.set', $user) }}">
+                                            @csrf
+                                            <input type="hidden" name="set" value="{{ $set['id'] }}">
+                                            <x-primary-button class="!py-1">{{ __('Give the whole set') }}</x-primary-button>
+                                        </form>
+                                    @endif
+                                    @if ($given)
+                                        <form method="POST" action="{{ route('admin.users.set', $user) }}">
+                                            @csrf
+                                            <input type="hidden" name="set" value="{{ $set['id'] }}">
+                                            <input type="hidden" name="take" value="1">
+                                            <x-secondary-button type="submit" class="!py-1">{{ __('Take back') }}</x-secondary-button>
+                                        </form>
+                                    @endif
+                                </span>
+                            </li>
+                        @endforeach
+                        <li class="py-2.5 flex flex-wrap items-center justify-between gap-3">
+                            <span>
+                                <span class="text-gray-900">{{ config('boss_loot.quiver.name') }}</span>
+                                <span class="text-gray-600">· {{ __('the large quiver') }}, {{ $user->quiver ? __('has it') : __('does not have it') }}</span>
+                            </span>
+                            <form method="POST" action="{{ route('admin.users.quiver', $user) }}">
+                                @csrf
+                                @if ($user->quiver)
+                                    <x-secondary-button type="submit" class="!py-1">{{ __('Take away') }}</x-secondary-button>
+                                @else
+                                    <x-primary-button class="!py-1">{{ __('Give') }}</x-primary-button>
+                                @endif
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
             <div class="bg-white shadow sm:rounded-lg overflow-hidden">
                 <h3 class="text-lg text-gray-900 px-4 sm:px-6 pt-4 sm:pt-6">{{ __('Latest games') }}</h3>
                 @if ($games->isEmpty())

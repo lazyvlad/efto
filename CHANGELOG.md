@@ -1,5 +1,68 @@
 # Changelog
 
+## 2.34.0 - 2026-10-13
+
+### What's new
+
+**Boss fight: one boss and nothing else**
+- A new choice under "Mode" on the starting window: "Boss fight: only this zone's boss".
+  Pick a zone on the map, choose it, and the fight begins at once: no zone to play through
+  first, and the boss is in within half a second. When it falls the game is over, with
+  "Boss defeated!".
+- The fight starts with the quiver full, since there is no zone before it to gather arrows
+  in: 200 arrows, or 400 with the large quiver.
+- Anyone can fight the first boss of either side, guests too. A later boss is open on the
+  same terms as starting in its zone: the bosses before it beaten, and the same price in
+  coins.
+- The boss pays its coins and drops its loot as always, so it is a way to go back for the
+  item you are missing. Like Boss Rush, it is not played for the leaderboard.
+- In the Discord channel a boss fight is posted when the boss went down: "Bob brought down
+  Hogger in a boss fight."
+
+**The three sets have buttons**
+- The set panel now shows the three hunter sets as buttons under its heading, each with its
+  key (1, 2 and 3, or whatever they were changed to), and the one being worn lit. Nothing on
+  the screen said before that the set could be changed.
+- On a phone or tablet the buttons are tapped to change set. On a computer the mouse is kept
+  inside the field while playing, so there the keys do it and the buttons show which.
+
+**Admins can unlock content for a player**
+- An account's page in the admin section has a new part, "Unlock content":
+  - **Zones**, for each side: open them up to any zone, or with the last boss beaten too.
+    The bosses before are counted as beaten.
+  - **Hunter sets**: give a whole set.
+  - **The large quiver**: give it or take it away.
+  - **Unlock everything**: every zone of both sides, all three sets and the quiver, at once.
+- What is given is kept apart from what the player earned. Each part has "Take back", which
+  removes only what was given: a boss the player beat and a piece they caught stay theirs.
+
+**Bazil Thredd starts a riot**
+- The third Alliance boss fought exactly like the fourth: both were assassins. Bazil now has
+  a fight of his own. He throws knives singly and by the handful, and then calls on the mob:
+  for a few seconds stones come flying in from both sides of the field, while he carries on
+  attacking. The edges glow before they come. The stones can be shot down or stepped around,
+  and the middle of the field is out of their reach.
+- Vanishing is left to Edwin VanCleef.
+
+### Changed
+- **Arnak Grimtotem, Khan Dez'hepah and Chief Ukorz** stomp once in three attacks, where it
+  was every second one, so the player is not kept in the safe patch for most of the fight.
+  And when a row of projectiles is still falling as the stomp is wound up, the safe patch is
+  put under the gap in the row: the two can be lived through by moving, without having to
+  shoot a way out and running dry of arrows.
+- **Five Horde bosses threw attacks about twice the usual size**, wide enough for a
+  Multishot to clear every time. They are now in line with the others: Echeyakee's and
+  Shadumbra's claws, Arnak's shockwave, Big Samras's swipe and Ukorz's Sand Cleave.
+
+### For developers
+- New migration: `granted_pieces` on `users` and `granted` on `boss_drops`. A zone is open to
+  a player with loot from every boss before it, so opening zones gives them one item from
+  each of those bosses, marked as granted (`App\Support\Grants`).
+- `User::setPieces()` is now the pieces caught (`caughtPieces()`) together with those given.
+- A boss's fighting style is a round of named attacks in `game/data/bosses.js`. `riot` is a
+  new one (settings under `bosses.riot` in `gameConfig.js`), and `cutthroat` a new style
+  that uses it.
+
 ## 2.33.3 - 2026-10-13
 
 ### Changed
