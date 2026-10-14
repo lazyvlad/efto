@@ -264,6 +264,8 @@ export function guardZone(gameState, canvas) {
 
         bombs: [],              // Things lobbed at the player that have yet to burst
         upheaval: null,         // An Upheaval under way: { waves, steps } (utils/upheaval.js)
+        // How the player did in the fight proper, for its record (My Games on the site)
+        tally: { arrows: 0, damage: 0, hits: 0, lastArrows: null, lastHealth: null },
         dodgedTextAt: -Infinity, // When "Dodge" was last shown
         sinceArrows: 0,
         sincePotion: 0
@@ -277,6 +279,19 @@ export function guardZone(gameState, canvas) {
             : `${boss.name} appears! Bring it down with your arrows`, 300, '#FF6B35');
     playScreamSound();
     return true;
+}
+
+// The fight's record, step by step: arrows that left the quiver, and the health lost (what
+// heals or is caught does not count against it)
+function keepTally(gameState) {
+    const tally = fight.tally;
+    if (tally.lastArrows !== null && gameState.arrowCount < tally.lastArrows) tally.arrows += tally.lastArrows - gameState.arrowCount;
+    if (tally.lastHealth !== null && gameState.health < tally.lastHealth) {
+        tally.damage += tally.lastHealth - gameState.health;
+        tally.hits++;
+    }
+    tally.lastArrows = gameState.arrowCount;
+    tally.lastHealth = gameState.health;
 }
 
 // Seconds the fight proper has lasted
@@ -1102,7 +1117,17 @@ function defeat(context) {
         ? `Down in ${Math.round(seconds)}s, par ${fast.par}s: +${fast.score} for speed`
         : `Down in ${Math.round(seconds)}s (par ${fast.par}s)`, 360, '#FFE9A8');
     playTotalSound();
-    if (context.onBossDefeated) context.onBossDefeated(boss);
+    if (context.onBossDefeated) {
+        context.onBossDefeated(boss, {
+            seconds: Math.round(seconds * 10) / 10,
+            points: reward.score,
+            speedPoints: fast.score,
+            par: fast.par,
+            arrows: fight.tally.arrows,
+            damage: Math.round(fight.tally.damage),
+            hits: fight.tally.hits,
+        });
+    }
 }
 
 /**
@@ -1204,6 +1229,7 @@ export function updateBoss(context) {
     }
 
     takeArrowHits(context);
+    keepTally(gameState);
     if (fight.health <= 0) defeat(context);
 }
 

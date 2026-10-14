@@ -70,7 +70,7 @@ class GameHistoryPageTest extends TestCase
 
         $response = $this->actingAs($player)->get(route('games.history'))->assertOk();
 
-        $response->assertSee('Offline')->assertSee('Not finished');
+        $response->assertSee('offline')->assertSee('not finished');
         $this->assertSame(['played' => 1, 'best' => 300, 'seconds' => 90], $response->viewData('stats'));
     }
 
@@ -100,6 +100,42 @@ class GameHistoryPageTest extends TestCase
         $this->actingAs($player)
             ->get(route('games.history'))
             ->assertSee('alt="Zee Zgnan Tigar"', false);
+    }
+
+    public function test_each_hunter_has_his_own_games_and_records(): void
+    {
+        $player = User::factory()->create();
+        $this->game($player, ['score' => 1111, 'faction' => 'alliance', 'game_time' => 60, 'started_at' => now()->subDay()]);
+        $horde = $this->game($player, ['score' => 2222, 'faction' => 'horde', 'game_time' => 90]);
+
+        // Two kills by the Horde hunter in one game, one before fights were timed
+        $horde->bossDrops()->create(['user_id' => $player->id, 'boss_id' => 'sarkoth', 'item_id' => 'scorpid-stinger', 'rarity' => 'uncommon', 'dropped_at' => now(),
+            'fight_seconds' => 24.5, 'points' => 100, 'speed_points' => 18, 'par_seconds' => 30, 'arrows_used' => 85, 'damage_taken' => 40, 'hits_taken' => 4]);
+        $horde->bossDrops()->create(['user_id' => $player->id, 'boss_id' => 'zalazane', 'item_id' => 'darkspear-voodoo-charm', 'rarity' => 'uncommon', 'dropped_at' => now()]);
+        // And a faster kill of Sarkoth in a later game, with more arrows
+        $this->game($player, ['faction' => 'horde'])->bossDrops()->create(['user_id' => $player->id, 'boss_id' => 'sarkoth', 'item_id' => 'scorpid-stinger', 'rarity' => 'uncommon', 'dropped_at' => now(),
+            'fight_seconds' => 12.0, 'points' => 100, 'speed_points' => 60, 'par_seconds' => 30, 'arrows_used' => 120, 'damage_taken' => 70, 'hits_taken' => 9]);
+
+        // The hunter played last is shown first
+        $response = $this->actingAs($player)->get(route('games.history'))->assertOk();
+        $this->assertSame('horde', $response->viewData('side'));
+        $response->assertSee('2,222')->assertDontSee('1,111')
+            ->assertSee('24.5s')->assertSee('+18 speed')->assertSee('in 4 hits')
+            ->assertSee('Fights from before 3.0.6 were not timed.');
+        $this->assertSame(['played' => 2, 'best' => 2222, 'seconds' => 90], $response->viewData('stats'));
+
+        // His best against each boss, by each measure, from any of his fights
+        $sarkoth = $response->viewData('records')['sarkoth'];
+        $this->assertSame([2, 12.0, 30, 160, 85, 40], [$sarkoth['kills'], $sarkoth['fastest'], $sarkoth['par'], $sarkoth['mostPoints'], $sarkoth['fewestArrows'], $sarkoth['leastDamage']]);
+        $this->assertSame(1, $response->viewData('records')['zalazane']['kills']);
+        $this->assertNull($response->viewData('records')['zalazane']['fastest']);
+        $this->assertCount(10, $response->viewData('records'));
+
+        // The other hunter's page has his own
+        $alliance = $this->get(route('games.history', ['hunter' => 'alliance']))->assertOk();
+        $alliance->assertSee('1,111')->assertDontSee('2,222');
+        $this->assertSame(0, $alliance->viewData('records')['garrick-padfoot']['kills']);
+        $this->assertArrayNotHasKey('sarkoth', $alliance->viewData('records'));
     }
 
     public function test_the_site_menu_links_to_it_for_logged_in_players_only(): void

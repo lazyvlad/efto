@@ -109,7 +109,7 @@
                     </p>
                     <p class="mt-1 text-sm text-gray-600">
                         <span class="rarity-legendary">{{ $quiverName }}</span>
-                        {{ __('Any boss may also drop this large quiver for a logged-in player, :chance% of the time. It is found once, kept on the account, and doubles the arrows the hunter can carry.', ['chance' => $quiverChance]) }}
+                        {{ __('Any boss may also drop this large quiver for a logged-in player, :chance% of the time. Each hunter finds his own, from the bosses of his side: worn in his quiver slot, it doubles the arrows he can carry.', ['chance' => $quiverChance]) }}
                     </p>
                 </div>
 

@@ -143,6 +143,15 @@ class GameRecordController extends Controller
     {
         $data = $request->validate([
             'boss' => ['required', 'string', 'max:40'],
+            // How the fight went, for the player's record (shown, never relied on)
+            'fight' => ['sometimes', 'array'],
+            'fight.seconds' => ['required_with:fight', 'numeric', 'min:0', 'max:3600'],
+            'fight.points' => ['required_with:fight', 'integer', 'min:0', 'max:1000000'],
+            'fight.speedPoints' => ['required_with:fight', 'integer', 'min:0', 'max:1000000'],
+            'fight.par' => ['required_with:fight', 'integer', 'min:0', 'max:3600'],
+            'fight.arrows' => ['required_with:fight', 'integer', 'min:0', 'max:100000'],
+            'fight.damage' => ['required_with:fight', 'integer', 'min:0', 'max:1000000'],
+            'fight.hits' => ['required_with:fight', 'integer', 'min:0', 'max:60000'],
         ]);
 
         abort_unless($game->isOpen(), 409, 'This game is over.');
@@ -175,7 +184,7 @@ class GameRecordController extends Controller
                     'rarity' => $item['rarity'],
                     'quiver' => $quiver,
                     'dropped_at' => now(),
-                ]);
+                ] + $this->fightRecord($data['fight'] ?? null));
 
                 if ($quiver) {
                     $game->user->forceFill(['quiver' => true])->save();
@@ -203,6 +212,28 @@ class GameRecordController extends Controller
     /**
      * The game is over (or was left mid-game and is being handed in afterwards).
      */
+    /**
+     * The columns of a boss kill's fight record, from what the game reported (or none).
+     *
+     * @return array<string, int|float>
+     */
+    private function fightRecord(?array $fight): array
+    {
+        if ($fight === null) {
+            return [];
+        }
+
+        return [
+            'fight_seconds' => round((float) $fight['seconds'], 1),
+            'points' => (int) $fight['points'],
+            'speed_points' => (int) $fight['speedPoints'],
+            'par_seconds' => (int) $fight['par'],
+            'arrows_used' => (int) $fight['arrows'],
+            'damage_taken' => (int) $fight['damage'],
+            'hits_taken' => (int) $fight['hits'],
+        ];
+    }
+
     public function finish(Request $request, Game $game): JsonResponse
     {
         $data = $request->validate([

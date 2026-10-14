@@ -275,7 +275,7 @@ class BossLootTest extends TestCase
         $this->assertStringContainsString('"quiver":true', $html);
         $this->getJson(route('collection'))->assertJsonPath('quiver.found', true);
         $this->postJson(route('games.finish', $game), ['score' => 10])->assertOk();
-        $this->get(route('games.history'))->assertSee('your quiver holds twice the arrows');
+        $this->get(route('games.history'))->assertSee('worn in his quiver slot, it holds twice the arrows');
     }
 
     public function test_guests_and_unlucky_players_get_no_quiver(): void
@@ -463,7 +463,7 @@ class BossLootTest extends TestCase
         $this->actingAs($user)->get(route('games.history'))
             ->assertOk()
             ->assertSee('3g 20s 5c')
-            ->assertSee('1 of 60 found')
+            ->assertSee('1 of 30 found')
             ->assertSee('Huge Gnoll Claw')
             ->assertSee('text-blue-400');
     }
@@ -484,7 +484,10 @@ class BossLootTest extends TestCase
             ->assertJsonPath('bosses.alliance.1.name', 'Hogger')
             ->assertJsonPath('bosses.alliance.1.loot.0', ['id' => 'hoggers-chewed-collar', 'name' => "Hogger's Chewed Collar", 'rarity' => 'uncommon', 'times' => 2])
             ->assertJsonPath('bosses.alliance.1.loot.1.times', 0)
-            ->assertJsonCount(10, 'bosses.horde');
+            ->assertJsonPath('side', 'alliance')
+            // Only his side's bosses: the Horde's are the other hunter's
+            ->assertJsonMissingPath('bosses.horde');
+        $this->getJson(route('collection', ['side' => 'horde']))->assertJsonCount(10, 'bosses.horde')->assertJsonMissingPath('bosses.alliance');
 
         $items = collect($response->json('items'))->keyBy('id');
         $this->assertSame(1, $items['maladath']['times']);

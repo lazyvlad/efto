@@ -13,13 +13,22 @@ class BossDrop extends Model
 {
     public $timestamps = false;
 
-    protected $fillable = ['game_id', 'user_id', 'boss_id', 'item_id', 'rarity', 'quiver', 'dropped_at'];
+    protected $fillable = ['game_id', 'user_id', 'boss_id', 'item_id', 'rarity', 'quiver', 'dropped_at',
+        // How the fight went, as the game reported it (null before it was kept)
+        'fight_seconds', 'points', 'speed_points', 'par_seconds', 'arrows_used', 'damage_taken', 'hits_taken'];
 
     protected function casts(): array
     {
         return [
             'quiver' => 'boolean',
             'dropped_at' => 'datetime',
+            'fight_seconds' => 'float',
+            'points' => 'integer',
+            'speed_points' => 'integer',
+            'par_seconds' => 'integer',
+            'arrows_used' => 'integer',
+            'damage_taken' => 'integer',
+            'hits_taken' => 'integer',
         ];
     }
 

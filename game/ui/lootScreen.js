@@ -2,8 +2,9 @@
 // account has collected over all its games.
 //
 // "This game" is built from the game's own state. "All time" is asked of the site
-// (INPUT_BOOT.urls.collection): { coins, items: [{ id, name, image, times }],
-// bosses: { alliance: [{ name, image, loot: [{ id, name, rarity, times }] }], horde: [...] } }.
+// (INPUT_BOOT.urls.collection) for one hunter, the one being played: { side, coins, items:
+// [{ id, name, image, times }], bosses: { <side>: [{ name, image, loot: [{ id, name, rarity,
+// times }] }] } }. Each hunter has his own; the purse is both's.
 
 import { siteBoot } from './accountBar.js';
 import { formatCoins } from '../utils/coins.js';
@@ -113,11 +114,13 @@ export function renderThisGame(container, { items, bossLoot, coins }) {
 let collection = null;      // The last answer from the site
 let asking = null;
 
-// Ask the site for the account's collection and draw it; what was fetched before shows meanwhile
-function loadCollection(container) {
+// Ask the site for a hunter's collection and draw it; what was fetched before for him shows meanwhile
+function loadCollection(container, side) {
     if (asking) return;
 
-    asking = fetch(siteBoot.urls.collection, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+    const url = new URL(siteBoot.urls.collection, document.baseURI);
+    url.searchParams.set('side', side);
+    asking = fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
         .then(response => {
             if (!response.ok) throw new Error(`Server answered ${response.status}`);
             return response.json();
@@ -139,7 +142,8 @@ function loadCollection(container) {
 
 function drawCollection(container, data) {
     container.textContent = '';
-    container.append(element('div', 'loot-summary', `Your purse: ${formatCoins(data.coins)}`));
+    const hunter = data.side === 'horde' ? 'Horde' : 'Alliance';
+    container.append(element('div', 'loot-summary', `The ${hunter} hunter's collection \u00b7 Purse (both hunters): ${formatCoins(data.coins)}`));
 
     if (data.quiver) {
         container.append(heading('Quiver'));
@@ -147,8 +151,8 @@ function drawCollection(container, data) {
             name: data.quiver.name,
             nameClass: data.quiver.found ? 'loot-type-legendary' : '',
             description: data.quiver.found
-                ? 'Found: your quiver holds twice the arrows'
-                : 'Not found yet: any boss may drop it, and it doubles the arrows you can carry',
+                ? 'His: worn in his quiver slot, it holds twice the arrows'
+                : 'Not found yet: any boss may drop it, and it doubles the arrows he can carry',
             missing: !data.quiver.found
         }));
     }
@@ -156,9 +160,7 @@ function drawCollection(container, data) {
     const bossItems = Object.values(data.bosses).flat().flatMap(boss => boss.loot);
     container.append(heading('Boss loot', `${bossItems.filter(item => item.times > 0).length} of ${bossItems.length} found`));
 
-    for (const [side, bosses] of Object.entries(data.bosses)) {
-        container.append(element('div', 'loot-side', side === 'alliance' ? 'Alliance' : 'Horde'));
-
+    for (const bosses of Object.values(data.bosses)) {
         for (const boss of bosses) {
             for (const item of boss.loot) {
                 container.append(lootRow({
@@ -187,20 +189,21 @@ function drawCollection(container, data) {
 }
 
 /**
- * What the account has collected over all its games. Guests are told how to get one.
+ * What a hunter has collected over all his games. Guests are told how to get one.
+ * @param {string} side  The hunter: 'alliance' or 'horde'
  */
-export function renderAllTime(container) {
+export function renderAllTime(container, side = 'alliance') {
     if (!siteBoot || !siteBoot.user || !siteBoot.urls.collection) {
         container.textContent = '';
         container.append(emptyRow('Log in to keep a collection', 'Boss loot, rare items and coins are kept on your account from game to game'));
         return;
     }
 
-    if (collection) {
+    if (collection && collection.side === side) {
         drawCollection(container, collection);
     } else {
         container.textContent = '';
-        container.append(emptyRow('Loading your collection...', ''));
+        container.append(emptyRow('Loading his collection...', ''));
     }
-    loadCollection(container);
+    loadCollection(container, side);
 }

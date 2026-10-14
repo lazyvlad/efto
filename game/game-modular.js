@@ -3346,7 +3346,7 @@ function updateItemBonusesWindow() {
     updateTemporaryBonusesTab();
     // The account's collection is only asked for when its tab is looked at
     if (document.getElementById('allTimeList').classList.contains('active')) {
-        renderAllTime(document.getElementById('allTimeList'));
+        renderAllTime(document.getElementById('allTimeList'), currentSide());
     }
 }
 
@@ -3533,7 +3533,7 @@ function switchBonusTab(tabName) {
     } else if (tabName === 'allTime') {
         tabButton = document.getElementById('allTimeTab');
         tabList = document.getElementById('allTimeList');
-        renderAllTime(tabList);
+        renderAllTime(tabList, currentSide());
     }
     
     if (tabButton) tabButton.classList.add('active');
@@ -4765,14 +4765,15 @@ function updateDragonstalkerProgressPanel(gameState) {
 const BOSS_LOOT_COLORS = { uncommon: '#1EFF00', rare: '#4D9BFF', epic: '#C77DFF' };
 
 // A boss went down: it pays coins, and the site decides what it dropped. A logged-in player
-// keeps the item on their account; a guest is only shown it.
-function onBossDefeated(boss) {
+// keeps the item on their account; a guest is only shown it. How the fight went goes with it,
+// for the player's record of the game.
+function onBossDefeated(boss, fight = null) {
     say('bossDefeated');
     gameState.coins += coinsForBoss(boss.zone, gameConfig.coins);
     if (gameState.mode === 'boss_rush') gameState.rushPause = gameConfig.bossRush.breather;
     if (gameState.mode === 'boss_fight') gameState.bossDownFor = 0;
     
-    lootSystem.reportBoss(boss.id).then(drop => {
+    lootSystem.reportBoss(boss.id, fight).then(drop => {
         if (!drop) return;
         setUnlockedZone(boss.faction, drop.unlockedZone);
         // Beaten, and kept on the account: it may be fought on its own from now on

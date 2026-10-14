@@ -223,6 +223,57 @@
     .side-dot[data-side="alliance"] { background: #4a86e8; }
     .side-dot[data-side="horde"] { background: #d8392b; }
 
+    /* My Games: whose games are shown, the Alliance or the Horde hunter's */
+    .hunter-switch {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .hunter-switch-tab {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        font-family: theme('fontFamily.display');
+        color: theme('colors.gray.600');
+        background: theme('colors.white');
+        border: 1px solid theme('colors.gray.200');
+        border-radius: 0.5rem;
+    }
+
+    .hunter-switch-tab:hover {
+        color: theme('colors.gray.800');
+        border-color: theme('colors.gray.300');
+    }
+
+    .hunter-switch-tab.is-on {
+        color: theme('colors.gray.900');
+        border-color: theme('colors.indigo.500');
+        box-shadow: 0 0 0 1px theme('colors.indigo.500');
+    }
+
+    /* A game in the list: pressed, it opens to how each boss fight went */
+    .game-row-summary {
+        list-style: none;
+    }
+
+    .game-row-summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .game-row[open] > .game-row-summary,
+    .game-row-summary:hover {
+        background: theme('colors.gray.50');
+    }
+
+    .game-fights {
+        background: rgba(0, 0, 0, 0.25);
+        border-radius: 0.375rem;
+    }
+
+    .game-fights tbody tr + tr {
+        border-top: 1px solid theme('colors.gray.200');
+    }
+
     /* A post on the What's new page, written in Markdown */
     .news-body {
         color: theme('colors.gray.600');

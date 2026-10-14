@@ -248,15 +248,17 @@ export function earnsCoins(item, dropId = null) {
  * A boss was defeated. Resolves to what it dropped, as the server decided:
  * { item: { id, name, rarity }, kept, timesFound } - "kept" is false for guests, who are only
  * shown the item. Resolves to null when the server could not be asked.
+ * @param {object} [fight]  How the fight went, for the player's record: { seconds, points,
+ *                          speedPoints, par, arrows, damage, hits }
  */
-export async function reportBoss(bossId) {
+export async function reportBoss(bossId, fight = null) {
     const current = session;
     if (!current) return null;
 
     for (let attempt = 0; attempt < 4 && session === current; attempt++) {
         if (current.token) {
             try {
-                const response = await post(gamesUrl(current.token, 'bosses'), { boss: bossId });
+                const response = await post(gamesUrl(current.token, 'bosses'), fight ? { boss: bossId, fight } : { boss: bossId });
                 if (response.ok) return await response.json();
                 // Too early or too many requests may pass; anything else will not
                 if (response.status >= 400 && response.status < 500 && response.status !== 425 && response.status !== 429) return null;
