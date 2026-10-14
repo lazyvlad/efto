@@ -202,11 +202,20 @@ function renderHighScoresList(scores) {
             <span class="score-points">Score</span>
             <span class="score-level">Level</span>
             <span class="score-gear">Gear</span>
-            <span class="score-version">Version</span>
             <span class="score-date">Date</span>
         </div>
     `;
-    scores.slice(0, 20).forEach((score, index) => {
+    // Grouped by the version of the game they were played in, the latest first (as the site
+    // sends them), each ranked on its own
+    let version = null;
+    let index = 0;
+    scores.slice(0, 20).forEach(score => {
+        const scoreVersion = score.version || '';
+        if (scoreVersion !== version) {
+            version = scoreVersion;
+            index = 0;
+            html += `<div class="score-version-heading">${version ? `Version ${escapeHtml(version)}` : 'Older scores'}</div>`;
+        }
         const isTop3 = index < 3;
         const rankClass = index === 0 ? 'rank-first' : index === 1 ? 'rank-second' : index === 2 ? 'rank-third' : '';
         
@@ -234,19 +243,18 @@ function renderHighScoresList(scores) {
         const gearTitle = stats
             ? `+${toNumber(stats.health)} health, ${toNumber(stats.armor)} armor, ${toNumber(stats.attackPower)} attack power`
             : 'Played without gear';
-        const versionDisplay = score.version || '-';
         
         html += `
             <div class="score-entry ${isTop3 ? 'top3' : ''}">
                 <span class="score-rank ${rankClass}">#${index + 1}</span>
-                <span class="score-name">${escapeHtml(score.name || 'Anonymous')}</span>
+                <span class="score-name">${escapeHtml(score.name || 'Anonymous')}${score.faction === 'alliance' || score.faction === 'horde' ? ` <span class="score-side" data-side="${score.faction}">${score.faction === 'horde' ? 'Horde' : 'Alliance'}</span>` : ''}</span>
                 <span class="score-points">${toNumber(score.score)} pts</span>
                 <span class="score-level">${levelDisplay}</span>
                 <span class="score-gear ${score.gear ? 'has-gear' : ''}" title="${escapeHtml(gearTitle)}">${escapeHtml(gearDisplay)}</span>
-                <span class="score-version ${score.version ? '' : 'is-unknown'}">${escapeHtml(versionDisplay)}</span>
                 <span class="score-date">${escapeHtml(displayDate)}</span>
             </div>
         `;
+        index++;
     });
     
     if (scores.length > 20) {

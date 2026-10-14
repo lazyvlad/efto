@@ -53,6 +53,29 @@ class Game extends Model
         'ended_at',
     ];
 
+    /**
+     * A version as a number that sorts as versions do: "3.0.6" is 3000006, "2.43.0" 2043000.
+     * Null for none, or for one that is not a version.
+     */
+    public static function versionRank(?string $version): ?int
+    {
+        if ($version === null || ! preg_match('/^(\d{1,3})\.(\d{1,3})(?:\.(\d{1,3}))?/', $version, $parts)) {
+            return null;
+        }
+
+        return (int) $parts[1] * 1_000_000 + (int) $parts[2] * 1_000 + (int) ($parts[3] ?? 0);
+    }
+
+    protected static function booted(): void
+    {
+        // Kept with the version, for the high scores' order (Score::top)
+        static::saving(function (Game $game) {
+            if ($game->isDirty('game_version') || $game->version_rank === null) {
+                $game->version_rank = self::versionRank($game->game_version);
+            }
+        });
+    }
+
     protected function casts(): array
     {
         return [

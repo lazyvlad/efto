@@ -210,6 +210,19 @@
         border: 1px solid #6b4f16;
     }
 
+    /* High scores: the heading of a version's group */
+    .score-version-row th {
+        background: theme('colors.gray.50');
+        border-top: 1px solid theme('colors.gray.300');
+        border-bottom: 1px solid theme('colors.gray.200');
+    }
+
+    .score-version-name {
+        font-family: theme('fontFamily.display');
+        color: theme('colors.gray.700');
+        letter-spacing: 0.03em;
+    }
+
     /* Which hunter a part of a page is about: his side's colour */
     .side-dot {
         display: inline-block;

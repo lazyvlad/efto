@@ -283,7 +283,7 @@ class GameRecordController extends Controller
             'success' => true,
             'legal' => $game->isLegal(),
             'mode' => $game->mode,
-            'rank' => $entry ? Score::query()->where('score', '>', $entry->score)->count() + 1 : null,
+            'rank' => $entry ? Score::rankOf($entry->score, $game->version_rank) : null,
             'coins' => ['earned' => $game->coins, 'balance' => $owner?->coins],
             // The crafting materials this game brought back, what is in the bank, and what is in
             // the bags now

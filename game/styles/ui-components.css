@@ -154,14 +154,36 @@
 .score-header,
 .score-entry {
     display: grid;
-    /* Rank, name, score, level, gear, version, date */
-    grid-template-columns: 64px minmax(140px, 1fr) 92px 58px 132px 72px 86px;
+    /* Rank, name, score, level, gear, date (the version heads each group) */
+    grid-template-columns: 64px minmax(140px, 1fr) 92px 58px 132px 86px;
     column-gap: 10px;
     align-items: center;
 }
 
 .score-header {
     padding: 10px 12px;
+}
+
+/* The side the score was made for, beside the name */
+.score-side {
+    margin-left: 6px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.score-side[data-side="alliance"] { color: #6fa8ff; }
+.score-side[data-side="horde"] { color: #ff6a5c; }
+
+/* The scores of one version of the game, the latest first */
+.score-version-heading {
+    margin-top: 14px;
+    padding: 6px 12px;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #e8c66a;
+    border-bottom: 1px solid rgba(232, 198, 106, 0.35);
 }
 
 .score-entry {

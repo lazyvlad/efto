@@ -4922,9 +4922,9 @@ function endGame() {
     const summary = gameOverSummary();
     showGameOverSummary({ ...summary, rank: '' });
     
-    // Where the score landed on the high scores
+    // Where the score landed on the high scores, among those of this version of the game
     const showRank = rank => {
-        if (rank > 0) showGameOverResult({ rank: `#${rank} on the high scores` });
+        if (rank > 0) showGameOverResult({ rank: `#${rank} on the high scores of version ${GAME_VERSION}` });
     };
     
     try {

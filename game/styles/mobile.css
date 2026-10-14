@@ -519,7 +519,7 @@
         grid-template-columns: 42px minmax(0, 1fr) 72px;
         grid-template-areas:
             "rank name points"
-            "rank level version"
+            "rank level level"
             "rank gear gear";
         gap: 4px 8px;
         align-items: center;

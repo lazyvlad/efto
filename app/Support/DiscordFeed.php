@@ -96,9 +96,11 @@ class DiscordFeed
                 $line .= " Last boss down: {$last['name']}.";
             }
 
-            $rank = Score::query()->where('score', '>', $game->score)->count() + 1;
+            // As the high scores have it: among the scores of its own version
+            $rank = Score::rankOf($game->score, $game->version_rank);
+            $version = $game->game_version ? " of version {$game->game_version}" : '';
             if ($rank <= 10) {
-                $line .= $rank === 1 ? ' That is the new top score.' : " That is #{$rank} on the leaderboard.";
+                $line .= $rank === 1 ? " That is the new top score{$version}." : " That is #{$rank}{$version} on the leaderboard.";
             }
         }
 

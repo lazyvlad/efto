@@ -47,14 +47,37 @@ class Score extends Model
     }
 
     /**
-     * The scores on the leaderboard, best first; equal scores rank by who got there first.
+     * The scores on the leaderboard: the latest version of the game first, and within a
+     * version the best first; equal scores rank by who got there first. Scores from before
+     * games kept their version come last.
      */
     public static function top(): Builder
     {
+        return static::ranked()->limit(config('game.leaderboard_size'));
+    }
+
+    /** Every score, in the leaderboard's order */
+    private static function ranked(): Builder
+    {
         return static::query()
-            ->orderByDesc('score')
-            ->orderBy('created_at')
-            ->limit(config('game.leaderboard_size'));
+            ->select('scores.*')
+            ->leftJoin('games', 'games.id', '=', 'scores.game_id')
+            ->orderByRaw('coalesce(games.version_rank, 0) desc')
+            ->orderByDesc('scores.score')
+            ->orderBy('scores.created_at');
+    }
+
+    /**
+     * Where a score made in a version of the game stands among that version's (1 is the
+     * best): the leaderboard is grouped by version, each ranked on its own.
+     */
+    public static function rankOf(int $score, ?int $versionRank): int
+    {
+        return static::query()
+            ->leftJoin('games', 'games.id', '=', 'scores.game_id')
+            ->whereRaw('coalesce(games.version_rank, 0) = ?', [$versionRank ?? 0])
+            ->where('scores.score', '>', $score)
+            ->count() + 1;
     }
 
     /**
@@ -77,6 +100,8 @@ class Score extends Model
                 'registered' => $score->user_id !== null,
                 // How the score was made: the version of the game, and the gear worn
                 'version' => $score->game?->game_version,
+                // The side the hunter played for (null before there were sides)
+                'faction' => $score->game?->faction,
                 'gear' => $score->game?->gearLabel(),
                 'gearStats' => $score->game?->gear,
             ])
