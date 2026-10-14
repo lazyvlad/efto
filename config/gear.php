@@ -137,6 +137,7 @@ return [
             'wrist' => ['id' => 'starter-alliance-bracers', 'name' => 'Pajama Hunter Bracers', 'slot' => 'bracers', 'stats' => ['armor' => 1]],
             'hands' => ['id' => 'starter-alliance-grips', 'name' => 'Pajama Hunter Leather Grips', 'slot' => 'hands', 'stats' => ['armor' => 1]],
             'back' => ['id' => 'starter-alliance-quiver', 'name' => 'Pajama Hunter Quiver and Harness', 'slot' => 'back', 'stats' => ['health' => 1]],
+            'tabard' => ['id' => 'starter-alliance-tabard', 'name' => 'Pajama Hunter Tabard', 'slot' => 'tabard', 'stats' => ['health' => 1]],
             'ranged' => ['id' => 'starter-alliance-bow', 'name' => 'Pajama Hunter Bow', 'slot' => 'ranged', 'stats' => ['attackPower' => 1]],
         ],
         'horde' => [
