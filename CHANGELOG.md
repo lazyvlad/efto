@@ -1,5 +1,34 @@
 # Changelog
 
+## 3.0.5 - 2026-10-14
+
+### Changed
+- **Ranged weapons are slung across the hunter's back** instead of standing out beside his
+  shoulder: Ashjre'thul with its stock down and its middle under his shoulder armor, the
+  Pajama Hunter Bow diagonally with its lower limb by his hip, the Horde Hunter Totem close
+  to his back, the Centaur War Spear point over the shoulder, and Padfoot's Throwing Dagger
+  grip up behind his shoulder.
+
+## 3.0.4 - 2026-10-14
+
+### Added
+- **Hide a piece of gear from sight.** On the character sheet, pick a slot and press *Hide it*:
+  the piece is still worn and still counts for health, armor, attack power and set bonuses,
+  but it is no longer drawn on the hunter, in play or on any screen. *Show it* brings it back.
+  Each hunter hides his own, and a hidden piece stays hidden when it is put on again.
+
+### Changed
+- **The painted logo:** the I N P U T medallion now has a painted gold and enamel finish, in
+  the game and on the site.
+- **The hunters have portraits.** A high score from a player with no picture of their own
+  shows the hunter they played it with, and a game posted to Discord comes with his portrait
+  in his side's colour.
+
+### Fixed
+- **Redrawn art shows up right after an update**, with no need to clear the browser's cache:
+  the pictures of the hunter's gear and the gear icons are fetched anew when they change (as
+  Ashkandi across his back wasn't, for anyone who had seen the old one).
+
 ## 3.0.3 - 2026-10-14
 
 ### Changed
