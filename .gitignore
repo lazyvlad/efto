@@ -48,3 +48,5 @@ Thumbs.db
 /game-art/
 # The art agent's working folder: sources, previews and deliveries (art-workbench/WORKING-TOGETHER.md)
 /art-workbench/
+# Screenshots and logs from browser checks (Playwright)
+/.playwright-mcp/
