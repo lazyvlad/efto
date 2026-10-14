@@ -534,8 +534,10 @@ export function updatePlayerPosition(player, canvas, deltaTimeMultiplier, gameCo
         targetX = Math.max(minX, Math.min(maxX, targetX));
         targetY = Math.max(minY, Math.min(maxY, targetY));
         
-        // Smooth movement (exponential, so the feel is the same at any refresh rate)
-        const smoothingFactor = 1 - Math.pow(1 - 0.15, deltaTimeMultiplier);
+        // Smooth movement (exponential, so the feel is the same at any refresh rate); quicker
+        // with Haste
+        const follow = gameState && gameState.hasteTimer > 0 ? Math.min(0.6, 0.15 * gameConfig.powerUps.haste.move) : 0.15;
+        const smoothingFactor = 1 - Math.pow(1 - follow, deltaTimeMultiplier);
         player.x += (targetX - player.x) * smoothingFactor;
         player.y += (targetY - player.y) * smoothingFactor;
     } else {

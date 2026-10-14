@@ -142,6 +142,14 @@ export const gameConfig = {
         minAbsoluteInterval: 3,    // Absolute minimum spawn interval (prevents too frequent spawning)
         spawnChance: 1.0,          // 100% chance when timer triggers (deterministic timing)
         
+        // Haste (the speed boost that falls): the hunter moves and shoots faster for a while.
+        // Nothing else in the game speeds up.
+        haste: {
+            duration: 600,          // Steps it lasts (60 = 1 second)
+            move: 1.7,              // How much faster he follows a finger (with a mouse he is where it is)
+            shoot: 0.6,             // Autoshot and Multishot cooldowns are this share of their usual
+        },
+        
         // Cut Time Power-up Settings
         cutTime: {
             enabled: true,

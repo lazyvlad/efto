@@ -500,24 +500,12 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
         }
     }
     
-    // Update speed increase timer
-    if (gameState.speedIncreaseActive && gameState.speedIncreaseTimer > 0) {
-        // Add/update buff in tracker
+    // Haste (the speed boost): it runs down, shown among the buffs while it lasts
+    if (gameState.hasteTimer > 0) {
         if (typeof window.addBuff === 'function') {
-            const speedPercent = Math.min(gameState.currentSpeedIncreasePercent, 100);
-            window.addBuff('speedBoost', 'Speed Boost', `+${speedPercent}% Game Speed`, gameState.speedIncreaseTimer, 'speed');
+            window.addBuff('speedBoost', 'Haste', 'Moves and shoots faster', gameState.hasteTimer, 'speed');
         }
-        
-        gameState.speedIncreaseTimer -= deltaTimeMultiplier;
-        if (gameState.speedIncreaseTimer <= 0) {
-            gameState.speedIncreaseActive = false;
-            gameState.currentSpeedIncreasePercent = 0;
-            gameState.speedIncreaseMultiplier = 1.0;
-        } else {
-            // Update speed multiplier based on current percentage
-            const clampedPercent = Math.min(gameState.currentSpeedIncreasePercent, 100);
-            gameState.speedIncreaseMultiplier = 1.0 + (clampedPercent / 100);
-        }
+        gameState.hasteTimer = Math.max(0, gameState.hasteTimer - deltaTimeMultiplier);
     }
     
     // Update shield timer

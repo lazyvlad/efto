@@ -1618,6 +1618,7 @@ function startGame() {
     gameState.freezeTimeTimer = 0;
     gameState.speedIncreaseActive = false;
     gameState.speedIncreaseTimer = 0;
+    gameState.hasteTimer = 0;
     gameState.speedIncreaseMultiplier = 1.0;
     gameState.currentSpeedIncreasePercent = 0;
     gameState.shieldActive = false;
@@ -1860,6 +1861,7 @@ function restartGame() {
     gameState.horizontalSpeedReduction = 0.15; // Reset to default horizontal speed reduction
     gameState.speedIncreaseActive = false;
     gameState.speedIncreaseTimer = 0;
+    gameState.hasteTimer = 0;
     gameState.speedIncreaseMultiplier = 1.0;
     gameState.currentSpeedIncreasePercent = 0;
     gameState.timeSlowActive = false;

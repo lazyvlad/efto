@@ -230,57 +230,10 @@ export function checkCollisions(context) {
             // Apply projectile effects
             if (projectile.data) {
                 if (projectile.data.effects === "speed_increase") {
-                    // Apply speed boost
-                    const increasePercent = projectile.speedIncreasePercent || 20;
-                    gameState.speedIncreaseActive = true;
-                    gameState.speedIncreaseTimer = 600; // 10 seconds
-                    gameState.currentSpeedIncreasePercent += increasePercent;
-                    gameState.speedIncreaseMultiplier = 1 + (gameState.currentSpeedIncreasePercent / 100);
-                    
-                    // Cap at 100%
-                    if (gameState.currentSpeedIncreasePercent > 100) {
-                        gameState.currentSpeedIncreasePercent = 100;
-                        gameState.speedIncreaseMultiplier = 2.0;
-                    }
-                    
-                    // UPDATE EXISTING ITEMS' SPEED - Apply speed boost to all items currently on screen
-                    fallingItems.forEach(item => {
-                        if (item.speed && item.baseSpeed) {
-                            // If item has stored base speed, recalculate from base
-                            item.speed = item.baseSpeed * gameState.speedIncreaseMultiplier;
-                        } else {
-                            // Otherwise, multiply current speed by the boost ratio
-                            const previousMultiplier = 1 + ((gameState.currentSpeedIncreasePercent - increasePercent) / 100);
-                            const boostRatio = gameState.speedIncreaseMultiplier / Math.max(previousMultiplier, 1);
-                            item.speed *= boostRatio;
-                        }
-                    });
-                    
-                    // Update power-up items too
-                    powerUps.forEach(powerUp => {
-                        if (powerUp.speed && powerUp.baseSpeed) {
-                            powerUp.speed = powerUp.baseSpeed * gameState.speedIncreaseMultiplier;
-                        } else {
-                            const previousMultiplier = 1 + ((gameState.currentSpeedIncreasePercent - increasePercent) / 100);
-                            const boostRatio = gameState.speedIncreaseMultiplier / Math.max(previousMultiplier, 1);
-                            powerUp.speed *= boostRatio;
-                        }
-                    });
-                    
-                    // Update projectiles too (they should also be affected by speed boost)
-                    fireballs.forEach(projectile => {
-                        if (projectile.speed && projectile.baseSpeed) {
-                            projectile.speed = projectile.baseSpeed * gameState.speedIncreaseMultiplier;
-                        } else {
-                            const previousMultiplier = 1 + ((gameState.currentSpeedIncreasePercent - increasePercent) / 100);
-                            const boostRatio = gameState.speedIncreaseMultiplier / Math.max(previousMultiplier, 1);
-                            projectile.speed *= boostRatio;
-                        }
-                    });
-                    
-                    // Add notification for speed boost
-                    const totalSpeedPercent = Math.round(gameState.currentSpeedIncreasePercent);
-                    addNotification(gameState, `⚡ Speed Boost +${increasePercent}% (Total: ${totalSpeedPercent}%)`, 180, '#FF0000');
+                    // Haste: the hunter moves and shoots faster for a while (a second one starts
+                    // the time again); nothing else in the game speeds up
+                    gameState.hasteTimer = gameConfig.powerUps.haste.duration;
+                    addNotification(gameState, `⚡ Haste: he moves and shoots faster for ${Math.round(gameConfig.powerUps.haste.duration / 60)}s`, 180, '#FF6B35');
                 } else if (projectile.data.effects === "freeze_time") {
                     // Apply freeze effect
                     gameState.freezeTimeActive = true;

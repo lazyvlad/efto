@@ -1,4 +1,5 @@
 // Player spell system
+import { gameConfig } from '../config/gameConfig.js';
 import { playerSpells } from '../data/playerSpells.js';
 import { notificationSystem } from './notificationSystem.js';
 import { Arrow } from '../classes/Arrow.js';
@@ -68,7 +69,10 @@ class SpellSystem {
     // Activate a spell
     activateSpell(spell, currentTime) {
         // Set cooldown (convert frame-based cooldown to milliseconds)
-        const cooldownMs = spell.cooldown * (1000 / 60);
+        // With Haste the shots come round sooner
+        const gameState = this.gameStateCallback ? this.gameStateCallback() : null;
+        const hasted = gameState && gameState.hasteTimer > 0 && (spell.id === 'autoshot' || spell.id === 'multishot');
+        const cooldownMs = spell.cooldown * (1000 / 60) * (hasted ? gameConfig.powerUps.haste.shoot : 1);
         this.cooldowns.set(spell.id, currentTime + cooldownMs);
         
         // Handle special spell effects

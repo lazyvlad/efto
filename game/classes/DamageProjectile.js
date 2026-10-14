@@ -532,7 +532,7 @@ export class DamageProjectile extends FallingObject {
             ctx.fillStyle = '#FFFFFF';
             ctx.font = 'bold 14px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(`+${this.speedIncreasePercent}%`, textX, textY + 4);
+            ctx.fillText('HASTE', textX, textY + 4);
         } else if (this.data.effects === "freeze_time" && this.freezeDuration) {
             // Background for text readability
             const textX = this.x + this.width/2;
