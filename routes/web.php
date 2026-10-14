@@ -13,6 +13,7 @@ use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScoreController;
 use App\Http\Controllers\VendorController;
+use App\Http\Controllers\WhatsNewController;
 use Illuminate\Support\Facades\Route;
 
 // The landing page is the site header around the game; /play is the game on its own
@@ -24,6 +25,9 @@ Route::get('/highscores', [ScoreController::class, 'page'])->name('highscores');
 
 // Who is behind the game
 Route::view('/about', 'about')->name('about');
+
+// What changed in the game, for players
+Route::get('/whats-new', [WhatsNewController::class, 'index'])->name('whats-new');
 
 // Every item in the game and what it pays in coins
 Route::get('/items', [ItemController::class, 'index'])->name('items');
@@ -96,6 +100,8 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 
     Route::get('/announcements', [Admin\AnnouncementController::class, 'index'])->name('announcements.index');
     Route::post('/announcements', [Admin\AnnouncementController::class, 'send'])->name('announcements.send');
+
+    Route::resource('news', Admin\NewsPostController::class)->except('show');
 
     Route::get('/settings', [Admin\SettingsController::class, 'edit'])->name('settings.edit');
     Route::post('/settings', [Admin\SettingsController::class, 'update'])->name('settings.update');

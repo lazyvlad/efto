@@ -210,6 +210,76 @@
         border: 1px solid #6b4f16;
     }
 
+    /* A post on the What's new page, written in Markdown */
+    .news-body {
+        color: theme('colors.gray.600');
+        line-height: 1.65;
+    }
+
+    .news-body > * + * {
+        margin-top: 0.9em;
+    }
+
+    .news-body h1,
+    .news-body h2,
+    .news-body h3 {
+        margin-top: 1.6em;
+        color: theme('colors.gray.700');
+        font-family: theme('fontFamily.display');
+        line-height: 1.25;
+    }
+
+    .news-body h1 { font-size: 1.5rem; }
+    .news-body h2 { font-size: 1.3rem; }
+    .news-body h3 { font-size: 1.1rem; }
+
+    .news-body > :first-child {
+        margin-top: 0;
+    }
+
+    .news-body strong {
+        color: theme('colors.gray.800');
+        font-weight: 600;
+    }
+
+    .news-body a {
+        color: theme('colors.indigo.600');
+        text-decoration: underline;
+    }
+
+    .news-body ul,
+    .news-body ol {
+        padding-left: 1.4em;
+    }
+
+    .news-body ul { list-style: disc; }
+    .news-body ol { list-style: decimal; }
+
+    .news-body li + li {
+        margin-top: 0.4em;
+    }
+
+    .news-body li::marker {
+        color: theme('colors.indigo.400');
+    }
+
+    .news-body code {
+        padding: 0.1em 0.35em;
+        font-size: 0.9em;
+        background: theme('colors.gray.50');
+        border-radius: 4px;
+    }
+
+    .news-body blockquote {
+        padding-left: 1em;
+        border-left: 3px solid theme('colors.gray.300');
+        font-style: italic;
+    }
+
+    .news-body hr {
+        border-color: theme('colors.gray.200');
+    }
+
     /* A player's picture: round, gold ring. Shows their initial when there is no picture. */
     .avatar {
         display: inline-flex;

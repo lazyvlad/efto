@@ -21,6 +21,9 @@
                     <x-nav-link :href="route('items')" :active="request()->routeIs('items')">
                         {{ __('Items') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('whats-new')" :active="request()->routeIs('whats-new')">
+                        {{ __('What\'s new') }}
+                    </x-nav-link>
                     <x-nav-link :href="route('about')" :active="request()->routeIs('about')">
                         {{ __('About') }}
                     </x-nav-link>
@@ -98,6 +101,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('items')" :active="request()->routeIs('items')">
                 {{ __('Items') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('whats-new')" :active="request()->routeIs('whats-new')">
+                {{ __('What\'s new') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('about')" :active="request()->routeIs('about')">
                 {{ __('About') }}
