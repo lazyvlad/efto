@@ -10,9 +10,9 @@ export function quiverCapacity(rules, large = false) {
     return (rules.slots + (large ? rules.bonusSlots : 0)) * rules.slotSize;
 }
 
-// The arrows a game starts with
-export function startingArrows(rules) {
-    return rules.startFilled * rules.slotSize;
+// The arrows a game starts with (a boss fight, which has no zone before it, more)
+export function startingArrows(rules, bossFight = false) {
+    return (bossFight ? rules.bossFightFilled || rules.startFilled : rules.startFilled) * rules.slotSize;
 }
 
 // Put arrows in the quiver: { arrows: what it holds now, added, lost: what did not fit }

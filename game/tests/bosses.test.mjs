@@ -12,7 +12,7 @@ const { backgrounds } = await import(`data:text/javascript;base64,${backgroundSo
 
 // The "bosses" settings of config/gameConfig.js
 const rules = {
-    health: { base: 1300, perZone: 140 },
+    health: { base: 800, perZone: 150 },
     armor: { base: 30, perZone: 6 },
     damage: { base: 10, perZone: 0.6 },
     throwEvery: { base: 75, perZone: 5, fastest: 45 },
@@ -80,7 +80,7 @@ test('every boss is harder than the one before, and the first has no shield', ()
 
     assert.equal(stats[0].shieldAfter, null);
     assert.equal(stats[1].shieldAfter, 12);
-    assert.equal(bossStats(bossForZone('alliance', 2), rules).health, 1440);
+    assert.equal(bossStats(bossForZone('alliance', 2), rules).health, 950);
 });
 
 test('a boss takes more damage the longer the fight lasts, but only up to a limit', () => {

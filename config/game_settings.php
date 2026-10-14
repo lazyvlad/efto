@@ -33,13 +33,13 @@ $settings = [
     // ----- The bosses -----
     'boss_health_base' => [
         'group' => 'Bosses', 'label' => 'Health of the first boss, before its zone is counted',
-        'game' => 'bosses.health.base', 'default' => 1300, 'source' => 'health: \{ base: ([\d.]+)',
+        'game' => 'bosses.health.base', 'default' => 800, 'source' => 'health: \{ base: ([\d.]+)',
         'min' => 50, 'max' => 5000, 'step' => 1,
     ],
     'boss_health_per_zone' => [
         'group' => 'Bosses', 'label' => 'Health added for each zone',
         'help' => 'A boss has the first number plus this for every zone it guards: the tenth has ten times this more.',
-        'game' => 'bosses.health.perZone', 'default' => 140, 'source' => 'health: \{ base: [\d.]+, perZone: ([\d.]+)',
+        'game' => 'bosses.health.perZone', 'default' => 150, 'source' => 'health: \{ base: [\d.]+, perZone: ([\d.]+)',
         'min' => 0, 'max' => 2000, 'step' => 1,
     ],
     'boss_damage_base' => [
@@ -72,7 +72,7 @@ $settings = [
     'quiver_start' => [
         'group' => 'The hunter', 'label' => 'Quiver slots filled at the start of a game',
         'help' => 'Of the four slots everyone has; a slot is 50 arrows.',
-        'game' => 'quiver.startFilled', 'default' => 2, 'source' => 'startFilled: ([\d.]+)',
+        'game' => 'quiver.startFilled', 'default' => 1, 'source' => 'startFilled: ([\d.]+)',
         'min' => 1, 'max' => 4, 'step' => 1,
     ],
     'pet_every' => [

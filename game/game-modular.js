@@ -1700,7 +1700,7 @@ function startGame() {
     // The quiver: some of its slots filled, and bigger for a player who has found the large one.
     // A boss fight has no zone before it to gather arrows in, so it starts with the quiver full.
     gameState.quiverCapacity = quiverCapacity(gameConfig.quiver, hasLargeQuiver());
-    gameState.arrowCount = gameState.mode === 'boss_fight' ? gameState.quiverCapacity : startingArrows(gameConfig.quiver);
+    gameState.arrowCount = Math.min(gameState.quiverCapacity, startingArrows(gameConfig.quiver, gameState.mode === 'boss_fight'));
     
     // Boss Rush: the first boss comes in after a moment
     gameState.rushPause = 60;
@@ -1954,7 +1954,7 @@ function restartGame() {
     // The quiver: some of its slots filled, and bigger for a player who has found the large one.
     // A boss fight has no zone before it to gather arrows in, so it starts with the quiver full.
     gameState.quiverCapacity = quiverCapacity(gameConfig.quiver, hasLargeQuiver());
-    gameState.arrowCount = gameState.mode === 'boss_fight' ? gameState.quiverCapacity : startingArrows(gameConfig.quiver);
+    gameState.arrowCount = Math.min(gameState.quiverCapacity, startingArrows(gameConfig.quiver, gameState.mode === 'boss_fight'));
     
     // Boss Rush: the first boss comes in after a moment
     gameState.rushPause = 60;

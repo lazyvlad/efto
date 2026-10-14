@@ -378,12 +378,14 @@ export const gameConfig = {
 
     // === QUIVER ===
     // How many arrows the hunter can carry: so many slots of so many arrows. A game starts with
-    // some slots filled, and arrows caught beyond what the quiver holds are lost. A logged-in
-    // player who has found the large quiver (a boss drop, kept on the account) has more slots.
+    // a few, so arrows are worth gathering (and keeping: spare ones in the bags fill the quiver
+    // as a game starts). Arrows caught beyond what the quiver holds go into the bags. The large
+    // quiver (a boss drop, worn in the quiver slot) adds slots.
     quiver: {
         slotSize: 50,               // Arrows to a slot
         slots: 4,                   // Slots everyone has: 200 arrows
-        startFilled: 2,             // Slots filled when a game starts: 100 arrows
+        startFilled: 1,             // Slots filled when a game starts: 50 arrows
+        bossFightFilled: 2,         // ...and a boss fight, which has no zone before it to gather in: 100
         bonusSlots: 4,              // Slots the large quiver adds: 400 arrows in all
     },
 
@@ -405,11 +407,10 @@ export const gameConfig = {
     },
 
     bosses: {
-        // Played for the most damage (Dragon Cry, right under the boss, Multishot on cooldown), a
-        // fresh hunter brings a zone 1 boss down in about 20 seconds: one Dragon Cry's worth up
-        // close, then the rest from below. More health than that is not a little longer but a lot,
-        // the next Dragon Cry being 20 seconds off. The last boss has about 2560, as before
-        health: { base: 1300, perZone: 140 },
+        // Short enough not to drag on: arrows are what a fight runs on now (a game starts with
+        // few, and bundles fall seldom in a fight), so a boss's health need not be large. Zone 1:
+        // 800; the last about 2150
+        health: { base: 800, perZone: 150 },
         // The warriors' armor ("warrior" in data/bosses.js): Hogger (zone 2) 36, arrows do 19%
         // less; Chief Ukorz (zone 10) 84, 36% less. Arcane Shot goes through it.
         armor: { base: 30, perZone: 6 },
@@ -529,7 +530,7 @@ export const gameConfig = {
         curse: { share: 0.25, seconds: 6 },
 
         arrowBundle: 'bronze_arrows', // The arrow bundle dropped during a fight (data/powerUpItems.js)
-        arrowsEvery: 300,           // Steps between arrow bundles
+        arrowsEvery: 600,           // Steps between arrow bundles (10 seconds)
         potionEvery: 1200,          // Steps between health potions
         
         // In normal play, the chance per step that one of the bosses' attacks falls as a hazard
