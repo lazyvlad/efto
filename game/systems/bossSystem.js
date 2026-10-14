@@ -392,9 +392,10 @@ function dropPowerUp(context, id) {
 
 /**
  * Something other than a thrown thing reaches the player: a charge, a blast, a stomp. The
- * player may dodge it or be shielded from it, as with anything else.
+ * player may dodge it or be shielded from it, as with anything else. Quiet: no hit sound (a
+ * storm's every tick, which would sound twice a second).
  */
-function hurtPlayer(context, damage) {
+function hurtPlayer(context, damage, { quiet = false } = {}) {
     const { gameState, player, combatTexts } = context;
     const x = player.x + player.width / 2;
 
@@ -411,7 +412,7 @@ function hurtPlayer(context, damage) {
         combatTexts.push(new CombatText(x, player.y, `-${taken}`, '#FF4500', false));
         if (player.onHit) player.onHit();
     }
-    playFireballImpactSound();
+    if (!quiet) playFireballImpactSound();
 }
 
 function heavyDamage() {
@@ -682,7 +683,8 @@ function updateStorm(context) {
     if (falling % settings.hitEvery === 0) {
         const body = playerBody(player);
         if (body.centerX > storm.left && body.centerX < storm.right) {
-            hurtPlayer(context, Math.max(1, Math.round(stats.damage * settings.damage * enrage())));
+            // Only its first hit is heard: the storm itself is plain to see
+            hurtPlayer(context, Math.max(1, Math.round(stats.damage * settings.damage * enrage())), { quiet: falling > 0 });
         }
     }
     // Sparks where it lands
@@ -934,7 +936,8 @@ function updateBombs(context) {
         if (Math.hypot(body.centerX - bomb.x, body.centerY - bomb.y) < bomb.radius + body.width / 2) {
             hurtPlayer(context, heavyDamage());
         } else {
-            playFireballImpactSound();
+            // A burst that missed: softer than a hit
+            playFireballImpactSound({ volume: 0.35 });
         }
         for (let i = 0; i < 30; i++) {
             particles.push(new Particle(bomb.x + (Math.random() - 0.5) * bomb.radius, bomb.y + (Math.random() - 0.5) * bomb.radius, '#FF6B35'));

@@ -156,16 +156,17 @@ function playWithAudioElement(path) {
  * @param {string} path      Audio file, as listed in the asset registry
  * @param {object} options
  *   key       groups plays for the repeat cooldown (defaults to the file)
+ *   cooldown  milliseconds before a sound of the same key may play again
  *   volume    0..1, relative to the effects volume setting
  *   priority  true for the few sounds that should cut through: they silence ordinary effects
  *             and are never dropped when a lot is playing
  * @returns {boolean} whether the sound was started
  */
-export function playSoundEffect(path, { key = path, volume = 1, priority = false } = {}) {
+export function playSoundEffect(path, { key = path, cooldown = SAME_SOUND_COOLDOWN_MS, volume = 1, priority = false } = {}) {
     if (!path || !soundEffectsEnabled()) return false;
 
     const now = performance.now();
-    if (now - (lastPlayed.get(key) ?? -Infinity) < SAME_SOUND_COOLDOWN_MS) return false;
+    if (now - (lastPlayed.get(key) ?? -Infinity) < cooldown) return false;
 
     const context = getAudioContext();
     if (!context) {
@@ -275,8 +276,12 @@ export function playTotalSound() {
     playSoundEffect(assetRegistry.audio.total, { priority: true });
 }
 
-export function playFireballImpactSound() {
-    playSoundEffect(assetRegistry.audio.fireballimpact);
+// The sound of the hunter being hit in a boss fight. Rows, fans, riots and storms can land
+// several hits in a moment: they make one sound between them, at most every so often.
+const HIT_SOUND_COOLDOWN_MS = 450;
+
+export function playFireballImpactSound({ volume = 1 } = {}) {
+    playSoundEffect(assetRegistry.audio.fireballimpact, { key: 'hunter-hit', cooldown: HIT_SOUND_COOLDOWN_MS, volume });
 }
 
 export function playDragonstalkerSound() {

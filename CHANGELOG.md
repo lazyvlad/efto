@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.39.2 - 2026-10-14
+
+### Fixed
+- The hit sound no longer piles up in boss fights. Everything that hits the hunter in a fight
+  (thrown things, rows, fans, a riot's stones, charges, stomps, hexes) shares one sound, heard
+  at most about twice a second however many hits land. A storm is heard on its first hit,
+  not on every tick of it, and a bomb that bursts away from the hunter is softer.
+
 ## 2.39.1 - 2026-10-14
 
 ### Fixed

@@ -1,6 +1,7 @@
 import { gameConfig } from '../config/gameConfig.js';
 import { DamageProjectile } from './DamageProjectile.js';
 import { drawAura } from '../utils/glow.js';
+import { playFireballImpactSound } from '../systems/audioSystem.js';
 
 const pictures = new Map();
 
@@ -91,5 +92,11 @@ export class BossProjectile extends DamageProjectile {
         ctx.rotate(this.rotation);
         ctx.drawImage(this.picture, -drawWidth / 2, -drawHeight / 2, drawWidth, drawHeight);
         ctx.restore();
+    }
+
+    // What a boss throws shares one hit sound with the rest of the fight (audioSystem.js), so
+    // a row or a fan landing at once is heard once
+    playImpactSound() {
+        playFireballImpactSound();
     }
 }
