@@ -33,23 +33,23 @@ $settings = [
     // ----- The bosses -----
     'boss_health_base' => [
         'group' => 'Bosses', 'label' => 'Health of the first boss, before its zone is counted',
-        'game' => 'bosses.health.base', 'default' => 240, 'source' => 'health: \{ base: ([\d.]+)',
+        'game' => 'bosses.health.base', 'default' => 1300, 'source' => 'health: \{ base: ([\d.]+)',
         'min' => 50, 'max' => 5000, 'step' => 1,
     ],
     'boss_health_per_zone' => [
         'group' => 'Bosses', 'label' => 'Health added for each zone',
         'help' => 'A boss has the first number plus this for every zone it guards: the tenth has ten times this more.',
-        'game' => 'bosses.health.perZone', 'default' => 257, 'source' => 'health: \{ base: [\d.]+, perZone: ([\d.]+)',
+        'game' => 'bosses.health.perZone', 'default' => 140, 'source' => 'health: \{ base: [\d.]+, perZone: ([\d.]+)',
         'min' => 0, 'max' => 2000, 'step' => 1,
     ],
     'boss_damage_base' => [
         'group' => 'Bosses', 'label' => 'Damage of a boss attack, before its zone is counted',
-        'game' => 'bosses.damage.base', 'default' => 8, 'source' => 'damage: \{ base: ([\d.]+)',
+        'game' => 'bosses.damage.base', 'default' => 10, 'source' => 'damage: \{ base: ([\d.]+)',
         'min' => 1, 'max' => 60, 'step' => 0.5,
     ],
     'boss_damage_per_zone' => [
         'group' => 'Bosses', 'label' => 'Damage added for each zone',
-        'game' => 'bosses.damage.perZone', 'default' => 0.8, 'source' => 'damage: \{ base: [\d.]+, perZone: ([\d.]+)',
+        'game' => 'bosses.damage.perZone', 'default' => 0.6, 'source' => 'damage: \{ base: [\d.]+, perZone: ([\d.]+)',
         'min' => 0, 'max' => 10, 'step' => 0.1,
     ],
     'boss_reward_health' => [

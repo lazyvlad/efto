@@ -386,7 +386,11 @@ export const gameConfig = {
     },
 
     bosses: {
-        health: { base: 240, perZone: 257 },                    // Hogger (zone 2): 497. The first bosses go down quickly; the last has about 2550
+        // Played for the most damage (Dragon Cry, right under the boss, Multishot on cooldown), a
+        // fresh hunter brings a zone 1 boss down in about 20 seconds: one Dragon Cry's worth up
+        // close, then the rest from below. More health than that is not a little longer but a lot,
+        // the next Dragon Cry being 20 seconds off. The last boss has about 2560, as before
+        health: { base: 1300, perZone: 140 },
         // The warriors' armor ("warrior" in data/bosses.js): Hogger (zone 2) 36, arrows do 19%
         // less; Chief Ukorz (zone 10) 84, 36% less. Arcane Shot goes through it.
         armor: { base: 30, perZone: 6 },
@@ -395,7 +399,7 @@ export const gameConfig = {
         // is as tall as the hunter times vsHunterOnNarrowField, so it has room to move about
         // and is not hit by every shot.
         size: { height: 0.3, width: 0.6, vsHunterOnNarrowField: 1.12 },
-        damage: { base: 8, perZone: 0.8 },                      // What one of the boss's attacks takes off the player: 8 for the first boss, about 15 for the last
+        damage: { base: 10, perZone: 0.6 },                     // What one of the boss's attacks takes off the player: 10 for the first boss, about 15 for the last
         throwEvery: { base: 75, perZone: 5, fastest: 45 },      // Steps on the move between one attack and winding up the next
         volleyEvery: { base: 450, perZone: 15, fastest: 300 },  // Steps between rows with one gap, which every boss sends down on top of its own attacks
         
@@ -468,8 +472,8 @@ export const gameConfig = {
         // worth it, but only for as long as the swipe takes to come.
         melee: {
             reach: 0.9,             // How far below the boss it reaches, in heights of its body
-            patience: 45,           // Steps a player may stay that close before it winds up
-            damage: 2,              // The swipe does this many times the boss's damage
+            patience: 22,           // Steps a player may stay that close before it winds up
+            damage: 3,              // The swipe does this many times the boss's damage
         },
 
         // The last boss of each side has a storm of its own (Rain of Fire, Blizzard: "storm" in
