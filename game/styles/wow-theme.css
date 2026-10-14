@@ -1284,6 +1284,21 @@ html body #dragonstalkerProgressPanel .dragonstalker-item.collected .dragonstalk
     color: #ffff98 !important;
 }
 
+/* Owned but not on: still in colour, but dimmed in a dashed socket, so the pieces worn stand out */
+html body #dragonstalkerProgressPanel .dragonstalker-item.is-off .dragonstalker-item-icon {
+    border-style: dashed !important;
+    border-color: rgba(176, 72, 248, 0.8) !important;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.8) !important;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-item.is-off .dragonstalker-item-icon img {
+    opacity: 0.55;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-item.is-off .dragonstalker-item-name {
+    color: #b9ad92 !important;
+}
+
 /* Missed: struck out in red */
 html body #dragonstalkerProgressPanel .dragonstalker-item.missed .dragonstalker-item-icon {
     box-shadow: 0 0 0 1px var(--wow-red), 0 0 7px rgba(255, 32, 32, 0.5) !important;
@@ -2444,4 +2459,38 @@ body.start-window-open #dragonstalkerProgressPanel#dragonstalkerProgressPanel {
     body #itemsCollectionPanel#itemsCollectionPanel .stat-row-extra {
         display: none !important;
     }
+}
+
+/* The gear panel shows what is on: each piece in its own quality's colour (set pieces epic) */
+html body #dragonstalkerProgressPanel .dragonstalker-item[data-rarity="common"] .dragonstalker-item-icon {
+    box-shadow: 0 0 0 1px #9d9d9d !important;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-item[data-rarity="uncommon"] .dragonstalker-item-icon {
+    box-shadow: 0 0 0 1px #1eff00, 0 0 7px rgba(30, 255, 0, 0.45) !important;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-item[data-rarity="rare"] .dragonstalker-item-icon {
+    box-shadow: 0 0 0 1px #3d9bff, 0 0 7px rgba(61, 155, 255, 0.5) !important;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-item[data-rarity="common"] .dragonstalker-item-name,
+html body #dragonstalkerProgressPanel .dragonstalker-item[data-rarity="uncommon"] .dragonstalker-item-name,
+html body #dragonstalkerProgressPanel .dragonstalker-item[data-rarity="rare"] .dragonstalker-item-name {
+    color: #e6dcc3 !important;
+}
+
+/* More than ten things on: smaller sockets, six to a row, so the panel stays short */
+html body #dragonstalkerProgressPanel .dragonstalker-items-list.is-many {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    gap: 6px 3px !important;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-items-list.is-many .dragonstalker-item-icon {
+    width: 32px !important;
+    height: 32px !important;
+}
+
+html body #dragonstalkerProgressPanel .dragonstalker-items-list.is-many .dragonstalker-item-name {
+    font-size: 9px !important;
 }

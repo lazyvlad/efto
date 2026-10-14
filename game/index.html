@@ -841,14 +841,13 @@
     <div id="dragonstalkerProgressPanel" class="hidden">
         <div class="dragonstalker-panel-header">
             <div class="dragonstalker-title">
-                <span class="dragonstalker-set-name" id="setPanelName">Giantstalker<span class="dragonstalker-set-suffix"> Armor</span></span>
-                <span class="dragonstalker-count" id="dragonstalkerProgressText">0/10</span>
+                <span class="dragonstalker-set-name" id="setPanelName">What he wears</span>
+                <span class="dragonstalker-count" id="dragonstalkerProgressText"></span>
             </div>
-            <div class="dragonstalker-progress-bar">
-                <div class="progress-background">
-                    <div class="progress-fill" id="dragonstalkerProgressFill"></div>
-                </div>
-            </div>
+            <!-- Each hunter set he wears pieces of: how many, and what they give at that count -->
+            <div class="set-panel-sets" id="setPanelSets" hidden></div>
+            <!-- What all he has on gives, beyond its stats (hidden while there is none) -->
+            <p class="set-panel-bonus" id="setPanelBonus" hidden></p>
         </div>
         
         <!-- The player's saved sets (each hunter his own): press one, or its key, to wear it. The

@@ -24,7 +24,7 @@ import { coinsForItem, coinsForBoss, formatCoins } from './utils/coins.js';
 import { quiverCapacity, startingArrows } from './utils/quiver.js';
 import { setById, piecesOf, ownedCount, setBonus, nextStep, bonusText } from './utils/sets.js';
 import { healthAtNewMax, armorReduction } from './utils/stats.js';
-import { validEquipment, equip, equipSet, mainSet, setsWorn, gearTotals, slotsFor, carriedOf, fitsCarried } from './utils/gear.js';
+import { SLOTS, validEquipment, equip, equipSet, mainSet, setsWorn, gearTotals, slotsFor, carriedOf, fitsCarried } from './utils/gear.js';
 import { bagCapacity, slotsUsed, addToBags, soldShort } from './utils/bags.js';
 import { MATERIALS, categoryOf } from './data/materials.js';
 import { wearables, wearableById, isKeptGear, gearCatalog } from './data/wearables.js';
@@ -4412,21 +4412,19 @@ function getGameSummary() {
     };
 }
 
-// Update dedicated Dragonstalker progress panel
-function updateDragonstalkerProgressPanel(gameState, gameItems) {
+// The gear panel: what he has on, as it is now. For each hunter set he wears pieces of, how
+// many are on and what they give at that count (and what more would give); then the rest of
+// what is on, and what it all gives beyond its stats. Nothing about what is owned and not on.
+function updateDragonstalkerProgressPanel(gameState) {
     const panel = document.getElementById('dragonstalkerProgressPanel');
     if (!panel) return;
     
-    // The panel shows the set being worn: its pieces, lit when owned (on the account or caught
-    // in this game), and what wearing it gives
-    const set = setById(gameConfig.sets, gameState.wornSet);
-    const pieces = piecesOf(gameItems, gameState.wornSet);
-    const owned = ownedPieces();
-    const piecesOwned = ownedCount(pieces, owned);
+    const equipment = gameState.equipment || {};
+    const outfit = outfitsForSheet().find(saved => saved.isOn);
     
     // Throttle updates - only update every 1 second unless something changed
     const currentTime = Date.now();
-    const stateKey = `${gameState.wornSet}:${piecesOwned}`;
+    const stateKey = `${Object.entries(equipment).sort().join()}|${outfit ? outfit.name : ''}`;
     const hasChanged = stateKey !== dragonstalkerCache.lastCollectedCount || dragonstalkerCache.lastUpdate === 0;
     if (!hasChanged && currentTime - dragonstalkerCache.lastUpdate < 1000) {
         return;
@@ -4451,78 +4449,81 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
         return;
     }
     
-    // The set's name: its first word, and "Armor" where there is room
+    const items = SLOTS.map(slot => equipment[slot.id]).filter(Boolean).map(itemId => wearableById(itemId)).filter(Boolean);
+    const counts = setsWorn(equipment, wearables());
+    
+    // The heading: the saved set he has on, or what he wears
     const nameElement = document.getElementById('setPanelName');
-    if (nameElement && set && nameElement.dataset.set !== set.id) {
-        const [first, ...rest] = set.name.split(' ');
-        nameElement.textContent = first;
-        const suffix = document.createElement('span');
-        suffix.className = 'dragonstalker-set-suffix';
-        suffix.textContent = ` ${rest.join(' ')}`;
-        nameElement.append(suffix);
-        nameElement.dataset.set = set.id;
-    }
-    panel.title = `Press ${keyName('set_1')}, ${keyName('set_2')} or ${keyName('set_3')} to wear another set`;
-    // The button of the set being worn is lit
-    document.querySelectorAll('#setSwitch .set-switch-btn').forEach(button => {
-        const worn = button.dataset.set === gameState.wornSet;
-        button.classList.toggle('is-worn', worn);
-        button.setAttribute('aria-pressed', String(worn));
-    });
-    
-    // Update progress bar
-    const progressFill = document.getElementById('dragonstalkerProgressFill');
+    if (nameElement) nameElement.textContent = outfit ? outfit.name : 'What he wears';
+    const saved = outfits().length;
+    panel.title = saved > 0
+        ? `Press ${OUTFIT_KEYS.slice(0, saved).map(keyName).join(', ')} to wear one of your sets`
+        : 'Save sets on the character sheet to change them here';
     const progressText = document.getElementById('dragonstalkerProgressText');
-    if (progressFill && progressText) {
-        progressFill.style.width = `${pieces.length > 0 ? (piecesOwned / pieces.length) * 100 : 0}%`;
-        
-        // Pieces owned, and what wearing the set gives with them (in short on phones)
-        // The stats the pieces give are in the hunter's own panel; here, what the set's steps give
-        const gives = bonusText(gameState.setBonus, { stats: false });
-        const isMobile = responsiveScaler.deviceType === 'mobile';
-        progressText.textContent = gives && !isMobile
-            ? `${piecesOwned}/${pieces.length} \u00b7 ${gives.replace(' damage to bosses', ' boss dmg').replace('Arcane Shot', 'Arcane')}`
-            : `${piecesOwned}/${pieces.length}`;
+    if (progressText) progressText.textContent = `${items.length} on`;
+    // A button for each saved set, the one on lit
+    refreshSetSwitch();
+    
+    // A line for each hunter set he wears pieces of: how many, what that gives, what is next
+    const setLines = document.getElementById('setPanelSets');
+    if (setLines) {
+        setLines.textContent = '';
+        for (const set of gameConfig.sets) {
+            const on = counts[set.id] || 0;
+            if (!on) continue;
+            const all = piecesOf(gameItems, set.id).length;
+            const gives = bonusText(setBonus(set, on), { stats: false });
+            const next = nextStep(set, on);
+            const line = document.createElement('p');
+            line.className = 'set-panel-set';
+            const name = document.createElement('strong');
+            name.textContent = `${set.name.split(' ')[0]} ${on}/${all}`;
+            line.append(name, ` ${gives || 'no bonus yet'}${next ? ` \u00b7 ${next} for more` : ''}`);
+            setLines.append(line);
+        }
+        setLines.hidden = setLines.childElementCount === 0;
     }
     
-    // Update items list
+    // What it all gives beyond its stats (the stats are in the hunter's own panel)
+    const bonusLine = document.getElementById('setPanelBonus');
+    if (bonusLine) {
+        const gives = bonusText(gameState.setBonus, { stats: false });
+        bonusLine.hidden = !gives || responsiveScaler.deviceType === 'mobile';
+        bonusLine.textContent = gives ? `In all: ${gives}` : '';
+    }
+    
+    // Everything on him: set pieces first, by set, then the rest by slot
     const itemsList = document.getElementById('dragonstalkerItemsList');
     if (itemsList) {
-        // Another set: build its slots anew
-        if (itemsList.dataset.set !== gameState.wornSet) {
-            itemsList.innerHTML = '';
-            itemsList.dataset.set = gameState.wornSet;
-            dragonstalkerCache.itemStates.clear();
-            
-            pieces.forEach(item => {
-                const itemDiv = document.createElement('div');
-                itemDiv.className = 'dragonstalker-item';
-                itemDiv.setAttribute('data-item-id', item.id);
-                itemsList.appendChild(itemDiv);
-            });
+        const order = item => (item.set ? gameConfig.sets.findIndex(set => set.id === item.set) : gameConfig.sets.length);
+        const shown = [...items].sort((a, b) => order(a) - order(b));
+        itemsList.innerHTML = '';
+        itemsList.dataset.set = '';
+        itemsList.classList.toggle('is-many', shown.length > 10);
+        if (shown.length === 0) {
+            const none = document.createElement('p');
+            none.className = 'set-panel-none';
+            none.textContent = 'Nothing on: dress him on the character sheet (C).';
+            itemsList.append(none);
         }
-        
-        // Update only items that have changed
-        pieces.forEach(item => {
-            const itemDiv = itemsList.querySelector(`[data-item-id="${item.id}"]`);
-            if (!itemDiv) return;
-            
-            const statusClass = owned.has(item.id) ? 'collected' : 'pending';
-            const cachedState = dragonstalkerCache.itemStates.get(item.id) || { status: '' };
-            
-            // Only touch the DOM when the slot's state changed or on first render
-            if (cachedState.status !== statusClass || !itemDiv.innerHTML) {
-                itemDiv.className = `dragonstalker-item ${statusClass}`;
-                itemDiv.title = item.name;
-                itemDiv.innerHTML = `
-                    <div class="dragonstalker-item-icon">
-                        <img src="${item.image}" alt="">
-                    </div>
-                    <div class="dragonstalker-item-name">${item.slot.charAt(0).toUpperCase()}${item.slot.slice(1)}</div>
-                `;
-                
-                dragonstalkerCache.itemStates.set(item.id, { status: statusClass });
-            }
+        shown.forEach(item => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'dragonstalker-item collected is-worn';
+            itemDiv.dataset.itemId = item.id;
+            itemDiv.dataset.rarity = item.set ? 'epic' : item.rarity || 'common';
+            itemDiv.title = item.name;
+            const icon = document.createElement('div');
+            icon.className = 'dragonstalker-item-icon';
+            const picture = document.createElement('img');
+            picture.src = item.image;
+            picture.alt = '';
+            icon.append(picture);
+            const label = document.createElement('div');
+            label.className = 'dragonstalker-item-name';
+            const slot = SLOTS.find(candidate => equipment[candidate.id] === item.id);
+            label.textContent = slot ? slot.label : '';
+            itemDiv.append(icon, label);
+            itemsList.append(itemDiv);
         });
     }
 }
