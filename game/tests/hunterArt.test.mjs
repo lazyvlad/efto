@@ -42,6 +42,10 @@ test('every piece of the hunter sets, and the clothes the hunters start in, have
     }
     // The quiver is drawn in two parts: behind him, and its strap over him
     assert.deepEqual(hunterArt.items['starter-alliance-quiver'].alliance.map(part => part.order), [-20, 36]);
+    // The warcloth hangs over the belt, where a tabard is worn under it
+    const belt = hunterArt.items['cryptstalker-belt'].horde[0].order;
+    assert.ok(hunterArt.items['starter-horde-warcloth'].horde[0].order > belt);
+    assert.ok(hunterArt.items['starter-alliance-tabard'].horde[0].order < belt);
 });
 
 test('nothing is drawn on the tauren\'s head, and rings and trinkets are not drawn at all', () => {
