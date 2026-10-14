@@ -2428,8 +2428,12 @@ function showNameEntry() {
         } else {
             const savedName = localStorage.getItem('efto_playerName');
             nameInput.value = savedName || getGuestName() || '';
-            nameInput.focus();
-            nameInput.select();
+            // Ready to type over with a keyboard. Not on a touch screen: there it would scroll
+            // the window down to the box (and the map out of sight) before anything is touched
+            if (window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+                nameInput.focus({ preventScroll: true });
+                nameInput.select();
+            }
         }
     }
     renderAccountBar();

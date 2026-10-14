@@ -83,11 +83,41 @@ export function showTravelMap({ faction, onSelect }) {
         pin.style.top = `${place.y}%`;
         pin.title = place.open ? place.name : `${place.name} - ${place.why}`;
         pin.setAttribute('aria-label', pin.title);
-        pin.addEventListener('click', () => select(place));
+        pin.addEventListener('click', () => select(place, true));
         atlas.append(pin);
         pins.set(place, pin);
     }
     atlasRoot.replaceChildren(atlas);
+
+    // On a phone the map is twice the screen's width: a continent fills it, and these two
+    // buttons above it go from one to the other (the map can still be pushed sideways)
+    const narrow = () => atlasRoot.scrollWidth > atlasRoot.clientWidth + 1;
+    let continents = document.getElementById('travelContinents');
+    if (!continents) {
+        continents = element('div', 'travel-continents');
+        continents.id = 'travelContinents';
+        continents.setAttribute('role', 'group');
+        continents.setAttribute('aria-label', 'Show a continent');
+        atlasRoot.parentNode.insertBefore(continents, atlasRoot);
+    }
+    const toContinent = (east, smooth = true) => {
+        atlasRoot.scrollTo({ left: east ? atlasRoot.scrollWidth - atlasRoot.clientWidth : 0, behavior: smooth ? 'smooth' : 'auto' });
+    };
+    const continentButtons = [['Kalimdor', false], ['Eastern Kingdoms', true]].map(([label, east]) => {
+        const button = element('button', 'travel-continent-btn', label);
+        button.type = 'button';
+        button.addEventListener('click', () => toContinent(east));
+        return { button, east };
+    });
+    continents.replaceChildren(...continentButtons.map(({ button }) => button));
+    const markContinent = () => {
+        const east = atlasRoot.scrollLeft > (atlasRoot.scrollWidth - atlasRoot.clientWidth) / 2;
+        continentButtons.forEach(({ button, east: of }) => {
+            button.classList.toggle('is-on', of === east);
+            button.setAttribute('aria-pressed', String(of === east));
+        });
+    };
+    atlasRoot.onscroll = markContinent;
 
     // The place that is picked
     const cardPicture = element('img', 'travel-card-picture');
@@ -99,7 +129,7 @@ export function showTravelMap({ faction, onSelect }) {
     const why = element('p', 'travel-card-why');
     cardRoot.replaceChildren(cardPicture, side, name, description, guard, why);
 
-    function select(place) {
+    function select(place, picked = false) {
         pins.forEach((pin, of) => pin.classList.toggle('travel-selected', of === place));
 
         cardPicture.src = place.image;
@@ -111,12 +141,14 @@ export function showTravelMap({ faction, onSelect }) {
         why.textContent = place.why;
         why.classList.toggle('travel-why-locked', !place.open);
 
-        // On a narrow screen the map scrolls sideways: bring the place picked into view
+        // On a narrow screen the map scrolls sideways: the continent of the place picked in
+        // view, and once one is picked by a press, the card under the map with the way to start
         const pin = pins.get(place);
         requestAnimationFrame(() => {
-            if (atlasRoot.scrollWidth > atlasRoot.clientWidth) {
-                atlasRoot.scrollLeft = pin.offsetLeft - atlasRoot.clientWidth / 2;
-            }
+            if (!narrow()) return;
+            if (!picked) toContinent(place.x > 50, false);
+            markContinent();
+            if (picked) cardRoot.closest('.start-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
 
         onSelect({ faction: place.faction, zone: place.zone, open: place.open, name: place.name });

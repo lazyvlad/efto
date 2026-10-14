@@ -2307,7 +2307,13 @@ body.start-window-open #dragonstalkerProgressPanel#dragonstalkerProgressPanel {
     }
 }
 
-/* Phones: who is playing and the way in first, the map under it, scrolling sideways */
+/* The continent buttons over the map: only where the map is wider than its box (phones) */
+#pauseMenu .travel-continents {
+    display: none;
+}
+
+/* Phones: the map first, a continent to the screen with a button for each, then the place
+   picked with the way to start */
 @media (max-width: 860px) {
     /* The name box as wide as the button under it */
     #pauseMenu .start-card #playerNameInput {
@@ -2327,7 +2333,7 @@ body.start-window-open #dragonstalkerProgressPanel#dragonstalkerProgressPanel {
     }
 
     #pauseMenu .start-card {
-        order: -1;
+        scroll-margin-top: 8px;
     }
 
     #pauseMenu .start-card .travel-card-picture {
@@ -2337,6 +2343,104 @@ body.start-window-open #dragonstalkerProgressPanel#dragonstalkerProgressPanel {
     #pauseMenu .start-header {
         flex-wrap: wrap;
     }
+
+    /* The buttons share the row, and wrap rather than run off the screen; the purse and the
+       account have a line of their own */
+    #pauseMenu .start-header-side,
+    body.site-framed #pauseMenu .start-header-side {
+        width: 100%;
+        margin-left: 0;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    #pauseMenu .start-header-side > .music-toggle,
+    #pauseMenu .start-header-side > .game-menu {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    #pauseMenu .start-header-side .music-toggle,
+    #pauseMenu .start-header-side .game-menu-btn {
+        width: 100%;
+        min-height: 40px;
+        padding: 8px 6px;
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    #pauseMenu .start-header-side .game-menu-btn {
+        padding-right: 22px;
+        background-position: right 6px center, 0 0;
+    }
+
+    #pauseMenu .start-header-side > .start-purse,
+    #pauseMenu .start-header-side > .account-bar {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+
+    /* A continent fills the map's box; the buttons over it go from one to the other */
+    #pauseMenu .travel-continents {
+        display: flex;
+        gap: 6px;
+    }
+
+    #pauseMenu .travel-continent-btn {
+        flex: 1 1 0;
+        min-height: 40px;
+        margin: 0;
+        padding: 8px 6px;
+        color: #f5e6b8;
+        font-size: 14px;
+        background: linear-gradient(180deg, #2a2219, #100d0a);
+        border: 1px solid #8f7a45;
+        border-radius: 4px;
+        box-shadow: 0 0 0 1px #000;
+        transform: none;
+        cursor: pointer;
+    }
+
+    #pauseMenu .travel-continent-btn.is-on {
+        color: #fff5c2;
+        background: linear-gradient(180deg, #1f5fa8, #123a6b);
+        border-color: #c9a94f;
+    }
+
+    #pauseMenu .travel-atlas-scroll {
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-x: contain;
+    }
+
+    #pauseMenu .travel-atlas {
+        min-width: 200%;
+    }
+
+    #pauseMenu .travel-continent {
+        font-size: 14px;
+    }
+
+    /* Pins big enough for a finger, with room round them that takes the touch too */
+    #pauseMenu .travel-pin {
+        width: 34px;
+        height: 34px;
+        margin: -17px 0 0 -17px;
+        font-size: 14px;
+    }
+
+    #pauseMenu .travel-pin::after {
+        content: '';
+        position: absolute;
+        inset: -6px;
+    }
+}
+
+/* The game's page never scrolls sideways (framed by the site on an iPhone, the frame would
+   grow to whatever is wider than the screen) */
+html,
+body {
+    overflow-x: hidden;
 }
 
 /* ----- Key bindings (Settings, Controls; ui/keyBindingsScreen.js) ----- */

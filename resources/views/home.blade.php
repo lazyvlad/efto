@@ -32,6 +32,9 @@
                 src="{{ route('play', ['embedded' => 1]) }}"
                 title="{{ config('app.name') }}"
                 class="flex-1 min-h-0 w-full border-0 bg-black"
+                {{-- An iPhone sizes a frame to what is in it, not to the room it is given: this
+                     keeps it to the screen's width --}}
+                style="width: 1px; min-width: 100%;"
                 allow="autoplay; fullscreen"
                 onload="this.contentWindow.focus()"
             ></iframe>
