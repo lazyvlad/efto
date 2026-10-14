@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.0.1 - 2026-10-14
+
+### Changed
+- **The Alliance hunter's tabard is painted anew:** royal blue with embroidered gold edging
+  and a golden lion's head on its shield, in place of the first stand-in.
+
 ## 3.0.0 - 2026-10-14
 
 **A new game.** Since 2.0 the hunter has become a character you dress, piece by piece, in what
