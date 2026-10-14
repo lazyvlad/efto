@@ -12,7 +12,7 @@
 // Its attacks come round in the order its behaviour lists them.
 
 import { gameConfig } from '../config/gameConfig.js';
-import { bosses, behaviours, bossForZone, bossStats, levelCap, zoneForLevel, weakenedMultiplier, enrageMultiplier } from '../data/bosses.js';
+import { bosses, behaviours, bossForZone, bossStats, levelCap, zoneForLevel, weakenedMultiplier, enrageMultiplier, speedBonus } from '../data/bosses.js';
 import { levelProgress } from '../utils/progression.js';
 import { powerUpItems } from '../data/powerUpItems.js';
 import { BossProjectile } from '../classes/BossProjectile.js';
@@ -967,9 +967,12 @@ function defeat(context) {
         particles.push(new Particle(fight.x + (Math.random() - 0.5) * height * 0.6, top + Math.random() * height, '#FFD700'));
     }
 
-    gameState.score += reward.score;
+    // More for bringing it down fast: by the damage done to it a second
+    const fast = speedBonus(fight.stats.health, fightSeconds(), gameConfig.bosses);
+    gameState.score += reward.score + fast.score;
     gameState.health = Math.min(gameState.maxHealth, gameState.health + reward.health);
     addNotification(gameState, `${boss.name} is defeated! +${reward.score} points`, 360, '#FFD700');
+    addNotification(gameState, `${Math.round(fast.dps)} damage a second: +${fast.score} for speed`, 360, '#FFE9A8');
     playTotalSound();
     if (context.onBossDefeated) context.onBossDefeated(boss);
 }

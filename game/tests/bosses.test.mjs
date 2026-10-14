@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 
 // Loaded through a data: URL, as in gameClock.test.mjs
 const source = await readFile(new URL('../data/bosses.js', import.meta.url));
-const { bosses, behaviours, ZONES_PER_SIDE, zoneForLevel, bossForZone, levelCap, bossStats, weakenedMultiplier, enrageMultiplier } =
+const { bosses, behaviours, ZONES_PER_SIDE, zoneForLevel, bossForZone, levelCap, bossStats, weakenedMultiplier, enrageMultiplier, speedBonus } =
     await import(`data:text/javascript;base64,${source.toString('base64')}`);
 const backgroundSource = await readFile(new URL('../data/backgrounds.js', import.meta.url));
 const { backgrounds } = await import(`data:text/javascript;base64,${backgroundSource.toString('base64')}`);
@@ -166,4 +166,12 @@ test('the nimble bosses dodge some arrows, more the later they stand, and the ot
     assert.equal(bossStats(bossForZone('alliance', 2), rules).dodgeChance, 0);
     // A boss is nimble or in armor, not both
     assert.ok(bosses.every(boss => !(boss.nimble && boss.warrior)));
+});
+
+test('a boss brought down faster earns more, by the damage done to it a second', () => {
+    const rules = { speedBonus: { perDps: 3 } };
+    assert.deepEqual(speedBonus(500, 20, rules), { dps: 25, score: 75 });
+    assert.ok(speedBonus(500, 10, rules).score > speedBonus(500, 20, rules).score);
+    // A fight is never counted as under a second
+    assert.deepEqual(speedBonus(500, 0, rules), speedBonus(500, 1, rules));
 });

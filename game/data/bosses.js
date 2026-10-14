@@ -168,6 +168,18 @@ export function bossStats(boss, rules) {
 }
 
 /**
+ * How fast a boss was brought down, and the points that earns: its health over the seconds
+ * the fight lasted (from the first moment it could be shot) is the damage done a second.
+ * @param {number} health  The boss's health
+ * @param {number} seconds  Seconds the fight lasted
+ * @returns {{ dps: number, score: number }}
+ */
+export function speedBonus(health, seconds, rules) {
+    const dps = health / Math.max(1, seconds);
+    return { dps: Math.round(dps * 10) / 10, score: Math.round(dps * rules.speedBonus.perDps) };
+}
+
+/**
  * How much more damage a boss takes after this long in the fight (1 = normal).
  * @param {number} seconds  Seconds the fight has lasted
  */
