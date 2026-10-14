@@ -37,7 +37,7 @@
                                     </td>
                                     <td class="py-2.5 px-2">
                                         <div class="flex items-center gap-3 min-w-0">
-                                            <x-avatar :user="$score->user" :name="$score->name" class="h-8 w-8 text-sm shrink-0" />
+                                            <x-avatar :user="$score->user" :name="$score->name" :side="$score->game?->faction" class="h-8 w-8 text-sm shrink-0" />
                                             <span class="truncate {{ $score->user_id ? 'text-gray-900' : 'text-gray-600' }}">{{ $score->name }}</span>
                                             @if ($mine)
                                                 <span class="text-xs text-indigo-600">{{ __('you') }}</span>

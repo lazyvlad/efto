@@ -40,8 +40,9 @@ class DiscordFeedTest extends TestCase
         $this->play();
 
         Http::assertSent(fn (Request $request) => $request->url() === self::WEBHOOK
-            && str_contains($request['content'], '**Bob** scored 1,200 at level 3 for the Horde.')
-            && str_contains($request['content'], 'That is the new top score.')
+            && str_contains($request['embeds'][0]['description'], '**Bob** scored 1,200 at level 3 for the Horde.')
+            && str_contains($request['embeds'][0]['description'], 'That is the new top score.')
+            && str_contains($request['embeds'][0]['thumbnail']['url'], 'images/hunters/horde-portrait.jpg')
             && $request['allowed_mentions'] === ['parse' => []]);
         Http::assertSentCount(1);
     }
@@ -104,7 +105,7 @@ class DiscordFeedTest extends TestCase
         $this->postJson(route('games.boss', $token), ['boss' => 'sarkoth'])->assertOk();
         $this->postJson(route('games.finish', $token), ['score' => 100, 'gameTime' => 20])->assertOk();
 
-        Http::assertSent(fn (Request $request) => str_contains($request['content'], '**Bob** brought down Sarkoth in a boss fight.'));
+        Http::assertSent(fn (Request $request) => str_contains($request['embeds'][0]['description'], '**Bob** brought down Sarkoth in a boss fight.'));
         Http::assertSentCount(1);
     }
 

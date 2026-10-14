@@ -31,13 +31,12 @@ class DiscordFeed
             return;
         }
 
-        $message = self::message($game);
+        $post = self::post($game);
 
         // After the player has their answer: the game does not wait for Discord
-        defer(function () use ($webhook, $message) {
+        defer(function () use ($webhook, $post) {
             try {
-                Http::timeout(5)->post($webhook, [
-                    'content' => $message,
+                Http::timeout(5)->post($webhook, $post + [
                     // A player's name must not be able to ping anyone
                     'allowed_mentions' => ['parse' => []],
                 ]);
@@ -45,6 +44,26 @@ class DiscordFeed
                 Log::warning('Discord did not take the game post: '.$e->getMessage());
             }
         });
+    }
+
+    /**
+     * What is posted for a game: the line, beside the portrait of the hunter who played it in
+     * his side's colour. A game from before there were sides is posted as the line alone.
+     */
+    public static function post(Game $game): array
+    {
+        $message = self::message($game);
+        $portrait = HunterPortrait::thumbnailUrl($game->faction);
+
+        if ($portrait === null) {
+            return ['content' => $message];
+        }
+
+        return ['embeds' => [[
+            'description' => $message,
+            'color' => $game->faction === 'horde' ? 0x8C1616 : 0x1F4FA8,
+            'thumbnail' => ['url' => $portrait],
+        ]]];
     }
 
     /**
