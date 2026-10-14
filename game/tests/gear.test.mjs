@@ -22,10 +22,11 @@ const items = [
 ];
 const all = new Set(items.map(item => item.id));
 
-test('the sheet has its nineteen slots: eight left, eight right, three below', () => {
-    assert.equal(SLOTS.length, 19);
-    assert.equal(new Set(SLOTS.map(slot => slot.id)).size, 19);
-    assert.deepEqual(['left', 'right', 'bottom'].map(column => SLOTS.filter(slot => slot.column === column).length), [8, 8, 3]);
+test('the sheet has its twenty slots: eight left, eight right, four below (the quiver beside the ranged weapon)', () => {
+    assert.equal(SLOTS.length, 20);
+    assert.equal(new Set(SLOTS.map(slot => slot.id)).size, 20);
+    assert.deepEqual(['left', 'right', 'bottom'].map(column => SLOTS.filter(slot => slot.column === column).length), [8, 8, 4]);
+    assert.deepEqual(SLOTS.filter(slot => slot.column === 'bottom').map(slot => slot.id), ['mainhand', 'offhand', 'ranged', 'quiver']);
 });
 
 test('an item fits the slot it is made for, and a ring either finger', () => {

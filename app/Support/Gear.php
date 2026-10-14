@@ -15,7 +15,7 @@ class Gear
     public const SLOTS = [
         'head', 'neck', 'shoulder', 'back', 'chest', 'shirt', 'tabard', 'wrist',
         'hands', 'waist', 'legs', 'feet', 'finger1', 'finger2', 'trinket1', 'trinket2',
-        'mainhand', 'offhand', 'ranged',
+        'mainhand', 'offhand', 'ranged', 'quiver',
     ];
 
     /**
@@ -32,8 +32,27 @@ class Gear
         'head' => ['head'], 'neck' => ['neck'], 'shoulders' => ['shoulder'], 'back' => ['back'], 'chest' => ['chest'],
         'shirt' => ['shirt'], 'tabard' => ['tabard'], 'bracers' => ['wrist'], 'hands' => ['hands'], 'belt' => ['waist'],
         'legs' => ['legs'], 'boots' => ['feet'], 'ring' => ['finger1', 'finger2'], 'trinket' => ['trinket1', 'trinket2'],
-        'mainhand' => ['mainhand'], 'offhand' => ['offhand'], 'ranged' => ['ranged'],
+        'mainhand' => ['mainhand'], 'offhand' => ['offhand'], 'ranged' => ['ranged'], 'quiver' => ['quiver'],
     ];
+
+    /** The large quiver as an item: found once by each hunter at most, from his side's bosses */
+    public const LARGE_QUIVER = 'ancient-sinew-wrapped-lamina';
+
+    /**
+     * The hunters who have found the large quiver: the sides of the bosses that dropped it
+     * (boss_drops.quiver). One given before that (users.quiver with no such drop, from the
+     * admin) is the Alliance hunter's.
+     *
+     * @return array<int, string>
+     */
+    public static function quiverSides(User $user): array
+    {
+        $sides = $user->bossDrops()->where('quiver', true)->pluck('boss_id')
+            ->map(fn ($bossId) => BossLoot::boss($bossId)['faction'] ?? null)
+            ->filter()->unique()->values()->all();
+
+        return $sides === [] && $user->quiver ? ['alliance'] : $sides;
+    }
 
     /** The two hunters, each with an outfit of their own */
     public const SIDES = ['alliance', 'horde'];
@@ -105,6 +124,20 @@ class Gear
                 'from' => 'Falls in a game',
             ];
         }
+
+        // The large quiver a boss may drop (boss_loot.quiver): worn in the quiver slot, it adds
+        // slots to the quiver while it is on (quiverSlots; quiver in game/config/gameConfig.js)
+        $catalog[self::LARGE_QUIVER] = [
+            'name' => config('boss_loot.quiver.name'),
+            'image' => self::iconOf(self::LARGE_QUIVER) ?? 'assets/powerups/thorium-arrows.webp',
+            'slot' => 'quiver',
+            'rarity' => 'epic',
+            'stats' => [],
+            'twoHanded' => false,
+            'value' => 0,
+            'from' => 'A boss, now and then',
+            'quiverSlots' => (int) config('boss_loot.quiver.slots', 4),
+        ];
 
         // The clothes the hunters start in
         foreach (config('gear.starter') as $side => $pieces) {
@@ -218,6 +251,10 @@ class Gear
         // He has the clothes he starts in, once
         foreach (self::starterLoadout($side) as $itemId) {
             $owned[$itemId] = 1;
+        }
+        // The large quiver: the hunter whose boss dropped it has it
+        if (in_array($side, self::quiverSides($user), true)) {
+            $owned[self::LARGE_QUIVER] = 1;
         }
 
         return $owned;
@@ -335,10 +372,25 @@ class Gear
             return null;
         }
         if (self::isPerSide($saved)) {
-            return isset($saved[$side]) && is_array($saved[$side]) ? $saved[$side] : null;
+            return isset($saved[$side]) && is_array($saved[$side]) ? self::quiverMoved($saved[$side]) : null;
         }
 
-        return $saved + self::starterLoadout($side);
+        return self::quiverMoved($saved + self::starterLoadout($side));
+    }
+
+    /**
+     * An outfit saved when quivers were worn on the back: the quiver there is in the quiver
+     * slot now (unless that has one already).
+     */
+    public static function quiverMoved(array $outfit): array
+    {
+        $back = $outfit['back'] ?? null;
+        if ($back !== null && (self::catalog()[$back]['slot'] ?? null) === 'quiver') {
+            unset($outfit['back']);
+            $outfit['quiver'] ??= $back;
+        }
+
+        return $outfit;
     }
 
     /** Both hunters' outfits as saved, the old single outfit made into two */

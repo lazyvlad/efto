@@ -25,7 +25,7 @@ import { quiverCapacity, startingArrows } from './utils/quiver.js';
 import { setById, piecesOf, ownedCount, setBonus, nextStep, bonusText } from './utils/sets.js';
 import { healthAtNewMax, armorReduction } from './utils/stats.js';
 import { SLOTS, validEquipment, equip, equipSet, mainSet, setsWorn, gearTotals, slotsFor, carriedOf, fitsCarried } from './utils/gear.js';
-import { bagCapacity, slotsUsed, addToBags, soldShort } from './utils/bags.js';
+import { bagCapacity, slotsUsed, addToBags, soldShort, setItemStacks, stowInBags } from './utils/bags.js';
 import { MATERIALS, categoryOf } from './data/materials.js';
 import { wearables, wearableById, isKeptGear, gearCatalog } from './data/wearables.js';
 import { initializeInventory, openInventory, closeInventory, isInventoryOpen, refreshInventory } from './ui/inventory.js';
@@ -923,9 +923,9 @@ let equipmentSaveTimer = null;
 function storedEquipment(side) {
     try {
         const own = JSON.parse(localStorage.getItem(`${EQUIPMENT_KEY}_${side}`));
-        if (own) return own;
+        if (own) return quiverMoved(own);
         const shared = JSON.parse(localStorage.getItem(EQUIPMENT_KEY));
-        return shared ? { ...starterLoadout(side), ...shared } : null;
+        return shared ? quiverMoved({ ...starterLoadout(side), ...shared }) : null;
     } catch (e) {
         return null;
     }
@@ -938,7 +938,7 @@ function chosenEquipment(side) {
     if (account !== undefined && account !== null) {
         // An account answered in the old shape (one outfit for both)
         const perSide = Object.prototype.hasOwnProperty.call(account, 'alliance') || Object.prototype.hasOwnProperty.call(account, 'horde');
-        return perSide ? account[side] || null : { ...starterLoadout(side), ...account };
+        return perSide ? quiverMoved(account[side]) || null : quiverMoved({ ...starterLoadout(side), ...account });
     }
     return account === null ? null : storedEquipment(side);
 }
@@ -1110,6 +1110,16 @@ function setEquipment(equipment) {
 // What everything being worn gives now
 function refreshSetBonus() {
     gameState.setBonus = gearTotals(gameState.equipment, wearables(), gameConfig.sets);
+    // The quiver holds what the one worn holds; arrows it no longer holds go into the bags
+    const capacity = quiverCapacity(gameConfig.quiver, hasLargeQuiver());
+    if (capacity !== gameState.quiverCapacity) {
+        gameState.quiverCapacity = capacity;
+        if (gameState.arrowCount > capacity) {
+            const over = gameState.arrowCount - capacity;
+            gameState.arrowCount = capacity;
+            if (gameState.gameRunning && gameState.keepInBags) gameState.keepInBags('arrows', over);
+        }
+    }
     dragonstalkerCache.lastUpdate = 0;  // The panel shows it at once
     
     // The hunter's stats follow what he wears (utils/stats.js). Health keeps its proportion,
@@ -1260,7 +1270,7 @@ function sameEquipment(a, b) {
 
 // What of a saved set can be put on now
 function wearableOf(outfit) {
-    return validEquipment(outfit.equipment || {}, wearables(), availablePieces());
+    return validEquipment(quiverMoved(outfit.equipment || {}), wearables(), availablePieces());
 }
 
 // For the sheet: each set's name, how many of its pieces can be put on now, whether it is
@@ -1497,9 +1507,23 @@ function showStartMap() {
     });
 }
 
-// Whether the logged-in player has found the large quiver (a boss drop, kept on the account)
+// The large quiver: an item (a boss drop, found once), worn in the quiver slot. While it is on
+// the quiver holds more ("quiverSlots" on the item, quiver.bonusSlots in config/gameConfig.js).
+const LARGE_QUIVER = 'ancient-sinew-wrapped-lamina';
+
 function hasLargeQuiver() {
-    return Boolean(siteBoot && siteBoot.user && siteBoot.user.quiver);
+    const item = gameState.equipment && gameState.equipment.quiver ? wearableById(gameState.equipment.quiver) : null;
+    return Boolean(item && item.quiverSlots);
+}
+
+// An outfit saved when quivers were worn on the back: the quiver there is in the quiver slot
+// now, unless that has one already (Gear::quiverMoved on the site)
+function quiverMoved(outfit) {
+    if (!outfit || !outfit.back) return outfit;
+    const item = wearableById(outfit.back);
+    if (!item || item.slot !== 'quiver') return outfit;
+    const { back, ...rest } = outfit;
+    return rest.quiver ? rest : { ...rest, quiver: back };
 }
 
 function startGame() {
@@ -1683,6 +1707,8 @@ function startGame() {
     restoreEquipment();
     gameState.coins = 0;
     emptyBags();
+    // Spare arrows kept in the bags fill the quiver
+    topUpQuiver();
     gameState.bossLoot = [];
     
     // Reset bullet time system
@@ -1935,6 +1961,8 @@ function restartGame() {
     restoreEquipment();
     gameState.coins = 0;
     emptyBags();
+    // Spare arrows kept in the bags fill the quiver
+    topUpQuiver();
     gameState.bossLoot = [];
     
     // Reset bullet time system
@@ -2756,6 +2784,8 @@ function setupUIEventHandlers() {
         onRenameOutfit: renameOutfit,
         onDeleteOutfit: deleteOutfit,
     });
+    // Kinds a bag slot holds more of (arrows)
+    setItemStacks(gameConfig.bags.itemStacks);
     // The inventory (ui/inventory.js): the bags, the materials kept, and bags to buy
     initializeInventory({
         getState: () => {
@@ -2769,6 +2799,7 @@ function setupUIEventHandlers() {
                 overflow: playing ? gameState.bags.overflow : {},
                 recipes: recipes(),
                 potion: { id: POTION, ...gameConfig.potions[POTION], key: keyName('potion') },
+                potionKeys: { 'health-potion': keyName('potion'), 'mana-potion': keyName('mana_potion') },
                 capacity: bagCapacity(gameConfig.bags, user && user.bags ? user.bags : []),
                 bags: user && user.bags ? user.bags : [],
                 bagSlots: gameConfig.bags.bagSlots,
@@ -2835,14 +2866,18 @@ function setupUIEventHandlers() {
     // slot on the spell bar
     document.addEventListener('keydown', event => {
         const typing = document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
-        if (actionFor(event.code) !== 'potion' || typing || event.repeat) return;
-        drinkPotion();
+        const action = actionFor(event.code);
+        if (typing || event.repeat) return;
+        if (action === 'potion') drinkPotion('health-potion');
+        if (action === 'mana_potion') drinkPotion('mana-potion');
     });
-    document.getElementById('spell-potion')?.addEventListener('pointerdown', event => {
-        event.preventDefault();
-        event.stopPropagation();
-        drinkPotion();
-    });
+    for (const { id, slot } of POTIONS) {
+        document.getElementById(slot)?.addEventListener('pointerdown', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            drinkPotion(id);
+        });
+    }
     
     // Wearing a saved set in play: its key (1 to 4 unless the player changed them), or its
     // button on the set panel (refreshSetSwitch)
@@ -4209,15 +4244,22 @@ function resetItemsListCache() {
 
 // The bags as a game starts: empty, with the room of the backpack and the bags bought
 // A game starts with the bags as they were left: what is kept in them between games
-// (materials, and what was crafted from them) takes its room from what the game catches
+// (materials, what was crafted, potions and spare arrows) takes its room from what the game
+// catches. Then the quiver is topped up from the spare arrows.
 function emptyBags() {
     const kept = siteBoot && siteBoot.user && siteBoot.user.bagContents ? siteBoot.user.bagContents : {};
     gameState.bags = { contents: { ...kept }, overflow: {} };
     gameState.bagsAtStart = { ...kept };
-    gameState.potionsUsed = {};
-    gameState.potionReadyAt = 0;
+    gameState.potionReadyAt = {};
     gameState.bagCapacity = bagCapacity(gameConfig.bags, siteBoot && siteBoot.user && siteBoot.user.bags ? siteBoot.user.bags : []);
     gameState.bagsFullSaid = false;
+    // A potion caught at full health (or while time is slowed) and the arrows the quiver cannot
+    // hold go into the bags, as far as there is room: how many went in
+    gameState.keepInBags = (itemId, count) => {
+        const put = stowInBags(gameState.bags.contents, itemId, count, gameState.bagCapacity, gameConfig.bags.stack);
+        if (put > 0) refreshInventory();
+        return put;
+    };
 }
 
 // What the bags hold between games (or in the game being played)
@@ -4226,60 +4268,118 @@ function bagContents() {
     return siteBoot && siteBoot.user && siteBoot.user.bagContents ? siteBoot.user.bagContents : {};
 }
 
-// ----- Potions: crafted between games, drunk in a fight from the bags -----
-const POTION = 'health-potion';
+// What a game did to the kept things in the bags that are not materials (potions, arrows): what
+// went down was used, what went up was stored. Materials are settled by what was caught.
+function bagChanges() {
+    const used = {}, stored = {};
+    const before = gameState.bagsAtStart || {};
+    const after = (gameState.bags && gameState.bags.contents) || {};
+    for (const itemId of new Set([...Object.keys(before), ...Object.keys(after)])) {
+        if (MATERIALS.has(itemId) || !craftedById(itemId)) continue;
+        const change = (after[itemId] || 0) - (before[itemId] || 0);
+        if (change < 0) used[itemId] = -change;
+        if (change > 0) stored[itemId] = change;
+    }
+    return { used, stored };
+}
 
-// Drink one (its key, H unless changed, or a tap on its slot): it heals, and the next waits
-// out its cooldown
-function drinkPotion() {
+// ----- Spare arrows: in the bags, they fill the quiver as a game starts and when it runs dry -----
+function topUpQuiver() {
+    const spare = (gameState.bags && gameState.bags.contents.arrows) || 0;
+    const room = Math.max(0, (gameState.quiverCapacity || 0) - (gameState.arrowCount || 0));
+    const take = Math.min(spare, room);
+    if (take <= 0) return 0;
+    
+    gameState.arrowCount += take;
+    gameState.bags.contents.arrows = spare - take;
+    if (!gameState.bags.contents.arrows) delete gameState.bags.contents.arrows;
+    refreshInventory();
+    return take;
+}
+
+// Every step: a quiver too low for a Multishot is filled from the bags, if they hold arrows
+function refillQuiver() {
+    if (!gameState.gameRunning || (gameState.arrowCount || 0) >= 5) return;
+    const took = topUpQuiver();
+    if (took > 0) addNotification(gameState, `🏹 ${took} arrows from your bags`, 150, '#CD7F32');
+}
+
+// ----- Potions: crafted between games, or caught and kept, and drunk in a fight from the bags -----
+// Each with its key and its slot on the spell bar: Health Potion (H) heals, Mana Potion (M)
+// slows time ("potions" in config/gameConfig.js)
+const POTION = 'health-potion';
+const POTIONS = [
+    { id: 'health-potion', slot: 'spell-potion' },
+    { id: 'mana-potion', slot: 'spell-mana-potion' },
+];
+
+function drinkPotion(itemId = POTION) {
     if (!gameState.gameRunning || gameState.showingPauseMenu || gameState.gamePaused) return;
-    const rules = gameConfig.potions[POTION];
-    const have = gameState.bags.contents[POTION] || 0;
+    const rules = gameConfig.potions[itemId];
+    const item = craftedById(itemId);
+    const name = item ? item.name : itemId;
+    const have = gameState.bags.contents[itemId] || 0;
     const now = gameClock.now();
     if (!rules || have <= 0) {
-        addNotification(gameState, 'No Health Potions in your bags: craft them between games', 180, '#FF6B35');
+        addNotification(gameState, `No ${name}s in your bags`, 180, '#FF6B35');
         return;
     }
-    if (now < gameState.potionReadyAt) return;
+    if (now < (gameState.potionReadyAt[itemId] || 0)) return;
+    if (rules.slow && gameState.timeSlowActive) {
+        addNotification(gameState, 'Time is already slowed', 120, '#4169E1');
+        return;
+    }
     
-    gameState.bags.contents[POTION] = have - 1;
-    if (gameState.bags.contents[POTION] === 0) delete gameState.bags.contents[POTION];
-    gameState.potionsUsed[POTION] = (gameState.potionsUsed[POTION] || 0) + 1;
-    gameState.potionReadyAt = now + rules.cooldown * 1000;
-    const healed = Math.min(rules.heal, gameState.maxHealth - gameState.health);
-    gameState.health = Math.min(gameState.maxHealth, gameState.health + rules.heal);
-    combatTexts.push(new CombatText(player.x + player.width / 2, player.y, `+${healed}`, '#1EFF00', false));
+    gameState.bags.contents[itemId] = have - 1;
+    if (gameState.bags.contents[itemId] === 0) delete gameState.bags.contents[itemId];
+    gameState.potionReadyAt[itemId] = now + (rules.cooldown || 0) * 1000;
+    if (rules.heal) {
+        const healed = Math.min(rules.heal, gameState.maxHealth - gameState.health);
+        gameState.health = Math.min(gameState.maxHealth, gameState.health + rules.heal);
+        combatTexts.push(new CombatText(player.x + player.width / 2, player.y, `+${healed}`, '#1EFF00', false));
+    }
+    if (rules.slow) {
+        gameState.timeSlowActive = true;
+        gameState.timeSlowTimer = rules.seconds * 60;
+        gameState.timeSlowMultiplier = rules.slow;
+        addNotification(gameState, `🔵 Time Slow ${Math.round((1 - rules.slow) * 100)}% for ${rules.seconds}s`, 180, '#4169E1');
+    }
     refreshInventory();
 }
 
-// The potion's slot on the spell bar: shown while there are any, with how many and its cooldown
-const potionSlot = { shown: null, count: '', timer: '' };
+// The potions' slots on the spell bar: each shown while there are any, with how many and its
+// cooldown
+const potionSlots = {};
 function updatePotionSlot() {
-    const slot = document.getElementById('spell-potion');
-    if (!slot) return;
-    const have = (gameState.bags && gameState.bags.contents[POTION]) || 0;
-    const shown = gameState.gameRunning && have > 0;
-    if (shown !== potionSlot.shown) {
-        slot.hidden = !shown;
-        potionSlot.shown = shown;
+    for (const { id, slot: slotId } of POTIONS) {
+        const slot = document.getElementById(slotId);
+        if (!slot) continue;
+        const seen = potionSlots[id] || (potionSlots[id] = { shown: null, count: '', timer: '' });
+        const have = (gameState.bags && gameState.bags.contents[id]) || 0;
+        const shown = gameState.gameRunning && have > 0;
+        if (shown !== seen.shown) {
+            slot.hidden = !shown;
+            seen.shown = shown;
+        }
+        if (!shown) continue;
+        
+        const count = String(have);
+        if (count !== seen.count) {
+            document.getElementById(`${slotId}-count`).textContent = count;
+            seen.count = count;
+        }
+        const left = Math.max(0, Math.ceil(((gameState.potionReadyAt && gameState.potionReadyAt[id]) || 0) - gameClock.now()) / 1000);
+        const timer = left > 0 ? `${Math.ceil(left)}s` : '';
+        if (timer !== seen.timer) {
+            const timerElement = document.getElementById(`${slotId}-timer`);
+            timerElement.textContent = timer;
+            timerElement.className = left > 0 ? 'spell-timer cooldown' : 'spell-timer';
+            document.getElementById(`${slotId}-cooldown`).classList.toggle('active', left > 0);
+            slot.classList.toggle('cooldown', left > 0);
+            seen.timer = timer;
+        }
     }
-    if (!shown) return;
-    
-    const count = String(have);
-    if (count !== potionSlot.count) {
-        document.getElementById('spell-potion-count').textContent = count;
-        potionSlot.count = count;
-    }
-    const left = Math.max(0, Math.ceil((gameState.potionReadyAt - gameClock.now()) / 1000));
-    const timer = left > 0 ? `${left}s` : '';
-    if (timer !== potionSlot.timer) {
-        const timerElement = document.getElementById('spell-potion-timer');
-        timerElement.textContent = timer;
-        timerElement.className = left > 0 ? 'spell-timer cooldown' : 'spell-timer';
-        document.getElementById('spell-potion-cooldown').classList.toggle('active', left > 0);
-        slot.classList.toggle('cooldown', left > 0);
-        potionSlot.timer = timer;
-    }
+    refillQuiver();
 }
 
 // ----- Between games: moving things between the bank and the bags, and crafting -----
@@ -4410,8 +4510,8 @@ function getGameSummary() {
         gear: noteGearUsed() || null,
         // How much of each thing caught did not fit in the bags and was sold short
         overflow: gameState.bags.overflow,
-        // What was drunk from the bags (potions)
-        used: gameState.potionsUsed || {},
+        // What was drunk or shot from the bags, and what was put in them (potions, arrows)
+        ...bagChanges(),
         // Ratings as percentages with one decimal
         finalCritRating: Math.round(getCurrentTotalCritRating() * 1000) / 10,
         finalDodgeRating: Math.round(getCurrentTotalDodgeRating() * 1000) / 10
@@ -4553,11 +4653,16 @@ function onBossDefeated(boss) {
         // Beaten, and kept on the account: it may be fought on its own from now on
         if (drop.kept) rememberBeaten(boss.id);
         
-        // The large quiver, found once in an account's life: it holds more from this moment on
+        // The large quiver, found once by each hunter at most: this one's now, and it goes on at
+        // once if the quiver slot is free (or holds only the clothes he started in)
         if (drop.quiver && siteBoot && siteBoot.user) {
             siteBoot.user.quiver = true;
-            gameState.quiverCapacity = quiverCapacity(gameConfig.quiver, true);
-            addNotification(gameState, `${drop.quiver}! Your quiver now holds ${gameState.quiverCapacity} arrows`, 480, '#FF8000');
+            accountGear(boss.faction)[LARGE_QUIVER] = 1;
+            const inSlot = gameState.equipment.quiver ? wearableById(gameState.equipment.quiver) : null;
+            if (!inSlot || inSlot.starter) setEquipment(equip(gameState.equipment, 'quiver', wearableById(LARGE_QUIVER), wearables()));
+            addNotification(gameState, hasLargeQuiver()
+                ? `${drop.quiver}! Your quiver now holds ${gameState.quiverCapacity} arrows`
+                : `${drop.quiver}! Put it on in the quiver slot for ${quiverCapacity(gameConfig.quiver, true)} arrows`, 480, '#FF8000');
             combatTexts.push(new CombatText((canvas.logicalWidth || canvas.width) / 2, player.y - 90, 'Large quiver!', '#FF8000', true));
         }
         if (!drop.item) return;

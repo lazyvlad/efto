@@ -196,6 +196,8 @@ return [
         'bag_slots' => 4,
         'stack' => 20,
         'full_penalty' => 0.1,
+        // Kinds a slot holds more of than 'stack' (itemStacks in game/config/gameConfig.js)
+        'item_stacks' => ['arrows' => 200],
         'for_sale' => [
             6 => 50000,
             8 => 150000,

@@ -17,7 +17,7 @@ import { askConfirm } from './gameDialog.js';
 import { gameItems } from '../data/gameItems.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { MATERIALS, categoryOf } from '../data/materials.js';
-import { stacksOf, slotsUsed } from '../utils/bags.js';
+import { stacksOf, slotsUsed, roomFor as roomInBags } from '../utils/bags.js';
 import { craftedById, canMake } from '../data/crafting.js';
 import { formatCoins } from '../utils/coins.js';
 import { wearableById } from '../data/wearables.js';
@@ -259,12 +259,9 @@ function slotOf(stack, state) {
     return slot;
 }
 
-// How many more of a kind fit in the bags: on its last stack, and in the free slots
+// How many more of a kind fit in the bags (utils/bags.js)
 function roomFor(itemId, contents, capacity) {
-    const stack = gameConfig.bags.stack;
-    const count = contents[itemId] || 0;
-    const onStack = count % stack ? stack - (count % stack) : 0;
-    return onStack + Math.max(0, capacity - slotsUsed(contents, stack)) * stack;
+    return roomInBags(contents, itemId, capacity, gameConfig.bags.stack);
 }
 
 // Move between the bank and the bags, then say what happened and draw it again
@@ -387,7 +384,8 @@ function pickedBar(itemId, state) {
     text.append(
         make('span', 'window-item-name', `${item ? item.name : itemId} · ${count}`),
         make('span', 'window-item-note', craftedById(itemId)
-            ? (state.potion && state.potion.id === itemId ? `Drink in a fight with ${state.potion.key}` : 'Crafted')
+            ? (itemId === 'arrows' ? 'They fill the quiver as a game starts, and when it runs dry'
+                : state.potionKeys && state.potionKeys[itemId] ? `Drink in a fight with ${state.potionKeys[itemId]}` : 'Crafted')
             : usedIn.length ? `Material · for ${usedIn.map(recipe => recipe.item ? `${recipe.item.name}s` : recipe.id).join(', ')}` : 'Material')
     );
     bar.append(picture, text);

@@ -29,6 +29,7 @@ export const SLOTS = [
     { id: 'mainhand', label: 'Main Hand', column: 'bottom' },
     { id: 'offhand', label: 'Off Hand', column: 'bottom' },
     { id: 'ranged', label: 'Ranged', column: 'bottom' },
+    { id: 'quiver', label: 'Quiver', column: 'bottom' },
 ];
 
 // An item's own word for where it is worn, and the sheet's slots it fits
@@ -50,6 +51,7 @@ const WORN_IN = {
     mainhand: ['mainhand'],
     offhand: ['offhand'],
     ranged: ['ranged'],
+    quiver: ['quiver'],
 };
 
 // The slots an item can be worn in (none for something that is not worn)

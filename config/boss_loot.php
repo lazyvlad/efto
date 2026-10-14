@@ -29,11 +29,12 @@ return [
     'min_seconds_per_zone' => 20,
 
     // The large quiver: besides its item, a boss may drop this for a logged-in player who does
-    // not have it yet. It is kept on the account and found only once; in the game it adds four
-    // slots to the quiver, doubling the arrows the hunter can carry (quiver in
-    // game/config/gameConfig.js).
+    // not have it yet. It is found only once, and both hunters have it (App\Support\Gear); worn
+    // in the quiver slot it adds this many slots to the quiver, doubling the arrows the hunter
+    // can carry (quiver in game/config/gameConfig.js).
     'quiver' => [
         'name' => 'Ancient Sinew Wrapped Lamina',
+        'slots' => 4,
         'chance' => 0.1,
     ],
 

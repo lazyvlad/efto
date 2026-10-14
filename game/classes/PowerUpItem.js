@@ -249,6 +249,11 @@ export class PowerUpItem extends FallingObject {
         // Apply the effect based on type
         switch(this.data.effect) {
             case "slow_time":
+                // Time already slowed: kept in the bags for later (M drinks one), if there is room
+                if (gameState.timeSlowActive && gameState.keepInBags && gameState.keepInBags('mana-potion', 1)) {
+                    addNotification(gameState, '🔵 Mana Potion: into your bags', 150, '#4169E1');
+                    break;
+                }
                 gameState.timeSlowActive = true;
                 gameState.timeSlowTimer = this.data.duration;
                 gameState.timeSlowMultiplier = this.data.value;
@@ -260,6 +265,11 @@ export class PowerUpItem extends FallingObject {
                 break;
                 
             case "heal":
+                // At full health: kept in the bags for later (H drinks one), if there is room
+                if (gameState.health >= gameState.maxHealth && gameState.keepInBags && gameState.keepInBags('health-potion', 1)) {
+                    addNotification(gameState, '💚 Health Potion: into your bags', 150, '#FF69B4');
+                    break;
+                }
                 const oldHealth = gameState.health;
                 gameState.health = Math.min(gameState.maxHealth, gameState.health + this.data.value);
                 const actualHeal = gameState.health - oldHealth;
@@ -476,10 +486,14 @@ export class PowerUpItem extends FallingObject {
                 const quiver = addArrows(gameState.arrowCount || 0, this.data.value, gameState.quiverCapacity || Infinity);
                 const arrowsToAdd = quiver.added;
                 gameState.arrowCount = quiver.arrows;
+                // What the quiver cannot hold goes into the bags, for when it runs dry
+                const spare = quiver.lost > 0 && gameState.keepInBags ? gameState.keepInBags('arrows', quiver.lost) : 0;
                 
                 // Add notification for arrow collection with tier-specific names and emojis
                 const arrowTier = this.data.id === 'bronze_arrows' ? 'BRONZE' : this.data.id === 'silver_arrows' ? 'SILVER' : 'THORIUM';
-                const arrowNotification = quiver.lost > 0
+                const arrowNotification = spare > 0
+                    ? `🏹 ${arrowTier} ARROWS! +${arrowsToAdd}, ${spare} into your bags (${gameState.arrowCount})`
+                    : quiver.lost > 0
                     ? `🏹 ${arrowTier} ARROWS! +${arrowsToAdd} arrows - quiver full (${gameState.arrowCount})`
                     : `🏹 ${arrowTier} ARROWS! +${arrowsToAdd} arrows (Total: ${gameState.arrowCount})`;
                 addNotification(gameState, arrowNotification, 300, this.data.color);

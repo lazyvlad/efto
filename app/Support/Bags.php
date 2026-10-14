@@ -39,8 +39,14 @@ class Bags
     public static function slotsUsed(array $contents): int
     {
         $stack = (int) config('loot.bags.stack');
+        $stacks = config('loot.bags.item_stacks', []);
 
-        return array_sum(array_map(fn (int $count) => (int) ceil($count / $stack), $contents));
+        $slots = 0;
+        foreach ($contents as $itemId => $count) {
+            $slots += (int) ceil($count / ($stacks[$itemId] ?? $stack));
+        }
+
+        return $slots;
     }
 
     /**
@@ -165,13 +171,17 @@ class Bags
     }
 
     /**
-     * After a game: the materials it brought back stay in the bags with what was there, and
-     * what was drunk in it is gone ($used: [itemId => count], no more than there was).
+     * After a game: what was drunk or shot from the bags is gone ($used: [itemId => count], no
+     * more than there was), and the materials it brought back ($kept) and what it put in them
+     * ($stored: potions, spare arrows) stay in the bags with what was there. What it says it
+     * stored is believed only as far as the time played allows (crafting.stored_per_minute) and
+     * there is room.
      *
      * @param  array<string, int>  $kept
      * @param  array<string, int>  $used
+     * @param  array<string, int>  $stored
      */
-    public static function afterGame(User $user, array $kept, array $used = []): void
+    public static function afterGame(User $user, array $kept, array $used = [], array $stored = [], int $gameSeconds = 0): void
     {
         $contents = self::contents($user);
         foreach ($used as $itemId => $count) {
@@ -179,7 +189,17 @@ class Bags
                 $contents[$itemId] -= min($contents[$itemId], max(0, (int) $count));
             }
         }
-        $contents = self::plus($contents, $kept);
+        $contents = self::plus(array_filter($contents), $kept);
+
+        $perMinute = config('crafting.stored_per_minute', []);
+        foreach ($stored as $itemId => $count) {
+            $most = (int) ceil(($perMinute[$itemId] ?? 0) * max(1, $gameSeconds) / 60);
+            $count = min(max(0, (int) $count), $most);
+            while ($count > 0 && self::slotsUsed(self::plus($contents, [$itemId => $count])) > self::capacity($user)) {
+                $count--;
+            }
+            $contents = self::plus($contents, [$itemId => $count]);
+        }
         if ($contents === self::contents($user)) {
             return;
         }

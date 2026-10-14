@@ -165,7 +165,7 @@ class GameRecordController extends Controller
 
         if (! $drop) {
             $item = BossLoot::roll($boss);
-            $quiver = BossLoot::rollQuiver($game->user);
+            $quiver = BossLoot::rollQuiver($game->user, $boss['faction']);
 
             try {
                 $drop = $game->bossDrops()->create([
@@ -224,6 +224,10 @@ class GameRecordController extends Controller
             // What was drunk from the bags in the game (potions: config/crafting.php)
             'used' => ['nullable', 'array', 'max:20'],
             'used.*' => ['integer', 'min:0', 'max:10000'],
+            // What the game put in the bags: potions caught at full health or while time was
+            // slowed, arrows that did not fit in the quiver
+            'stored' => ['nullable', 'array', 'max:20'],
+            'stored.*' => ['integer', 'min:0', 'max:100000'],
             // The strongest set worn in the game and what it gave
             'gear' => ['nullable', 'array'],
             'gear.set' => ['required_with:gear', 'string', 'in:'.implode(',', array_keys(config('loot.sets')))],
@@ -301,8 +305,9 @@ class GameRecordController extends Controller
             if ($coins > 0) {
                 $game->user()->increment('coins', $coins);
             }
-            $used = array_filter($data['used'] ?? [], fn ($count, $itemId) => Bags::keepable((string) $itemId), ARRAY_FILTER_USE_BOTH);
-            Bags::afterGame($game->user()->first(), $settled['materials'], $used);
+            $kept = fn ($list) => array_filter($list ?? [], fn ($count, $itemId) => Bags::keepable((string) $itemId), ARRAY_FILTER_USE_BOTH);
+            $stored = array_intersect_key($kept($data['stored'] ?? []), config('crafting.stored_per_minute', []));
+            Bags::afterGame($game->user()->first(), $settled['materials'], $kept($data['used'] ?? []), $stored, (int) $game->game_time);
         }
 
         // Only games that count go on the leaderboard, and Boss Rush and boss fights are not

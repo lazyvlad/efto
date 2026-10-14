@@ -66,13 +66,51 @@ class EquipmentTest extends TestCase
         // where it left a slot empty)
         $page = $this->actingAs($user->fresh())->get(route('play'));
         $page->assertDontSee('"head":"giantstalker-helmet"', false);
-        $page->assertSee('"alliance":{"back":"starter-alliance-quiver","chest":"starter-alliance-pajama-top"', false);
+        $page->assertSee('"alliance":{"chest":"starter-alliance-pajama-top"', false);
+        $page->assertSee('"quiver":"starter-alliance-quiver"', false);
         $page->assertSee('"horde":{"neck":"starter-horde-bone-amulet"', false);
     }
 
     public function test_a_player_who_has_never_chosen_is_told_apart(): void
     {
         $this->actingAs(User::factory()->create())->get(route('play'))->assertSee('"equipment":{"alliance":null,"horde":null}', false);
+    }
+
+    public function test_the_large_quiver_is_the_hunters_whose_boss_dropped_it_and_worn_in_the_quiver_slot(): void
+    {
+        $user = User::factory()->create();
+        $this->assertArrayNotHasKey(Gear::LARGE_QUIVER, Gear::owned($user, 'alliance'));
+
+        // Dropped by a Horde boss: the Horde hunter's, and only his
+        $user->bossDrops()->create(['boss_id' => 'sarkoth', 'item_id' => 'x', 'rarity' => 'uncommon', 'quiver' => true, 'dropped_at' => now()]);
+        $user->forceFill(['quiver' => true])->save();
+        $this->assertSame(['horde'], Gear::quiverSides($user->fresh()));
+        $this->assertSame(1, Gear::owned($user->fresh(), 'horde')[Gear::LARGE_QUIVER]);
+        $this->assertArrayNotHasKey(Gear::LARGE_QUIVER, Gear::owned($user->fresh(), 'alliance'));
+        $this->assertSame(4, Gear::catalog()[Gear::LARGE_QUIVER]['quiverSlots']);
+
+        // The Alliance hunter may still find his own; the Horde hunter no second one
+        $this->assertFalse(\App\Support\BossLoot::rollQuiver($user->fresh(), 'horde'));
+
+        $this->actingAs($user->fresh())->putJson(route('equipment.update'), ['side' => 'horde', 'equipment' => ['quiver' => Gear::LARGE_QUIVER]])
+            ->assertOk()->assertJsonPath('equipment.quiver', Gear::LARGE_QUIVER);
+        $this->putJson(route('equipment.update'), ['side' => 'alliance', 'equipment' => ['quiver' => Gear::LARGE_QUIVER]])
+            ->assertOk()->assertJsonMissingPath('equipment.quiver');
+        $this->putJson(route('equipment.update'), ['side' => 'horde', 'equipment' => ['back' => Gear::LARGE_QUIVER]])
+            ->assertOk()->assertJsonMissingPath('equipment.back');
+
+        // One given by the admin before quivers dropped by side: the Alliance hunter's
+        $given = User::factory()->create(['quiver' => true]);
+        $this->assertSame(['alliance'], Gear::quiverSides($given));
+    }
+
+    public function test_a_quiver_saved_on_the_back_is_in_the_quiver_slot_now(): void
+    {
+        $this->assertSame(['head' => 'x', 'quiver' => 'starter-alliance-quiver'], Gear::quiverMoved(['head' => 'x', 'back' => 'starter-alliance-quiver']));
+        // A quiver slot that has one already keeps it
+        $this->assertSame(['quiver' => Gear::LARGE_QUIVER], Gear::quiverMoved(['back' => 'starter-alliance-quiver', 'quiver' => Gear::LARGE_QUIVER]));
+        // A cape on the back stays there
+        $this->assertSame(['back' => 'miners-cape'], Gear::quiverMoved(['back' => 'miners-cape']));
     }
 
     public function test_the_clothes_a_hunter_starts_in_are_his_and_not_carried_or_sold(): void

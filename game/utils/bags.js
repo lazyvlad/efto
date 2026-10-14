@@ -8,7 +8,21 @@
 // and no stack of that kind has room, there is nowhere to put it: it is sold on the spot for
 // less (the "fullPenalty"), and a material sold that way is not kept.
 //
-// What is in the bags is kept as { itemId: count }: the stacks follow from the counts.
+// What is in the bags is kept as { itemId: count }: the stacks follow from the counts. A slot
+// holds "stack" of one kind, except for the kinds with a stack of their own (arrows: hundreds to
+// a slot; setItemStacks, from bags.itemStacks in config/gameConfig.js).
+
+let itemStacks = {};
+
+// The kinds that stack differently from the rest: { itemId: how many to a slot }
+export function setItemStacks(stacks) {
+    itemStacks = stacks || {};
+}
+
+// How many of a kind a slot holds
+export function stackOf(itemId, stack) {
+    return itemStacks[itemId] || stack;
+}
 
 // How many slots the bags have: the backpack and the bags added to it
 export function bagCapacity(rules, bags = []) {
@@ -17,14 +31,14 @@ export function bagCapacity(rules, bags = []) {
 
 // How many slots these things take
 export function slotsUsed(contents, stack) {
-    return Object.values(contents).reduce((slots, count) => slots + Math.ceil(count / stack), 0);
+    return Object.entries(contents).reduce((slots, [itemId, count]) => slots + Math.ceil(count / stackOf(itemId, stack)), 0);
 }
 
 // Whether one more of this kind fits: on a stack of it that has room, or in a free slot
 export function fitsInBags(contents, itemId, capacity, stack) {
     const count = contents[itemId] || 0;
 
-    return (count > 0 && count % stack !== 0) || slotsUsed(contents, stack) < capacity;
+    return (count > 0 && count % stackOf(itemId, stack) !== 0) || slotsUsed(contents, stack) < capacity;
 }
 
 /**
@@ -54,9 +68,25 @@ export function stacksOf(contents, stack) {
     const stacks = [];
 
     for (const [itemId, count] of Object.entries(contents)) {
-        for (let left = count; left > 0; left -= stack) {
-            stacks.push({ itemId, count: Math.min(stack, left) });
+        const size = stackOf(itemId, stack);
+        for (let left = count; left > 0; left -= size) {
+            stacks.push({ itemId, count: Math.min(size, left) });
         }
     }
     return stacks;
+}
+
+// How many more of a kind fit: on its last stack, and in the free slots
+export function roomFor(contents, itemId, capacity, stack) {
+    const size = stackOf(itemId, stack);
+    const count = contents[itemId] || 0;
+    const onStack = count % size ? size - (count % size) : 0;
+    return onStack + Math.max(0, capacity - slotsUsed(contents, stack)) * size;
+}
+
+// Put up to so many of a kind in the bags, as far as there is room: how many went in
+export function stowInBags(contents, itemId, count, capacity, stack) {
+    const put = Math.max(0, Math.min(count, roomFor(contents, itemId, capacity, stack)));
+    if (put > 0) contents[itemId] = (contents[itemId] || 0) + put;
+    return put;
 }

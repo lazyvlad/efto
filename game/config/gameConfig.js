@@ -314,6 +314,7 @@ export const gameConfig = {
         bagSlots: 4,                // Bags that can be added to the backpack
         stack: 20,                  // How many of one kind a slot holds
         fullPenalty: 0.1,           // With no room left, what is caught sells for this much less (0.1 = 90% of its worth)
+        itemStacks: { arrows: 200 },  // Kinds a slot holds more of ("item_stacks" in config/loot.php)
         // Pieces of gear the hunter takes into a game, what is worn among them. The rest of
         // what is owned stays in the bank until the game is over ("carry" in config/gear.php).
         carry: 36,
@@ -366,10 +367,13 @@ export const gameConfig = {
     },
 
     // === POTIONS ===
-    // What is crafted between games (data/crafting.js) and drunk in a fight from the bags, with
-    // its key ("potion", H unless the player changed it). One potion every so many seconds.
+    // Crafted between games (data/crafting.js), or caught and kept (a health potion at full
+    // health, a mana potion while time is already slowed), and drunk in a fight from the bags
+    // with its key: "potion" (H) and "mana_potion" (M) unless the player changed them.
     potions: {
         'health-potion': { heal: 40, cooldown: 20 },
+        // Time runs at this share of its speed for so many seconds; one at a time
+        'mana-potion': { slow: 0.5, seconds: 10, cooldown: 0 },
     },
 
     // === QUIVER ===

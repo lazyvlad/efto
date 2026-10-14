@@ -115,6 +115,34 @@ class BagsTest extends TestCase
             ->assertOk()->assertJsonMissingPath('bags.health-potion');
     }
 
+    public function test_a_game_keeps_potions_and_spare_arrows_in_the_bags_as_far_as_time_and_room_allow(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        // Ten minutes: up to 40 potions of a kind and 3000 arrows believed. Arrows stack 200 to a slot.
+        $finish = function (int $seconds, array $body) {
+            $token = $this->postJson(route('games.open'), ['name' => 'Bob', 'faction' => 'alliance'])->json('game');
+            $this->travel($seconds + 10)->seconds();
+
+            return $this->postJson(route('games.finish', $token), ['score' => 5, 'gameTime' => $seconds] + $body)->assertOk();
+        };
+        $finish(600, ['stored' => ['health-potion' => 3, 'mana-potion' => 99, 'arrows' => 450, 'bread' => 5]])
+            ->assertJsonPath('bags.health-potion', 3)
+            ->assertJsonPath('bags.mana-potion', 40)
+            ->assertJsonPath('bags.arrows', 450)
+            ->assertJsonMissingPath('bags.bread');
+        // One slot of health potions, two of mana potions (20 to a slot), three of arrows
+        $this->assertSame(1 + 2 + 3, Bags::slotsUsed(Bags::contents($user->fresh(), 'alliance')));
+
+        // Arrows shot from the bags and a potion drunk, and what fits of more than the room left
+        $finish(600, ['used' => ['arrows' => 400, 'health-potion' => 1], 'stored' => ['arrows' => 2000]])
+            ->assertJsonPath('bags.health-potion', 2)
+            // 16 slots: potions take 1 + 2, so 13 for arrows, 2600 at most
+            ->assertJsonPath('bags.arrows', 50 + 2000);
+        $finish(600, ['stored' => ['arrows' => 3000]])->assertJsonPath('bags.arrows', 2600);
+    }
+
     public function test_what_is_crafted_needs_room_in_the_bags(): void
     {
         $user = User::factory()->create();

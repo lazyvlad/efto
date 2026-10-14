@@ -78,11 +78,12 @@ class BossLoot
     }
 
     /**
-     * Whether this kill also drops the large quiver. Only for a player who does not have it.
+     * Whether this kill also drops the large quiver. Only for a hunter who does not have it:
+     * each finds his own, from his side's bosses.
      */
-    public static function rollQuiver(?User $user): bool
+    public static function rollQuiver(?User $user, string $side = 'alliance'): bool
     {
-        if ($user === null || $user->quiver) {
+        if ($user === null || in_array($side, Gear::quiverSides($user), true)) {
             return false;
         }
 
