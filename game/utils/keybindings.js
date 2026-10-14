@@ -17,6 +17,7 @@ export const ACTIONS = [
     { id: 'set_2', name: 'Wear your second saved set', key: 'Digit2' },
     { id: 'set_3', name: 'Wear your third saved set', key: 'Digit3' },
     { id: 'set_4', name: 'Wear your fourth saved set', key: 'Digit4' },
+    { id: 'potion', name: 'Drink a Health Potion', key: 'KeyH' },
     { id: 'settings', name: 'Open and close Settings', key: 'KeyS' },
     { id: 'character', name: 'Open and close the character sheet', key: 'KeyC' },
     { id: 'inventory', name: 'Open and close the inventory', key: 'KeyB' }

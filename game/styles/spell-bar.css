@@ -346,3 +346,19 @@ body.hud-compact #spellBar .spell-key {
         border-color: #f1d98a;
     }
 }
+
+/* The potion: how many are left in the bags, in the icon's corner (hidden while there are none) */
+.spell-slot[hidden] {
+    display: none;
+}
+
+.spell-count {
+    position: absolute;
+    top: 30px;
+    right: 7px;
+    z-index: 2;
+    font: 700 12px Arial, sans-serif;
+    color: #fff;
+    text-shadow: 0 1px 2px #000, 0 0 3px #000;
+    pointer-events: none;
+}

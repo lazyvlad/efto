@@ -357,6 +357,13 @@ export const gameConfig = {
         supplies: ['thorium_arrows', 'health_potion'],  // Dropped in the breather (data/powerUpItems.js)
     },
 
+    // === POTIONS ===
+    // What is crafted between games (data/crafting.js) and drunk in a fight from the bags, with
+    // its key ("potion", H unless the player changed it). One potion every so many seconds.
+    potions: {
+        'health-potion': { heal: 40, cooldown: 20 },
+    },
+
     // === QUIVER ===
     // How many arrows the hunter can carry: so many slots of so many arrows. A game starts with
     // some slots filled, and arrows caught beyond what the quiver holds are lost. A logged-in

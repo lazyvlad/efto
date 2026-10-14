@@ -30,7 +30,7 @@ class BagsTest extends TestCase
         ])->assertOk();
     }
 
-    public function test_junk_is_sold_and_materials_are_kept(): void
+    public function test_junk_is_sold_and_materials_stay_in_the_bags(): void
     {
         $user = User::factory()->create();
 
@@ -39,13 +39,92 @@ class BagsTest extends TestCase
         $this->play(['bread' => 4, 'gold-coin' => 2, 'runecloth' => 3, 'thorium-bar' => 1], [], $user)
             ->assertJsonPath('coins.earned', 4 * 10 + 2 * 25)
             ->assertJsonPath('materials.kept.runecloth', 3)
-            ->assertJsonPath('materials.bank.thorium-bar', 1);
+            ->assertJsonPath('bags.thorium-bar', 1);
 
-        $this->assertEquals(['runecloth' => 3, 'thorium-bar' => 1], $user->fresh()->materials);
+        // In the bags, not the bank, from one game to the next
+        $this->assertEquals(['runecloth' => 3, 'thorium-bar' => 1], $user->fresh()->bag_contents);
+        $this->assertNull($user->fresh()->materials);
         $this->assertSame(90, $user->fresh()->coins);
 
-        // The next game adds to what is kept
-        $this->play(['runecloth' => 2], [], $user)->assertJsonPath('materials.bank.runecloth', 5);
+        // The next game adds to what is there
+        $this->play(['runecloth' => 2], [], $user)->assertJsonPath('bags.runecloth', 5);
+    }
+
+    public function test_what_is_in_the_bags_takes_room_from_what_a_game_catches(): void
+    {
+        $user = User::factory()->create();
+        // Fifteen of the sixteen slots taken by materials kept from before
+        $user->forceFill(['bag_contents' => ['runecloth' => 15 * 20]])->save();
+
+        // Two more kinds said to fit: more than the one free slot holds, so none of it is believed
+        $response = $this->play(['bread' => 1, 'fish' => 1], [], $user);
+        $this->assertSame(2 * 9, $response->json('coins.earned'));
+        $response->assertJsonPath('bags.runecloth', 300);
+
+        // One fits
+        $this->play(['kingsblood' => 3], [], $user)->assertJsonPath('bags.kingsblood', 3);
+    }
+
+    public function test_materials_move_between_the_bank_and_the_bags_as_far_as_there_is_room(): void
+    {
+        $user = User::factory()->create();
+        $user->forceFill(['materials' => ['kingsblood' => 30, 'runecloth' => 400], 'bag_contents' => ['essence-of-water' => 5]])->save();
+
+        $this->actingAs($user)->postJson(route('bags.move'), ['item' => 'kingsblood', 'count' => 25, 'to' => 'bags'])
+            ->assertOk()->assertJsonPath('bags.kingsblood', 25)->assertJsonPath('bank.kingsblood', 5);
+
+        // More than the bank has, more than the bags hold (16 slots: 2 taken, 14 left = 280)
+        $this->postJson(route('bags.move'), ['item' => 'kingsblood', 'count' => 6, 'to' => 'bags'])->assertStatus(422);
+        $this->postJson(route('bags.move'), ['item' => 'runecloth', 'count' => 300, 'to' => 'bags'])->assertStatus(422);
+        $this->postJson(route('bags.move'), ['item' => 'runecloth', 'count' => 260, 'to' => 'bags'])->assertOk();
+
+        // And back
+        $this->postJson(route('bags.move'), ['item' => 'essence-of-water', 'count' => 5, 'to' => 'bank'])
+            ->assertOk()->assertJsonPath('bank.essence-of-water', 5)->assertJsonMissingPath('bags.essence-of-water');
+
+        // Only materials and what is crafted are kept: not junk, not gear
+        $this->postJson(route('bags.move'), ['item' => 'bread', 'count' => 1, 'to' => 'bags'])->assertStatus(422);
+
+        auth()->logout();
+        $this->postJson(route('bags.move'), ['item' => 'kingsblood', 'count' => 1, 'to' => 'bags'])->assertUnauthorized();
+    }
+
+    public function test_potions_are_crafted_from_what_is_in_the_bags_and_drunk_in_a_game(): void
+    {
+        $user = User::factory()->create();
+        $user->forceFill(['materials' => ['kingsblood' => 50], 'bag_contents' => ['kingsblood' => 7, 'essence-of-water' => 5]])->save();
+
+        // Five potions take five of each; a sixth has no water left
+        $this->actingAs($user)->postJson(route('craft'), ['recipe' => 'health-potion', 'count' => 6])->assertStatus(422);
+        $this->postJson(route('craft'), ['recipe' => 'health-potion', 'count' => 5])
+            ->assertOk()->assertJsonPath('bags.health-potion', 5)->assertJsonPath('bags.kingsblood', 2)
+            ->assertJsonMissingPath('bags.essence-of-water')
+            // What is in the bank is not used
+            ->assertJsonPath('bank.kingsblood', 50);
+        $this->postJson(route('craft'), ['recipe' => 'mana-potion', 'count' => 1])->assertStatus(422);
+
+        // Two drunk in a game, and no more than there were said to be
+        $this->play([], [], $user)->assertJsonPath('bags.health-potion', 5);
+        $token = $this->postJson(route('games.open'), ['name' => 'Bob', 'faction' => 'alliance'])->json('game');
+        $this->travel(60)->seconds();
+        $this->postJson(route('games.finish', $token), ['score' => 5, 'gameTime' => 50, 'used' => ['health-potion' => 2, 'bread' => 3]])
+            ->assertOk()->assertJsonPath('bags.health-potion', 3);
+        $token = $this->postJson(route('games.open'), ['name' => 'Bob', 'faction' => 'alliance'])->json('game');
+        $this->travel(60)->seconds();
+        $this->postJson(route('games.finish', $token), ['score' => 5, 'gameTime' => 50, 'used' => ['health-potion' => 9]])
+            ->assertOk()->assertJsonMissingPath('bags.health-potion');
+    }
+
+    public function test_what_is_crafted_needs_room_in_the_bags(): void
+    {
+        $user = User::factory()->create();
+        // Every slot taken, the last two by the reagents: two potions free one of them
+        $user->forceFill(['bag_contents' => ['runecloth' => 14 * 20, 'kingsblood' => 1, 'essence-of-water' => 1]])->save();
+        $this->actingAs($user)->postJson(route('craft'), ['recipe' => 'health-potion', 'count' => 1])->assertOk();
+
+        $user->forceFill(['bag_contents' => ['runecloth' => 14 * 20, 'kingsblood' => 2, 'essence-of-water' => 20]])->save();
+        // One potion leaves the water's slot taken and needs a slot of its own
+        $this->postJson(route('craft'), ['recipe' => 'health-potion', 'count' => 1])->assertStatus(422);
     }
 
     public function test_what_did_not_fit_in_the_bags_is_sold_short_and_a_material_is_not_kept(): void

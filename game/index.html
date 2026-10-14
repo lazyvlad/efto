@@ -117,6 +117,19 @@
                     <div class="spell-timer" id="spell-zandalari-timer"></div>
                     <div class="spell-cooldown-overlay" id="spell-zandalari-cooldown"></div>
                 </div>
+
+                <!-- A Health Potion from the bags (crafted between games): how many are left,
+                     and its own cooldown. Hidden while there are none. -->
+                <div class="spell-slot spell-potion" id="spell-potion" role="button" tabindex="-1" hidden>
+                    <div class="spell-icon">
+                        <img src="assets/powerups/health-potion.webp" alt="Health Potion" class="spell-image">
+                    </div>
+                    <div class="spell-key" data-key-of="potion">H</div>
+                    <div class="spell-name">Potion</div>
+                    <div class="spell-count" id="spell-potion-count"></div>
+                    <div class="spell-timer" id="spell-potion-timer"></div>
+                    <div class="spell-cooldown-overlay" id="spell-potion-cooldown"></div>
+                </div>
             </div>
             <div class="spell-group spell-group-shoot">
                 <div class="spell-slot" id="spell-autoshot">
@@ -221,6 +234,7 @@
                 <nav class="joined-buttons inventory-tabs" role="tablist" aria-label="Inventory">
                     <button type="button" class="game-btn inventory-tab" data-tab="bags" role="tab">Bags</button>
                     <button type="button" class="game-btn inventory-tab" data-tab="gear" role="tab">Gear</button>
+                    <button type="button" class="game-btn inventory-tab" data-tab="crafting" role="tab">Crafting</button>
                 </nav>
                 <div class="inventory-top-side">
                     <span id="inventoryPurse" class="inventory-purse" hidden></span>

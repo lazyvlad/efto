@@ -221,6 +221,9 @@ class GameRecordController extends Controller
             // How much of each thing caught did not fit in the bags
             'overflow' => ['nullable', 'array', 'max:200'],
             'overflow.*' => ['integer', 'min:0', 'max:100000'],
+            // What was drunk from the bags in the game (potions: config/crafting.php)
+            'used' => ['nullable', 'array', 'max:20'],
+            'used.*' => ['integer', 'min:0', 'max:10000'],
             // The strongest set worn in the game and what it gave
             'gear' => ['nullable', 'array'],
             'gear.set' => ['required_with:gear', 'string', 'in:'.implode(',', array_keys(config('loot.sets')))],
@@ -247,8 +250,10 @@ class GameRecordController extends Controller
             'mode' => $game->mode,
             'rank' => $entry ? Score::query()->where('score', '>', $entry->score)->count() + 1 : null,
             'coins' => ['earned' => $game->coins, 'balance' => $owner?->coins],
-            // The crafting materials this game brought back, and all the player now has
+            // The crafting materials this game brought back, what is in the bank, and what is in
+            // the bags now
             'materials' => ['kept' => (object) ($game->materials ?? []), 'bank' => $owner ? (object) ($owner->materials ?? []) : null],
+            'bags' => $owner ? (object) Bags::contents($owner) : null,
             'scores' => Score::leaderboard(),
         ]);
     }
@@ -286,8 +291,9 @@ class GameRecordController extends Controller
         ]);
 
         // Every recorded game earns its coins, finished or not: what was caught was caught
-        // What was only worth selling is sold; the crafting materials are kept. What did not
-        // fit in the bags was sold short, a material with it (App\Support\Bags).
+        // What was only worth selling is sold; the crafting materials stay in the bags, and
+        // what was drunk from them is gone. What did not fit in the bags was sold short, a
+        // material with it (App\Support\Bags).
         $settled = Bags::settle($game, $items, $data['overflow'] ?? []);
         $coins = $settled['coins'];
         $game->update(['coins' => $coins, 'materials' => $settled['materials'] ?: null]);
@@ -295,7 +301,8 @@ class GameRecordController extends Controller
             if ($coins > 0) {
                 $game->user()->increment('coins', $coins);
             }
-            Bags::keep($game->user()->first(), $settled['materials']);
+            $used = array_filter($data['used'] ?? [], fn ($count, $itemId) => Bags::keepable((string) $itemId), ARRAY_FILTER_USE_BOTH);
+            Bags::afterGame($game->user()->first(), $settled['materials'], $used);
         }
 
         // Only games that count go on the leaderboard, and Boss Rush and boss fights are not

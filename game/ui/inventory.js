@@ -1,10 +1,13 @@
 // The inventory: what the hunter carries and what the player keeps.
 //
-//   Bags   the slots of the backpack and the bags added to it, and during a game the stacks
-//          in them; the crafting materials kept on the account under them; and the bag vendor
-//          beside them. Bags are bought here, with coins, when no game is on.
-//   Gear   everything owned that can be worn, as what the hunter takes into a game and what
-//          stays in the bank, with the way to sell what is spare
+//   Bags      his 36 (the gear he takes into fights) on the left; the slots of the backpack and
+//             the bags added to it in the middle, with what is in them (what a game catches,
+//             and materials and potions, which stay in them between games); the bank's
+//             materials on the right, moved into the bags and back between games. The bag
+//             vendor is behind its button, bags bought with coins when no game is on.
+//   Gear      everything owned that can be worn, as what the hunter takes into a game and what
+//             stays in the bank, with the way to sell what is spare
+//   Crafting  the recipes, made between games from what is in the bags, into the bags
 //
 // It is one of the game's windows (styles/game-window.css), and like the character sheet it
 // opens over the starting window or over the paused game. The rules of the bags are in
@@ -15,6 +18,7 @@ import { gameItems } from '../data/gameItems.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { MATERIALS, categoryOf } from '../data/materials.js';
 import { stacksOf, slotsUsed } from '../utils/bags.js';
+import { craftedById, canMake } from '../data/crafting.js';
 import { formatCoins } from '../utils/coins.js';
 import { wearableById } from '../data/wearables.js';
 import { itemStats } from '../utils/gear.js';
@@ -28,6 +32,11 @@ let notice = '';
 let picked = { list: null, ids: new Set(), last: null };
 let drawnTab = null;     // The tab drawn last, to keep where its lists were scrolled to
 let dragging = null;    // { list, ids } while gear is dragged from one list towards the other
+let pickedStack = null; // The kind of thing picked in the bags, to move or craft with
+let sideShows = 'bank'; // What the Bags tab shows beside the bags: 'bank' or 'vendor'
+let recipeId = null;    // The recipe open on the Crafting tab
+let makeCount = 1;      // How many of it to make
+let busy = false;       // A move or a craft on its way to the site
 
 function clearPicked() {
     picked = { list: null, ids: new Set(), last: null };
@@ -42,7 +51,8 @@ function make(tag, className, text) {
     return node;
 }
 
-const itemById = id => gameItems.find(item => item.id === id) || null;
+// Anything that can be in the bags or the bank: an item of the game, or something crafted
+const itemById = id => gameItems.find(item => item.id === id) || craftedById(id) || null;
 
 export function isInventoryOpen() {
     const layer = element('inventory');
@@ -56,7 +66,12 @@ export function isInventoryOpen() {
  *        owned), bagSlots, forSale ({ size: price } or null), coins (or null for a guest),
  *        canSpend, bank ({ itemId: count }), loggedIn }
  *        Also gear ({ itemId: count }), worn (item ids) and fullBagLoss (0-1).
+ *        For the bags and crafting: contents (what is in the bags), recipes ([{ id, item,
+ *        needs }]), potion ({ id, heal, cooldown, key }), carried and worn (for his 36).
  * @param {Function} options.onBuyBag - (size) => Promise resolving to an error message or ''
+ * @param {Function} options.onMove - (itemId, count, 'bags' or 'bank') between games, a stack
+ *        between the bank and the bags => Promise resolving to an error message or ''
+ * @param {Function} options.onCraft - (recipeId, count) => the same
  * @param {Function} options.onSell - (itemId, count) => Promise resolving to an error message or ''
  * @param {Function} options.onCarry - (itemIds, take) take things into the game or leave them
  *        in the bank, as many as there is room for; returns an error message or ''
@@ -145,16 +160,25 @@ function render() {
     // Drawn again after a press (Take, Leave, a pick): every list stays where it was scrolled to
     const scrolled = tab === drawnTab ? scrollPositions(body) : null;
     body.textContent = '';
+    body.dataset.tab = tab;
     const main = make('div', 'inventory-main');
     const side = make('aside', 'inventory-side');
     body.append(main, side);
 
     if (tab === 'gear') {
         renderGear(main, side, state);
+    } else if (tab === 'crafting') {
+        const recipesSide = make('aside', 'inventory-left');
+        body.insertBefore(recipesSide, main);
+        renderCrafting(recipesSide, main, side, state);
     } else {
+        // His 36 on the left, the bags, and the bank (or the bag vendor) beside them
+        const carry = make('aside', 'inventory-left');
+        body.insertBefore(carry, main);
+        renderCarry(carry, state);
         renderBags(main, state);
-        renderMaterials(main, state);
-        renderBagShop(side, state);
+        if (sideShows === 'vendor') renderBagShop(side, state);
+        else renderBank(side, state);
     }
 
     if (scrolled) restoreScroll(body, scrolled);
@@ -194,15 +218,36 @@ function card(title, label, className = '') {
     return box;
 }
 
-// One slot of a bag, holding a stack or nothing
-function slotOf(stack) {
-    const slot = make('div', 'inventory-slot');
-    if (!stack) return slot;
+// What kind of thing is in a slot: kept for crafting, crafted, gear, or sold when the game ends
+function kindOf(itemId) {
+    if (craftedById(itemId)) return 'crafted';
+    return categoryOf(itemById(itemId));
+}
+
+// Whether a thing is kept in the bags and the bank between games
+const isKept = itemId => MATERIALS.has(itemId) || Boolean(craftedById(itemId));
+
+// One slot of a bag, holding a stack or nothing. A kept thing's slot can be picked between
+// games, to move it or craft with it.
+function slotOf(stack, state) {
+    if (!stack) return make('div', 'inventory-slot');
 
     const item = itemById(stack.itemId);
-    const kind = categoryOf(item);
-    slot.classList.add(`is-${kind}`);
-    slot.title = `${item ? item.name : stack.itemId}${stack.count > 1 ? ` (${stack.count})` : ''} · ${kind === 'material' ? 'crafting material, kept' : kind === 'gear' ? 'gear, kept' : 'sold when the game ends'}`;
+    const kind = kindOf(stack.itemId);
+    const pickable = Boolean(state) && state.loggedIn && !state.playing && isKept(stack.itemId);
+    const slot = make(pickable ? 'button' : 'div', `inventory-slot is-${kind}`);
+    if (pickable) {
+        slot.type = 'button';
+        slot.classList.toggle('is-picked', pickedStack === stack.itemId);
+        slot.addEventListener('click', () => {
+            pickedStack = pickedStack === stack.itemId ? null : stack.itemId;
+            notice = '';
+            render();
+        });
+    }
+    slot.title = `${item ? item.name : stack.itemId}${stack.count > 1 ? ` (${stack.count})` : ''} · ${{
+        material: 'crafting material, kept', crafted: 'crafted, kept', gear: 'gear, kept',
+    }[kind] || 'sold when the game ends'}`;
 
     if (item) {
         const picture = make('img');
@@ -214,39 +259,200 @@ function slotOf(stack) {
     return slot;
 }
 
+// How many more of a kind fit in the bags: on its last stack, and in the free slots
+function roomFor(itemId, contents, capacity) {
+    const stack = gameConfig.bags.stack;
+    const count = contents[itemId] || 0;
+    const onStack = count % stack ? stack - (count % stack) : 0;
+    return onStack + Math.max(0, capacity - slotsUsed(contents, stack)) * stack;
+}
+
+// Move between the bank and the bags, then say what happened and draw it again
+async function move(itemId, count, to) {
+    if (busy || count < 1) return;
+    busy = true;
+    notice = (await game.onMove(itemId, count, to)) || '';
+    busy = false;
+    if (!notice && to === 'bank' && pickedStack === itemId) pickedStack = null;
+    render();
+}
+
+// His 36: the gear he takes into fights, a slot each, the pieces on him marked
+function renderCarry(column, state) {
+    const box = make('section', 'window-card inventory-left-card');
+    const carried = state.carried ? [...state.carried] : [...new Set(state.worn)];
+    const worn = new Set(state.worn);
+    const on = carried.filter(itemId => worn.has(itemId)).length;
+
+    box.append(make('p', 'window-label', 'With your hunter, into every fight'));
+    const heading = make('div', 'window-card-title');
+    heading.append(make('h3', '', `His ${state.carryLimit}`), make('span', 'inventory-carry-count', `${carried.length} of ${state.carryLimit} · ${on} on`));
+    box.append(heading);
+
+    const grid = make('div', 'inventory-carry-grid');
+    for (let index = 0; index < state.carryLimit; index++) {
+        const item = carried[index] ? wearableById(carried[index]) : null;
+        const slot = make('div', item ? 'inventory-carry-slot' : 'inventory-carry-slot is-empty');
+        if (item) {
+            slot.dataset.rarity = item.set ? 'epic' : item.rarity || 'epic';
+            slot.title = `${item.name}${worn.has(item.id) ? ' · on' : ''}`;
+            const picture = make('img');
+            picture.src = item.image;
+            picture.alt = '';
+            slot.append(picture);
+            if (worn.has(item.id)) slot.append(make('span', 'inventory-carry-on'));
+        }
+        grid.append(slot);
+    }
+    box.append(grid);
+
+    const legend = make('div', 'inventory-carry-legend');
+    legend.append(make('span', 'is-on', 'Worn'), make('span', 'is-room', 'Room for more'));
+    box.append(legend);
+
+    const text = make('p', 'inventory-text inventory-fine', state.carried
+        ? 'Only these can be put on while playing. Choose them under Gear.'
+        : 'What he wears. With an account he takes 36 things into a game, chosen under Gear.');
+    box.append(text);
+    const toGear = make('button', 'game-btn inventory-carry-btn', 'Choose under Gear');
+    toGear.type = 'button';
+    toGear.addEventListener('click', () => {
+        tab = 'gear';
+        notice = '';
+        render();
+    });
+    if (state.carried) box.append(toGear);
+    column.append(box);
+}
+
 function renderBags(main, state) {
     const stack = gameConfig.bags.stack;
     const stacks = stacksOf(state.contents, stack);
     const used = slotsUsed(state.contents, stack);
     // Less is lost with gear that helps carrying
     const share = Math.round((1 - state.fullBagLoss) * 100);
+    if (pickedStack && !state.contents[pickedStack]) pickedStack = null;
 
     const box = card('In your bags', `${used} of ${state.capacity} slots · a slot holds ${stack} of one kind`, 'inventory-bags-card');
-    if (!state.playing) box.append(make('p', 'inventory-text', 'Everything a game catches goes in here.'));
-
     const grid = make('div', 'inventory-grid');
     for (let index = 0; index < state.capacity; index++) {
-        grid.append(slotOf(stacks[index] || null));
+        grid.append(slotOf(stacks[index] || null, state));
     }
     box.append(grid);
 
-    // The bags themselves: the backpack and the ones bought
+    // A kind picked: what can be done with it
+    if (pickedStack) box.append(pickedBar(pickedStack, state));
+
+    // The bags themselves: the backpack and the ones bought, and the vendor
     const bags = make('div', 'inventory-bag-row');
     bags.append(make('span', 'window-label', 'Your bags'), make('span', 'inventory-bag', `Backpack · ${gameConfig.bags.backpack}`));
     for (let index = 0; index < state.bagSlots; index++) {
         const size = state.bags[index];
         bags.append(make('span', size ? 'inventory-bag' : 'inventory-bag is-empty', size ? `Bag · ${size}` : 'Empty'));
     }
-    bags.append(make('span', 'inventory-bag-note window-warning', used >= state.capacity
-        ? `The bags are full: what does not fit sells for ${share}%`
-        : `Once they are full, what does not fit sells for ${share}%`));
+    const vendor = make('button', 'inventory-bag inventory-vendor-btn', sideShows === 'vendor' ? 'The bank' : 'Bag vendor');
+    vendor.type = 'button';
+    vendor.addEventListener('click', () => {
+        sideShows = sideShows === 'vendor' ? 'bank' : 'vendor';
+        notice = '';
+        render();
+    });
+    bags.append(vendor);
     box.append(bags);
+
+    box.append(make('p', 'inventory-text inventory-fine', state.playing
+        ? `What he picks up goes in here. Once they are full, what does not fit sells for ${share}%.`
+        : `What he picks up in a game goes in here, and stays between games. Craft from what is in your bags. Once they are full, what does not fit sells for ${share}%.`));
+    if (used >= state.capacity) box.append(make('p', 'inventory-text window-warning', 'The bags are full.'));
 
     const short = Object.values(state.overflow).reduce((total, count) => total + count, 0);
     if (short > 0) {
         box.append(make('p', 'inventory-text window-warning', `${short} ${short === 1 ? 'thing' : 'things'} did not fit this game and ${short === 1 ? 'was' : 'were'} sold short.`));
     }
+    if (notice && sideShows !== 'vendor') box.append(make('p', 'inventory-text window-warning', notice));
     main.append(box);
+}
+
+// Under the bags, for the kind picked: its name and count, to the bank, or to crafting
+function pickedBar(itemId, state) {
+    const item = itemById(itemId);
+    const count = state.contents[itemId] || 0;
+    const usedIn = (state.recipes || []).filter(recipe => recipe.needs[itemId]);
+
+    const bar = make('div', 'inventory-picked');
+    const picture = make('img');
+    picture.src = item ? item.image : '';
+    picture.alt = '';
+    const text = make('span', 'window-item-text');
+    text.append(
+        make('span', 'window-item-name', `${item ? item.name : itemId} · ${count}`),
+        make('span', 'window-item-note', craftedById(itemId)
+            ? (state.potion && state.potion.id === itemId ? `Drink in a fight with ${state.potion.key}` : 'Crafted')
+            : usedIn.length ? `Material · for ${usedIn.map(recipe => recipe.item ? `${recipe.item.name}s` : recipe.id).join(', ')}` : 'Material')
+    );
+    bar.append(picture, text);
+
+    const toBank = make('button', 'game-btn', 'To the bank');
+    toBank.type = 'button';
+    toBank.disabled = busy;
+    toBank.addEventListener('click', () => move(itemId, count, 'bank'));
+    bar.append(toBank);
+
+    if (usedIn.length) {
+        const craftWith = make('button', 'game-btn is-on', 'Craft with it');
+        craftWith.type = 'button';
+        craftWith.addEventListener('click', () => {
+            tab = 'crafting';
+            recipeId = usedIn[0].id;
+            makeCount = 1;
+            notice = '';
+            render();
+        });
+        bar.append(craftWith);
+    }
+    return bar;
+}
+
+// The bank: the materials (and what is crafted) kept without limit, moved into the bags
+function renderBank(side, state) {
+    const box = make('section', 'window-card inventory-side-card');
+    box.append(make('p', 'window-label', 'The bank · no limit'), make('h3', 'inventory-side-title', 'Materials'));
+    side.append(box);
+
+    if (!state.loggedIn) {
+        box.append(make('p', 'inventory-text', 'The bank is kept on an account. Log in to keep what you find, and craft with it.'));
+        return;
+    }
+    const ids = Object.keys(state.bank).filter(itemId => state.bank[itemId] > 0 && isKept(itemId))
+        .sort((a, b) => (itemById(a)?.name || a).localeCompare(itemById(b)?.name || b));
+    if (ids.length === 0) {
+        box.append(make('p', 'inventory-text', 'Nothing in the bank. Materials you move out of your bags are kept here.'));
+    }
+
+    const list = make('div', 'inventory-list');
+    for (const itemId of ids) {
+        const item = itemById(itemId);
+        const count = state.bank[itemId];
+        const fits = Math.min(count, roomFor(itemId, state.contents, state.capacity));
+        const row = make('div', 'window-item inventory-bank-row');
+        row.dataset.rarity = craftedById(itemId) ? 'uncommon' : 'rare';
+        const picture = make('img');
+        picture.src = item ? item.image : '';
+        picture.alt = '';
+        const text = make('span', 'window-item-text');
+        text.append(make('span', 'window-item-name inventory-plain-name', item ? item.name : itemId));
+        const button = make('button', 'game-btn is-on inventory-bank-btn', fits > 0 ? 'To bags' : 'No room');
+        button.type = 'button';
+        button.disabled = state.playing || busy || fits === 0;
+        button.title = state.playing ? 'Between games' : fits === 0 ? 'Your bags are full' : fits < count ? `${fits} of them fit in your bags` : `All ${count} to your bags`;
+        button.addEventListener('click', () => move(itemId, fits, 'bags'));
+        row.append(picture, text, make('span', 'inventory-row-count', String(count)), button);
+        list.append(row);
+    }
+    box.append(list);
+    box.append(make('p', 'inventory-text inventory-fine', state.playing
+        ? 'Things are moved between the bank and your bags between games.'
+        : `Gear in the bank is under Gear. A stack moved to your bags takes one slot for every ${gameConfig.bags.stack}.`));
 }
 
 // The bag vendor
@@ -297,46 +503,7 @@ function renderBagShop(side, state) {
 
     if (notice) box.append(make('p', 'inventory-text window-warning', notice));
     if (!state.canSpend) box.append(make('p', 'inventory-text', 'Activate your account to spend coins.'));
-    box.append(make('p', 'inventory-text inventory-fine', 'Junk is sold for coins as a game ends. Materials go to the bank. Gear is kept.'));
-}
-
-function renderMaterials(main, state) {
-    // What is kept, with what this game has in its bags on top
-    const counts = { ...state.bank };
-    const caught = {};
-    for (const [itemId, count] of Object.entries(state.contents)) {
-        if (MATERIALS.has(itemId)) caught[itemId] = count;
-    }
-
-    const box = card('Materials kept', state.loggedIn ? 'Brought back from your games, for crafting' : 'Kept on an account', 'inventory-materials-card');
-    main.append(box);
-
-    const ids = [...MATERIALS].filter(itemId => counts[itemId] || caught[itemId]);
-    if (!state.loggedIn) {
-        box.append(make('p', 'inventory-text', 'Crafting materials are kept on an account, not sold. As a guest, what you catch is gone when the game ends.'));
-    }
-    if (ids.length === 0) {
-        box.append(make('p', 'inventory-text', 'None yet. Cloth, leather, herbs, bars, gems and the like are materials; they will be made into things that help in a game.'));
-        return;
-    }
-
-    const grid = make('div', 'inventory-materials');
-    for (const itemId of ids) {
-        const item = itemById(itemId);
-        const row = make('div', 'window-item');
-        row.dataset.rarity = 'rare';
-        const picture = make('img');
-        picture.src = item ? item.image : '';
-        picture.alt = '';
-
-        const text = make('span', 'window-item-text');
-        text.append(make('span', 'window-item-name inventory-plain-name', item ? item.name : itemId));
-        if (caught[itemId]) text.append(make('span', 'window-item-note', `+${caught[itemId]} in your bags this game`));
-
-        row.append(picture, text, make('span', 'inventory-row-count', String(counts[itemId] || 0)));
-        grid.append(row);
-    }
-    box.append(grid);
+    box.append(make('p', 'inventory-text inventory-fine', 'Junk is sold for coins as a game ends. Materials stay in your bags. Gear is kept.'));
 }
 
 // "+7 armor, +5 health, carrying +2%"
@@ -672,4 +839,155 @@ function gearRow({ item, count, sells }, state, carried, full, list) {
 
     row.append(picture, text, buttons);
     return row;
+}
+
+// ----- Crafting: the recipes, made between games from what is in the bags, into the bags -----
+
+function renderCrafting(column, main, side, state) {
+    const list = state.recipes || [];
+    if (!list.some(recipe => recipe.id === recipeId)) recipeId = list.length ? list[0].id : null;
+
+    // The recipes, each with how many can be made from what is in the bags
+    const recipesBox = make('section', 'window-card inventory-left-card');
+    recipesBox.append(make('p', 'window-label', 'Alchemy'), make('h3', 'inventory-side-title', 'Recipes'));
+    for (const recipe of list) {
+        const button = make('button', recipe.id === recipeId ? 'window-item inventory-recipe is-on' : 'window-item inventory-recipe');
+        button.type = 'button';
+        button.dataset.rarity = (recipe.item && recipe.item.rarity) || 'uncommon';
+        const picture = make('img');
+        picture.src = recipe.item ? recipe.item.image : '';
+        picture.alt = '';
+        const text = make('span', 'window-item-text');
+        const can = canMake(recipe.needs, state.contents);
+        text.append(make('span', 'window-item-name', recipe.item ? recipe.item.name : recipe.id), make('span', 'window-item-note', can > 0 ? `You can make ${can}` : 'Not enough in your bags'));
+        button.append(picture, text);
+        button.addEventListener('click', () => {
+            recipeId = recipe.id;
+            makeCount = 1;
+            notice = '';
+            render();
+        });
+        recipesBox.append(button);
+    }
+    if (list.length === 0) recipesBox.append(make('p', 'inventory-text', state.loggedIn ? 'No recipes yet.' : 'Crafting is for accounts: log in to craft.'));
+    recipesBox.append(make('p', 'inventory-text inventory-fine inventory-carry-end', 'More recipes come as the game grows.'));
+    column.append(recipesBox);
+
+    renderRecipe(main, state, list.find(recipe => recipe.id === recipeId));
+    renderBagsBeside(side, state);
+}
+
+// The recipe open: what it makes and does, what it takes, and how many to make
+function renderRecipe(main, state, recipe) {
+    const box = make('section', 'window-card inventory-recipe-card');
+    main.append(box);
+    if (!recipe) return;
+
+    const item = recipe.item || { name: recipe.id, image: '' };
+    const potion = state.potion && state.potion.id === recipe.id ? state.potion : null;
+    const head = make('div', 'inventory-recipe-head');
+    const picture = make('div', 'inventory-recipe-picture');
+    const image = make('img');
+    image.src = item.image;
+    image.alt = item.name;
+    picture.append(image);
+    const words = make('div', 'inventory-recipe-words');
+    words.append(make('h3', 'inventory-recipe-name', item.name));
+    if (potion) {
+        const does = make('p', 'inventory-text');
+        does.append('Drink in a fight: ', make('strong', 'inventory-heal', `+${potion.heal} health`), '. Press ', make('span', 'inventory-key', potion.key), `, one every ${potion.cooldown} seconds.`);
+        words.append(does);
+    }
+    words.append(make('p', 'inventory-text inventory-fine', `Goes into your bags; ${gameConfig.bags.stack} to a slot.`));
+    head.append(picture, words);
+    box.append(head);
+
+    // What one takes: what is in the bags, and what more is in the bank
+    box.append(make('p', 'window-label inventory-recipe-label', 'Made from, for each one'));
+    for (const [itemId, each] of Object.entries(recipe.needs)) {
+        const reagent = itemById(itemId);
+        const inBags = state.contents[itemId] || 0;
+        const inBank = state.bank[itemId] || 0;
+        const row = make('div', 'window-item inventory-reagent');
+        const reagentPicture = make('img');
+        reagentPicture.src = reagent ? reagent.image : '';
+        reagentPicture.alt = '';
+        const text = make('span', 'window-item-text');
+        text.append(
+            make('span', 'window-item-name inventory-plain-name', `${each} × ${reagent ? reagent.name : itemId}`),
+            make('span', 'window-item-note', inBank ? `${inBank} more in the bank` : 'None in the bank')
+        );
+        row.append(reagentPicture, text, make('span', inBags >= each ? 'inventory-have is-enough' : 'inventory-have', `${inBags} in your bags`));
+        const fits = Math.min(inBank, roomFor(itemId, state.contents, state.capacity));
+        if (state.loggedIn && inBank > 0) {
+            const fetch = make('button', 'game-btn inventory-bank-btn', fits > 0 ? 'To bags' : 'No room');
+            fetch.type = 'button';
+            fetch.disabled = state.playing || busy || fits === 0;
+            fetch.title = fits > 0 ? `Move ${fits} from the bank to your bags` : 'Your bags are full';
+            fetch.addEventListener('click', () => move(itemId, fits, 'bags'));
+            row.append(fetch);
+        }
+        box.append(row);
+    }
+
+    // How many, and make them
+    const most = canMake(recipe.needs, state.contents);
+    makeCount = Math.max(1, Math.min(makeCount, Math.max(1, most)));
+    const bar = make('div', 'inventory-make');
+    bar.append(make('span', 'inventory-make-label', 'How many'));
+    const stepper = make('div', 'inventory-stepper');
+    const fewer = make('button', 'game-btn', '−');
+    fewer.type = 'button';
+    fewer.setAttribute('aria-label', 'One fewer');
+    fewer.disabled = makeCount <= 1;
+    fewer.addEventListener('click', () => { makeCount--; render(); });
+    const more = make('button', 'game-btn', '+');
+    more.type = 'button';
+    more.setAttribute('aria-label', 'One more');
+    more.disabled = makeCount >= most;
+    more.addEventListener('click', () => { makeCount++; render(); });
+    stepper.append(fewer, make('span', 'inventory-stepper-value', String(makeCount)), more);
+    const all = make('button', 'game-btn', `All · ${most}`);
+    all.type = 'button';
+    all.disabled = most < 1;
+    all.addEventListener('click', () => { makeCount = most; render(); });
+    const makeIt = make('button', 'game-btn is-primary inventory-make-btn', `Make ${makeCount}`);
+    makeIt.type = 'button';
+    makeIt.disabled = !state.loggedIn || state.playing || busy || most < 1;
+    makeIt.title = !state.loggedIn ? 'Log in to craft' : state.playing ? 'Crafting is done between games' : most < 1 ? 'Not enough in your bags' : `Make ${makeCount} ${item.name}`;
+    makeIt.addEventListener('click', async () => {
+        if (busy) return;
+        busy = true;
+        notice = (await game.onCraft(recipe.id, makeCount)) || '';
+        busy = false;
+        if (!notice) {
+            notice = `Made ${makeCount} ${item.name}${makeCount === 1 ? '' : 's'}: in your bags.`;
+            makeCount = 1;
+        }
+        render();
+    });
+    bar.append(stepper, all, makeIt);
+    box.append(bar);
+
+    if (state.playing) box.append(make('p', 'inventory-text window-warning', 'Crafting is done between games.'));
+    if (notice) box.append(make('p', notice.startsWith('Made ') ? 'inventory-text inventory-made' : 'inventory-text window-warning', notice));
+}
+
+// The bags beside the recipe: what it is made from, and what it makes
+function renderBagsBeside(side, state) {
+    const stack = gameConfig.bags.stack;
+    const stacks = stacksOf(state.contents, stack);
+    const box = make('section', 'window-card inventory-side-card');
+    box.append(make('p', 'window-label', 'Made from, and into'));
+    const heading = make('div', 'window-card-title');
+    heading.append(make('h3', 'inventory-side-title', 'Your bags'), make('span', 'inventory-carry-count', `${slotsUsed(state.contents, stack)} of ${state.capacity}`));
+    box.append(heading);
+
+    const shown = Math.min(state.capacity, 36);
+    const grid = make('div', 'inventory-grid inventory-grid-small');
+    for (let index = 0; index < shown; index++) grid.append(slotOf(stacks[index] || null, null));
+    box.append(grid);
+    if (state.capacity > shown) box.append(make('p', 'inventory-text inventory-fine', `Showing the first ${shown} of ${state.capacity} slots.`));
+    box.append(make('p', 'inventory-text inventory-fine inventory-carry-end', 'Only what is in your bags can be used. Move more from the bank under Bags.'));
+    side.append(box);
 }

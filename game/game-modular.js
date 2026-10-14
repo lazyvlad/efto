@@ -34,6 +34,7 @@ import { Pet } from './classes/Pet.js';
 import { playerCharacters, characterFor } from './data/playerCharacters.js';
 import { hunterPicture } from './utils/hunterLooks.js';
 import { askConfirm } from './ui/gameDialog.js';
+import { craftedById, recipes, isCrafted } from './data/crafting.js';
 import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost, renderGameModePicker, getGameMode, gameModeCost, rememberBeaten } from './ui/startZone.js';
 import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
 import { showGameOverSummary, showGameOverResult } from './ui/gameOverScreen.js';
@@ -492,6 +493,7 @@ function updateCanvasOverlay() {
         gameState,
         onGameVisible: () => {
             updateSpellBar(spellSystem);
+            updatePotionSlot();
             updateHealthBar(gameState);
         }
     });
@@ -2756,8 +2758,11 @@ function setupUIEventHandlers() {
             
             return {
                 playing,
-                contents: playing ? gameState.bags.contents : {},
+                // In a game what its bags hold; between games what is kept in them
+                contents: bagContents(),
                 overflow: playing ? gameState.bags.overflow : {},
+                recipes: recipes(),
+                potion: { id: POTION, ...gameConfig.potions[POTION], key: keyName('potion') },
                 capacity: bagCapacity(gameConfig.bags, user && user.bags ? user.bags : []),
                 bags: user && user.bags ? user.bags : [],
                 bagSlots: gameConfig.bags.bagSlots,
@@ -2782,6 +2787,8 @@ function setupUIEventHandlers() {
             };
         },
         onBuyBag: buyBag,
+        onMove: moveKept,
+        onCraft: craft,
         onSell: sellGear,
         onCarry: carryMany,
         onCloseAll: closeWindowsAndResume,
@@ -2816,6 +2823,19 @@ function setupUIEventHandlers() {
         } else {
             showCharacterSheet();
         }
+    });
+    
+    // A Health Potion from the bags: its key (H unless the player changed it), or a tap on its
+    // slot on the spell bar
+    document.addEventListener('keydown', event => {
+        const typing = document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+        if (actionFor(event.code) !== 'potion' || typing || event.repeat) return;
+        drinkPotion();
+    });
+    document.getElementById('spell-potion')?.addEventListener('pointerdown', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        drinkPotion();
     });
     
     // Wearing a saved set in play: its key (1 to 4 unless the player changed them), or its
@@ -4182,10 +4202,110 @@ function resetItemsListCache() {
 // worn, not carried: it takes no room.
 
 // The bags as a game starts: empty, with the room of the backpack and the bags bought
+// A game starts with the bags as they were left: what is kept in them between games
+// (materials, and what was crafted from them) takes its room from what the game catches
 function emptyBags() {
-    gameState.bags = { contents: {}, overflow: {} };
+    const kept = siteBoot && siteBoot.user && siteBoot.user.bagContents ? siteBoot.user.bagContents : {};
+    gameState.bags = { contents: { ...kept }, overflow: {} };
+    gameState.bagsAtStart = { ...kept };
+    gameState.potionsUsed = {};
+    gameState.potionReadyAt = 0;
     gameState.bagCapacity = bagCapacity(gameConfig.bags, siteBoot && siteBoot.user && siteBoot.user.bags ? siteBoot.user.bags : []);
     gameState.bagsFullSaid = false;
+}
+
+// What the bags hold between games (or in the game being played)
+function bagContents() {
+    if (gameState.gameRunning || gameState.showingPauseMenu) return gameState.bags.contents;
+    return siteBoot && siteBoot.user && siteBoot.user.bagContents ? siteBoot.user.bagContents : {};
+}
+
+// ----- Potions: crafted between games, drunk in a fight from the bags -----
+const POTION = 'health-potion';
+
+// Drink one (its key, H unless changed, or a tap on its slot): it heals, and the next waits
+// out its cooldown
+function drinkPotion() {
+    if (!gameState.gameRunning || gameState.showingPauseMenu || gameState.gamePaused) return;
+    const rules = gameConfig.potions[POTION];
+    const have = gameState.bags.contents[POTION] || 0;
+    const now = gameClock.now();
+    if (!rules || have <= 0) {
+        addNotification(gameState, 'No Health Potions in your bags: craft them between games', 180, '#FF6B35');
+        return;
+    }
+    if (now < gameState.potionReadyAt) return;
+    
+    gameState.bags.contents[POTION] = have - 1;
+    if (gameState.bags.contents[POTION] === 0) delete gameState.bags.contents[POTION];
+    gameState.potionsUsed[POTION] = (gameState.potionsUsed[POTION] || 0) + 1;
+    gameState.potionReadyAt = now + rules.cooldown * 1000;
+    const healed = Math.min(rules.heal, gameState.maxHealth - gameState.health);
+    gameState.health = Math.min(gameState.maxHealth, gameState.health + rules.heal);
+    combatTexts.push(new CombatText(player.x + player.width / 2, player.y, `+${healed}`, '#1EFF00', false));
+    refreshInventory();
+}
+
+// The potion's slot on the spell bar: shown while there are any, with how many and its cooldown
+const potionSlot = { shown: null, count: '', timer: '' };
+function updatePotionSlot() {
+    const slot = document.getElementById('spell-potion');
+    if (!slot) return;
+    const have = (gameState.bags && gameState.bags.contents[POTION]) || 0;
+    const shown = gameState.gameRunning && have > 0;
+    if (shown !== potionSlot.shown) {
+        slot.hidden = !shown;
+        potionSlot.shown = shown;
+    }
+    if (!shown) return;
+    
+    const count = String(have);
+    if (count !== potionSlot.count) {
+        document.getElementById('spell-potion-count').textContent = count;
+        potionSlot.count = count;
+    }
+    const left = Math.max(0, Math.ceil((gameState.potionReadyAt - gameClock.now()) / 1000));
+    const timer = left > 0 ? `${left}s` : '';
+    if (timer !== potionSlot.timer) {
+        const timerElement = document.getElementById('spell-potion-timer');
+        timerElement.textContent = timer;
+        timerElement.className = left > 0 ? 'spell-timer cooldown' : 'spell-timer';
+        document.getElementById('spell-potion-cooldown').classList.toggle('active', left > 0);
+        slot.classList.toggle('cooldown', left > 0);
+        potionSlot.timer = timer;
+    }
+}
+
+// ----- Between games: moving things between the bank and the bags, and crafting -----
+async function postKept(url, body, failed) {
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': siteBoot.csrfToken || '' },
+            credentials: 'same-origin',
+            body: JSON.stringify(body)
+        });
+        const result = await response.json();
+        if (!response.ok) return result.message || failed;
+        
+        siteBoot.user.bagContents = result.bags || {};
+        siteBoot.user.materials = result.bank || {};
+        return '';
+    } catch (e) {
+        return `${failed} No answer from the site.`;
+    }
+}
+
+function moveKept(itemId, count, to) {
+    if (!hasBank() || !siteBoot.urls.bagsMove) return Promise.resolve('Log in to keep things in the bank.');
+    if (isPlaying()) return Promise.resolve('Things are moved between the bank and your bags between games.');
+    return postKept(siteBoot.urls.bagsMove, { item: itemId, count, to }, 'It could not be moved.');
+}
+
+function craft(recipeId, count) {
+    if (!hasBank() || !siteBoot.urls.craft) return Promise.resolve('Log in to craft.');
+    if (isPlaying()) return Promise.resolve('Crafting is done between games.');
+    return postKept(siteBoot.urls.craft, { recipe: recipeId, count }, 'It could not be made.');
 }
 
 // Something worth coins was caught: into the bags with it, and the coins it comes to
@@ -4284,6 +4404,8 @@ function getGameSummary() {
         gear: noteGearUsed() || null,
         // How much of each thing caught did not fit in the bags and was sold short
         overflow: gameState.bags.overflow,
+        // What was drunk from the bags (potions)
+        used: gameState.potionsUsed || {},
         // Ratings as percentages with one decimal
         finalCritRating: Math.round(getCurrentTotalCritRating() * 1000) / 10,
         finalDodgeRating: Math.round(getCurrentTotalDodgeRating() * 1000) / 10
@@ -4489,15 +4611,19 @@ function gameOverSummary() {
             isNew: false,
         });
     }
-    // The crafting materials
+    // The crafting materials this game caught (the bags kept what was in them before)
     const contents = (gameState.bags && gameState.bags.contents) || {};
-    for (const [itemId, count] of Object.entries(contents).filter(([itemId]) => MATERIALS.has(itemId))) {
+    const before = gameState.bagsAtStart || {};
+    const caughtNow = Object.entries(contents)
+        .map(([itemId, count]) => [itemId, count - (before[itemId] || 0)])
+        .filter(([itemId, count]) => MATERIALS.has(itemId) && count > 0);
+    for (const [itemId, count] of caughtNow) {
         const item = gameItems.find(candidate => candidate.id === itemId);
         home.push({
             image: item ? item.image : '',
             name: `${item ? item.name : itemId} ×${count}`,
             rarity: 'rare',
-            note: loggedIn ? 'Crafting material, kept' : 'Log in to keep materials',
+            note: loggedIn ? 'Crafting material, kept in your bags' : 'Log in to keep materials',
             isNew: false,
             material: itemId,
         });
@@ -4505,7 +4631,7 @@ function gameOverSummary() {
     
     // What was sold: the junk in the bags, and what did not fit
     const notes = [];
-    const junk = Object.entries(contents).filter(([itemId]) => !MATERIALS.has(itemId) && !isKeptGear(itemId) && gameItems.find(item => item.id === itemId)?.type !== 'set_piece')
+    const junk = Object.entries(contents).filter(([itemId]) => !MATERIALS.has(itemId) && !isCrafted(itemId) && !isKeptGear(itemId) && gameItems.find(item => item.id === itemId)?.type !== 'set_piece')
         .reduce((total, [, count]) => total + count, 0);
     if (junk > 0) notes.push({ text: `${junk} ${junk === 1 ? 'thing' : 'things'} of no use sold for coins`, kind: '' });
     const short = Object.values((gameState.bags && gameState.bags.overflow) || {}).reduce((total, count) => total + count, 0);
@@ -4575,9 +4701,15 @@ function endGame() {
                 // the materials brought home
                 if (result.materials && result.materials.bank && siteBoot && siteBoot.user) {
                     siteBoot.user.materials = result.materials.bank;
-                    showGameOverResult({ home: summary.home.map(thing => thing.material && result.materials.bank[thing.material]
-                        ? { ...thing, note: `You have ${result.materials.bank[thing.material]} now` }
+                }
+                // The bags as they are kept now: the materials this game brought, less what
+                // was drunk
+                if (result.bags && siteBoot && siteBoot.user) {
+                    siteBoot.user.bagContents = result.bags;
+                    showGameOverResult({ home: summary.home.map(thing => thing.material && result.bags[thing.material]
+                        ? { ...thing, note: `${result.bags[thing.material]} in your bags now` }
                         : thing) });
+                    refreshInventory();
                 }
                 
                 if (result.mode === 'boss_rush' || result.mode === 'boss_fight') {

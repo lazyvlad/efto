@@ -59,6 +59,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/sell', [VendorController::class, 'sell'])->middleware('throttle:60,1')->name('vendor.sell');
     // A bag bought with coins, added to the backpack
     Route::post('/api/bags', [BagController::class, 'buy'])->middleware('throttle:30,1')->name('bags.buy');
+    Route::post('/api/bags/move', [BagController::class, 'move'])->middleware('throttle:120,1')->name('bags.move');
+    Route::post('/api/craft', [BagController::class, 'craft'])->middleware('throttle:60,1')->name('craft');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

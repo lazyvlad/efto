@@ -9,10 +9,13 @@ use App\Models\User;
  * The hunter's bags, and what a finished game comes to because of them.
  *
  * Everything caught in a game goes into the bags: a slot holds a stack of one kind. What is
- * only worth selling is sold for its coins when the game ends; a crafting material is kept on
- * the account instead. Once the bags are full, what is caught has nowhere to go and is sold
- * on the spot for less; a material sold that way is not kept. Pieces of the hunter sets are
- * worn, not carried, and take no room.
+ * only worth selling is sold for its coins when the game ends; a crafting material stays in
+ * the bags instead, from one game to the next (users.bag_contents), with whatever was crafted
+ * from such things (config/crafting.php). Between games the player moves materials between
+ * the bags and the bank (users.materials, without limit), and crafts from what is in the bags.
+ * Once the bags are full, what is caught has nowhere to go and is sold on the spot for less;
+ * a material sold that way is not kept. Pieces of the hunter sets are worn, not carried, and
+ * take no room.
  *
  * The game keeps the bags as it is played (game/utils/bags.js) and says, when it ends, how
  * much of each thing did not fit. The site works out the pay from that, and does not take the
@@ -102,9 +105,11 @@ class Bags
             $carried[$itemId] = $count - $short[$itemId];
         }
 
-        // More carried than the bags hold: the game's account of them cannot be right, and
-        // everything is paid as if there had been no room for it
-        if (self::slotsUsed(array_filter($carried)) > self::capacity($game->user)) {
+        // More carried than the bags hold, with what was in them when the game began: the
+        // game's account of them cannot be right, and everything is paid as if there had been
+        // no room for it
+        $stored = self::contents($game->user);
+        if (self::slotsUsed(self::plus($stored, array_filter($carried))) > self::capacity($game->user)) {
             $short = array_map(fn (int $count, string $itemId) => $count + $short[$itemId], $carried, array_keys($carried));
             $short = array_combine(array_keys($carried), $short);
             $carried = array_map(fn () => 0, $carried);
@@ -144,21 +149,108 @@ class Bags
     }
 
     /**
-     * Put materials brought back from a game in the player's keeping.
+     * What is in a player's bags between games: [itemId => count].
      *
-     * @param  array<string, int>  $materials
+     * @return array<string, int>
      */
-    public static function keep(User $user, array $materials): void
+    public static function contents(?User $user): array
     {
-        if ($materials === []) {
+        return array_filter(array_map('intval', $user?->bag_contents ?? []), fn (int $count) => $count > 0);
+    }
+
+    /** Whether a thing can be kept in the bags between games and in the bank: a material, or something crafted */
+    public static function keepable(string $itemId): bool
+    {
+        return in_array($itemId, config('loot.materials'), true) || array_key_exists($itemId, config('crafting.items'));
+    }
+
+    /**
+     * After a game: the materials it brought back stay in the bags with what was there, and
+     * what was drunk in it is gone ($used: [itemId => count], no more than there was).
+     *
+     * @param  array<string, int>  $kept
+     * @param  array<string, int>  $used
+     */
+    public static function afterGame(User $user, array $kept, array $used = []): void
+    {
+        $contents = self::contents($user);
+        foreach ($used as $itemId => $count) {
+            if (isset($contents[$itemId])) {
+                $contents[$itemId] -= min($contents[$itemId], max(0, (int) $count));
+            }
+        }
+        $contents = self::plus($contents, $kept);
+        if ($contents === self::contents($user)) {
             return;
         }
 
-        $bank = $user->materials ?? [];
-        foreach ($materials as $itemId => $count) {
+        $user->forceFill(['bag_contents' => array_filter($contents)])->save();
+    }
+
+    /**
+     * Move a stack between the bank and the bags. Into the bags only as far as they have
+     * room. Returns why it cannot be, or null when it was moved.
+     */
+    public static function move(User $user, string $itemId, int $count, bool $toBags): ?string
+    {
+        $bank = array_map('intval', $user->materials ?? []);
+        $contents = self::contents($user);
+        $from = $toBags ? ($bank[$itemId] ?? 0) : ($contents[$itemId] ?? 0);
+        if ($count < 1 || $count > $from) {
+            return $toBags ? 'There is not that much of it in the bank.' : 'There is not that much of it in your bags.';
+        }
+
+        if ($toBags) {
+            $contents = self::plus($contents, [$itemId => $count]);
+            if (self::slotsUsed($contents) > self::capacity($user)) {
+                return 'There is no room for that much in your bags.';
+            }
+            $bank[$itemId] -= $count;
+        } else {
+            $contents[$itemId] -= $count;
             $bank[$itemId] = ($bank[$itemId] ?? 0) + $count;
         }
 
-        $user->forceFill(['materials' => $bank])->save();
+        $user->forceFill(['bag_contents' => array_filter($contents), 'materials' => array_filter($bank)])->save();
+
+        return null;
+    }
+
+    /**
+     * Make so many of a recipe from what is in the bags; what is made goes into them. Returns
+     * why it cannot be, or null when it was made.
+     */
+    public static function craft(User $user, string $recipeId, int $count): ?string
+    {
+        $needs = config("crafting.recipes.{$recipeId}");
+        if (! is_array($needs) || $count < 1) {
+            return 'There is no such recipe.';
+        }
+
+        $contents = self::contents($user);
+        foreach ($needs as $itemId => $each) {
+            if (($contents[$itemId] ?? 0) < $each * $count) {
+                return 'There is not enough of what it takes in your bags.';
+            }
+            $contents[$itemId] -= $each * $count;
+        }
+        $contents = self::plus(array_filter($contents), [$recipeId => $count]);
+        if (self::slotsUsed($contents) > self::capacity($user)) {
+            return 'There is no room in your bags for what it makes.';
+        }
+
+        $user->forceFill(['bag_contents' => $contents])->save();
+
+        return null;
+    }
+
+    /** Two lots of things together: [itemId => count] */
+    private static function plus(array $a, array $b): array
+    {
+        foreach ($b as $itemId => $count) {
+            $a[$itemId] = ($a[$itemId] ?? 0) + (int) $count;
+        }
+
+        return array_filter($a, fn (int $count) => $count > 0);
     }
 }

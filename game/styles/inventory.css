@@ -416,9 +416,356 @@
     box-shadow: 0 0 0 1px #000, 0 0 18px rgba(255, 209, 0, 0.35);
 }
 
+/* ----- His 36: the gear he takes into fights, at the left of the Bags tab ----- */
+
+.inventory-left {
+    width: 360px;
+    flex: none;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.inventory-left-card {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+}
+
+.inventory-left-card .window-label + .window-card-title,
+.inventory-left-card .window-label + .inventory-side-title {
+    margin-top: -6px;
+}
+
+.inventory-carry-count {
+    font-size: 13px;
+    color: #cfc4ad;
+}
+
+.inventory-carry-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.inventory-carry-slot {
+    position: relative;
+    aspect-ratio: 1;
+    background: rgba(10, 8, 6, 0.85);
+    border: 2px solid #b048f8;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #000, inset 0 0 10px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+}
+
+.inventory-carry-slot[data-rarity="common"] { border-color: #9d9d9d; }
+.inventory-carry-slot[data-rarity="uncommon"] { border-color: #1eff00; }
+.inventory-carry-slot[data-rarity="rare"] { border-color: #3d9bff; }
+
+.inventory-carry-slot.is-empty {
+    border: 1px dashed #5d4c25;
+    box-shadow: none;
+    background: rgba(10, 8, 6, 0.5);
+}
+
+.inventory-carry-slot img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* On him: a gold dot in the corner */
+.inventory-carry-on {
+    position: absolute;
+    left: 3px;
+    top: 3px;
+    width: 8px;
+    height: 8px;
+    background: #ffd100;
+    border: 1px solid #000;
+    border-radius: 50%;
+}
+
+.inventory-carry-legend {
+    display: flex;
+    gap: 14px;
+    font-size: 12px;
+    color: #a89a78;
+}
+
+.inventory-carry-legend span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.inventory-carry-legend .is-on::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: #ffd100;
+    border: 1px solid #000;
+    border-radius: 50%;
+}
+
+.inventory-carry-legend .is-room::before {
+    content: '';
+    width: 12px;
+    height: 12px;
+    border: 1px dashed #5d4c25;
+    border-radius: 3px;
+}
+
+.inventory-carry-btn {
+    align-self: flex-start;
+    padding: 7px 14px;
+    font-size: 14px;
+}
+
+.inventory-carry-end {
+    margin-top: auto;
+}
+
+/* ----- The bags: a kept thing's slot can be picked, to move it or craft with it ----- */
+
+.inventory-bags-card .inventory-grid {
+    grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+    gap: 6px;
+}
+
+button.inventory-slot {
+    padding: 0;
+    cursor: pointer;
+}
+
+button.inventory-slot:hover {
+    border-color: #f1d98a;
+}
+
+.inventory-slot.is-picked {
+    outline: 2px solid #fff2ba;
+    outline-offset: 1px;
+}
+
+.inventory-slot.is-crafted { border-color: #1eff00; }
+
+.inventory-picked {
+    margin-top: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid #8f7a45;
+    border-radius: 4px;
+}
+
+.inventory-picked .window-item-text {
+    flex: 1 1 160px;
+}
+
+.inventory-picked img {
+    width: 36px;
+    height: 36px;
+    object-fit: contain;
+}
+
+.inventory-picked .game-btn {
+    padding: 7px 14px;
+    font-size: 14px;
+}
+
+.inventory-vendor-btn {
+    color: #ffd100;
+    background: none;
+    border-style: dashed;
+    cursor: pointer;
+}
+
+.inventory-vendor-btn:hover {
+    border-color: #f1d98a;
+}
+
+/* ----- The bank beside the bags ----- */
+
+.inventory-bank-row {
+    gap: 10px;
+}
+
+.inventory-bank-row img {
+    width: 34px;
+    height: 34px;
+}
+
+.inventory-bank-btn {
+    flex: none;
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+/* ----- Crafting ----- */
+
+.inventory-recipe {
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+
+.inventory-recipe.is-on {
+    background: rgba(31, 95, 168, 0.35);
+    border-color: #c9a94f;
+}
+
+.inventory-recipe-card {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.inventory-recipe-head {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.inventory-recipe-picture {
+    width: 96px;
+    height: 96px;
+    flex: none;
+    background: rgba(10, 8, 6, 0.85);
+    border: 2px solid #1eff00;
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px #000, 0 0 14px rgba(30, 255, 0, 0.25);
+}
+
+.inventory-recipe-picture img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.inventory-recipe-words {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.inventory-main h3.inventory-recipe-name {
+    font-size: 30px;
+    color: #8dff7a;
+}
+
+.inventory-heal {
+    color: #8dff7a;
+}
+
+.inventory-key {
+    padding: 1px 6px;
+    font: 700 12px Arial, sans-serif;
+    color: #ffd100;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid #8f7a45;
+    border-radius: 3px;
+}
+
+.inventory-recipe-label {
+    margin-top: 6px;
+}
+
+.inventory-reagent {
+    gap: 12px;
+}
+
+.inventory-reagent img {
+    width: 44px;
+    height: 44px;
+}
+
+.inventory-have {
+    flex: none;
+    font-size: 14px;
+    color: #ffb3a8;
+}
+
+.inventory-have.is-enough {
+    color: #8dff7a;
+}
+
+.inventory-make {
+    margin-top: auto;
+    padding-top: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    border-top: 1px solid #3d3219;
+}
+
+.inventory-make-label {
+    font-size: 14px;
+    color: #cfc4ad;
+}
+
+.inventory-stepper {
+    display: flex;
+}
+
+.inventory-stepper .game-btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    font-size: 20px;
+}
+
+.inventory-stepper .game-btn:first-child {
+    border-radius: 4px 0 0 4px;
+}
+
+.inventory-stepper .game-btn:last-child {
+    border-radius: 0 4px 4px 0;
+}
+
+.inventory-stepper-value {
+    width: 56px;
+    height: 40px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font: 700 18px Arial, sans-serif;
+    color: #fff5d6;
+    background: rgba(0, 0, 0, 0.55);
+    border-top: 1px solid #8f7a45;
+    border-bottom: 1px solid #8f7a45;
+}
+
+.inventory-make-btn {
+    margin-left: auto;
+    padding: 12px 34px;
+    font-size: 19px;
+}
+
+.inventory-made {
+    color: #8dff7a;
+}
+
+.inventory-grid-small {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 5px;
+}
+
 /* ----- Not much room: one column ----- */
 
 @media (max-width: 1100px) {
+    .inventory-left {
+        width: 280px;
+    }
+
     .inventory-gear-columns {
         grid-template-columns: minmax(0, 1fr);
     }
@@ -499,6 +846,27 @@
     .inventory-side {
         order: -1;
         width: auto;
+    }
+
+    .inventory-left {
+        width: auto;
+    }
+
+    /* On a phone: the bags first on Bags, the recipe first on Crafting */
+    .inventory-body[data-tab="bags"] .inventory-main { order: -3; }
+    .inventory-body[data-tab="bags"] .inventory-side { order: -2; }
+    .inventory-body[data-tab="crafting"] .inventory-left { order: -3; }
+    .inventory-body[data-tab="crafting"] .inventory-main { order: -2; }
+    .inventory-body[data-tab="crafting"] .inventory-side { order: 0; }
+
+    .inventory-left-card {
+        flex: none;
+        overflow: visible;
+    }
+
+    .inventory-make-btn {
+        margin-left: 0;
+        width: 100%;
     }
 
     .inventory-scene {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\Bags;
 use App\Support\BossLoot;
 use App\Support\Fingerprint;
 use App\Support\GameSettings;
@@ -72,8 +73,10 @@ class GameController extends Controller
                 'outfits' => Gear::allOutfits($user),
                 // The gear owned besides the sets, and how many of each (App\Support\Gear)
                 'gear' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => (object) ($user->canUseRewards() ? Gear::owned($user, $side) : [])])->all(),
-                // The bags bought (their sizes) and the crafting materials brought back so far
+                // The bags bought (their sizes), what is in them between games, and the bank of
+                // materials and what is crafted from them (App\Support\Bags)
                 'bags' => $user->canUseRewards() ? ($user->bags ?? []) : [],
+                'bagContents' => (object) Bags::contents($user),
                 'materials' => (object) ($user->materials ?? []),
                 // The bosses the player has beaten: the ones they may fight again on their own
                 'bosses' => $user->bossDrops()->distinct()->pluck('boss_id')->all(),
@@ -93,6 +96,8 @@ class GameController extends Controller
             'gear' => (object) Gear::catalog(),
             // Bags that can be bought: size in slots => price in copper
             'bagsForSale' => (object) config('loot.bags.for_sale'),
+            // What can be crafted, from what (config/crafting.php)
+            'crafting' => ['items' => (object) config('crafting.items'), 'recipes' => (object) config('crafting.recipes')],
             // Settings changed in the admin section, by their place in the game's gameConfig
             'settings' => (object) app(GameSettings::class)->forGame(),
             'csrfToken' => csrf_token(),
@@ -105,6 +110,8 @@ class GameController extends Controller
                 'equipment' => route('equipment.update'),
                 'outfits' => route('outfits.update'),
                 'bags' => route('bags.buy'),
+                'bagsMove' => route('bags.move'),
+                'craft' => route('craft'),
                 'sell' => route('vendor.sell'),
                 'verify' => route('verification.notice'),
                 'history' => route('games.history'),
