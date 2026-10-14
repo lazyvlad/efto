@@ -1,5 +1,28 @@
 # Changelog
 
+## 3.0.7 - 2026-10-14
+
+### Changed
+- **The high scores are grouped by version of the game, the latest on top.** Each version has
+  a heading of its own and its scores ranked best first under it, counted from 1, so a new
+  version's first scores are not set against an older one's. Scores from before games kept
+  their version come last. The game's own high scores are grouped the same way, and where a
+  score lands ("#2 on the high scores of version 3.0.7", in the game and on Discord) counts
+  among its version's.
+- **Each score says the side** it was played for: Alliance or Horde, in its colour, on the
+  site and in the game's own high scores.
+- **Every game on the high scores has a page of its own, for anyone to see**: press the score.
+  It shows who played it and for which side, the version, the gear worn, the score, level and
+  time, and every boss fight: how long it took against its par, the points it paid with the
+  speed bonus, the arrows spent, the damage taken and what dropped. My Games links a game to
+  its page when it is on the high scores.
+
+### For developers
+- `games.version_rank` (`Game::versionRank()`: "3.0.6" is 3000006), kept when a game is saved
+  and filled in for the games before it; `Score::top()` orders by it, and `Score::rankOf()`
+  is a score's place among its version's. `/game/{id}` (`games.show`, by id: a game's token
+  stays private) shows a game that has a score; the scores the game reads carry `faction`.
+
 ## 3.0.6 - 2026-10-14
 
 ### What's new
