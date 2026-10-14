@@ -950,6 +950,8 @@ function defeat(context) {
     const { boss } = fight;
     const { top, height } = layout(canvas, boss);
     const { reward } = fight.stats;
+    // How long the fight took, before the dying starts its own clock
+    const seconds = fightSeconds();
 
     fight.phase = 'dying';
     fight.steps = 0;
@@ -966,12 +968,14 @@ function defeat(context) {
         particles.push(new Particle(fight.x + (Math.random() - 0.5) * height * 0.6, top + Math.random() * height, '#FFD700'));
     }
 
-    // More for bringing it down fast: by the damage done to it a second
-    const fast = speedBonus(fight.stats.health, fightSeconds(), gameConfig.bosses);
+    // More for bringing it down under its par time
+    const fast = speedBonus(boss.zone, seconds, reward.score, gameConfig.bosses);
     gameState.score += reward.score + fast.score;
     gameState.health = Math.min(gameState.maxHealth, gameState.health + reward.health);
     addNotification(gameState, `${boss.name} is defeated! +${reward.score} points`, 360, '#FFD700');
-    addNotification(gameState, `${Math.round(fast.dps)} damage a second: +${fast.score} for speed`, 360, '#FFE9A8');
+    addNotification(gameState, fast.score > 0
+        ? `Down in ${Math.round(seconds)}s, par ${fast.par}s: +${fast.score} for speed`
+        : `Down in ${Math.round(seconds)}s (par ${fast.par}s)`, 360, '#FFE9A8');
     playTotalSound();
     if (context.onBossDefeated) context.onBossDefeated(boss);
 }

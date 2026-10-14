@@ -452,9 +452,10 @@ export const gameConfig = {
         },
         
         reward: { score: 100, scorePerZone: 50, health: 10 },   // Health comes back sparingly: a fight should still be felt in the next zone
-        // And for a boss brought down fast: points for every point of damage a second done to it
-        // over the fight (its health over the seconds it took; Hogger in 20s: 25 a second, 75)
-        speedBonus: { perDps: 3 },
+        // And for a boss brought down fast: each has a par time (base, and so much more for every
+        // zone), and beating it pays up to the boss's own score above, by how far under par the
+        // fight came in (in two thirds of par: a third more). Slower than par pays nothing.
+        speedBonus: { par: 30, parPerZone: 4 },
         
         // A boss keeps on the move: it sweeps along the top and is drawn towards the player,
         // so it passes over them without ever settling there

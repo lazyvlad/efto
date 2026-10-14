@@ -168,10 +168,15 @@ test('the nimble bosses dodge some arrows, more the later they stand, and the ot
     assert.ok(bosses.every(boss => !(boss.nimble && boss.warrior)));
 });
 
-test('a boss brought down faster earns more, by the damage done to it a second', () => {
-    const rules = { speedBonus: { perDps: 3 } };
-    assert.deepEqual(speedBonus(500, 20, rules), { dps: 25, score: 75 });
-    assert.ok(speedBonus(500, 10, rules).score > speedBonus(500, 20, rules).score);
-    // A fight is never counted as under a second
-    assert.deepEqual(speedBonus(500, 0, rules), speedBonus(500, 1, rules));
+test('a boss brought down under its par time earns up to its score again, and no more', () => {
+    const rules = { speedBonus: { par: 30, parPerZone: 4 } };
+    // Zone 1: par 30s. In 20s, a third under par: a third of its 100 more
+    assert.deepEqual(speedBonus(1, 20, 100, rules), { par: 30, score: 33 });
+    // At par or slower, nothing; however fast, never more than its score
+    assert.equal(speedBonus(1, 30, 100, rules).score, 0);
+    assert.equal(speedBonus(1, 95, 100, rules).score, 0);
+    assert.equal(speedBonus(1, 0, 100, rules).score, 100);
+    // A later zone has a longer par
+    assert.equal(speedBonus(10, 40, 550, rules).par, 66);
+    assert.equal(speedBonus(10, 40, 550, rules).score, Math.round(550 * 26 / 66));
 });

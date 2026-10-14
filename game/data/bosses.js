@@ -168,15 +168,17 @@ export function bossStats(boss, rules) {
 }
 
 /**
- * How fast a boss was brought down, and the points that earns: its health over the seconds
- * the fight lasted (from the first moment it could be shot) is the damage done a second.
- * @param {number} health  The boss's health
+ * What bringing a boss down fast earns: up to its own score again, by how far under its par
+ * time (rules.speedBonus) the fight came in. Slower than par earns nothing.
+ * @param {number} zone     The boss's zone
  * @param {number} seconds  Seconds the fight lasted
- * @returns {{ dps: number, score: number }}
+ * @param {number} score    What defeating it pays (bossStats().reward.score)
+ * @returns {{ par: number, score: number }}
  */
-export function speedBonus(health, seconds, rules) {
-    const dps = health / Math.max(1, seconds);
-    return { dps: Math.round(dps * 10) / 10, score: Math.round(dps * rules.speedBonus.perDps) };
+export function speedBonus(zone, seconds, score, rules) {
+    const par = rules.speedBonus.par + rules.speedBonus.parPerZone * (zone - 1);
+    const under = Math.max(0, Math.min(1, (par - Math.max(0, seconds)) / par));
+    return { par, score: Math.round(score * under) };
 }
 
 /**
