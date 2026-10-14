@@ -268,10 +268,16 @@ class Gear
         return $ledger;
     }
 
-    /** The game's own picture of an item (game/assets/items/gear), if it has one */
+    /**
+     * The game's own picture of an item (game/assets/items/gear), if it has one. Its address
+     * carries the time it was last changed, so a picture redrawn under the same name is not
+     * taken from the browser's cache.
+     */
     private static function iconOf(string $itemId): ?string
     {
-        return is_file(base_path('game/assets/items/gear/'.$itemId.'.webp')) ? 'assets/items/gear/'.$itemId.'.webp' : null;
+        $file = base_path('game/assets/items/gear/'.$itemId.'.webp');
+
+        return is_file($file) ? 'assets/items/gear/'.$itemId.'.webp?v='.filemtime($file) : null;
     }
 
     /** What a side's hunter starts in: [slot => itemId] */
