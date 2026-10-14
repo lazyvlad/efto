@@ -1097,9 +1097,42 @@ function saveEquipment() {
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': siteBoot.csrfToken || '' },
             credentials: 'same-origin',
             keepalive: true,
-            body: JSON.stringify({ equipment: gameState.equipment, side, carried: gameState.carried })
+            body: JSON.stringify({ equipment: gameState.equipment, side, carried: gameState.carried, hidden: [...hiddenGear(side)] })
         }).catch(() => { /* Kept in this browser; saved with the next change */ });
     }, 600);
+}
+
+// ----- Gear worn but not seen -----
+// Any piece can be hidden from the hunter's picture on the character sheet: he still wears it
+// and it still counts, it is only not drawn on him. Each hunter has his own, kept on the
+// account (INPUT_BOOT.user.hidden) and in this browser, by item, so a hidden piece stays
+// hidden when it is put on again.
+const HIDDEN_KEY = 'input_hidden_gear';
+
+function hiddenGear(side = currentSide()) {
+    const account = siteBoot && siteBoot.user && siteBoot.user.hidden;
+    if (account) return new Set(account[side] || []);
+    try {
+        return new Set(JSON.parse(localStorage.getItem(`${HIDDEN_KEY}_${side}`)) || []);
+    } catch (e) {
+        return new Set();
+    }
+}
+
+function setHidden(itemId, hide) {
+    const side = currentSide();
+    const hidden = hiddenGear(side);
+    if (hide) hidden.add(itemId); else hidden.delete(itemId);
+    if (siteBoot && siteBoot.user) {
+        siteBoot.user.hidden = { alliance: [], horde: [], ...(siteBoot.user.hidden || {}), [side]: [...hidden] };
+    }
+    try {
+        localStorage.setItem(`${HIDDEN_KEY}_${side}`, JSON.stringify([...hidden]));
+    } catch (e) {
+        // Storage unavailable: hidden for now
+    }
+    dressHunter();
+    saveEquipment();
 }
 
 // Wear this. Anything that cannot be worn (not owned, in the wrong slot) is left out.
@@ -1157,11 +1190,14 @@ let lookFor = '';           // What it shows: "side|items"
 
 function dressHunter() {
     const side = currentSide();
-    const wanted = `${side}|${Object.values(gameState.equipment).sort().join(',')}`;
+    // What he wears, less what is not to be seen
+    const hidden = hiddenGear(side);
+    const seen = Object.fromEntries(Object.entries(gameState.equipment).filter(([, itemId]) => !hidden.has(itemId)));
+    const wanted = `${side}|${Object.values(seen).sort().join(',')}`;
     if (wanted === lookFor) return;
     lookFor = wanted;
     
-    hunterPicture(side, gameState.equipment).then(canvas => {
+    hunterPicture(side, seen).then(canvas => {
         // Something else was put on meanwhile: that picture is on its way
         if (lookFor !== wanted) return;
         if (gameState.faction === side || !gameState.gameRunning) {
@@ -2750,6 +2786,8 @@ function setupUIEventHandlers() {
             carryLimit: gameConfig.bags.carry,
             outfits: outfitsForSheet(),
             mostOutfits: MOST_OUTFITS,
+            // What he wears but is not drawn in
+            hidden: hiddenGear(),
             // The place picked on the map, or the one the game is in
             scene: currentBackgroundImage(),
             faction: currentSide(),
@@ -2783,6 +2821,10 @@ function setupUIEventHandlers() {
             return { text: `Your hunter already carries ${gameConfig.bags.carry} things. Leave something in the bank to make room for it.`, kind: 'warning', chooseLeave: true };
         },
         onChooseLeave: () => showInventory('gear'),
+        onHide: (itemId, hide) => {
+            setHidden(itemId, hide);
+            refreshCharacterSheet();
+        },
         onOpenInventory: () => showInventory(),
         // Between games the sheet's Alliance and Horde dress (and play) that side's hunter: the
         // map moves to where that side starts

@@ -170,6 +170,7 @@
 }
 
 .sheet-slot-icon {
+    position: relative;
     flex: none;
     box-sizing: border-box;
     width: var(--slot-size);
@@ -211,6 +212,27 @@
 .sheet-slot.is-blocked .sheet-slot-icon img {
     opacity: 0.4;
     filter: grayscale(1);
+}
+
+/* Worn but not drawn on him: dimmed, with a crossed-out eye */
+.sheet-slot.is-unseen .sheet-slot-icon img {
+    opacity: 0.55;
+}
+
+.sheet-slot-unseen {
+    position: absolute;
+    right: -5px;
+    bottom: -5px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff2ba;
+    background: #1a140c;
+    border: 1px solid #b9902f;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px #000;
 }
 
 /* Empty, but something owned could go here */
@@ -472,6 +494,36 @@
     padding: 7px 12px;
     font-size: 14px;
     pointer-events: none;
+}
+
+/* Whether the piece in the slot is drawn on him, with the switch */
+.sheet-look {
+    padding: 8px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #d8c9a0;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid #5d4c25;
+    border-radius: 6px;
+}
+
+.sheet-look span {
+    flex: 1 1 180px;
+}
+
+.sheet-look.is-unseen {
+    color: #fff2ba;
+    border-color: #b9902f;
+}
+
+.sheet-look-btn {
+    flex: none;
+    padding: 6px 12px;
+    font-size: 13px;
 }
 
 /* What became of something pressed, right under it: a swap made, or why it could not be */

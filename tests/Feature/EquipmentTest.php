@@ -71,6 +71,33 @@ class EquipmentTest extends TestCase
         $page->assertSee('"horde":{"neck":"starter-horde-bone-amulet"', false);
     }
 
+    public function test_each_hunter_keeps_his_own_hidden_gear(): void
+    {
+        $user = User::factory()->create();
+        Grants::giveSet($user, 'giantstalker');
+        $this->actingAs($user);
+
+        // Worn and hidden: still worn, only not to be drawn
+        $this->putJson(route('equipment.update'), ['equipment' => ['head' => 'giantstalker-helmet'], 'hidden' => ['giantstalker-helmet', 'giantstalker-helmet']])
+            ->assertOk()
+            ->assertJsonPath('equipment.head', 'giantstalker-helmet')
+            ->assertJsonPath('hidden', ['giantstalker-helmet']);
+        $this->assertSame(['alliance' => ['giantstalker-helmet'], 'horde' => []], $user->fresh()->hidden_gear);
+
+        // Saving what is worn without saying what is hidden leaves it hidden
+        $this->putJson(route('equipment.update'), ['equipment' => ['head' => 'giantstalker-helmet', 'chest' => 'giantstalker-chest']])
+            ->assertOk()->assertJsonPath('hidden', ['giantstalker-helmet']);
+
+        // The other hunter has his own, and the game is handed both
+        $this->putJson(route('equipment.update'), ['side' => 'horde', 'equipment' => [], 'hidden' => ['giantstalker-chest']])->assertOk();
+        $this->assertSame(['alliance' => ['giantstalker-helmet'], 'horde' => ['giantstalker-chest']], $user->fresh()->hidden_gear);
+        $this->get(route('play'))->assertSee('"hidden":{"alliance":["giantstalker-helmet"],"horde":["giantstalker-chest"]}', false);
+
+        // Shown again
+        $this->putJson(route('equipment.update'), ['equipment' => [], 'hidden' => []])->assertOk();
+        $this->assertSame([], $user->fresh()->hidden_gear['alliance']);
+    }
+
     public function test_a_player_who_has_never_chosen_is_told_apart(): void
     {
         $this->actingAs(User::factory()->create())->get(route('play'))->assertSee('"equipment":{"alliance":null,"horde":null}', false);

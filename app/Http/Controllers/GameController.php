@@ -71,6 +71,8 @@ class GameController extends Controller
                     )->all(),
                 // The sets saved on the character sheet, each hunter's own
                 'outfits' => Gear::allOutfits($user),
+                // What each hunter wears but is not drawn in
+                'hidden' => Gear::allHidden($user),
                 // The gear owned besides the sets, and how many of each (App\Support\Gear)
                 'gear' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => (object) ($user->canUseRewards() ? Gear::owned($user, $side) : [])])->all(),
                 // Of that, the copies bound to each hunter (the rest, gear that binds when worn,

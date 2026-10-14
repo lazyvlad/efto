@@ -15,6 +15,7 @@ import { SLOTS, itemsForSlot, itemStats } from '../utils/gear.js';
 import { bonusText } from '../utils/sets.js';
 import { keyName } from '../utils/keybindings.js';
 import { askConfirm, askText } from './gameDialog.js';
+import { hasLooks } from '../utils/hunterLooks.js';
 
 // The keys that wear the saved sets in play, in order (utils/keybindings.js)
 const OUTFIT_KEYS = ['set_1', 'set_2', 'set_3', 'set_4'];
@@ -62,6 +63,8 @@ export function isCharacterSheetOpen() {
  *        zone picture the hunter is shown in), carried (Set, or null for a guest), carryLimit }
  * @param {Function} options.onEquip - (slotId, item or null) put an item on, or take one off.
  *        Returns why it could not be, in words, or ''.
+ * @param {Function} options.onHide - (itemId, hide) leave a piece worn out of the hunter's
+ *        picture, or draw it again (the state's hidden is a Set of the ids not drawn)
  * @param {Function} options.onOpenInventory - () open the inventory in its place
  * @param {Function} options.onShowSide - (side) between games: dress and play that side's hunter
  * @param {Function} options.onCloseAll - () close the sheet and every menu, and go on with the
@@ -201,11 +204,14 @@ function renderSlots(state) {
             button.classList.toggle('is-selected', slot.id === selectedSlot);
             button.classList.toggle('is-filled', Boolean(item));
             button.classList.toggle('is-blocked', blocked);
+            // Worn, but not drawn on him
+            const unseen = Boolean(item) && !blocked && state.hidden.has(item.id);
+            button.classList.toggle('is-unseen', unseen);
             // The colour of how rare it is: a piece of a set is epic
             if (item) button.dataset.rarity = item.rarity || 'epic';
             // Something owned could go here and nothing is on
             button.classList.toggle('has-choice', !item && choices > 0);
-            button.title = blocked ? `${slot.label}: ${held.name} is held in both hands` : item ? `${slot.label}: ${item.name}` : slot.label;
+            button.title = blocked ? `${slot.label}: ${held.name} is held in both hands` : item ? `${slot.label}: ${item.name}${unseen ? ' (hidden)' : ''}` : slot.label;
             button.setAttribute('aria-pressed', String(slot.id === selectedSlot));
 
             const icon = make('span', 'sheet-slot-icon');
@@ -215,6 +221,7 @@ function renderSlots(state) {
                 picture.alt = '';
                 icon.append(picture);
             }
+            if (unseen) icon.append(unseenMark());
             button.append(icon, make('span', 'sheet-slot-label', slot.label));
 
             button.addEventListener('click', () => {
@@ -376,6 +383,9 @@ function renderSlotItems(state) {
     if (slot.id === 'offhand' && held && held.twoHanded) {
         list.append(make('p', 'sheet-empty', `${held.name} is held in both hands. Putting something in the off hand takes it off.`));
     }
+    // Whether what is worn here is drawn on him
+    const wornItem = itemById(wornId);
+    if (wornItem && hasLooks(wornItem.id)) list.append(lookSwitch(wornItem, state.hidden.has(wornItem.id)));
     // In a game only what the hunter took along can be put on
     if (state.playing && state.inBank > 0) {
         list.append(make('p', 'sheet-empty', `${state.inBank} more ${state.inBank === 1 ? 'thing is' : 'things are'} in the bank, out of reach until the game is over.`));
@@ -403,7 +413,7 @@ function renderSlotItems(state) {
         picture.alt = '';
         row.dataset.rarity = item.rarity || 'epic';
 
-        const about = [item.twoHanded ? 'Two-handed' : '', item.from, worn ? 'being worn' : '', banked ? 'in the bank' : ''].filter(Boolean).join(' \u00b7 ');
+        const about = [item.twoHanded ? 'Two-handed' : '', item.from, worn ? 'being worn' : '', worn && state.hidden.has(item.id) ? 'hidden' : '', banked ? 'in the bank' : ''].filter(Boolean).join(' \u00b7 ');
         const text = make('span', 'window-item-text');
         text.append(
             make('span', 'window-item-name', item.name),
@@ -427,6 +437,31 @@ function renderSlotItems(state) {
             requestAnimationFrame(() => line.scrollIntoView({ block: 'nearest' }));
         }
     }
+}
+
+// Shown or hidden on the hunter: the piece worn stays worn and counts either way
+function lookSwitch(item, hidden) {
+    const line = make('div', `sheet-look${hidden ? ' is-unseen' : ''}`);
+    line.append(make('span', '', hidden
+        ? `${item.name} is hidden: still worn and counted, just not drawn on him.`
+        : `${item.name} is drawn on him.`));
+    const button = make('button', 'game-btn sheet-look-btn', hidden ? 'Show it' : 'Hide it');
+    button.type = 'button';
+    button.setAttribute('aria-pressed', String(hidden));
+    button.addEventListener('click', () => {
+        game.onHide(item.id, !hidden);
+        render();
+    });
+    line.append(button);
+    return line;
+}
+
+// A crossed-out eye, on a slot whose piece is not drawn
+function unseenMark() {
+    const mark = make('span', 'sheet-slot-unseen');
+    mark.setAttribute('aria-hidden', 'true');
+    mark.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/><path d="M4 20 20 4" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
+    return mark;
 }
 
 // A line saying what became of something pressed, with a way to make room if there was none

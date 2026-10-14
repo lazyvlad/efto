@@ -26,6 +26,9 @@ class EquipmentController extends Controller
             // What the hunter takes into a game; without it, what was chosen before stays
             'carried' => ['sometimes', 'array', 'max:200'],
             'carried.*' => ['string', 'max:60'],
+            // What he wears but is not to be seen in; without it, what was hidden before stays
+            'hidden' => ['sometimes', 'array', 'max:'.count(Gear::SLOTS)],
+            'hidden.*' => ['string', 'max:60'],
         ]);
 
         $user = $request->user();
@@ -42,15 +45,20 @@ class EquipmentController extends Controller
         // And what each carries: this one's as chosen now, the other's as it was
         $allCarried = Gear::allCarried($user);
         $allCarried[$side] = $carried;
+        $hidden = Gear::allHidden($user);
+        if (array_key_exists('hidden', $data)) {
+            $hidden[$side] = array_values(array_unique($data['hidden']));
+        }
         $user->forceFill([
             'equipment' => array_map(fn ($outfit) => $outfit === null ? null : (object) $outfit, $all),
             'carried' => array_key_exists('carried', $data) || $user->carried !== null ? $allCarried : null,
+            'hidden_gear' => $hidden,
         ])->save();
 
         // What binds when worn is his now
         Gear::bindWorn($user, $side, $worn);
 
-        return response()->json(['equipment' => (object) $worn, 'side' => $side, 'carried' => $carried]);
+        return response()->json(['equipment' => (object) $worn, 'side' => $side, 'carried' => $carried, 'hidden' => $hidden[$side]]);
     }
 
     /**

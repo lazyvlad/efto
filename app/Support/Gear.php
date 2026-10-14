@@ -526,6 +526,23 @@ class Gear
     }
 
     /**
+     * What each hunter wears but is not to be seen in: { alliance: [item ids], horde: [...] }.
+     * It still counts for him; it is only not drawn.
+     *
+     * @return array<string, array<int, string>>
+     */
+    public static function allHidden(User $user): array
+    {
+        $saved = $user->hidden_gear ?? [];
+        $all = [];
+        foreach (self::SIDES as $side) {
+            $all[$side] = array_values(array_unique(array_filter($saved[$side] ?? [], 'is_string')));
+        }
+
+        return $all;
+    }
+
+    /**
      * Both hunters' saved sets (the character sheet's "Your sets"): { alliance: [...], horde:
      * [...] }. A list saved before each hunter had his own is the Alliance hunter's, as the
      * loot of then is.
