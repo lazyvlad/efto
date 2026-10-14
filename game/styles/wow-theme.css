@@ -2230,6 +2230,11 @@ body.site-framed #pauseMenu .start-header-side {
 }
 
 /* Beside the map: the place picked, who is playing, and the way in */
+#pauseMenu .start-card #nameEntryPrompt.is-warning {
+    color: #ffb3a8;
+    font-weight: 700;
+}
+
 #pauseMenu .start-card #nameEntryPrompt {
     margin: 10px 0 8px;
     color: #cfc4ad;

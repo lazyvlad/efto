@@ -1,4 +1,5 @@
 import { resetKeys } from '../utils/keybindings.js';
+import { askConfirm } from './gameDialog.js';
 import { getSettings, resetSettings, updateSetting } from '../systems/settingsSystem.js';
 
 function byId(id) {
@@ -137,11 +138,18 @@ export function updateSettingsScreen() {
     setText('panelOpacityValue', `${panelOpacity}%`);
 }
 
-export function resetSettingsScreen() {
+// Every setting and key back to how it came: asked first, in the game's own window
+export async function resetSettingsScreen() {
+    const sure = await askConfirm({
+        title: 'Reset every setting?',
+        text: 'Sound, display, controls and keys go back to how they came.',
+        yes: 'Reset them',
+        danger: true,
+    });
+    if (!sure) return;
     resetSettings();
     resetKeys();
     updateSettingsScreen();
-    alert('Settings have been reset to defaults!');
 }
 
 export function bindSettingsScreen() {

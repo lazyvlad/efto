@@ -2665,11 +2665,17 @@ function startGameFromUI() {
     const nameInput = document.getElementById('playerNameInput');
     const playerName = nameInput.value.trim();
     
+    // No name: said under the box, not in a browser popup
+    const prompt = document.getElementById('nameEntryPrompt');
     if (!playerName) {
-        alert('Please enter your name to start the game!');
+        if (prompt) {
+            prompt.textContent = 'Enter a name to start playing';
+            prompt.classList.add('is-warning');
+        }
         nameInput.focus();
         return;
     }
+    if (prompt) prompt.classList.remove('is-warning');
     
     // A place on the map that cannot be started at yet
     const startBtn = document.getElementById('startGameBtn');
