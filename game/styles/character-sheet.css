@@ -449,6 +449,42 @@
     pointer-events: none;
 }
 
+/* What became of something pressed, right under it: a swap made, or why it could not be */
+.sheet-notice {
+    margin: -4px 0 2px;
+    padding: 8px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    font-size: 13px;
+    line-height: 1.4;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid #5d4c25;
+    border-left-width: 3px;
+    border-radius: 0 0 6px 6px;
+}
+
+.sheet-notice span {
+    flex: 1 1 180px;
+}
+
+.sheet-notice.is-warning {
+    color: #ffb3a8;
+    border-left-color: #c0392b;
+}
+
+.sheet-notice.is-info {
+    color: #ffe9a8;
+    border-left-color: #ffd100;
+}
+
+.sheet-notice-btn {
+    flex: none;
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
 .sheet-empty {
     margin: 2px 0;
     font-size: 13px;

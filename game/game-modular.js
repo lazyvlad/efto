@@ -915,7 +915,7 @@ function noRoomFor(equipment) {
     const worn = Object.values(validEquipment(equipment, wearables(), ownedPieces()));
     return fitsCarried(gameState.carried, worn, gameConfig.bags.carry)
         ? ''
-        : `Your hunter already carries ${gameConfig.bags.carry} things. Leave something in the bank first: Inventory, Gear.`;
+        : `Your hunter already carries ${gameConfig.bags.carry} things. Leave something in the bank to make room.`;
 }
 
 // Take things along, or leave them in the bank (which takes them off), several at once: what
@@ -1169,7 +1169,7 @@ function closeWindowsAndResume() {
 
 // Open the inventory. In a game the game is paused while it is open, and goes on when it is
 // closed, unless it was opened from the pause menu, which it then goes back to.
-function showInventory() {
+function showInventory(onTab = null) {
     // Before the first game what is owned has not been put on yet: what is worn is shown
     // in the gear list, and selling must not save an empty hunter over the one chosen
     if (!gameState.gameRunning && !gameState.showingPauseMenu) restoreEquipment();
@@ -1180,7 +1180,7 @@ function showInventory() {
     openInventory(() => {
         // Not when it was left for the character sheet, which then has the game paused
         if (fromPlay && gameState.showingPauseMenu && !isCharacterSheetOpen()) hidePauseMenu();
-    });
+    }, onTab);
     // Opened from the character sheet: in its place
     if (isCharacterSheetOpen()) closeCharacterSheet();
 }
@@ -2498,12 +2498,24 @@ function setupUIEventHandlers() {
             // What is lost on things caught with the bags full, after what the gear takes off
             fullBagLoss: Math.max(0, gameConfig.bags.fullPenalty - gameState.setBonus.carrying),
         }),
+        // Putting something on, from the bank too: with no room to carry it, what the slot
+        // holds now (if it is carried) goes to the bank in its place
         onEquip: (slotId, item) => {
             const wanted = equip(gameState.equipment, slotId, item, wearables());
-            const refused = noRoomFor(wanted);
-            if (!refused) setEquipment(wanted);
-            return refused;
+            if (!noRoomFor(wanted)) {
+                setEquipment(wanted);
+                return '';
+            }
+            const current = gameState.equipment[slotId];
+            if (current && gameState.carried.includes(current)) {
+                gameState.carried = gameState.carried.filter(itemId => itemId !== current);
+                setEquipment(wanted);
+                const gone = wearableById(current);
+                return { text: `${gone ? gone.name : 'What was there'} went to the bank to make room.`, kind: 'info' };
+            }
+            return { text: `Your hunter already carries ${gameConfig.bags.carry} things. Leave something in the bank to make room for it.`, kind: 'warning', chooseLeave: true };
         },
+        onChooseLeave: () => showInventory('gear'),
         onWearSet: setId => wearSet(setId, false),
         onOpenInventory: () => showInventory(),
         onCloseAll: closeWindowsAndResume,

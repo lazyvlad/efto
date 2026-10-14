@@ -95,11 +95,12 @@ export function initializeInventory(options) {
     }, true);
 }
 
-export function openInventory(onClose = null) {
+export function openInventory(onClose = null, onTab = null) {
     const layer = element('inventory');
     if (!layer || !game) return;
 
     whenClosed = onClose;
+    if (onTab) tab = onTab;
     notice = '';
     clearPicked();
     drawnTab = null;

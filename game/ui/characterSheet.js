@@ -20,7 +20,9 @@ let whenClosed = null;
 // The character shown, when the player picked the other one to look at. Both wear the same
 // things; in a game it is always the one being played.
 let shownSide = null;
-let notice = '';        // Why the last thing pressed could not be put on
+// What became of the last thing pressed, shown under it: { itemId, text, kind ('info' or
+// 'warning'), chooseLeave (a way to the inventory to make room) }, or null
+let notice = null;
 
 const element = id => document.getElementById(id);
 
@@ -102,7 +104,7 @@ export function initializeCharacterSheet(options) {
  * @param {Function} [onClose] - Called when it is closed again
  */
 export function openCharacterSheet(onClose = null) {
-    notice = '';
+    notice = null;
     const sheet = element('characterSheet');
     if (!sheet || !game) return;
 
@@ -214,6 +216,7 @@ function renderSlots(state) {
 
             button.addEventListener('click', () => {
                 selectedSlot = slot.id;
+                notice = null;
                 // Another slot's things: from the top of the list
                 element('sheetItems').scrollTop = 0;
                 render();
@@ -281,7 +284,8 @@ function renderSets(state) {
             ? `You own no piece of ${set.name} yet`
             : `Put on the ${owned} ${owned === 1 ? 'piece' : 'pieces'} you own of ${set.name}${next ? ` (its next bonus is at ${next})` : ''}`;
         button.addEventListener('click', () => {
-            notice = game.onWearSet(set.id) || '';
+            const refused = game.onWearSet(set.id);
+            notice = refused ? { itemId: null, text: refused, kind: 'warning', chooseLeave: true } : null;
             render();
         });
         holder.append(button);
@@ -305,7 +309,8 @@ function renderOutfits(state) {
         wear.append(make('span', 'sheet-set-name', outfit.name), make('span', 'sheet-set-count', `${outfit.pieces} ${outfit.pieces === 1 ? 'piece' : 'pieces'}${outfit.isOn ? ' · on' : ''}`));
         wear.title = `Put on ${outfit.name}`;
         wear.addEventListener('click', () => {
-            notice = game.onWearOutfit(index) || '';
+            const refused = game.onWearOutfit(index);
+            notice = refused ? { itemId: null, text: refused, kind: 'warning', chooseLeave: true } : null;
             render();
         });
 
@@ -333,7 +338,8 @@ function renderOutfits(state) {
         save.addEventListener('click', () => {
             const name = window.prompt('A name for this set', `Set ${state.outfits.length + 1}`);
             if (name === null || !name.trim()) return;
-            notice = game.onSaveOutfit(name.trim().slice(0, 24)) || '';
+            const refused = game.onSaveOutfit(name.trim().slice(0, 24));
+            notice = refused ? { itemId: null, text: refused, kind: 'warning' } : null;
             render();
         });
         row.append(save);
@@ -352,8 +358,8 @@ function renderSlotItems(state) {
     const list = element('sheetItems');
     list.textContent = '';
 
-    // Why the last thing pressed could not be put on
-    if (notice) list.append(make('p', 'sheet-empty window-warning', notice));
+    // What became of a whole set or a saved set pressed
+    if (notice && !notice.itemId) list.append(noticeLine(notice));
     // The off hand while a two-handed weapon is held
     const held = itemById(state.equipment.mainhand);
     if (slot.id === 'offhand' && held && held.twoHanded) {
@@ -371,8 +377,12 @@ function renderSlotItems(state) {
 
     for (const item of choices) {
         const worn = item.id === wornId;
-        // Not among what the hunter takes into a game: putting it on takes it along
+        // Not among what the hunter takes into a game: putting it on takes it along, or, with
+        // no room, swaps it for what the slot holds (which goes to the bank)
         const banked = Boolean(state.carried) && !state.carried.has(item.id);
+        const full = Boolean(state.carried) && state.carried.size >= state.carryLimit;
+        const swaps = banked && full && Boolean(wornId) && state.carried.has(wornId);
+        const action = worn ? 'Take off' : banked && full ? (swaps ? 'Swap in' : 'No room') : 'Put on';
         const row = make('button', 'window-item sheet-item');
         row.type = 'button';
         row.classList.toggle('is-worn', worn);
@@ -391,11 +401,33 @@ function renderSlotItems(state) {
         );
 
         // Looks like a button; the whole row is the one that is pressed
-        row.append(picture, text, make('span', worn ? 'game-btn sheet-item-action' : 'game-btn is-primary sheet-item-action', worn ? 'Take off' : 'Put on'));
+        row.append(picture, text, make('span', action === 'Put on' || action === 'Swap in' ? 'game-btn is-primary sheet-item-action' : 'game-btn sheet-item-action', action));
+        if (swaps) row.title = `Puts it on, and ${itemById(wornId).name} goes to the bank in its place`;
         row.addEventListener('click', () => {
-            notice = game.onEquip(slot.id, worn ? null : item) || '';
+            const result = game.onEquip(slot.id, worn ? null : item);
+            notice = result ? { itemId: item.id, ...(typeof result === 'string' ? { text: result, kind: 'warning' } : result) } : null;
             render();
         });
         list.append(row);
+        // What became of it, right under it, and in sight
+        if (notice && notice.itemId === item.id) {
+            const line = noticeLine(notice);
+            list.append(line);
+            requestAnimationFrame(() => line.scrollIntoView({ block: 'nearest' }));
+        }
     }
+}
+
+// A line saying what became of something pressed, with a way to make room if there was none
+function noticeLine({ text, kind, chooseLeave }) {
+    const line = make('div', `sheet-notice is-${kind || 'warning'}`);
+    line.setAttribute('role', 'status');
+    line.append(make('span', '', text));
+    if (chooseLeave) {
+        const choose = make('button', 'game-btn sheet-notice-btn', 'Choose what to leave');
+        choose.type = 'button';
+        choose.addEventListener('click', () => game.onChooseLeave());
+        line.append(choose);
+    }
+    return line;
 }
