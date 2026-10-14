@@ -1,5 +1,55 @@
 # Changelog
 
+## 3.0.0 - 2026-10-14
+
+**A new game.** Since 2.0 the hunter has become a character you dress, piece by piece, in what
+you win; the Alliance and the Horde hunter are two characters with their own gear, bags and
+bank, bound the way World of Warcraft binds; there are crafting, potions and a quiver to fill,
+bosses that are a fight from the first, and screens that work on a phone. This is what 3.0
+adds on top of the 2.4x versions before it:
+
+
+### What's new
+- **Haste.** The speed boost that falls no longer speeds the game up: for 10 seconds the
+  hunter moves faster (following a finger; with a mouse he is already where it points) and
+  Autoshot and Multishot come round sooner (0.3 seconds instead of 0.5).
+- **The quiver is gear.** A Quiver slot beside the ranged weapon on the character sheet. The
+  Ancient Sinew Wrapped Lamina a boss may drop is worn there (epic, for now) and doubles the
+  arrows only while it is on; it counts among his 36 and shows on the gear panel. It is the
+  hunter's whose boss dropped it, and each hunter can find his own. The Alliance hunter's
+  starting quiver moves there from the back.
+- **Two hunters, two characters.** Each has his own bags (what is in them) and his own bank;
+  the purse, and the bags bought from it, are both's. Materials, potions and arrows can be
+  sent from one hunter's bank to the other's (**Send**, between games). What was kept before
+  is the Alliance hunter's.
+- **Binding.** Boss loot, set pieces, the clothes a hunter starts in and the quiver are bound
+  to the hunter who got them (Soulbound). Gear that falls in a game binds when worn: until
+  then it can be sent to the other hunter from the Gear tab (**Send**). A copy worn is bound;
+  the others can still go.
+- **Spare arrows.** Arrows caught with the quiver full go into your bags (200 to a slot), fill
+  the quiver as a game starts, and fill it again when it runs low.
+- **Potions keep.** A Health Potion caught at full health, and a Mana Potion caught while
+  time is already slowed, go into your bags. Drink a Mana Potion with M (or from its slot on
+  the spell bar) to slow time.
+
+### Fixed
+- **The speed bonus for a boss** was always worked out as if the fight had lasted one second
+  (3900 points for the first boss). It is now paid against a par time for each boss (30
+  seconds for the first, 4 more for each zone): up to the boss's own score again, by how far
+  under par it came down, and nothing when slower.
+
+### For developers
+- `bags.itemStacks` (game) and `loot.bags.item_stacks` (site): kinds a slot holds more of. A
+  finished game reports the change in kept things that are not materials as `used` and
+  `stored`; what is stored is believed up to `crafting.stored_per_minute` and the room. The
+  `quiver` slot; `Gear::LARGE_QUIVER`, `Gear::quiverSides()` (from `boss_drops.quiver`),
+  `Gear::quiverMoved()`; `users.bag_contents` and `users.materials` are `{ alliance, horde }`
+  (`Bags::contents/bank($user, $side)`), `POST /api/bags/send`, the bag routes take `side`;
+  catalog items have `binding` (pickup | equip | account), `users.gear_ledger` keeps what was
+  sent and bound (`Gear::bound/sendable/send/bindWorn`), `POST /api/gear/send`, the page's
+  `user.bound`; `potions['mana-potion']`, the
+  `mana_potion` key; `powerUps.haste`; `bosses.speedBonus` is `{ par, parPerZone }`.
+
 ## 2.43.0 - 2026-10-14
 
 ### What's new
