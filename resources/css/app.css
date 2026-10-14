@@ -210,6 +210,19 @@
         border: 1px solid #6b4f16;
     }
 
+    /* Which hunter a part of a page is about: his side's colour */
+    .side-dot {
+        display: inline-block;
+        width: 0.6em;
+        height: 0.6em;
+        margin-right: 0.45em;
+        border-radius: 9999px;
+        vertical-align: 0.05em;
+    }
+
+    .side-dot[data-side="alliance"] { background: #4a86e8; }
+    .side-dot[data-side="horde"] { background: #d8392b; }
+
     /* A post on the What's new page, written in Markdown */
     .news-body {
         color: theme('colors.gray.600');

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Avatar;
 use App\Support\BossLoot;
+use App\Support\Gear;
 use App\Support\Grants;
 use App\Support\LootTable;
 use Illuminate\Http\RedirectResponse;
@@ -45,15 +46,21 @@ class UserController extends Controller
         return view('admin.users.show', [
             'user' => $user->loadCount(['games', 'bossDrops']),
             'best' => $user->games()->legal()->max('score'),
-            'pieces' => count($user->setPieces()),
-            // What can be opened for the player from here (App\Support\Grants)
-            'sides' => collect(config('boss_loot.bosses'))->map(fn (array $bosses, string $faction) => [
-                'bosses' => count($bosses),
+            // Each hunter: what he has, and what can be opened or given him from here
+            // (App\Support\Grants)
+            'sides' => collect(Gear::SIDES)->mapWithKeys(fn (string $faction) => [$faction => [
+                'bosses' => count(config("boss_loot.bosses.$faction", [])),
                 'openTo' => BossLoot::unlockedZone($user, $faction),
                 'granted' => Grants::grantedBosses($user, $faction),
-            ]),
-            'sets' => LootTable::sets($user->setPieces()),
-            'grantedPieces' => $user->granted_pieces ?? [],
+                'pieces' => count($user->setPieces($faction)),
+                'sets' => LootTable::sets($user->setPieces($faction)),
+                'grantedPieces' => $user->grantedPieces($faction),
+                'gear' => array_sum(Gear::owned($user, $faction)),
+                'grantedGear' => count(array_diff_key(Grants::grantedGear($user, $faction), [Gear::LARGE_QUIVER => 1])),
+                'quiver' => in_array($faction, Gear::quiverSides($user), true),
+                'quiverGiven' => (Grants::grantedGear($user, $faction)[Gear::LARGE_QUIVER] ?? 0) > 0
+                    || ($faction === 'alliance' && $user->quiver && $user->bossDrops()->where('quiver', true)->doesntExist()),
+            ]]),
             'games' => $user->games()->withCount('bossDrops')->latest('started_at')->limit(15)->get(),
         ]);
     }
@@ -143,15 +150,36 @@ class UserController extends Controller
     }
 
     /**
-     * Give the large quiver, or take it away.
+     * Give a hunter the large quiver, or take back the one given.
      */
-    public function quiver(User $user): RedirectResponse
+    public function quiver(Request $request, User $user): RedirectResponse
     {
-        $user->forceFill(['quiver' => ! $user->quiver])->save();
+        $data = $request->validate(['side' => ['required', 'in:alliance,horde'], 'take' => ['nullable', 'boolean']]);
+        $take = (bool) ($data['take'] ?? false);
+        Grants::giveQuiver($user, $data['side'], ! $take);
 
-        return back()->with('status', $user->quiver
-            ? __(':name has the large quiver.', ['name' => $user->name])
-            : __(':name no longer has the large quiver.', ['name' => $user->name]));
+        return back()->with('status', $take
+            ? __('The large quiver given to :name\'s :side hunter was taken back.', ['name' => $user->name, 'side' => ucfirst($data['side'])])
+            : __(':name\'s :side hunter has the large quiver.', ['name' => $user->name, 'side' => ucfirst($data['side'])]));
+    }
+
+    /**
+     * Give a hunter one of every piece of gear he can wear, or take back what was given.
+     */
+    public function gear(Request $request, User $user): RedirectResponse
+    {
+        $data = $request->validate(['side' => ['required', 'in:alliance,horde'], 'take' => ['nullable', 'boolean']]);
+        $side = ucfirst($data['side']);
+
+        if ($data['take'] ?? false) {
+            Grants::takeBackGear($user, $data['side']);
+
+            return back()->with('status', __('The gear given to :name\'s :side hunter was taken back.', ['name' => $user->name, 'side' => $side]));
+        }
+
+        Grants::giveAllGear($user, $data['side']);
+
+        return back()->with('status', __(':name\'s :side hunter has every piece of gear he can wear.', ['name' => $user->name, 'side' => $side]));
     }
 
     /**
@@ -161,30 +189,36 @@ class UserController extends Controller
     {
         $data = $request->validate([
             'set' => ['required', 'in:'.implode(',', array_keys(config('loot.sets')))],
+            'side' => ['required', 'in:alliance,horde'],
             'take' => ['nullable', 'boolean'],
         ]);
 
         $name = config('loot.sets.'.$data['set'].'.name');
+        $side = ucfirst($data['side']);
 
         if ($data['take'] ?? false) {
-            Grants::takeBackSet($user, $data['set']);
+            Grants::takeBackSet($user, $data['set'], $data['side']);
 
-            return back()->with('status', __('The given pieces of :set were taken back from :name.', ['set' => $name, 'name' => $user->name]));
+            return back()->with('status', __('The given pieces of :set were taken back from :name\'s :side hunter.', ['set' => $name, 'name' => $user->name, 'side' => $side]));
         }
 
-        Grants::giveSet($user, $data['set']);
+        Grants::giveSet($user, $data['set'], $data['side']);
 
-        return back()->with('status', __(':name has every piece of :set.', ['name' => $user->name, 'set' => $name]));
+        return back()->with('status', __(':name\'s :side hunter has every piece of :set.', ['name' => $user->name, 'set' => $name, 'side' => $side]));
     }
 
     /**
-     * Everything at once: all zones of both sides, the large quiver, every set.
+     * Everything at once, for both hunters or one: all zones, all boss loot and gear, the large
+     * quiver, every set.
      */
-    public function unlockAll(User $user): RedirectResponse
+    public function unlockAll(Request $request, User $user): RedirectResponse
     {
-        Grants::everything($user);
+        $side = $request->validate(['side' => ['nullable', 'in:alliance,horde']])['side'] ?? null;
+        Grants::everything($user, $side);
 
-        return back()->with('status', __('Everything is open for :name: every zone of both sides, the large quiver and all the sets.', ['name' => $user->name]));
+        return back()->with('status', $side
+            ? __('Everything is :name\'s :side hunter\'s: every zone of his side, all his boss loot and gear, the large quiver and all the sets.', ['name' => $user->name, 'side' => ucfirst($side)])
+            : __('Everything is open for both of :name\'s hunters: every zone, all the boss loot and gear of each side, the large quiver and all the sets.', ['name' => $user->name]));
     }
 
     /**

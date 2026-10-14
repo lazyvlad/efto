@@ -12,8 +12,9 @@
             __('Games') => number_format($user->games_count),
             __('Best score') => $best ? number_format($best) : '–',
             __('Boss loot') => number_format($user->boss_drops_count),
-            __('Set pieces') => $pieces,
-            __('Large quiver') => $user->quiver ? __('yes') : __('no'),
+            __('Set pieces (Alliance · Horde)') => $sides['alliance']['pieces'].' · '.$sides['horde']['pieces'],
+            __('Gear (Alliance · Horde)') => $sides['alliance']['gear'].' · '.$sides['horde']['gear'],
+            __('Large quiver') => collect($sides)->filter(fn ($side) => $side['quiver'])->keys()->map(fn ($side) => ucfirst($side))->join(', ') ?: __('neither hunter'),
             __('News emails') => $user->news_emails ? __('yes') : __('no'),
         ];
     @endphp
@@ -99,107 +100,153 @@
                 </div>
             </div>
 
-            {{-- Opening content for the player without their having earned it (App\Support\Grants) --}}
+            {{-- Opening content for the player without their having earned it (App\Support\Grants).
+                 Each hunter is given his own, as each finds his own. --}}
             <div class="bg-white shadow sm:rounded-lg p-4 sm:p-6 text-sm space-y-6">
                 <div class="flex flex-wrap items-start justify-between gap-4">
                     <div>
                         <h3 class="text-lg text-gray-900">{{ __('Unlock content') }}</h3>
                         <p class="text-gray-600">
-                            {{ __('Open for this player what they have not earned yet. What is given here is kept apart from what they earned, and only what was given can be taken back.') }}
+                            {{ __('Open for this player what they have not earned yet. The Alliance and the Horde hunter are two characters: each is given his own. What is given is kept apart from what they earned, and only what was given can be taken back.') }}
                         </p>
                     </div>
                     <form method="POST" action="{{ route('admin.users.unlock-all', $user) }}"
-                          onsubmit="return confirm(@js(__('Open every zone of both sides, give the large quiver and all the sets?')))">
+                          onsubmit="return confirm(@js(__('Give both hunters everything: every zone, all the boss loot and gear of their side, the large quiver and all the sets?')))">
                         @csrf
-                        <x-primary-button>{{ __('Unlock everything') }}</x-primary-button>
+                        <x-primary-button>{{ __('Unlock everything for both') }}</x-primary-button>
                     </form>
                 </div>
 
                 <div class="grid gap-6 md:grid-cols-2">
                     @foreach ($sides as $faction => $side)
-                        <div class="pt-4 border-t border-gray-200">
-                            <h4 class="text-gray-900">{{ __(':side zones', ['side' => ucfirst($faction)]) }}</h4>
-                            <p class="text-gray-600 mb-3">
-                                {{ __('May start as far as zone :zone.', ['zone' => $side['openTo']]) }}
-                                @if ($side['granted'])
-                                    {{ trans_choice('{1} :count boss was counted as beaten from here.|[2,*] :count bosses were counted as beaten from here.', $side['granted'], ['count' => $side['granted']]) }}
-                                @endif
-                            </p>
-                            <div class="flex flex-wrap items-end gap-3">
-                                <form method="POST" action="{{ route('admin.users.zones', $user) }}" class="flex flex-wrap items-end gap-3">
+                        @php $hunter = __(':side hunter', ['side' => ucfirst($faction)]); @endphp
+                        <section class="pt-4 border-t border-gray-200 space-y-5">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <h4 class="text-base text-gray-900">
+                                    <span class="side-dot" data-side="{{ $faction }}"></span>{{ $hunter }}
+                                </h4>
+                                <form method="POST" action="{{ route('admin.users.unlock-all', $user) }}"
+                                      onsubmit="return confirm(@js(__('Give the :hunter everything?', ['hunter' => $hunter])))">
                                     @csrf
-                                    <input type="hidden" name="faction" value="{{ $faction }}">
-                                    <label class="block">
-                                        <span class="text-gray-600">{{ __('Open up to') }}</span>
-                                        <select name="bosses" class="block mt-1 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm !py-1.5">
-                                            @for ($beaten = 1; $beaten <= $side['bosses']; $beaten++)
-                                                <option value="{{ $beaten }}" @selected($beaten === $side['bosses'])>
-                                                    {{ $beaten < $side['bosses'] ? __('Zone :zone', ['zone' => $beaten + 1]) : __('Zone :zone, its boss beaten too', ['zone' => $beaten]) }}
-                                                </option>
-                                            @endfor
-                                        </select>
-                                    </label>
-                                    <x-primary-button>{{ __('Open') }}</x-primary-button>
+                                    <input type="hidden" name="side" value="{{ $faction }}">
+                                    <x-secondary-button type="submit" class="!py-1">{{ __('Unlock everything for him') }}</x-secondary-button>
                                 </form>
-                                @if ($side['granted'])
-                                    <form method="POST" action="{{ route('admin.users.zones.lock', $user) }}">
+                            </div>
+
+                            <div>
+                                <h5 class="text-gray-900">{{ __('Zones') }}</h5>
+                                <p class="text-gray-600 mb-2">
+                                    {{ __('May start as far as zone :zone.', ['zone' => $side['openTo']]) }}
+                                    @if ($side['granted'])
+                                        {{ trans_choice('{1} :count boss was counted as beaten from here.|[2,*] :count bosses were counted as beaten from here.', $side['granted'], ['count' => $side['granted']]) }}
+                                    @endif
+                                </p>
+                                <div class="flex flex-wrap items-end gap-3">
+                                    <form method="POST" action="{{ route('admin.users.zones', $user) }}" class="flex flex-wrap items-end gap-3">
                                         @csrf
                                         <input type="hidden" name="faction" value="{{ $faction }}">
-                                        <x-secondary-button type="submit">{{ __('Take back') }}</x-secondary-button>
+                                        <label class="block">
+                                            <span class="sr-only">{{ __('Open up to') }}</span>
+                                            <select name="bosses" class="block border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm !py-1.5">
+                                                @for ($beaten = 1; $beaten <= $side['bosses']; $beaten++)
+                                                    <option value="{{ $beaten }}" @selected($beaten === $side['bosses'])>
+                                                        {{ $beaten < $side['bosses'] ? __('Up to zone :zone', ['zone' => $beaten + 1]) : __('Zone :zone, its boss beaten too', ['zone' => $beaten]) }}
+                                                    </option>
+                                                @endfor
+                                            </select>
+                                        </label>
+                                        <x-primary-button class="!py-1.5">{{ __('Open') }}</x-primary-button>
                                     </form>
-                                @endif
+                                    @if ($side['granted'])
+                                        <form method="POST" action="{{ route('admin.users.zones.lock', $user) }}">
+                                            @csrf
+                                            <input type="hidden" name="faction" value="{{ $faction }}">
+                                            <x-secondary-button type="submit" class="!py-1.5">{{ __('Take back') }}</x-secondary-button>
+                                        </form>
+                                    @endif
+                                </div>
                             </div>
-                        </div>
-                    @endforeach
-                </div>
 
-                <div class="pt-4 border-t border-gray-200">
-                    <h4 class="text-gray-900 mb-3">{{ __('Hunter sets and the quiver') }}</h4>
-                    <ul class="divide-y divide-gray-200">
-                        @foreach ($sets as $set)
-                            @php
-                                $pieceIds = array_column($set['pieces'], 'id');
-                                $given = count(array_intersect($pieceIds, $grantedPieces));
-                            @endphp
-                            <li class="py-2.5 flex flex-wrap items-center justify-between gap-3">
-                                <span>
-                                    <span class="text-gray-900">{{ $set['name'] }}</span>
-                                    <span class="text-gray-600">· {{ __(':owned of :all pieces', ['owned' => $set['owned'], 'all' => count($set['pieces'])]) }}@if ($given), {{ __(':count given from here', ['count' => $given]) }}@endif</span>
-                                </span>
-                                <span class="flex gap-3">
-                                    @if ($set['owned'] < count($set['pieces']))
-                                        <form method="POST" action="{{ route('admin.users.set', $user) }}">
-                                            @csrf
-                                            <input type="hidden" name="set" value="{{ $set['id'] }}">
-                                            <x-primary-button class="!py-1">{{ __('Give the whole set') }}</x-primary-button>
-                                        </form>
-                                    @endif
-                                    @if ($given)
-                                        <form method="POST" action="{{ route('admin.users.set', $user) }}">
-                                            @csrf
-                                            <input type="hidden" name="set" value="{{ $set['id'] }}">
-                                            <input type="hidden" name="take" value="1">
-                                            <x-secondary-button type="submit" class="!py-1">{{ __('Take back') }}</x-secondary-button>
-                                        </form>
-                                    @endif
-                                </span>
-                            </li>
-                        @endforeach
-                        <li class="py-2.5 flex flex-wrap items-center justify-between gap-3">
-                            <span>
-                                <span class="text-gray-900">{{ config('boss_loot.quiver.name') }}</span>
-                                <span class="text-gray-600">· {{ __('the large quiver') }}, {{ $user->quiver ? __('has it') : __('does not have it') }}</span>
-                            </span>
-                            <form method="POST" action="{{ route('admin.users.quiver', $user) }}">
-                                @csrf
-                                @if ($user->quiver)
-                                    <x-secondary-button type="submit" class="!py-1">{{ __('Take away') }}</x-secondary-button>
-                                @else
-                                    <x-primary-button class="!py-1">{{ __('Give') }}</x-primary-button>
-                                @endif
-                            </form>
-                        </li>
-                    </ul>
+                            <div>
+                                <h5 class="text-gray-900">{{ __('Hunter sets') }}</h5>
+                                <ul class="divide-y divide-gray-200">
+                                    @foreach ($side['sets'] as $set)
+                                        @php $given = count(array_intersect(array_column($set['pieces'], 'id'), $side['grantedPieces'])); @endphp
+                                        <li class="py-2 flex flex-wrap items-center justify-between gap-3">
+                                            <span>
+                                                <span class="text-gray-900">{{ $set['name'] }}</span>
+                                                <span class="text-gray-600">· {{ __(':owned of :all', ['owned' => $set['owned'], 'all' => count($set['pieces'])]) }}@if ($given), {{ __(':count given', ['count' => $given]) }}@endif</span>
+                                            </span>
+                                            <span class="flex gap-2">
+                                                @if ($set['owned'] < count($set['pieces']))
+                                                    <form method="POST" action="{{ route('admin.users.set', $user) }}">
+                                                        @csrf
+                                                        <input type="hidden" name="set" value="{{ $set['id'] }}">
+                                                        <input type="hidden" name="side" value="{{ $faction }}">
+                                                        <x-primary-button class="!py-1">{{ __('Give') }}</x-primary-button>
+                                                    </form>
+                                                @endif
+                                                @if ($given)
+                                                    <form method="POST" action="{{ route('admin.users.set', $user) }}">
+                                                        @csrf
+                                                        <input type="hidden" name="set" value="{{ $set['id'] }}">
+                                                        <input type="hidden" name="side" value="{{ $faction }}">
+                                                        <input type="hidden" name="take" value="1">
+                                                        <x-secondary-button type="submit" class="!py-1">{{ __('Take back') }}</x-secondary-button>
+                                                    </form>
+                                                @endif
+                                            </span>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+
+                            <div>
+                                <h5 class="text-gray-900">{{ __('Gear') }}</h5>
+                                <ul class="divide-y divide-gray-200">
+                                    <li class="py-2 flex flex-wrap items-center justify-between gap-3">
+                                        <span>
+                                            <span class="text-gray-900">{{ __('Boss loot and gear') }}</span>
+                                            <span class="text-gray-600">· {{ __(':count owned', ['count' => $side['gear']]) }}@if ($side['grantedGear']), {{ __(':count kinds given', ['count' => $side['grantedGear']]) }}@endif</span>
+                                        </span>
+                                        <span class="flex gap-2">
+                                            <form method="POST" action="{{ route('admin.users.gear', $user) }}">
+                                                @csrf
+                                                <input type="hidden" name="side" value="{{ $faction }}">
+                                                <x-primary-button class="!py-1">{{ __('Give one of each') }}</x-primary-button>
+                                            </form>
+                                            @if ($side['grantedGear'])
+                                                <form method="POST" action="{{ route('admin.users.gear', $user) }}">
+                                                    @csrf
+                                                    <input type="hidden" name="side" value="{{ $faction }}">
+                                                    <input type="hidden" name="take" value="1">
+                                                    <x-secondary-button type="submit" class="!py-1">{{ __('Take back') }}</x-secondary-button>
+                                                </form>
+                                            @endif
+                                        </span>
+                                    </li>
+                                    <li class="py-2 flex flex-wrap items-center justify-between gap-3">
+                                        <span>
+                                            <span class="text-gray-900">{{ config('boss_loot.quiver.name') }}</span>
+                                            <span class="text-gray-600">· {{ $side['quiver'] ? ($side['quiverGiven'] ? __('given') : __('found')) : __('does not have it') }}</span>
+                                        </span>
+                                        @if (! $side['quiver'] || $side['quiverGiven'])
+                                            <form method="POST" action="{{ route('admin.users.quiver', $user) }}">
+                                                @csrf
+                                                <input type="hidden" name="side" value="{{ $faction }}">
+                                                @if ($side['quiverGiven'])
+                                                    <input type="hidden" name="take" value="1">
+                                                    <x-secondary-button type="submit" class="!py-1">{{ __('Take back') }}</x-secondary-button>
+                                                @else
+                                                    <x-primary-button class="!py-1">{{ __('Give') }}</x-primary-button>
+                                                @endif
+                                            </form>
+                                        @endif
+                                    </li>
+                                </ul>
+                            </div>
+                        </section>
+                    @endforeach
                 </div>
             </div>
 

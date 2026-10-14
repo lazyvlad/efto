@@ -56,6 +56,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'quiver' => 'boolean',
             'news_emails' => 'boolean',
             'granted_pieces' => 'array',
+            'granted_gear' => 'array',
             'equipment' => 'array',
             'carried' => 'array',
             'outfits' => 'array',
@@ -128,7 +129,27 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function setPieces(?string $side = null): array
     {
-        return array_values(array_unique(array_merge($this->caughtPieces($side), $this->granted_pieces ?? [])));
+        return array_values(array_unique(array_merge($this->caughtPieces($side), $this->grantedPieces($side))));
+    }
+
+    /**
+     * The set pieces an admin gave a side's hunter (with no side, either). Kept as
+     * { alliance: [...], horde: [...] }; a list given before each hunter had his own was given
+     * to both, as "everything" was meant to be.
+     *
+     * @return array<int, string>
+     */
+    public function grantedPieces(?string $side = null): array
+    {
+        $granted = $this->granted_pieces ?? [];
+        if (array_is_list($granted)) {
+            return $granted;
+        }
+        if ($side === null) {
+            return array_values(array_unique(array_merge(...array_values(array_map(fn ($list) => (array) $list, $granted)) ?: [[]])));
+        }
+
+        return array_values($granted[$side] ?? []);
     }
 
     /**

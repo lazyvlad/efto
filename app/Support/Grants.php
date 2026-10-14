@@ -7,7 +7,8 @@ use App\Models\User;
 
 /**
  * What an admin can give a player without their having earned it, and take back again:
- * the later zones of a side, the large quiver, and pieces of the hunter sets.
+ * the later zones of a side, and for each hunter the hunter sets, the large quiver and the
+ * rest of the gear. Each hunter is given his own, as each finds his own.
  *
  * A zone is open to a player who has loot from every boss before it, so opening zones means
  * giving them an item from each of those bosses. Given loot is marked as such
@@ -67,40 +68,129 @@ class Grants
             ->count('boss_id');
     }
 
-    /**
-     * Give every piece of a set the player does not have.
-     */
-    public static function giveSet(User $user, string $setId): void
+    /** Both hunters' given set pieces, { alliance: [...], horde: [...] } */
+    private static function piecesBySide(User $user): array
     {
-        $pieces = config("loot.sets.$setId.pieces", []);
-        $granted = array_unique(array_merge($user->granted_pieces ?? [], array_diff($pieces, $user->caughtPieces())));
-
-        $user->forceFill(['granted_pieces' => array_values($granted)])->save();
+        return collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => $user->grantedPieces($side)])->all();
     }
 
     /**
-     * Take back the pieces of a set that were given. Pieces the player picked up stay.
+     * Give a hunter every piece of a set he does not have (with no side, both hunters).
      */
-    public static function takeBackSet(User $user, string $setId): void
+    public static function giveSet(User $user, string $setId, ?string $side = null): void
     {
-        $left = array_diff($user->granted_pieces ?? [], config("loot.sets.$setId.pieces", []));
+        if ($side === null) {
+            foreach (Gear::SIDES as $each) {
+                self::giveSet($user, $setId, $each);
+            }
 
-        $user->forceFill(['granted_pieces' => array_values($left) ?: null])->save();
+            return;
+        }
+
+        $all = self::piecesBySide($user);
+        $missing = array_diff(config("loot.sets.$setId.pieces", []), $user->caughtPieces($side));
+        $all[$side] = array_values(array_unique(array_merge($all[$side], $missing)));
+
+        $user->forceFill(['granted_pieces' => $all])->save();
     }
 
     /**
-     * Everything at once: every boss of both sides beaten, the large quiver, every set.
+     * Take back the pieces of a set that were given to a hunter (with no side, both). Pieces
+     * he picked up stay.
      */
-    public static function everything(User $user): void
+    public static function takeBackSet(User $user, string $setId, ?string $side = null): void
     {
-        foreach (array_keys(config('boss_loot.bosses')) as $faction) {
-            self::beatBosses($user, $faction, count(config("boss_loot.bosses.$faction")));
+        $all = self::piecesBySide($user);
+        if ($side === null) {
+            foreach (Gear::SIDES as $each) {
+                $all[$each] = array_values(array_diff($all[$each], config("loot.sets.$setId.pieces", [])));
+            }
+            $user->forceFill(['granted_pieces' => $all])->save();
+
+            return;
         }
 
-        foreach (array_keys(config('loot.sets')) as $setId) {
-            self::giveSet($user, $setId);
+        $all[$side] = array_values(array_diff($all[$side], config("loot.sets.$setId.pieces", [])));
+
+        $user->forceFill(['granted_pieces' => $all])->save();
+    }
+
+    /**
+     * The gear given to a hunter, by item id: how many of each.
+     *
+     * @return array<string, int>
+     */
+    public static function grantedGear(User $user, string $side): array
+    {
+        return array_map('intval', (array) (($user->granted_gear ?? [])[$side] ?? []));
+    }
+
+    private static function keepGear(User $user, string $side, array $gear): void
+    {
+        $all = collect(Gear::SIDES)->mapWithKeys(fn ($each) => [$each => (object) self::grantedGear($user, $each)])->all();
+        $all[$side] = (object) array_filter($gear);
+        $user->forceFill(['granted_gear' => $all])->save();
+    }
+
+    /**
+     * Give a hunter one of every piece of gear he can wear and does not have: his side's boss
+     * loot, everything that falls in a game, and the large quiver. Not the clothes he starts
+     * in (he has those) or the other side's loot (he never wears it).
+     */
+    public static function giveAllGear(User $user, string $side): void
+    {
+        $owned = Gear::owned($user, $side);
+        $gear = self::grantedGear($user, $side);
+
+        foreach (Gear::catalog() as $itemId => $item) {
+            if (($item['side'] ?? $side) !== $side || Gear::isStarter($itemId) || ($owned[$itemId] ?? 0) > 0) {
+                continue;
+            }
+            $gear[$itemId] = 1;
         }
 
-        $user->forceFill(['quiver' => true])->save();
+        self::keepGear($user, $side, $gear);
+    }
+
+    /**
+     * Take back the gear given to a hunter (the large quiver too). What he found stays.
+     */
+    public static function takeBackGear(User $user, string $side): void
+    {
+        self::keepGear($user, $side, []);
+    }
+
+    /**
+     * Give a hunter the large quiver, or take back the one given. One he found from a boss
+     * stays his.
+     */
+    public static function giveQuiver(User $user, string $side, bool $give = true): void
+    {
+        $gear = self::grantedGear($user, $side);
+        if ($give) {
+            $gear[Gear::LARGE_QUIVER] = 1;
+        } else {
+            unset($gear[Gear::LARGE_QUIVER]);
+            // The quiver given before each hunter had his own was the Alliance hunter's
+            if ($side === 'alliance' && $user->quiver) {
+                $user->forceFill(['quiver' => false]);
+            }
+        }
+        self::keepGear($user, $side, $gear);
+    }
+
+    /**
+     * Everything at once, for one hunter or both: every boss of his side beaten, all his
+     * side's boss loot and every other piece of gear, the large quiver, and every set.
+     */
+    public static function everything(User $user, ?string $side = null): void
+    {
+        foreach ($side === null ? Gear::SIDES : [$side] as $each) {
+            self::beatBosses($user, $each, count(config("boss_loot.bosses.$each")));
+            foreach (array_keys(config('loot.sets')) as $setId) {
+                self::giveSet($user, $setId, $each);
+            }
+            self::giveAllGear($user->fresh(), $each);
+        }
     }
 }

@@ -51,7 +51,18 @@ class Gear
             ->map(fn ($bossId) => BossLoot::boss($bossId)['faction'] ?? null)
             ->filter()->unique()->values()->all();
 
-        return $sides === [] && $user->quiver ? ['alliance'] : $sides;
+        // One given by an admin; and before each hunter had his own, the account's was the
+        // Alliance hunter's
+        foreach (self::SIDES as $side) {
+            if ((Grants::grantedGear($user, $side)[self::LARGE_QUIVER] ?? 0) > 0) {
+                $sides[] = $side;
+            }
+        }
+        if ($user->quiver && $user->bossDrops()->where('quiver', true)->doesntExist()) {
+            $sides[] = 'alliance';
+        }
+
+        return array_values(array_unique($sides));
     }
 
     /** The two hunters, each with an outfit of their own */
@@ -407,8 +418,12 @@ class Gear
             ->pluck('found', 'item_id')
             ->all();
 
+        // And what an admin gave him (Grants), the large quiver aside (quiverSides)
+        $granted = Grants::grantedGear($user, $side);
+        unset($granted[self::LARGE_QUIVER]);
+
         $all = [];
-        foreach ([$found, $caught] as $counts) {
+        foreach ([$found, $caught, $granted] as $counts) {
             foreach ($counts as $itemId => $count) {
                 $all[$itemId] = ($all[$itemId] ?? 0) + (int) $count;
             }

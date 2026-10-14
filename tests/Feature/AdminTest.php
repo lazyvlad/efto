@@ -7,6 +7,7 @@ use App\Models\Game;
 use App\Models\Score;
 use App\Models\User;
 use App\Support\BossLoot;
+use App\Support\Gear;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -112,7 +113,7 @@ class AdminTest extends TestCase
         // The first boss the player beat themselves
         BossDrop::create(['user_id' => $player->id, 'boss_id' => 'sarkoth', 'item_id' => 'x', 'rarity' => 'rare', 'dropped_at' => now()]);
 
-        $this->actingAs($admin)->get(route('admin.users.show', $player))->assertOk()->assertSee('Unlock content')->assertSee('Horde zones');
+        $this->actingAs($admin)->get(route('admin.users.show', $player))->assertOk()->assertSee('Unlock content')->assertSee('Horde hunter');
 
         // Six bosses counted as beaten opens zone 7
         $this->actingAs($admin)->post(route('admin.users.zones', $player), ['faction' => 'horde', 'bosses' => 6])->assertSessionHas('status');
@@ -134,35 +135,54 @@ class AdminTest extends TestCase
         $this->actingAs($admin)->post(route('admin.users.zones', $player), ['faction' => 'scourge', 'bosses' => 2])->assertSessionHasErrors('faction');
     }
 
-    public function test_an_admin_can_give_sets_and_the_quiver_and_take_them_back(): void
+    public function test_an_admin_gives_each_hunter_his_own_sets_and_quiver_and_takes_them_back(): void
     {
         $admin = $this->admin();
         $player = User::factory()->create();
-        // One piece the player caught
+        // One piece the Horde hunter caught
         $game = $this->playedGame($player);
         $game->drops()->create(['item_id' => 'giantstalker-helmet', 'chunk' => 0, 'at_seconds' => 3, 'claimed_at' => now()]);
 
-        $this->actingAs($admin)->post(route('admin.users.set', $player), ['set' => 'giantstalker'])->assertSessionHas('status');
+        $this->actingAs($admin)->post(route('admin.users.set', $player), ['set' => 'giantstalker', 'side' => 'horde'])->assertSessionHas('status');
         $player->refresh();
-        $this->assertCount(8, $player->setPieces());
-        $this->assertCount(7, $player->granted_pieces);
+        $this->assertCount(8, $player->setPieces('horde'));
+        $this->assertCount(7, $player->grantedPieces('horde'));
+        // The Alliance hunter was given nothing
+        $this->assertSame([], $player->setPieces('alliance'));
 
-        $this->actingAs($admin)->post(route('admin.users.quiver', $player));
-        $this->assertTrue($player->fresh()->quiver);
+        // Given to the Alliance hunter too: all eight, the helmet the other one caught as well
+        $this->actingAs($admin)->post(route('admin.users.set', $player), ['set' => 'giantstalker', 'side' => 'alliance']);
+        $this->assertCount(8, $player->fresh()->grantedPieces('alliance'));
 
-        $this->actingAs($player->fresh())->get(route('play'))->assertSee('giantstalker-boots', false)->assertSee('"quiver":true', false);
+        $this->actingAs($admin)->post(route('admin.users.quiver', $player), ['side' => 'horde']);
+        $this->assertSame(['horde'], Gear::quiverSides($player->fresh()));
+        $this->assertSame(1, Gear::owned($player->fresh(), 'horde')[Gear::LARGE_QUIVER] ?? 0);
+        $this->assertArrayNotHasKey(Gear::LARGE_QUIVER, Gear::owned($player->fresh(), 'alliance'));
 
-        // Taken back: the piece that was caught is still theirs
-        $this->actingAs($admin)->post(route('admin.users.set', $player), ['set' => 'giantstalker', 'take' => 1]);
-        $this->actingAs($admin)->post(route('admin.users.quiver', $player));
+        $this->actingAs($player->fresh())->get(route('play'))->assertSee('giantstalker-boots', false);
+
+        // Taken back: the piece that was caught is still the Horde hunter's
+        $this->actingAs($admin)->post(route('admin.users.set', $player), ['set' => 'giantstalker', 'side' => 'horde', 'take' => 1]);
+        $this->actingAs($admin)->post(route('admin.users.quiver', $player), ['side' => 'horde', 'take' => 1]);
         $player->refresh();
-        $this->assertSame(['giantstalker-helmet'], $player->setPieces());
-        $this->assertFalse($player->quiver);
+        $this->assertSame(['giantstalker-helmet'], $player->setPieces('horde'));
+        $this->assertCount(8, $player->setPieces('alliance'));
+        $this->assertSame([], Gear::quiverSides($player));
 
-        $this->actingAs($admin)->post(route('admin.users.set', $player), ['set' => 'made-up'])->assertSessionHasErrors('set');
+        $this->actingAs($admin)->post(route('admin.users.set', $player), ['set' => 'made-up', 'side' => 'horde'])->assertSessionHasErrors('set');
+        $this->actingAs($admin)->post(route('admin.users.set', $player), ['set' => 'giantstalker'])->assertSessionHasErrors('side');
     }
 
-    public function test_everything_can_be_unlocked_at_once(): void
+    public function test_pieces_given_before_each_hunter_had_his_own_are_both_hunters(): void
+    {
+        $player = User::factory()->create();
+        $player->forceFill(['granted_pieces' => ['giantstalker-boots']])->save();
+
+        $this->assertSame(['giantstalker-boots'], $player->fresh()->setPieces('alliance'));
+        $this->assertSame(['giantstalker-boots'], $player->fresh()->setPieces('horde'));
+    }
+
+    public function test_everything_can_be_unlocked_at_once_for_both_hunters(): void
     {
         $admin = $this->admin();
         $player = User::factory()->create();
@@ -173,20 +193,63 @@ class AdminTest extends TestCase
         $this->assertSame(10, BossLoot::unlockedZone($player, 'alliance'));
         $this->assertSame(10, BossLoot::unlockedZone($player, 'horde'));
         $this->assertSame(20, $player->bossDrops()->distinct()->count('boss_id'));
-        $this->assertEqualsCanonicalizing(config('loot.items.set_piece'), $player->setPieces());
-        $this->assertTrue($player->quiver);
+        $this->assertEqualsCanonicalizing(['alliance', 'horde'], Gear::quiverSides($player));
+
+        // Each hunter has every set, and every piece of gear he can wear: his side's boss loot
+        // and everything else, but not the other side's
+        foreach (Gear::SIDES as $side) {
+            $this->assertEqualsCanonicalizing(config('loot.sets') ? collect(config('loot.sets'))->pluck('pieces')->flatten()->all() : [], $player->setPieces($side));
+            $owned = Gear::owned($player, $side);
+            foreach (Gear::catalog() as $itemId => $item) {
+                $his = ($item['side'] ?? $side) === $side;
+                $this->assertSame($his, ($owned[$itemId] ?? 0) > 0, "$side hunter and $itemId");
+            }
+        }
+
+        // Taken back from one hunter: the other keeps his
+        $this->actingAs($admin)->post(route('admin.users.gear', $player), ['side' => 'horde', 'take' => 1]);
+        $this->assertArrayNotHasKey('walking-stick', Gear::owned($player->fresh(), 'horde'));
+        $this->assertArrayHasKey('walking-stick', Gear::owned($player->fresh(), 'alliance'));
+    }
+
+    public function test_everything_can_be_unlocked_for_one_hunter(): void
+    {
+        $admin = $this->admin();
+        $player = User::factory()->create();
+
+        $this->actingAs($admin)->post(route('admin.users.unlock-all', $player), ['side' => 'horde'])->assertSessionHas('status');
+
+        $player->refresh();
+        $this->assertSame(10, BossLoot::unlockedZone($player, 'horde'));
+        $this->assertSame(1, BossLoot::unlockedZone($player, 'alliance'));
+        $this->assertSame(['horde'], Gear::quiverSides($player));
+        $this->assertSame([], $player->setPieces('alliance'));
+        $this->assertNotEmpty($player->setPieces('horde'));
+    }
+
+    public function test_the_account_page_shows_each_hunter(): void
+    {
+        $admin = $this->admin();
+        $player = User::factory()->create();
+
+        $this->actingAs($admin)->get(route('admin.users.show', $player))
+            ->assertOk()
+            ->assertSee('Alliance hunter')
+            ->assertSee('Horde hunter')
+            ->assertSee('Unlock everything for both');
     }
 
     public function test_unlocking_is_for_admins_only(): void
     {
         $player = User::factory()->create();
 
-        foreach (['admin.users.unlock-all', 'admin.users.quiver', 'admin.users.zones', 'admin.users.set'] as $action) {
-            $this->actingAs($player)->post(route($action, $player), ['faction' => 'horde', 'bosses' => 9, 'set' => 'giantstalker'])->assertNotFound();
+        foreach (['admin.users.unlock-all', 'admin.users.quiver', 'admin.users.zones', 'admin.users.set', 'admin.users.gear'] as $action) {
+            $this->actingAs($player)->post(route($action, $player), ['faction' => 'horde', 'side' => 'horde', 'bosses' => 9, 'set' => 'giantstalker'])->assertNotFound();
         }
 
-        $this->assertFalse($player->fresh()->quiver);
+        $this->assertSame([], Gear::quiverSides($player->fresh()));
         $this->assertSame(0, $player->bossDrops()->count());
+        $this->assertNull($player->fresh()->granted_gear);
     }
 
     public function test_a_blocked_account_is_logged_out_and_cannot_log_back_in(): void

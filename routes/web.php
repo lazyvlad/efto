@@ -92,6 +92,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/users/{user}/zones/lock', [Admin\UserController::class, 'lockZones'])->name('users.zones.lock');
     Route::post('/users/{user}/quiver', [Admin\UserController::class, 'quiver'])->name('users.quiver');
     Route::post('/users/{user}/set', [Admin\UserController::class, 'set'])->name('users.set');
+    Route::post('/users/{user}/gear', [Admin\UserController::class, 'gear'])->name('users.gear');
     Route::post('/users/{user}/unlock-all', [Admin\UserController::class, 'unlockAll'])->name('users.unlock-all');
     Route::delete('/users/{user}', [Admin\UserController::class, 'destroy'])->name('users.destroy');
 
