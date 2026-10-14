@@ -291,6 +291,38 @@
     cursor: pointer;
 }
 
+/* Take or leave, and sell: side by side, one over the other on a narrow screen */
+.inventory-row-buttons {
+    flex: none;
+    display: flex;
+    gap: 6px;
+}
+
+.inventory-carry {
+    min-width: 58px;
+}
+
+.inventory-heading {
+    margin: 14px 0 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #f6e3a1;
+}
+
+.inventory-heading + .inventory-list {
+    margin-top: 6px;
+}
+
+.inventory-summary .is-full {
+    color: #ff9c6b;
+}
+
+@media (max-width: 520px) {
+    .inventory-row-buttons {
+        flex-direction: column;
+    }
+}
+
 /* The last one: quieter, so it is not pressed by habit */
 .inventory-sell.is-last {
     color: #f1e6c8;

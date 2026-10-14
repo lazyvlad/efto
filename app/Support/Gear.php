@@ -173,6 +173,35 @@ class Gear
     }
 
     /**
+     * What a player's hunter takes into a game (carriedOf in game/utils/gear.js): what they
+     * chose, as far as they still own it, no more than the limit; what is worn is added
+     * while there is room. A player who never chose takes what they wear and then whatever
+     * else they own, in the order the game lists it, up to the limit.
+     *
+     * @param  array<int, mixed>|null  $chosen
+     * @return array<int, string>
+     */
+    public static function carried(User $user, ?array $chosen, ?array $worn = null): array
+    {
+        $limit = (int) config('gear.carry');
+        $owned = array_merge($user->setPieces(), array_keys(self::owned($user)));
+        $worn = array_values($worn ?? self::worn($user));
+
+        $list = $chosen === null ? array_merge($worn, $owned) : $chosen;
+        $carried = [];
+        foreach (array_merge($list, $worn) as $itemId) {
+            if (count($carried) >= $limit) {
+                break;
+            }
+            if (is_string($itemId) && in_array($itemId, $owned, true) && ! in_array($itemId, $carried, true)) {
+                $carried[] = $itemId;
+            }
+        }
+
+        return $carried;
+    }
+
+    /**
      * How much the gear being worn takes off the loss on things caught with the bags full,
      * as a share (0.02 = two hundredths).
      */

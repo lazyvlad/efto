@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 
 // Loaded through a data: URL, as in gameClock.test.mjs
 const source = await readFile(new URL('../utils/gear.js', import.meta.url));
-const { SLOTS, slotsFor, fits, itemsForSlot, validEquipment, equip, equipSet, setsWorn, mainSet, gearTotals, itemStats } =
+const { SLOTS, slotsFor, fits, itemsForSlot, validEquipment, equip, equipSet, setsWorn, mainSet, gearTotals, itemStats, carriedOf, fitsCarried } =
     await import(`data:text/javascript;base64,${source.toString('base64')}`);
 
 const sets = [
@@ -127,4 +127,26 @@ test('every set piece in the game is worn somewhere on the sheet', async () => {
     for (const slot of slots) {
         assert.ok(slotsFor({ slot }).length > 0, `nowhere to wear "${slot}"`);
     }
+});
+
+test('the hunter carries what was chosen, as far as it is owned and there is room', () => {
+    const owned = ['a', 'b', 'c', 'd', 'e'];
+
+    // Never chosen: what is worn, then the rest in order, up to the limit
+    assert.deepEqual(carriedOf(null, ['d'], owned, 3), ['d', 'a', 'b']);
+    assert.deepEqual(carriedOf(null, [], owned, 36), owned);
+
+    // Chosen: not what is no longer owned, nothing twice, no more than the limit
+    assert.deepEqual(carriedOf(['c', 'x', 'c', 'a'], [], owned, 36), ['c', 'a']);
+    assert.deepEqual(carriedOf(['c', 'a', 'b'], [], owned, 2), ['c', 'a']);
+    assert.deepEqual(carriedOf([], [], owned, 36), []);
+
+    // What is worn is carried while there is room, and pushes nothing out
+    assert.deepEqual(carriedOf(['c'], ['e'], owned, 36), ['c', 'e']);
+    assert.deepEqual(carriedOf(['c', 'a'], ['e'], owned, 2), ['c', 'a']);
+});
+
+test('putting something on needs room for it', () => {
+    assert.equal(fitsCarried(['a', 'b'], ['a', 'c'], 3), true);
+    assert.equal(fitsCarried(['a', 'b'], ['c', 'd'], 3), false);
 });

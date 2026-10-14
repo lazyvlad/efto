@@ -705,3 +705,10 @@
     }
 }
 .sheet-sides[hidden] { display: none; }
+
+/* Why something could not be put on */
+.sheet-notice {
+    color: #8a2a12;
+    font-style: normal;
+    font-weight: 600;
+}

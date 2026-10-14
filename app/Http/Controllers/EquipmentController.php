@@ -13,20 +13,30 @@ class EquipmentController extends Controller
 {
     /**
      * Put on what the player chose. What comes back is what they are now wearing: anything
-     * that is not theirs, or does not fit where they put it, is left out.
+     * that is not theirs, or does not fit where they put it, is left out. With it can come
+     * what the hunter takes into a game (Gear::carried).
      */
     public function update(Request $request): JsonResponse
     {
         $data = $request->validate([
             'equipment' => ['present', 'array', 'max:'.count(Gear::SLOTS)],
-            'equipment.*' => ['nullable', 'string', 'max:60'],
+            // What the hunter takes into a game; without it, what was chosen before stays
+            'carried' => ['sometimes', 'array', 'max:200'],
+            'carried.*' => ['string', 'max:60'],
         ]);
 
         $user = $request->user();
         $worn = Gear::valid($user, $data['equipment']);
-        // Kept even when empty: a player who took everything off chose to
-        $user->forceFill(['equipment' => $worn])->save();
+        $carried = Gear::carried($user, $data['carried'] ?? $user->carried, $worn);
+        // Only what is carried can be worn
+        $worn = array_filter($worn, fn ($itemId) => in_array($itemId, $carried, true));
 
-        return response()->json(['equipment' => (object) $worn]);
+        // Kept even when empty: a player who took everything off chose to
+        $user->forceFill([
+            'equipment' => $worn,
+            'carried' => array_key_exists('carried', $data) || $user->carried !== null ? $carried : null,
+        ])->save();
+
+        return response()->json(['equipment' => (object) $worn, 'carried' => $carried]);
     }
 }

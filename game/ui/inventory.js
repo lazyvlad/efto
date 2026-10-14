@@ -15,6 +15,7 @@ import { MATERIALS, categoryOf } from '../data/materials.js';
 import { stacksOf, slotsUsed } from '../utils/bags.js';
 import { formatCoins } from '../utils/coins.js';
 import { wearableById } from '../data/wearables.js';
+import { itemStats } from '../utils/gear.js';
 
 let game = null;        // What the game gave when it set the inventory up
 let tab = 'bags';
@@ -46,6 +47,9 @@ export function isInventoryOpen() {
  *        Also gear ({ itemId: count }), worn (item ids) and fullBagLoss (0-1).
  * @param {Function} options.onBuyBag - (size) => Promise resolving to an error message or ''
  * @param {Function} options.onSell - (itemId, count) => Promise resolving to an error message or ''
+ * @param {Function} options.onCarry - (itemId, take) take a thing into the game or leave it in
+ *        the bank; returns an error message or ''
+ *        For that the state has owned (ids), carried (ids), carryLimit and playing.
  * @param {Function} options.onOpenGear - () open the character sheet
  */
 export function initializeInventory(options) {
@@ -270,32 +274,46 @@ async function sell(itemId, count) {
     render();
 }
 
-// The gear that is not a piece of a set: what the bosses dropped, and the weapons and
-// jewellery caught. Only one of a thing can be worn, so the spare ones are for selling. The
-// last one can be sold too, after a warning: it is then no longer the player's to wear.
+// Everything owned that can be worn. A hunter takes only so much of it into a game, what he
+// wears among it: each thing is either taken along or left in the bank, and that is chosen
+// here, between games. Gear that is not a piece of a set can also be sold: only one of a
+// thing can be worn, so the spare ones are for selling, and the last one can be sold too,
+// after a warning: it is then no longer the player's to wear.
 function renderGear(body, state) {
-    body.append(make('p', 'inventory-summary', 'What the bosses dropped for you, and the weapons and jewellery you caught. You can wear one of each; the spare ones are worth selling. The character sheet is where things are put on.'));
-
     const open = make('button', 'inventory-buy inventory-open-gear', 'Open the character sheet');
     open.type = 'button';
     open.addEventListener('click', () => game.onOpenGear());
-    body.append(open);
-
-    const owned = Object.entries(state.gear).filter(([, count]) => count > 0)
-        .map(([itemId, count]) => ({ item: wearableById(itemId), count }))
-        .filter(entry => entry.item);
 
     if (!state.loggedIn) {
-        body.append(make('p', 'inventory-note', 'Gear is kept on an account. Log in to keep what you find.'));
+        body.append(
+            make('p', 'inventory-summary', 'The gear you find in a game is yours for that game.'),
+            open,
+            make('p', 'inventory-note', 'Gear is kept on an account. Log in to keep what you find.')
+        );
         return;
     }
+
+    const carried = new Set(state.carried);
+    const full = carried.size >= state.carryLimit;
+    const summary = make('p', 'inventory-summary');
+    summary.append(
+        make('strong', full ? 'is-full' : '', `Carrying ${carried.size} of ${state.carryLimit}`),
+        document.createTextNode(state.playing
+            ? ' · this is what your hunter took into the game. The rest waits in the bank until it is over.'
+            : ' · your hunter takes this much gear into a game, what he wears among it. Only what he carries can be put on while playing; the rest waits in the bank.')
+    );
+    body.append(summary, open);
+
+    const owned = state.owned.map(itemId => wearableById(itemId)).filter(Boolean)
+        .map(item => ({ item, count: state.gear[item.id] || 1, sells: Boolean(state.gear[item.id]) && item.value > 0 }));
+
     if (owned.length === 0) {
-        body.append(make('p', 'inventory-note', 'Nothing yet. Every boss drops an item when it falls.'));
+        body.append(make('p', 'inventory-note', 'Nothing yet. Set pieces fall in a game, and every boss drops an item when it falls.'));
         return;
     }
 
     // Everything spare, in one press
-    const spares = owned.filter(entry => entry.count > 1);
+    const spares = owned.filter(entry => entry.sells && entry.count > 1);
     const spareCoins = spares.reduce((total, entry) => total + (entry.count - 1) * entry.item.value, 0);
     if (spares.length > 0 && state.canSpend) {
         const all = make('button', 'inventory-buy inventory-sell-all', `Sell every spare one · ${formatCoins(spareCoins)}`);
@@ -314,50 +332,82 @@ function renderGear(body, state) {
     if (notice) body.append(make('p', 'inventory-note is-warning', notice));
     if (!state.canSpend) body.append(make('p', 'inventory-note', 'Activate your account to sell things.'));
 
-    const list = make('div', 'inventory-list');
-    for (const { item, count } of owned) {
-        const worn = state.worn.includes(item.id);
-        const row = make('div', 'inventory-row inventory-gear');
-        row.dataset.rarity = item.rarity || 'epic';
+    // What is carried first, then the bank
+    for (const [title, entries] of [
+        ['With your hunter', owned.filter(entry => carried.has(entry.item.id))],
+        ['In the bank', owned.filter(entry => !carried.has(entry.item.id))],
+    ]) {
+        if (entries.length === 0) continue;
 
-        const picture = make('img');
-        picture.src = item.image;
-        picture.alt = '';
-
-        const text = make('span', 'inventory-row-text');
-        text.append(
-            make('span', 'inventory-row-name', count > 1 ? `${item.name} ×${count}` : item.name),
-            make('span', 'inventory-row-note', statsText(item.stats) || 'No stats'),
-            make('span', 'inventory-row-from', `${item.from}${worn ? ' · being worn' : ''} · sells for ${formatCoins(item.value)}`)
-        );
-        row.append(picture, text);
-
-        if (state.canSpend) {
-            const button = make('button', 'inventory-sell');
-            button.type = 'button';
-
-            if (count > 1) {
-                // The default: all but one, so it can still be worn
-                button.textContent = `Sell ${count - 1} spare`;
-                button.title = `Keeps one to wear. Pays ${formatCoins((count - 1) * item.value)}.`;
-                button.addEventListener('click', () => {
-                    button.disabled = true;
-                    sell(item.id, count - 1);
-                });
-            } else {
-                button.textContent = 'Sell the last';
-                button.classList.add('is-last');
-                button.title = `Pays ${formatCoins(item.value)}. You will no longer be able to wear it.`;
-                button.addEventListener('click', () => {
-                    const warning = `This is your only ${item.name}${worn ? ', and you are wearing it' : ''}. Once it is sold you can no longer wear it, until you find another. Sell it for ${formatCoins(item.value)}?`;
-                    if (!window.confirm(warning)) return;
-                    button.disabled = true;
-                    sell(item.id, 1);
-                });
-            }
-            row.append(button);
-        }
-        list.append(row);
+        body.append(make('h3', 'inventory-heading', `${title} (${entries.length})`));
+        const list = make('div', 'inventory-list');
+        for (const entry of entries) list.append(gearRow(entry, state, carried, full));
+        body.append(list);
     }
-    body.append(list);
+}
+
+function gearRow({ item, count, sells }, state, carried, full) {
+    const worn = state.worn.includes(item.id);
+    const taken = carried.has(item.id);
+    const row = make('div', 'inventory-row inventory-gear');
+    row.dataset.rarity = item.rarity || 'epic';
+
+    const picture = make('img');
+    picture.src = item.image;
+    picture.alt = '';
+
+    const about = [item.from, worn ? 'being worn' : '', sells ? `sells for ${formatCoins(item.value)}` : ''].filter(Boolean).join(' · ');
+    const text = make('span', 'inventory-row-text');
+    text.append(
+        make('span', 'inventory-row-name', count > 1 ? `${item.name} ×${count}` : item.name),
+        make('span', 'inventory-row-note', statsText(itemStats(item, gameConfig.sets)) || 'No stats'),
+        ...(about ? [make('span', 'inventory-row-from', about)] : [])
+    );
+
+    const buttons = make('span', 'inventory-row-buttons');
+
+    // Take it along, or leave it in the bank: between games only
+    if (!state.playing) {
+        const carry = make('button', 'inventory-sell inventory-carry', taken ? 'Leave' : 'Take');
+        carry.type = 'button';
+        carry.classList.toggle('is-last', taken);
+        carry.disabled = !taken && full;
+        carry.title = taken
+            ? `Leave it in the bank${worn ? ', which takes it off' : ''}`
+            : (full ? `Your hunter already carries ${state.carryLimit} things` : 'Take it into the game');
+        carry.addEventListener('click', () => {
+            notice = game.onCarry(item.id, !taken) || '';
+            render();
+        });
+        buttons.append(carry);
+    }
+
+    if (sells && state.canSpend) {
+        const button = make('button', 'inventory-sell');
+        button.type = 'button';
+
+        if (count > 1) {
+            // The default: all but one, so it can still be worn
+            button.textContent = `Sell ${count - 1} spare`;
+            button.title = `Keeps one to wear. Pays ${formatCoins((count - 1) * item.value)}.`;
+            button.addEventListener('click', () => {
+                button.disabled = true;
+                sell(item.id, count - 1);
+            });
+        } else {
+            button.textContent = 'Sell the last';
+            button.classList.add('is-last');
+            button.title = `Pays ${formatCoins(item.value)}. You will no longer be able to wear it.`;
+            button.addEventListener('click', () => {
+                const warning = `This is your only ${item.name}${worn ? ', and you are wearing it' : ''}. Once it is sold you can no longer wear it, until you find another. Sell it for ${formatCoins(item.value)}?`;
+                if (!window.confirm(warning)) return;
+                button.disabled = true;
+                sell(item.id, 1);
+            });
+        }
+        buttons.append(button);
+    }
+
+    row.append(picture, text, buttons);
+    return row;
 }

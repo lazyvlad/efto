@@ -28,6 +28,14 @@
 
 return [
 
+    /*
+     * How many pieces of gear a hunter takes into a game. Everything else a player owns
+     * stays in the bank, and cannot be put on until the game is over. What is being worn
+     * counts. gameConfig.bags.carry in the game is the same number.
+     */
+    'carry' => 36,
+
+
     'boss_slots' => [
         // Alliance
         'garricks-red-bandana' => 'head', 'padfoots-throwing-dagger' => 'ranged', 'garricks-head' => 'trinket',

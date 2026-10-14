@@ -70,7 +70,7 @@ class GearTest extends TestCase
             // An axe is not a cape, and this one is not theirs
             'chest' => 'hoggers-trophy-axe',
             'ranged' => 'centaur-war-spear',
-        ]])->assertOk()->assertExactJson(['equipment' => ['back' => 'cape-of-the-brotherhood', 'mainhand' => 'hoggers-trophy-axe']]);
+        ]])->assertOk()->assertJsonPath('equipment', ['back' => 'cape-of-the-brotherhood', 'mainhand' => 'hoggers-trophy-axe']);
 
         $this->get(route('play'))
             ->assertSee('"gear":{"cape-of-the-brotherhood":2,"hoggers-trophy-axe":1}', false)

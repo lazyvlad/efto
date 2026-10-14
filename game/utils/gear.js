@@ -93,6 +93,37 @@ export function validEquipment(equipment, items, owned) {
 }
 
 /**
+ * What the hunter takes into a game, out of everything owned (Gear::carried on the site):
+ * what was chosen, as far as it is still owned, no more than the limit; what is worn is
+ * added while there is room. With nothing chosen yet (null) it is what is worn and then
+ * whatever else is owned, in the order given, up to the limit.
+ * @param {string[]|null} chosen - Item ids, or null when the player never chose
+ * @param {string[]} worn - Ids of the items being worn
+ * @param {Iterable<string>} owned - Ids of everything owned, in the order to fill up from
+ * @param {number} limit - How many can be carried
+ * @returns {string[]}
+ */
+export function carriedOf(chosen, worn, owned, limit) {
+    const has = new Set(owned);
+    const list = chosen ? chosen : [...worn, ...has];
+    const carried = [];
+
+    for (const itemId of [...list, ...worn]) {
+        if (carried.length >= limit) break;
+        if (has.has(itemId) && !carried.includes(itemId)) carried.push(itemId);
+    }
+    return carried;
+}
+
+/**
+ * Whether the hunter could carry all of this: what is carried now and what would be worn.
+ * @returns {boolean}
+ */
+export function fitsCarried(carried, worn, limit) {
+    return new Set([...carried, ...worn]).size <= limit;
+}
+
+/**
  * Put an item on in a slot (or take off what is there, with no item). The item leaves any
  * other slot it was in. Nothing changes if it does not fit.
  * @returns {Object} A new { slotId: itemId }

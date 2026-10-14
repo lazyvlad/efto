@@ -37,7 +37,15 @@ const ATTACK_SPEED = { min: 1.2, max: 2.0 };  // How fast a boss's attack falls,
 // How long the first boss stands to wind up each attack, in steps (60 = 1 second); later
 // bosses are quicker. The charge and the stomp show the player where the danger will be for
 // the whole of theirs.
-const WIND_UP = { throw: 24, row: 36, fan: 24, vanish: 18, charge: 54, bolt: 24, curse: 36, bomb: 24, stomp: 66, swipe: 30, riot: 48 };
+const WIND_UP = { throw: 24, row: 36, fan: 24, vanish: 18, charge: 54, bolt: 24, curse: 36, bomb: 24, stomp: 66, hex: 66, swipe: 30, riot: 48 };
+
+// The attacks that strike all of the ground but one safe patch, and what each looks like: the
+// colour the ground to be struck is marked in (as "r, g, b") and the colour of what rises
+// from it. A stomp shakes it; a hex (Vile Priestess Hexx) curses it. They hit alike.
+const GROUND_STRIKES = {
+    stomp: { marked: '255, 60, 30', rises: '#C8A46A' },
+    hex: { marked: '170, 70, 255', rises: '#B45CFF' }
+};
 const VANISHED_STEPS = 60;
 const CHARGE_STEPS = 48;
 const BOMB_FLIGHT_STEPS = 40;
@@ -753,7 +761,7 @@ function windUp(context) {
         // The lane it will come down: where the player stands now
         const { left, right } = reach(canvas);
         fight.attackData = { x: Math.max(left, Math.min(right, body.centerX)), hit: false };
-    } else if (fight.attack === 'stomp') {
+    } else if (GROUND_STRIKES[fight.attack]) {
         // The one safe patch of ground: near enough to reach, not where the player already is
         const width = body.width * 2.6;
         const side = body.centerX < canvas.logicalWidth / 2 ? 1 : -1;
@@ -819,14 +827,15 @@ function strike(context) {
                 steps: 0
             });
             break;
-        case 'stomp': {
+        case 'stomp':
+        case 'hex': {
             const safe = body.centerX > fight.attackData.left && body.centerX < fight.attackData.right;
             if (!safe) hurtPlayer(context, heavyDamage());
             // Dust along the ground that was struck
             for (let i = 0; i < 40; i++) {
                 const x = Math.random() * canvas.logicalWidth;
                 if (x > fight.attackData.left && x < fight.attackData.right) continue;
-                particles.push(new Particle(x, body.y + body.height + Math.random() * body.height, '#C8A46A'));
+                particles.push(new Particle(x, body.y + body.height + Math.random() * body.height, GROUND_STRIKES[fight.attack].rises));
             }
             break;
         }
@@ -1008,7 +1017,7 @@ export function updateBoss(context) {
     } else if (fight.doing === 'winding') {
         // It lines up on the lane it means to charge down; otherwise it stands where it is
         if (fight.attack === 'charge') moveTowards(canvas, fight.attackData.x, canvas.logicalWidth * settings.movement.speed * 2.5);
-        const share = fight.attack === 'charge' || fight.attack === 'stomp' || fight.attack === 'swipe' ? stats.heavyWindUp : stats.windUp;
+        const share = fight.attack === 'charge' || GROUND_STRIKES[fight.attack] || fight.attack === 'swipe' ? stats.heavyWindUp : stats.windUp;
         if (fight.doingSteps >= WIND_UP[fight.attack] * share / Math.sqrt(rage)) strike(context);
     } else {
         act(context);
@@ -1131,11 +1140,11 @@ function drawWarnings(ctx, canvas, place) {
         }
     }
 
-    if (fight.attack === 'stomp' && fight.doing === 'winding') {
+    if (GROUND_STRIKES[fight.attack] && fight.doing === 'winding') {
         const { left, right } = fight.attackData;
         const height = canvas.logicalHeight - floorTop;
         // The ground that will be struck, and the one patch that will not
-        ctx.fillStyle = `rgba(255, 60, 30, ${0.32 * pulse})`;
+        ctx.fillStyle = `rgba(${GROUND_STRIKES[fight.attack].marked}, ${0.32 * pulse})`;
         ctx.fillRect(0, floorTop, left, height);
         ctx.fillRect(right, floorTop, canvas.logicalWidth - right, height);
         ctx.fillStyle = `rgba(90, 230, 120, ${0.28 + 0.12 * pulse})`;

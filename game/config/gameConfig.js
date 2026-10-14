@@ -306,6 +306,9 @@ export const gameConfig = {
         bagSlots: 4,                // Bags that can be added to the backpack
         stack: 20,                  // How many of one kind a slot holds
         fullPenalty: 0.1,           // With no room left, what is caught sells for this much less (0.1 = 90% of its worth)
+        // Pieces of gear the hunter takes into a game, what is worn among them. The rest of
+        // what is owned stays in the bank until the game is over ("carry" in config/gear.php).
+        carry: 36,
     },
 
     // === THE HUNTER'S STATS ===

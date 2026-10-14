@@ -21,6 +21,7 @@
 //   caster   - sends bolts that follow the player, and a curse that eats at their health
 //   bomber   - lobs things that land near the player and burst a moment later
 //   pounder  - stomps: the ground hurts everywhere but one safe patch
+//   hexer    - a caster that also hexes the ground: as a stomp, everywhere but one safe patch
 //   warlord  - a fan of axes, a rush down the field, a throw and a row, one after the other
 //   brawler  - throws, and rushes down the field at the player in between
 //
@@ -49,7 +50,7 @@ const roster = {
         { id: 'chieftain-nekrosh', behaviour: 'brawler', name: "Chieftain Nek'rosh", image: '07-chieftain-nekrosh', attack: { name: 'Spiked Mace', image: '07-nekrosh-mace', size: 1.6, spin: 0.1 } },
         { id: 'fozruk', behaviour: 'bomber', name: 'Fozruk', image: '08-fozruk', attack: { name: 'Thrown Boulder', image: '08-fozruk-boulder', size: 1.9, spin: 0.05 } },
         { id: 'king-bangalash', behaviour: 'charger', name: 'King Bangalash', image: '09-king-bangalash', attack: { name: 'Tiger Claw Slash', image: '09-bangalash-claws', size: 2.2 } },
-        { id: 'vile-priestess-hexx', behaviour: 'caster', name: 'Vile Priestess Hexx', image: '10-vile-priestess-hexx', storm: { name: 'Rain of Fire', image: '09-rain-of-fire', color: '255, 70, 20' }, attack: { name: 'Violet Curse Bolt', image: '10-hexx-curse', size: 1.4 } }
+        { id: 'vile-priestess-hexx', behaviour: 'hexer', name: 'Vile Priestess Hexx', image: '10-vile-priestess-hexx', storm: { name: 'Rain of Fire', image: '09-rain-of-fire', color: '255, 70, 20' }, attack: { name: 'Violet Curse Bolt', image: '10-hexx-curse', size: 1.4 } }
     ],
     horde: [
         { id: 'sarkoth', behaviour: 'caster', name: 'Sarkoth', image: '01-sarkoth', attack: { name: 'Venom Sting', image: '01-sarkoth-venom', size: 1.3 } },
@@ -76,6 +77,9 @@ export const behaviours = {
     bomber: ['bomb', 'throw', 'bomb', 'row'],
     // One stomp in three: with every other attack a stomp, the player lived in the safe patch
     pounder: ['throw', 'throw', 'stomp'],
+    // The last boss of the Alliance side, a match for the Horde's: its bolts and its curse, and
+    // every third attack the ground itself, which with her Rain of Fire leaves little room
+    hexer: ['bolt', 'curse', 'hex'],
     warlord: ['fan', 'charge', 'throw', 'row'],
     brawler: ['throw', 'throw', 'charge', 'row']
 };

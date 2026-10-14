@@ -57,6 +57,11 @@ class GameController extends Controller
                 'equipment' => $user->equipment === null || ! $user->canUseRewards()
                     ? null
                     : (object) Gear::valid($user, $user->equipment),
+                // What the hunter takes into a game, of everything owned (null until chosen:
+                // the game then takes what is worn and whatever else there is room for)
+                'carried' => $user->carried === null || ! $user->canUseRewards()
+                    ? null
+                    : Gear::carried($user, $user->carried),
                 // The gear owned besides the sets, and how many of each (App\Support\Gear)
                 'gear' => (object) ($user->canUseRewards() ? Gear::owned($user) : []),
                 // The bags bought (their sizes) and the crafting materials brought back so far

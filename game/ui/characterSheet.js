@@ -20,6 +20,7 @@ let whenClosed = null;
 // The character shown, when the player picked the other one to look at. Both wear the same
 // things; in a game it is always the one being played.
 let shownSide = null;
+let notice = '';        // Why the last thing pressed could not be put on
 
 const element = id => document.getElementById(id);
 
@@ -54,8 +55,10 @@ export function isCharacterSheetOpen() {
  * @param {Object} options
  * @param {Function} options.getState - () => { equipment, owned (Set), faction, name, level,
  *        totals, maxHealth, armorReduction (0-1), crit (0-1), dodge (0-1), playing }
- * @param {Function} options.onEquip - (slotId, item or null) put an item on, or take one off
- * @param {Function} options.onWearSet - (setId) put on every piece owned of a set
+ * @param {Function} options.onEquip - (slotId, item or null) put an item on, or take one off.
+ *        Returns why it could not be, in words, or ''.
+ * @param {Function} options.onWearSet - (setId) put on every piece owned of a set. Returns
+ *        the same.
  */
 export function initializeCharacterSheet(options) {
     game = options;
@@ -89,6 +92,7 @@ export function initializeCharacterSheet(options) {
  * @param {Function} [onClose] - Called when it is closed again
  */
 export function openCharacterSheet(onClose = null) {
+    notice = '';
     const sheet = element('characterSheet');
     if (!sheet || !game) return;
 
@@ -241,7 +245,10 @@ function renderSets(state) {
         button.title = owned === 0
             ? `You own no piece of ${set.name} yet`
             : `Put on the ${owned} ${owned === 1 ? 'piece' : 'pieces'} you own of ${set.name}${next ? ` (its next bonus is at ${next})` : ''}`;
-        button.addEventListener('click', () => game.onWearSet(set.id));
+        button.addEventListener('click', () => {
+            notice = game.onWearSet(set.id) || '';
+            render();
+        });
         holder.append(button);
     }
 }
@@ -256,13 +263,22 @@ function renderSlotItems(state) {
     const list = element('sheetItems');
     list.textContent = '';
 
+    // Why the last thing pressed could not be put on
+    if (notice) list.append(make('p', 'sheet-empty sheet-notice', notice));
+    // In a game only what the hunter took along can be put on
+    if (state.playing && state.inBank > 0) {
+        list.append(make('p', 'sheet-empty', `${state.inBank} more ${state.inBank === 1 ? 'thing is' : 'things are'} in the bank, out of reach until the game is over.`));
+    }
+
     if (choices.length === 0) {
-        list.append(make('p', 'sheet-empty', 'Nothing you own goes here yet.'));
+        list.append(make('p', 'sheet-empty', state.playing ? 'Nothing you carry goes here.' : 'Nothing you own goes here yet.'));
         return;
     }
 
     for (const item of choices) {
         const worn = item.id === wornId;
+        // Not among what the hunter takes into a game: putting it on takes it along
+        const banked = Boolean(state.carried) && !state.carried.has(item.id);
         const row = make('button', 'sheet-item');
         row.type = 'button';
         row.classList.toggle('is-worn', worn);
@@ -276,11 +292,14 @@ function renderSlotItems(state) {
         text.append(
             make('span', 'sheet-item-name', item.name),
             make('span', 'sheet-item-stats', statsText(itemStats(item, gameConfig.sets)) || 'No stats'),
-            ...(item.from ? [make('span', 'sheet-item-from', item.from)] : [])
+            ...(item.from || banked ? [make('span', 'sheet-item-from', [item.from, banked ? 'in the bank' : ''].filter(Boolean).join(' \u00b7 '))] : [])
         );
 
         row.append(picture, text, make('span', 'sheet-item-action', worn ? 'Take off' : 'Put on'));
-        row.addEventListener('click', () => game.onEquip(slot.id, worn ? null : item));
+        row.addEventListener('click', () => {
+            notice = game.onEquip(slot.id, worn ? null : item) || '';
+            render();
+        });
         list.append(row);
     }
 }

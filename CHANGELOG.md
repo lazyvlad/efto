@@ -1,5 +1,46 @@
 # Changelog
 
+## 2.36.0 - 2026-10-14
+
+### What's new
+
+**A hunter carries 36 pieces of gear**
+- Everything you own is in the bank. Your hunter takes 36 pieces of it into a game, what he
+  is wearing among them, and only those can be put on while playing: a full set is eight or
+  nine, so three sets and a handful of boss items no longer all come along.
+- The inventory's **Gear** tab now lists everything you own that can be worn, set pieces
+  too, as "With your hunter" and "In the bank", with a count ("Carrying 31 of 36"). "Take"
+  and "Leave" move a thing between the two; leaving something that is on takes it off.
+- Between games anything you own can still be put on from the character sheet: it is taken
+  along, if there is room. With no room the sheet says so, and things in the bank are
+  marked. In a game the sheet shows only what was taken, and how much stayed behind.
+- What you catch in a game can be worn in that game whatever you carry. Afterwards it is
+  in the bank, unless it was put on and there was room for it.
+- Until you choose, your hunter takes what he wears and then the rest of what you own, up
+  to 36. Guests are not affected: they have no bank.
+
+**Vile Priestess Hexx hexes the ground**
+- The last Alliance boss was much easier than the last Horde boss, who stomps all of the
+  ground but one patch while his Blizzard covers half the field. Hexx now does the same in
+  her own way: every third attack she hexes the ground, which is marked violet with one
+  green patch that is safe, and whoever is not on it when it goes off is hit as hard as by
+  a stomp. Her bolts, her curse and her Rain of Fire are as they were.
+
+### Fixed
+- A boss fight started against the first zone's boss when the place was picked on the map
+  first and "Boss fight" chosen after: choosing the kind of game put the place back on
+  zone 1. The place picked now stays picked.
+
+### For developers
+- `users.carried` (migration `2026_10_14_120000`), `config('gear.carry')` and
+  `gameConfig.bags.carry` (a test keeps them equal). `Gear::carried()` on the site and
+  `carriedOf()` in `game/utils/gear.js` are the same rule. `PUT /api/equipment` takes and
+  returns `carried`, and leaves out of what is worn anything not carried.
+- The limit on changing gear during a game is the game's own: the site checks what is
+  saved, not each change made while playing.
+- A new boss behaviour `hexer` (`bolt`, `curse`, `hex`) in `game/data/bosses.js`; `hex` is
+  a stomp in other colours (`GROUND_STRIKES` in `game/systems/bossSystem.js`).
+
 ## 2.35.0 - 2026-10-14
 
 ### What's new

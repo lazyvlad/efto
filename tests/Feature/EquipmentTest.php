@@ -28,11 +28,11 @@ class EquipmentTest extends TestCase
             'finger1' => 'cryptstalker-ring',  // the same ring twice: the first finger has it
             'nose' => 'giantstalker-belt',     // no such slot
             'neck' => 'giantstalker-belt',     // a belt is not a necklace
-        ]])->assertOk()->assertExactJson(['equipment' => [
+        ]])->assertOk()->assertJsonPath('equipment', [
             'head' => 'giantstalker-helmet',
             'chest' => 'cryptstalker-chest',
             'finger1' => 'cryptstalker-ring',
-        ]]);
+        ]);
 
         $this->assertSame(
             ['head' => 'giantstalker-helmet', 'chest' => 'cryptstalker-chest', 'finger1' => 'cryptstalker-ring'],
@@ -90,5 +90,48 @@ class EquipmentTest extends TestCase
         // And the sheet's slots are the game's
         preg_match_all("/\{ id: '(\w+)', label:/", file_get_contents(base_path('game/utils/gear.js')), $sheet);
         $this->assertSame(Gear::SLOTS, $sheet[1]);
+    }
+
+    public function test_a_hunter_takes_only_so_much_gear_into_a_game(): void
+    {
+        config(['gear.carry' => 10]);
+        $user = User::factory()->create();
+        Grants::giveSet($user, 'giantstalker');   // 8 pieces
+        Grants::giveSet($user, 'cryptstalker');   // 9 pieces
+
+        // Never chosen: nothing is kept, and the game is told so
+        $this->actingAs($user)->putJson(route('equipment.update'), ['equipment' => ['head' => 'cryptstalker-helmet']])
+            ->assertOk()->assertJsonCount(10, 'carried')->assertJsonPath('carried.0', 'cryptstalker-helmet');
+        $this->assertNull($user->fresh()->carried);
+        $this->get(route('play'))->assertSee('"carried":null', false);
+
+        // Chosen: what is theirs, once each, and no more than the limit
+        $pieces = config('loot.sets.giantstalker.pieces');
+        $this->putJson(route('equipment.update'), [
+            'equipment' => ['head' => 'cryptstalker-helmet'],
+            'carried' => ['cryptstalker-helmet', 'cryptstalker-chest', 'cryptstalker-chest', 'ds_legs', ...array_values($pieces), 'cryptstalker-boots'],
+        ])->assertOk()->assertJsonPath('carried', ['cryptstalker-helmet', 'cryptstalker-chest', ...array_values($pieces)]);
+        $this->assertCount(10, $user->fresh()->carried);
+
+        // What is not carried cannot be worn
+        $this->putJson(route('equipment.update'), ['equipment' => ['head' => 'cryptstalker-helmet', 'feet' => 'cryptstalker-boots']])
+            ->assertOk()->assertJsonPath('equipment', ['head' => 'cryptstalker-helmet']);
+
+        // With room, what is put on is carried
+        $this->putJson(route('equipment.update'), [
+            'equipment' => ['feet' => 'cryptstalker-boots'],
+            'carried' => ['cryptstalker-helmet'],
+        ])->assertOk()->assertJsonPath('carried', ['cryptstalker-helmet', 'cryptstalker-boots'])
+            ->assertJsonPath('equipment', ['feet' => 'cryptstalker-boots']);
+
+        $this->get(route('play'))->assertSee('"carried":["cryptstalker-helmet","cryptstalker-boots"]', false);
+    }
+
+    public function test_the_game_and_the_site_agree_on_how_much_is_carried(): void
+    {
+        $config = file_get_contents(base_path('game/config/gameConfig.js'));
+
+        $this->assertSame(1, preg_match('/carry: (\d+),/', $config, $found));
+        $this->assertSame((int) $found[1], config('gear.carry'));
     }
 }
