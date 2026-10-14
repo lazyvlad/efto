@@ -52,22 +52,22 @@
     <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
-    <link rel="stylesheet" href="styles/base.css?v=2.41.1">
-    <link rel="stylesheet" href="styles/ui-components.css?v=2.41.1">
-    <link rel="stylesheet" href="styles/settings.css?v=2.41.1">
-    <link rel="stylesheet" href="styles/notifications.css?v=2.41.1">
-    <link rel="stylesheet" href="styles/game-panels.css?v=2.41.1">
-    <link rel="stylesheet" href="styles/spell-bar.css?v=2.41.1">
-    <link rel="stylesheet" href="styles/how-to-play.css?v=2.41.1">
-    <link rel="stylesheet" href="styles/mobile.css?v=2.41.1">
-    <link rel="stylesheet" href="styles/wow-theme.css?v=2.41.1">
-    <link rel="stylesheet" href="styles/game-window.css?v=2.41.1">
-    <link rel="stylesheet" href="styles/character-sheet.css?v=2.41.1">
-    <link rel="stylesheet" href="styles/inventory.css?v=2.41.1">
-    <link rel="stylesheet" href="styles/screens.css?v=2.41.1">
-    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.41.1"> -->
+    <link rel="stylesheet" href="styles/base.css?v=2.43.0">
+    <link rel="stylesheet" href="styles/ui-components.css?v=2.43.0">
+    <link rel="stylesheet" href="styles/settings.css?v=2.43.0">
+    <link rel="stylesheet" href="styles/notifications.css?v=2.43.0">
+    <link rel="stylesheet" href="styles/game-panels.css?v=2.43.0">
+    <link rel="stylesheet" href="styles/spell-bar.css?v=2.43.0">
+    <link rel="stylesheet" href="styles/how-to-play.css?v=2.43.0">
+    <link rel="stylesheet" href="styles/mobile.css?v=2.43.0">
+    <link rel="stylesheet" href="styles/wow-theme.css?v=2.43.0">
+    <link rel="stylesheet" href="styles/game-window.css?v=2.43.0">
+    <link rel="stylesheet" href="styles/character-sheet.css?v=2.43.0">
+    <link rel="stylesheet" href="styles/inventory.css?v=2.43.0">
+    <link rel="stylesheet" href="styles/screens.css?v=2.43.0">
+    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.43.0"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
-  <!-- Built: 2026-10-14T17:16:13.708Z | Version: 2.41.1 | Mode: Production -->
+  <!-- Built: 2026-10-14T19:16:27.390Z | Version: 2.43.0 | Mode: Production -->
 </head>
 <body>
     <!-- The background: two layers that fade from one picture to the next (backgroundSystem.js) -->
@@ -117,6 +117,19 @@
                     <div class="spell-name">Zandalari</div>
                     <div class="spell-timer" id="spell-zandalari-timer"></div>
                     <div class="spell-cooldown-overlay" id="spell-zandalari-cooldown"></div>
+                </div>
+
+                <!-- A Health Potion from the bags (crafted between games): how many are left,
+                     and its own cooldown. Hidden while there are none. -->
+                <div class="spell-slot spell-potion" id="spell-potion" role="button" tabindex="-1" hidden>
+                    <div class="spell-icon">
+                        <img src="assets/powerups/health-potion.webp" alt="Health Potion" class="spell-image">
+                    </div>
+                    <div class="spell-key" data-key-of="potion">H</div>
+                    <div class="spell-name">Potion</div>
+                    <div class="spell-count" id="spell-potion-count"></div>
+                    <div class="spell-timer" id="spell-potion-timer"></div>
+                    <div class="spell-cooldown-overlay" id="spell-potion-cooldown"></div>
                 </div>
             </div>
             <div class="spell-group spell-group-shoot">
@@ -200,8 +213,7 @@
                         <p id="sheetBonuses" class="sheet-bonuses window-reward"></p>
                         <p id="sheetFullBags" class="sheet-fullbags"></p>
                     </section>
-                    <div id="sheetSets" class="sheet-sets" role="group" aria-label="Put on a whole set"></div>
-                    <!-- The sets the player saved: put on in one press -->
+                    <!-- The sets the player saved (each hunter his own): put on in one press -->
                     <div id="sheetOutfits" class="sheet-outfits" role="group" aria-label="Your sets"></div>
                     <section class="window-card sheet-slot-panel">
                         <p class="window-label">The slot picked</p>
@@ -223,6 +235,7 @@
                 <nav class="joined-buttons inventory-tabs" role="tablist" aria-label="Inventory">
                     <button type="button" class="game-btn inventory-tab" data-tab="bags" role="tab">Bags</button>
                     <button type="button" class="game-btn inventory-tab" data-tab="gear" role="tab">Gear</button>
+                    <button type="button" class="game-btn inventory-tab" data-tab="crafting" role="tab">Crafting</button>
                 </nav>
                 <div class="inventory-top-side">
                     <span id="inventoryPurse" class="inventory-purse" hidden></span>
@@ -606,7 +619,7 @@
                     <p>• Use Zandalari spell for +20% points and to slow down all falling objects</p>
                     <p>• Collect Speed Boost projectiles to increase game speed and scoring</p>
                     <p>• Thunder Fury automatically collects all items on screen AND increases crit chance</p>
-                    <p>• Wear the hunter set that suits the moment: press <span data-key-of="set_1">1</span>, <span data-key-of="set_2">2</span> or <span data-key-of="set_3">3</span> to change it (or tap the set panel while paused)</p>
+                    <p>• Save sets of your own on the character sheet, and wear the one that suits the moment: press <span data-key-of="set_1">1</span>, <span data-key-of="set_2">2</span>, <span data-key-of="set_3">3</span> or <span data-key-of="set_4">4</span> to change it (or tap the set panel while paused)</p>
                     <p>• Higher game speeds = more items = higher scores</p>
                 </div>
             </div>
@@ -829,23 +842,18 @@
     <div id="dragonstalkerProgressPanel" class="hidden">
         <div class="dragonstalker-panel-header">
             <div class="dragonstalker-title">
-                <span class="dragonstalker-set-name" id="setPanelName">Giantstalker<span class="dragonstalker-set-suffix"> Armor</span></span>
-                <span class="dragonstalker-count" id="dragonstalkerProgressText">0/10</span>
+                <span class="dragonstalker-set-name" id="setPanelName">What he wears</span>
+                <span class="dragonstalker-count" id="dragonstalkerProgressText"></span>
             </div>
-            <div class="dragonstalker-progress-bar">
-                <div class="progress-background">
-                    <div class="progress-fill" id="dragonstalkerProgressFill"></div>
-                </div>
-            </div>
+            <!-- Each hunter set he wears pieces of: how many, and what they give at that count -->
+            <div class="set-panel-sets" id="setPanelSets" hidden></div>
+            <!-- What all he has on gives, beyond its stats (hidden while there is none) -->
+            <p class="set-panel-bonus" id="setPanelBonus" hidden></p>
         </div>
         
-        <!-- The three hunter sets: press one (or its key) to wear it. The one being worn is lit.
-             The names are the sets' in config/gameConfig.js. -->
-        <div class="set-switch" id="setSwitch" role="group" aria-label="Wear a hunter set">
-            <button type="button" class="set-switch-btn" data-set="giantstalker"><span class="set-switch-key" data-key-of="set_1">1</span><span class="set-switch-name">Giant<span class="set-switch-rest">stalker</span></span></button>
-            <button type="button" class="set-switch-btn" data-set="dragonstalker"><span class="set-switch-key" data-key-of="set_2">2</span><span class="set-switch-name">Dragon<span class="set-switch-rest">stalker</span></span></button>
-            <button type="button" class="set-switch-btn" data-set="cryptstalker"><span class="set-switch-key" data-key-of="set_3">3</span><span class="set-switch-name">Crypt<span class="set-switch-rest">stalker</span></span></button>
-        </div>
+        <!-- The player's saved sets (each hunter his own): press one, or its key, to wear it. The
+             one on is lit. Made by refreshSetSwitch in game-modular.qmc9wqpo.js; hidden with none saved. -->
+        <div class="set-switch" id="setSwitch" role="group" aria-label="Wear one of your sets" hidden></div>
 
         <div class="dragonstalker-items-list" id="dragonstalkerItemsList">
             <!-- Dragonstalker items will be populated here -->
@@ -854,7 +862,7 @@
     </div>
 
     <!-- Game Script -->
-    <script type="module" src="game-modular.g09j2qep.js?v=2.41.1"></script>
+    <script type="module" src="game-modular.qmc9wqpo.js?v=2.43.0"></script>
     
 
 

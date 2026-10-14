@@ -1,5 +1,64 @@
 # Changelog
 
+## 2.43.0 - 2026-10-14
+
+### What's new
+- **Bags keep what is in them between games.** The materials a game catches stay in your
+  bags instead of going to the bank, and the next game starts with them there (they take
+  their room from what it catches). Junk still sells as a game ends.
+- **The bank and the bags.** The Bags tab of the inventory shows his 36 (the gear he takes into
+  fights) on the left, the bags in the middle and the bank on the right: materials kept
+  without limit, each moved to the bags with **To bags**. Pick a material in the bags to move
+  it back **To the bank**, or **Craft with it**. The bag vendor is behind its button.
+- **Crafting.** A new Crafting tab, with the first recipe: a **Health Potion** from 1
+  Kingsblood and 1 Essence of Water, made from what is in your bags, into your bags. Choose
+  how many (or All) and Make.
+- **The gear panel shows what he has on, not what you own:** for each hunter set he wears
+  pieces of, how many ("Dragonstalker 2/8, Giantstalker 3/8") and what they give at that count
+  and next, then everything else on him, and what it all gives together. Its heading is the
+  saved set he has on, or "What he wears".
+- **Drink a Health Potion in a fight** with H (or tap it on the spell bar, where it shows how
+  many are left): +40 health, one every 20 seconds.
+
+### Fixed
+- **The starting window on a phone.** The map comes first, a continent filling the screen,
+  with **Kalimdor** and **Eastern Kingdoms** buttons over it to go from one to the other; its
+  pins are bigger, and picking one brings up the place with the way to start. The Game menu
+  no longer falls off the right of the screen (Character, Inventory, Music and Game share the
+  row), and the page no longer scrolls sideways on an iPhone. On a touch screen the window
+  opens at its top: the name box is no longer picked for typing, which scrolled it down there.
+
+### For developers
+- `users.bag_contents` (`{ itemId: count }`) is what stays in the bags; `users.materials` is
+  the bank. `config/crafting.php` has the items and recipes (sent with the page as
+  `crafting`); `POST /api/bags/move` (`item`, `count`, `to`: bags | bank) and `POST /api/craft`
+  (`recipe`, `count`) answer with `bags` and `bank`. A finished game takes `used` (potions
+  drunk) and answers with `bags`. `Bags::settle` counts what was in the bags against their
+  room. `potions` in `game/config/gameConfig.js`, `game/data/crafting.js`, the `potion` key.
+
+## 2.42.0 - 2026-10-14
+
+### What's new
+- **Your sets are the sets.** The three fixed Giantstalker, Dragonstalker and Cryptstalker
+  buttons are gone from the character sheet: you wear what you saved. Change a piece of a set
+  and press its **Save** to keep the change in that set, or **+ Save as a new set**. Each set
+  can be renamed and forgotten too. Each hunter keeps up to 4 of his own; sets saved before
+  this are the Alliance hunter's.
+- **In play, your sets switch with 1, 2, 3 and 4** (or the keys you gave them under
+  Settings), and the set panel has a button for each: the one on is lit. A tap on the panel
+  while paused wears the next.
+- **The set panel shows what is on as well as what is owned:** "6 on · 6/8 owned", the pieces
+  worn lit, the ones owned but not on dimmed in a dashed socket, and what the pieces on give on
+  a line of its own.
+- Naming a set, forgetting one, selling your last of something and finishing a game early
+  ask in a window of the game's own instead of the browser's.
+
+### For developers
+- `ui/gameDialog.js`: `askConfirm()` and `askText()`, in place of `confirm()` and `prompt()`;
+  every key is the dialog's while it is open.
+- `users.outfits` is `{ alliance, horde }` (`Gear::allOutfits`; an older list is the Alliance
+  hunter's); `PUT /api/outfits` takes `side` and that hunter's whole list. The `set_4` key.
+
 ## 2.41.1 - 2026-10-14
 
 ### Changed
