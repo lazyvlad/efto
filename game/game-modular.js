@@ -918,22 +918,41 @@ function noRoomFor(equipment) {
         : `Your hunter already carries ${gameConfig.bags.carry} things. Leave something in the bank first: Inventory, Gear.`;
 }
 
-// Take a thing along, or leave it in the bank (which takes it off). Resolves to what went
-// wrong, in words, or ''.
-function carryGear(itemId, take) {
+// Take things along, or leave them in the bank (which takes them off), several at once: what
+// is taken goes in while there is room. Returns what went wrong, in words, or ''.
+function carryMany(itemIds, take) {
     if (isPlaying()) return 'What the hunter carries is chosen between games.';
     
+    const limit = gameConfig.bags.carry;
+    let carried = [...gameState.carried];
+    let moved = 0;
+    
     if (take) {
-        if (gameState.carried.length >= gameConfig.bags.carry) return `Your hunter already carries ${gameConfig.bags.carry} things. Leave something first.`;
-        if (ownedPieces().has(itemId) && !gameState.carried.includes(itemId)) gameState.carried = [...gameState.carried, itemId];
+        const owned = ownedPieces();
+        for (const itemId of itemIds) {
+            if (carried.length >= limit) break;
+            if (owned.has(itemId) && !carried.includes(itemId)) {
+                carried.push(itemId);
+                moved++;
+            }
+        }
     } else {
-        gameState.carried = gameState.carried.filter(carriedId => carriedId !== itemId);
+        const leaving = new Set(itemIds);
+        moved = carried.filter(itemId => leaving.has(itemId)).length;
+        carried = carried.filter(itemId => !leaving.has(itemId));
     }
     
+    gameState.carried = carried;
     gameState.equipment = validEquipment(gameState.equipment, wearables(), new Set(gameState.carried));
     gameState.wornSet = mainSet(gameState.equipment, wearables(), gameConfig.sets) || gameState.wornSet;
     refreshSetBonus();
     saveEquipment();
+    
+    if (take && moved < itemIds.length) {
+        return moved === 0
+            ? `Your hunter already carries ${limit} things. Leave something first.`
+            : `Took ${moved} of ${itemIds.length}: your hunter carries ${limit} things at most.`;
+    }
     return '';
 }
 
@@ -2526,7 +2545,7 @@ function setupUIEventHandlers() {
         },
         onBuyBag: buyBag,
         onSell: sellGear,
-        onCarry: carryGear,
+        onCarry: carryMany,
         onCloseAll: closeWindowsAndResume,
         // The sheet closes the inventory itself once it is open, so the game stays paused
         onOpenGear: () => showCharacterSheet(),

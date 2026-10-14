@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.40.0 - 2026-10-14
+
+### What's new
+
+**Moving gear between your hunter and the bank, many at a time**
+- On the inventory's Gear tab, press (or tap) things to pick them, Shift-click for a run of
+  them, or "Pick all" on either list. A bar over the lists says how many are picked and moves
+  them all across in one press: "Leave 5 in the bank", or "Take 14 along (room for 5)",
+  which takes as many as your hunter has room for and says how many went.
+- With a mouse, drag a thing (or everything picked) from one list onto the other.
+- The Take and Leave buttons on each row still move one thing at a time. Picking and moving
+  are between games; in a game the lists only show what was taken.
+
 ## 2.39.2 - 2026-10-14
 
 ### Fixed

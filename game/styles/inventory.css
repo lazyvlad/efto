@@ -323,6 +323,99 @@
     color: #cfc4ad;
 }
 
+/* ----- Picking gear and moving it across ----- */
+
+.inventory-pick-bar {
+    flex: none;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.42);
+    border: 1px solid #5d4c25;
+    border-radius: 6px;
+}
+
+.inventory-pick-bar.has-picked {
+    border-color: #c9a94f;
+    box-shadow: 0 0 0 1px #000, 0 0 12px rgba(255, 209, 0, 0.15);
+}
+
+.inventory-pick-hint {
+    font-size: 13px;
+    color: #a89a78;
+}
+
+.inventory-pick-count {
+    flex: 1 1 auto;
+    font-family: var(--wow-font, Georgia, serif);
+    font-size: 16px;
+    color: #ffd100;
+}
+
+.inventory-pick-bar .game-btn {
+    padding: 7px 14px;
+    font-size: 14px;
+}
+
+.inventory-pick-all {
+    margin-left: 8px;
+    padding: 2px 4px;
+    font: inherit;
+    font-size: 12px;
+    color: #e8c66a;
+    text-decoration: underline;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
+.inventory-pick-all:hover {
+    color: #fff2ba;
+}
+
+.inventory-gear.is-pickable {
+    cursor: pointer;
+    user-select: none;
+}
+
+.inventory-gear.is-pickable:hover {
+    background: rgba(40, 32, 16, 0.6);
+}
+
+.inventory-gear.is-pickable:focus-visible {
+    outline: 2px solid #fff2ba;
+    outline-offset: 1px;
+}
+
+/* Picked: lit in gold, with a tick in its corner */
+.inventory-gear.is-picked {
+    position: relative;
+    background: rgba(70, 55, 20, 0.7);
+    box-shadow: inset 0 0 0 2px #ffd100;
+}
+
+.inventory-gear.is-picked::after {
+    content: '\2713';
+    position: absolute;
+    top: 3px;
+    left: 5px;
+    font: 700 13px Arial, sans-serif;
+    color: #ffd100;
+    text-shadow: 0 1px 2px #000;
+}
+
+.inventory-gear.is-dragged {
+    opacity: 0.45;
+}
+
+/* A list that dragged gear can be dropped on */
+.inventory-gear-card.is-drop-target {
+    border-color: #ffd100;
+    box-shadow: 0 0 0 1px #000, 0 0 18px rgba(255, 209, 0, 0.35);
+}
+
 /* ----- Not much room: one column ----- */
 
 @media (max-width: 1100px) {
@@ -454,5 +547,22 @@
     .inventory-sell-all {
         min-height: 46px;
         font-size: 16px;
+    }
+
+    /* The bar stays in sight while the lists scroll under it */
+    .inventory-pick-bar {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        flex-wrap: wrap;
+        background: #15110e;
+    }
+
+    .inventory-pick-bar .game-btn {
+        min-height: 44px;
+    }
+
+    .inventory-pick-all {
+        min-height: 32px;
     }
 }

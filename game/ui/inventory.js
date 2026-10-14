@@ -22,6 +22,14 @@ let game = null;        // What the game gave when it set the inventory up
 let tab = 'bags';
 let whenClosed = null;
 let notice = '';
+// Gear picked in one of the two lists of the Gear tab, to move to the other in one go:
+// { list: 'carried' or 'bank', ids: Set, last: the id pressed last, for a range with Shift }
+let picked = { list: null, ids: new Set(), last: null };
+let dragging = null;    // { list, ids } while gear is dragged from one list towards the other
+
+function clearPicked() {
+    picked = { list: null, ids: new Set(), last: null };
+}
 
 const element = id => document.getElementById(id);
 
@@ -48,8 +56,8 @@ export function isInventoryOpen() {
  *        Also gear ({ itemId: count }), worn (item ids) and fullBagLoss (0-1).
  * @param {Function} options.onBuyBag - (size) => Promise resolving to an error message or ''
  * @param {Function} options.onSell - (itemId, count) => Promise resolving to an error message or ''
- * @param {Function} options.onCarry - (itemId, take) take a thing into the game or leave it in
- *        the bank; returns an error message or ''
+ * @param {Function} options.onCarry - (itemIds, take) take things into the game or leave them
+ *        in the bank, as many as there is room for; returns an error message or ''
  *        For that the state has owned (ids), carried (ids), carryLimit and playing, and scene
  *        and figure: the pictures of the place and the hunter for the gear tab.
  * @param {Function} options.onOpenGear - () open the character sheet
@@ -72,6 +80,7 @@ export function initializeInventory(options) {
         button.addEventListener('click', () => {
             tab = button.dataset.tab;
             notice = '';
+            clearPicked();
             render();
         });
     });
@@ -91,6 +100,7 @@ export function openInventory(onClose = null) {
 
     whenClosed = onClose;
     notice = '';
+    clearPicked();
     layer.hidden = false;
     render();
     element('inventoryClose').focus({ preventScroll: true });
@@ -340,20 +350,121 @@ function renderGear(main, side, state) {
         return;
     }
 
-    const columns = make('div', 'inventory-gear-columns');
+    // Between games gear is picked (pressed, or Shift for a run of it) and moved to the other
+    // list in one go, from the bar over the lists or by dragging it across with a mouse
     const lists = [
-        ['With your hunter', `${carried.size} of ${state.carryLimit}`, owned.filter(entry => carried.has(entry.item.id))],
-        ['In the bank', '', owned.filter(entry => !carried.has(entry.item.id))],
+        { key: 'carried', title: 'With your hunter', label: `${carried.size} of ${state.carryLimit}`, entries: owned.filter(entry => carried.has(entry.item.id)) },
+        { key: 'bank', title: 'In the bank', label: '', entries: owned.filter(entry => !carried.has(entry.item.id)) },
     ];
-    for (const [title, label, entries] of lists) {
-        const box = card(title, label || `${entries.length} ${entries.length === 1 ? 'thing' : 'things'}`, 'inventory-gear-card');
-        const list = make('div', 'inventory-list');
-        if (entries.length === 0) list.append(make('p', 'inventory-text', title === 'In the bank' ? 'Nothing: your hunter carries all you own.' : 'Nothing yet.'));
-        for (const entry of entries) list.append(gearRow(entry, state, carried, full));
-        box.append(list);
+    if (!state.playing) main.append(pickBar(lists, state));
+
+    const columns = make('div', 'inventory-gear-columns');
+    for (const list of lists) {
+        const box = card(list.title, list.label || `${list.entries.length} ${list.entries.length === 1 ? 'thing' : 'things'}`, 'inventory-gear-card');
+        box.dataset.list = list.key;
+
+        if (!state.playing && list.entries.length > 0) {
+            const all = make('button', 'inventory-pick-all', list.entries.every(entry => picked.list === list.key && picked.ids.has(entry.item.id)) ? 'Pick none' : 'Pick all');
+            all.type = 'button';
+            all.addEventListener('click', () => {
+                const every = list.entries.every(entry => picked.list === list.key && picked.ids.has(entry.item.id));
+                clearPicked();
+                if (!every) picked = { list: list.key, ids: new Set(list.entries.map(entry => entry.item.id)), last: null };
+                render();
+            });
+            box.querySelector('.window-card-title').append(all);
+            dropTarget(box, list.key);
+        }
+
+        const rows = make('div', 'inventory-list');
+        if (list.entries.length === 0) rows.append(make('p', 'inventory-text', list.key === 'bank' ? 'Nothing: your hunter carries all you own.' : 'Nothing yet.'));
+        for (const entry of list.entries) rows.append(gearRow(entry, state, carried, full, list));
+        box.append(rows);
         columns.append(box);
     }
     main.append(columns);
+}
+
+// The bar over the two lists: how much is picked, and the way to move it all across
+function pickBar(lists, state) {
+    const bar = make('div', 'inventory-pick-bar');
+    const from = lists.find(list => list.key === picked.list);
+    const count = picked.ids.size;
+
+    if (!from || count === 0) {
+        bar.append(make('span', 'inventory-pick-hint', state.carried.length > 0 || lists[1].entries.length > 0
+            ? 'Press things to pick them (Shift for a run of them), then move them across in one go. With a mouse you can also drag them.'
+            : ''));
+        return bar;
+    }
+
+    bar.classList.add('has-picked');
+    bar.append(make('span', 'inventory-pick-count', `${count} picked ${from.key === 'carried' ? 'with your hunter' : 'in the bank'}`));
+
+    const room = state.carryLimit - state.carried.length;
+    const move = make('button', 'game-btn is-on inventory-pick-move', from.key === 'carried'
+        ? `Leave ${count} in the bank`
+        : `Take ${count} along${count > room ? ` (room for ${Math.max(0, room)})` : ''}`);
+    move.type = 'button';
+    move.disabled = from.key === 'bank' && room <= 0;
+    move.addEventListener('click', () => moveAcross([...picked.ids], from.key === 'bank'));
+
+    const clear = make('button', 'game-btn inventory-pick-clear', 'Clear');
+    clear.type = 'button';
+    clear.addEventListener('click', () => {
+        clearPicked();
+        render();
+    });
+
+    bar.append(move, clear);
+    return bar;
+}
+
+function moveAcross(itemIds, take) {
+    notice = game.onCarry(itemIds, take) || '';
+    clearPicked();
+    render();
+}
+
+// A list that gear dragged from the other list can be dropped on
+function dropTarget(box, key) {
+    box.addEventListener('dragover', event => {
+        if (!dragging || dragging.list === key) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        box.classList.add('is-drop-target');
+    });
+    box.addEventListener('dragleave', event => {
+        if (!box.contains(event.relatedTarget)) box.classList.remove('is-drop-target');
+    });
+    box.addEventListener('drop', event => {
+        event.preventDefault();
+        box.classList.remove('is-drop-target');
+        if (!dragging || dragging.list === key) return;
+        const { ids } = dragging;
+        dragging = null;
+        moveAcross(ids, key === 'carried');
+    });
+}
+
+// Pick a thing, or a run of things with Shift, in one list; picking in the other list starts
+// again there
+function pick(list, itemId, run) {
+    if (picked.list !== list.key) clearPicked();
+    picked.list = list.key;
+
+    if (run && picked.last) {
+        const order = list.entries.map(entry => entry.item.id);
+        const [a, b] = [order.indexOf(picked.last), order.indexOf(itemId)].sort((x, y) => x - y);
+        if (a >= 0) order.slice(a, b + 1).forEach(id => picked.ids.add(id));
+    } else if (picked.ids.has(itemId)) {
+        picked.ids.delete(itemId);
+    } else {
+        picked.ids.add(itemId);
+    }
+    picked.last = itemId;
+    if (picked.ids.size === 0) clearPicked();
+    render();
 }
 
 // Beside the gear: the hunter, how much he carries, and the way to sell what is spare
@@ -425,15 +536,50 @@ function renderCarrySide(side, state, owned, carried, full) {
     end.append(all);
 }
 
-function gearRow({ item, count, sells }, state, carried, full) {
+function gearRow({ item, count, sells }, state, carried, full, list) {
     const worn = state.worn.includes(item.id);
     const taken = carried.has(item.id);
     const row = make('div', 'window-item inventory-gear');
     row.dataset.rarity = item.rarity || 'epic';
 
+    // Between games: pressed to pick it, and dragged (with what else is picked) to the other list
+    if (!state.playing) {
+        const isPicked = picked.list === list.key && picked.ids.has(item.id);
+        row.classList.add('is-pickable');
+        row.classList.toggle('is-picked', isPicked);
+        row.tabIndex = 0;
+        row.setAttribute('role', 'checkbox');
+        row.setAttribute('aria-checked', String(isPicked));
+        row.addEventListener('click', event => {
+            if (event.target.closest('button')) return;
+            pick(list, item.id, event.shiftKey);
+        });
+        row.addEventListener('keydown', event => {
+            if (event.key !== ' ' && event.key !== 'Enter') return;
+            if (event.target !== row) return;
+            event.preventDefault();
+            pick(list, item.id, event.shiftKey);
+        });
+
+        row.draggable = true;
+        row.addEventListener('dragstart', event => {
+            const ids = isPicked ? [...picked.ids] : [item.id];
+            dragging = { list: list.key, ids };
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/plain', ids.join(','));
+            row.classList.add('is-dragged');
+        });
+        row.addEventListener('dragend', () => {
+            dragging = null;
+            row.classList.remove('is-dragged');
+            document.querySelectorAll('#inventory .is-drop-target').forEach(box => box.classList.remove('is-drop-target'));
+        });
+    }
+
     const picture = make('img');
     picture.src = item.image;
     picture.alt = '';
+    picture.draggable = false;
 
     const about = [item.twoHanded ? 'Two-handed' : '', item.from, worn ? 'being worn' : '', sells ? `sells for ${formatCoins(item.value)}${count > 1 ? ' each' : ''}` : ''].filter(Boolean).join(' · ');
     const text = make('span', 'window-item-text');
@@ -453,10 +599,7 @@ function gearRow({ item, count, sells }, state, carried, full) {
         carry.title = taken
             ? `Leave it in the bank${worn ? ', which takes it off' : ''}`
             : (full ? `Your hunter already carries ${state.carryLimit} things` : 'Take it into the game');
-        carry.addEventListener('click', () => {
-            notice = game.onCarry(item.id, !taken) || '';
-            render();
-        });
+        carry.addEventListener('click', () => moveAcross([item.id], !taken));
         buttons.append(carry);
     }
 
