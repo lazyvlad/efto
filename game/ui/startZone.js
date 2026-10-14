@@ -92,7 +92,8 @@ export function rememberBeaten(bossId) {
 // The side and zone the choice of mode was last filled for
 let pickedFor = { faction: null, zone: 1 };
 
-// Fill the choice between a normal game, one boss fight and Boss Rush, for the place picked
+// Fill the choice between a normal game, one boss fight and Boss Rush, for the place picked:
+// kept in the select, and shown as a button with a picture for each
 export function renderGameModePicker(faction = pickedFor.faction, zone = pickedFor.zone) {
     const picker = document.getElementById('gameModePicker');
     const select = document.getElementById('gameMode');
@@ -128,6 +129,71 @@ export function renderGameModePicker(faction = pickedFor.faction, zone = pickedF
 
     // Kept when the list is filled again (another place picked on the map)
     select.value = [...select.options].some(option => option.value === chosen && !option.disabled) ? chosen : 'normal';
+    renderModeButtons(faction, zone, select);
+}
+
+// The modes as buttons: the place for a normal game, its boss for a fight, a fan of the side's
+// bosses for Boss Rush. Pressing one chooses it in the select, as if picked there.
+function renderModeButtons(faction, zone, select) {
+    const box = document.getElementById('gameModeChoices');
+    if (!box) return;
+
+    const place = faction && backgrounds[faction] ? backgrounds[faction][zone - 1] || backgrounds[faction][0] : null;
+    const boss = faction ? bossForZone(faction, zone) : null;
+    const rushBosses = faction ? [1, 5, 10].map(at => bossForZone(faction, at)).filter(Boolean) : [];
+    const fee = rushFee();
+    const about = {
+        normal: { title: 'Normal game', line: place ? `From ${place.name.split(',')[0]}` : 'Through the zones', pictures: place ? [place.image] : [] },
+        boss_fight: {
+            title: 'Boss fight',
+            line: !boss ? 'Pick a place first' : hasBeaten(faction, zone) ? `Only ${boss.name}` : `Beat ${boss.name} first`,
+            pictures: boss ? [boss.image] : [],
+        },
+        boss_rush: { title: 'Boss Rush', line: fee !== null && fee > (siteBoot.user.coins || 0) ? 'Not enough coins' : 'Every boss in turn', price: fee !== null ? formatCoins(fee) : '', pictures: rushBosses.map(each => each.image) },
+    };
+
+    box.textContent = '';
+    for (const option of select.options) {
+        const mode = about[option.value];
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `game-mode is-${option.value.replace('_', '-')}`;
+        button.setAttribute('role', 'radio');
+        button.setAttribute('aria-checked', String(select.value === option.value));
+        button.disabled = option.disabled;
+        // The whole of what the select said, for a pointer resting on it and for those who hear the page
+        button.title = option.textContent;
+        button.setAttribute('aria-label', option.textContent);
+
+        const picture = document.createElement('span');
+        picture.className = 'game-mode-picture';
+        for (const src of mode.pictures) {
+            const image = document.createElement('img');
+            image.src = src;
+            image.alt = '';
+            image.loading = 'lazy';
+            picture.append(image);
+        }
+        if (mode.price) {
+            const price = document.createElement('span');
+            price.className = 'game-mode-price';
+            price.textContent = mode.price;
+            picture.append(price);
+        }
+        const title = document.createElement('strong');
+        title.textContent = mode.title;
+        const line = document.createElement('small');
+        line.textContent = mode.line;
+        button.append(picture, title, line);
+
+        button.addEventListener('click', () => {
+            if (select.value === option.value) return;
+            select.value = option.value;
+            select.dispatchEvent(new Event('change'));
+            for (const other of box.children) other.setAttribute('aria-checked', String(other === button));
+        });
+        box.append(button);
+    }
 }
 
 // The mode chosen: Boss Rush only if it can be paid for

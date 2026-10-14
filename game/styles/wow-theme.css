@@ -426,6 +426,151 @@
     font-size: 14px;
 }
 
+/* The modes: a button with a picture each (ui/startZone.js) */
+#pauseMenu .game-mode-picker {
+    margin-top: 14px;
+}
+
+#pauseMenu .game-mode-picker[hidden] {
+    display: none;
+}
+
+#pauseMenu .game-mode-picker .window-label {
+    margin: 0 0 6px;
+}
+
+#pauseMenu .game-mode-choices {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 8px;
+}
+
+#pauseMenu button.game-mode {
+    min-width: 0;
+    padding: 0 0 7px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
+    color: #f4ecd8;
+    text-align: center;
+    background: rgba(10, 8, 6, 0.85);
+    border: 2px solid #5d4c25;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #000;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+/* Not the menu's red buttons: dark, lit at the edge */
+#pauseMenu button.game-mode:hover,
+#pauseMenu button.game-mode:active,
+#pauseMenu button.game-mode:disabled {
+    color: #f4ecd8;
+    background: rgba(10, 8, 6, 0.85);
+    border: 2px solid #5d4c25;
+    box-shadow: 0 0 0 1px #000;
+    transform: none;
+}
+
+#pauseMenu button.game-mode:hover:not(:disabled) {
+    border-color: #c9a94f;
+    transform: translateY(-1px);
+}
+
+#pauseMenu .game-mode:focus-visible {
+    outline: 2px solid #fff2ba;
+    outline-offset: 2px;
+}
+
+/* The one chosen: lit in gold */
+#pauseMenu button.game-mode[aria-checked="true"] {
+    border-color: #ffd100;
+    box-shadow: 0 0 0 1px #000, 0 0 14px rgba(255, 209, 0, 0.35);
+}
+
+#pauseMenu button.game-mode:disabled {
+    cursor: not-allowed;
+    color: #8d826b;
+}
+
+#pauseMenu .game-mode:disabled .game-mode-picture {
+    filter: grayscale(1) brightness(0.55);
+}
+
+#pauseMenu .game-mode-picture {
+    position: relative;
+    height: 62px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    background: radial-gradient(ellipse at 50% 100%, rgba(120, 90, 30, 0.45), rgba(0, 0, 0, 0) 70%), #15110e;
+    border-bottom: 1px solid #3d3219;
+}
+
+/* A place fills the picture; a boss stands in it */
+#pauseMenu .is-normal .game-mode-picture img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#pauseMenu .is-boss-fight .game-mode-picture img,
+#pauseMenu .is-boss-rush .game-mode-picture img {
+    height: 92%;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.8));
+}
+
+/* Boss Rush: three of the side's bosses, fanned */
+#pauseMenu .is-boss-rush .game-mode-picture img {
+    height: 78%;
+    max-width: 50%;
+    margin: 0 -9px;
+}
+
+#pauseMenu .is-boss-rush .game-mode-picture img:nth-child(2) {
+    position: relative;
+    z-index: 1;
+    height: 94%;
+}
+
+#pauseMenu .game-mode-price {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    z-index: 2;
+    padding: 1px 5px;
+    font: 700 11px Arial, sans-serif;
+    color: #ffd100;
+    background: rgba(0, 0, 0, 0.75);
+    border-radius: 3px;
+}
+
+#pauseMenu .game-mode strong {
+    margin-top: 4px;
+    padding: 0 4px;
+    font-family: var(--wow-font, Georgia, serif);
+    font-size: 14px;
+    font-weight: normal;
+    color: #ffd100;
+    line-height: 1.15;
+}
+
+#pauseMenu .game-mode:disabled strong {
+    color: #a89a78;
+}
+
+#pauseMenu .game-mode small {
+    padding: 0 4px;
+    font-size: 11px;
+    line-height: 1.25;
+    color: #cfc4ad;
+}
+
 #pauseMenu .faction-picker.needs-choice {
     border-color: #f1d98a;
     box-shadow: 0 0 0 1px #000, 0 0 14px rgba(255, 200, 80, 0.55), inset 0 0 14px rgba(0, 0, 0, 0.6);

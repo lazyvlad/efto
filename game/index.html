@@ -283,10 +283,12 @@
                             <div id="startZonePicker" class="start-zone-picker" hidden>
                                 <select id="startZone" class="setting-select"></select>
                             </div>
-                            <!-- A normal game, one boss fight, or Boss Rush for logged-in players (ui/startZone.js) -->
-                            <div id="gameModePicker" class="start-zone-picker" hidden>
-                                <label for="gameMode">Mode</label>
-                                <select id="gameMode" class="setting-select"></select>
+                            <!-- A normal game, one boss fight, or Boss Rush for logged-in players: a button
+                                 with a picture each, the choice kept in the select (ui/startZone.js) -->
+                            <div id="gameModePicker" class="game-mode-picker" hidden>
+                                <p class="window-label" id="gameModeLabel">Mode</p>
+                                <div id="gameModeChoices" class="game-mode-choices" role="radiogroup" aria-labelledby="gameModeLabel"></div>
+                                <select id="gameMode" hidden tabindex="-1" aria-hidden="true"></select>
                             </div>
                         </div>
                         <div class="pause-buttons">
