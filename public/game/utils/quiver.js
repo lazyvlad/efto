@@ -1,1 +1,1 @@
-export function quiverCapacity(t,r=!1){return(t.slots+(r?t.bonusSlots:0))*t.slotSize}export function startingArrows(t){return t.startFilled*t.slotSize}export function addArrows(t,r,o){const n=Math.min(o,Math.max(0,t)+r),s=Math.max(0,n-t);return{arrows:n,added:s,lost:r-s}}
+export function quiverCapacity(t,r=!1){return(t.slots+(r?t.bonusSlots:0))*t.slotSize}export function startingArrows(t,r=!1){return(r&&t.bossFightFilled||t.startFilled)*t.slotSize}export function addArrows(t,r,o){const s=Math.min(o,Math.max(0,t)+r),n=Math.max(0,s-t);return{arrows:s,added:n,lost:r-n}}

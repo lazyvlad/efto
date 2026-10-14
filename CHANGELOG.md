@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.0.3 - 2026-10-14
+
+### Changed
+- **Arrows are what a boss fight runs on.** A game starts with 50 arrows (was 100), a boss
+  fight with 100 (was a full quiver), and arrow bundles fall in a fight every 10 seconds (was
+  5). Spare arrows kept in your bags still fill the quiver as a game starts.
+- **The bosses have less health**, so a fight no longer drags on: 800 for the first (was 1300),
+  150 more with each zone, about 2150 for the last.
+
+- **Six weapons have icons of their own** in the inventory and on the character sheet:
+  Ashkandi, Brutality Blade, Maladath, Crul'shorukh, Dal'Rend's and Ashjre'thul, in place of
+  their falling-loot pictures. **Ashkandi is carried across his back**, grip over the shoulder.
+
+### Fixed
+- Starting a game with no name, and resetting Settings, no longer use the browser's own boxes:
+  the missing name is said under the box, and Settings asks before resetting everything.
+
 ## 3.0.2 - 2026-10-14
 
 ### Changed
