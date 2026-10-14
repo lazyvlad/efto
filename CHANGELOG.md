@@ -1,5 +1,60 @@
 # Changelog
 
+## 3.0.6 - 2026-10-14
+
+### What's new
+- **Upheaval: a new kind of boss fight.** Taragaman the Hungerer now turns gravity over: for
+  a few seconds his flame bolts come at you from every side, not just from above. They rise
+  out of the ground in a row of columns, and fly in from the left and right along the high or
+  low half of the ground you move on. Each wave is marked before it comes: purple columns on
+  the ground with a green one left clear, or a purple lane with arrows on the edge it comes in
+  at. Every wave leaves a way through: stand in the green column, or move to the other half of
+  the ground. He holds his other attacks while it lasts. It is his second attack, so you meet
+  it in every fight with him; he is no longer the third caster in a row on the Horde side.
+- **Hogger calls on his gnolls**, on the Alliance side: his thrown axes come at you the same
+  way, from the ground and both sides, as his second attack, between his throws, his rush and
+  his row. **Garrick Padfoot** fights the way Hogger did: throws, a rush down the field and a
+  row.
+
+### Changed
+- **The inventory says whose it is.** Its top shows the hunter's side, in its colour, and his
+  name ("Horde hunter · Lazyvlad's inventory"), with Alliance and Horde buttons to switch
+  between the two between games, as on the character sheet. The purse says it is both
+  hunters'.
+
+- **My Games is each hunter's own, with how every boss fight went.** Pick the Alliance or the
+  Horde hunter at the top (it opens on the one you played last). For him: his games, best
+  score and time played; **Boss records**, his best against each boss of his side (kills,
+  fastest time against par, most points, fewest arrows, least damage taken); and every game
+  opens to its boss fights: how long each took against its par, the points it paid with the
+  bonus for speed, the arrows spent, the damage and hits taken, and what dropped. Then his boss
+  loot, sets, rare items and the large quiver. The game's own Loot screen shows the collection
+  of the hunter being played. Fights are timed from this version on.
+
+### Fixed
+- **Unlocking everything for a player** (admin) gives each hunter everything he can have:
+  every zone of his side, one of every piece of his side's boss loot and of the gear that
+  falls in games (it gave only one piece from each boss, and none of the rest), every set, and
+  the large quiver to both hunters (it went to the Alliance hunter only). The admin's account
+  page shows each hunter apart, and sets, gear and the quiver are given and taken back for one
+  hunter at a time, or everything for one or both.
+
+### For developers
+- `utils/upheaval.js` plans the waves (`planUpheaval`); `bosses.upheaval` in
+  `config/gameConfig.js`; the `warper` and `packleader` behaviours, and a boss's `upheaval`
+  (what its notice says it does); a `BossProjectile` with `flight: { vx, vy }`
+  flies straight on instead of falling.
+- `users.granted_gear` (`{ alliance, horde }`, `Grants::giveAllGear/takeBackGear/giveQuiver`);
+  `users.granted_pieces` is kept by side (an older list is both hunters'), read with
+  `User::grantedPieces($side)`. `POST /admin/users/{user}/gear`; the set, quiver and unlock
+  routes take `side`.
+- A boss kill reports how the fight went (`fight`: seconds, points, speedPoints, par, arrows,
+  damage, hits), kept on `boss_drops` (`fight_seconds`, `points`, `speed_points`,
+  `par_seconds`, `arrows_used`, `damage_taken`, `hits_taken`). `App\Support\HunterRecord`;
+  `/my-games?hunter=`, `/api/collection?side=`.
+- Boss lab: `--casual` (no Dragon Cry, out of the boss's reach) and `--shots <dir>` (a
+  picture of the fight every half second).
+
 ## 3.0.5 - 2026-10-14
 
 ### Changed

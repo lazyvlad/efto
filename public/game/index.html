@@ -52,22 +52,22 @@
     <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
-    <link rel="stylesheet" href="styles/base.css?v=3.0.5">
-    <link rel="stylesheet" href="styles/ui-components.css?v=3.0.5">
-    <link rel="stylesheet" href="styles/settings.css?v=3.0.5">
-    <link rel="stylesheet" href="styles/notifications.css?v=3.0.5">
-    <link rel="stylesheet" href="styles/game-panels.css?v=3.0.5">
-    <link rel="stylesheet" href="styles/spell-bar.css?v=3.0.5">
-    <link rel="stylesheet" href="styles/how-to-play.css?v=3.0.5">
-    <link rel="stylesheet" href="styles/mobile.css?v=3.0.5">
-    <link rel="stylesheet" href="styles/wow-theme.css?v=3.0.5">
-    <link rel="stylesheet" href="styles/game-window.css?v=3.0.5">
-    <link rel="stylesheet" href="styles/character-sheet.css?v=3.0.5">
-    <link rel="stylesheet" href="styles/inventory.css?v=3.0.5">
-    <link rel="stylesheet" href="styles/screens.css?v=3.0.5">
-    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=3.0.5"> -->
+    <link rel="stylesheet" href="styles/base.css?v=3.0.6">
+    <link rel="stylesheet" href="styles/ui-components.css?v=3.0.6">
+    <link rel="stylesheet" href="styles/settings.css?v=3.0.6">
+    <link rel="stylesheet" href="styles/notifications.css?v=3.0.6">
+    <link rel="stylesheet" href="styles/game-panels.css?v=3.0.6">
+    <link rel="stylesheet" href="styles/spell-bar.css?v=3.0.6">
+    <link rel="stylesheet" href="styles/how-to-play.css?v=3.0.6">
+    <link rel="stylesheet" href="styles/mobile.css?v=3.0.6">
+    <link rel="stylesheet" href="styles/wow-theme.css?v=3.0.6">
+    <link rel="stylesheet" href="styles/game-window.css?v=3.0.6">
+    <link rel="stylesheet" href="styles/character-sheet.css?v=3.0.6">
+    <link rel="stylesheet" href="styles/inventory.css?v=3.0.6">
+    <link rel="stylesheet" href="styles/screens.css?v=3.0.6">
+    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=3.0.6"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
-  <!-- Built: 2026-10-14T22:15:47.199Z | Version: 3.0.5 | Mode: Production -->
+  <!-- Built: 2026-10-14T23:26:13.640Z | Version: 3.0.6 | Mode: Production -->
 </head>
 <body>
     <!-- The background: two layers that fade from one picture to the next (backgroundSystem.js) -->
@@ -188,7 +188,7 @@
             <header class="sheet-heading">
                 <img class="window-logo" src="assets/ui/input-logo.webp" alt="" width="1200" height="891">
                 <div class="sheet-who">
-                    <p id="sheetSubtitle" class="window-label"></p>
+                    <p id="sheetSubtitle" class="window-label side-label"></p>
                     <h2 id="sheetName">Hunter</h2>
                 </div>
                 <div class="sheet-heading-buttons">
@@ -243,13 +243,22 @@
         <div class="inventory game-window" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle">
             <header class="inventory-top">
                 <img class="window-logo" src="assets/ui/input-logo.webp" alt="" width="1200" height="891">
-                <h2 id="inventoryTitle" class="inventory-title">Inventory</h2>
+                <!-- Whose it is: each hunter has his own bags, bank and gear -->
+                <div class="inventory-who">
+                    <p id="inventorySubtitle" class="window-label side-label"></p>
+                    <h2 id="inventoryTitle">Inventory</h2>
+                </div>
                 <nav class="joined-buttons inventory-tabs" role="tablist" aria-label="Inventory">
                     <button type="button" class="game-btn inventory-tab" data-tab="bags" role="tab">Bags</button>
                     <button type="button" class="game-btn inventory-tab" data-tab="gear" role="tab">Gear</button>
                     <button type="button" class="game-btn inventory-tab" data-tab="crafting" role="tab">Crafting</button>
                 </nav>
                 <div class="inventory-top-side">
+                    <!-- Which hunter's, before a game; in a game it is the one being played -->
+                    <div class="joined-buttons" id="inventorySides" role="group" aria-label="Hunter shown">
+                        <button type="button" class="game-btn inventory-side-btn" data-side="alliance">Alliance</button>
+                        <button type="button" class="game-btn inventory-side-btn" data-side="horde">Horde</button>
+                    </div>
                     <span id="inventoryPurse" class="inventory-purse" hidden></span>
                     <button type="button" id="inventoryCharacter" class="game-btn">Character</button>
                     <button type="button" id="inventoryClose" class="game-btn" title="Back to where you were">Back</button>
@@ -864,7 +873,7 @@
         </div>
         
         <!-- The player's saved sets (each hunter his own): press one, or its key, to wear it. The
-             one on is lit. Made by refreshSetSwitch in game-modular.58o5y6sr.js; hidden with none saved. -->
+             one on is lit. Made by refreshSetSwitch in game-modular.ntt3zchk.js; hidden with none saved. -->
         <div class="set-switch" id="setSwitch" role="group" aria-label="Wear one of your sets" hidden></div>
 
         <div class="dragonstalker-items-list" id="dragonstalkerItemsList">
@@ -874,7 +883,7 @@
     </div>
 
     <!-- Game Script -->
-    <script type="module" src="game-modular.58o5y6sr.js?v=3.0.5"></script>
+    <script type="module" src="game-modular.ntt3zchk.js?v=3.0.6"></script>
     
 
 
