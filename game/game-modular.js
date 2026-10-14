@@ -31,7 +31,8 @@ import { wearables, wearableById, isKeptGear, gearCatalog } from './data/wearabl
 import { initializeInventory, openInventory, closeInventory, isInventoryOpen, refreshInventory } from './ui/inventory.js';
 import { initializeCharacterSheet, refreshCharacterSheet, openCharacterSheet, closeCharacterSheet, isCharacterSheetOpen } from './ui/characterSheet.js';
 import { Pet } from './classes/Pet.js';
-import { playerCharacters } from './data/playerCharacters.js';
+import { playerCharacters, characterFor } from './data/playerCharacters.js';
+import { hunterPicture } from './utils/hunterLooks.js';
 import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost, renderGameModePicker, getGameMode, gameModeCost, rememberBeaten } from './ui/startZone.js';
 import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
 import { showGameOverSummary, showGameOverResult } from './ui/gameOverScreen.js';
@@ -1120,6 +1121,45 @@ function refreshSetBonus() {
     }
     
     refreshCharacterSheet();
+    dressHunter();
+}
+
+// ----- The hunter's picture (utils/hunterLooks.js) -----
+// Put together from what he wears whenever that changes, and used everywhere he is drawn: in
+// play, on the character sheet, in the inventory and at the end of a game. Until it is ready
+// the side's own drawing stands in.
+let lookUrl = null;         // The picture as an address, for the windows' <img>s
+let lookFor = '';           // What it shows: "side|items"
+
+function dressHunter() {
+    const side = currentSide();
+    const wanted = `${side}|${Object.values(gameState.equipment).sort().join(',')}`;
+    if (wanted === lookFor) return;
+    lookFor = wanted;
+    
+    hunterPicture(side, gameState.equipment).then(canvas => {
+        // Something else was put on meanwhile: that picture is on its way
+        if (lookFor !== wanted) return;
+        if (gameState.faction === side || !gameState.gameRunning) {
+            player.setCharacter(side);
+            player.setPicture(canvas);
+        }
+        canvas.toBlob(blob => {
+            if (!blob || lookFor !== wanted) return;
+            if (lookUrl) URL.revokeObjectURL(lookUrl);
+            lookUrl = URL.createObjectURL(blob);
+            refreshCharacterSheet();
+            refreshInventory();
+        }, 'image/webp', 0.9);
+    }).catch(() => {
+        // The art could not be had: he keeps the drawing he has
+        lookFor = '';
+    });
+}
+
+// The hunter as he looks now, for an <img>
+function hunterImage() {
+    return lookUrl || characterFor(currentSide()).image;
 }
 
 // The strongest gear worn in this game is handed in with its score: the leaderboard says how
@@ -1628,6 +1668,9 @@ function startGame() {
     gameState.nextPowerUpTime = undefined;
     showBackgroundForLevel(gameState.currentLevel, true);
     player.setCharacter(gameState.faction);
+    // ...dressed as he is
+    lookFor = '';
+    dressHunter();
     
     // The guild's voices: fetched now, quiet for a while
     preloadVoiceLines();
@@ -2596,6 +2639,7 @@ function setupUIEventHandlers() {
             // The place picked on the map, or the one the game is in
             scene: currentBackgroundImage(),
             faction: currentSide(),
+            figure: hunterImage(),
             name: getAccountName() || gameState.playerName || document.getElementById('playerNameInput')?.value || 'Hunter',
             level: (gameState.currentLevel || 0) + 1,
             playing: gameState.gameRunning || gameState.showingPauseMenu,
@@ -2669,7 +2713,7 @@ function setupUIEventHandlers() {
                 carryLimit: gameConfig.bags.carry,
                 // The pictures of the place and the hunter, for the gear tab
                 scene: currentBackgroundImage(),
-                figure: (playerCharacters[gameState.faction || getFaction()] || playerCharacters.alliance).image,
+                figure: hunterImage(),
                 fullBagLoss: Math.max(0, gameConfig.bags.fullPenalty - gameState.setBonus.carrying),
             };
         },
@@ -4438,7 +4482,7 @@ function gameOverSummary() {
         homeLabel: loggedIn ? 'Kept on your account' : 'Kept with an account',
         notes,
         scene: currentBackgroundImage(),
-        figure: (playerCharacters[faction] || playerCharacters.alliance).image,
+        figure: hunterImage(),
         fell,
     };
 }

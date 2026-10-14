@@ -293,7 +293,7 @@ export class CharacterAnimator {
         gl.viewport(0, 0, size, size);
 
         let picture = this.image;
-        if (size < Math.max(this.image.naturalWidth, this.image.naturalHeight)) {
+        if (size < Math.max((this.image.naturalWidth || this.image.width), (this.image.naturalHeight || this.image.height))) {
             picture = document.createElement('canvas');
             picture.width = size;
             picture.height = size;
@@ -315,7 +315,7 @@ export class CharacterAnimator {
      */
     draw(ctx, footX, footY, height) {
         const { foot } = this.rig;
-        const width = height * this.image.naturalWidth / this.image.naturalHeight;
+        const width = height * (this.image.naturalWidth || this.image.width) / (this.image.naturalHeight || this.image.height);
         const left = footX - width * foot.u;
         const top = footY - height * foot.v;
         const pose = this.pose();

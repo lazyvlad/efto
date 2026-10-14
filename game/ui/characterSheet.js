@@ -168,9 +168,10 @@ function renderHeading(state) {
     // (made whole first: a url() in a style is read against the stylesheet, not the page)
     if (state.scene) element('sheetStage').style.setProperty('--sheet-scene', `url("${new URL(state.scene, document.baseURI).href}")`);
 
-    const character = playerCharacters[faction] || playerCharacters.alliance;
+    // Dressed in what he wears (utils/hunterLooks.js), or his own drawing until that is ready
+    const picture = state.figure || (playerCharacters[faction] || playerCharacters.alliance).image;
     const figure = element('sheetFigure');
-    if (figure.getAttribute('src') !== character.image) figure.src = character.image;
+    if (figure.getAttribute('src') !== picture) figure.src = picture;
 }
 
 function renderSlots(state) {

@@ -48,6 +48,14 @@ export class Player {
         this.animator = null;
     }
     
+    // Wear a picture made from what he has on (utils/hunterLooks.js): the same drawing as the
+    // character's own, dressed, so the same rig moves it
+    setPicture(picture) {
+        if (!picture || picture === this.image) return;
+        this.image = picture;
+        this.animator = null;
+    }
+    
     // Handle getting hit by projectiles: he draws back and flashes
     onHit() {
         this.animator?.hit();
@@ -75,7 +83,7 @@ export class Player {
     // Advance the animation (position is handled by the input system). Called every display
     // frame with the time passed, in 60ths of a second.
     updateTimers(deltaTimeMultiplier) {
-        if (!this.animator && this.image.complete && this.image.naturalWidth > 0) {
+        if (!this.animator && this.areImagesLoaded()) {
             this.animator = new CharacterAnimator(this.image, this.character.rig);
         }
         
@@ -228,6 +236,8 @@ export class Player {
     
     // Check if images are loaded
     areImagesLoaded() {
+        // A picture put together from what he wears is a canvas, drawn already
+        if (typeof HTMLCanvasElement !== 'undefined' && this.image instanceof HTMLCanvasElement) return this.image.width > 0;
         return this.image.complete && this.image.naturalWidth > 0;
     }
 }
