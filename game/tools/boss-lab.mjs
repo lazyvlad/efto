@@ -3,6 +3,10 @@
 //   npm run boss-lab                              every boss of both sides
 //   npm run boss-lab -- --boss alliance-1,horde-3 just these (side-zone)
 //   npm run boss-lab -- --parallel 2 --limit 120 --out results.json --autoshot
+//   npm run boss-lab -- --boss horde-3 --shots shots/   a picture of the fight every half second
+//   npm run boss-lab -- --casual   no Dragon Cry, and he keeps to the bottom of his band, out
+//                                  of the boss's reach: more like most players, and a longer
+//                                  fight in which the boss gets through its whole round
 //
 // The hunter is a fresh one, with nothing on: the game is served without the site, which is
 // what hands over the gear catalog, so not even the clothes he starts in (+1 attack power, a
@@ -41,6 +45,8 @@ const parallel = Number(option('parallel', 4));
 const limitSeconds = Number(option('limit', 200));
 const autoshot = Boolean(option('autoshot', false));
 const outFile = option('out', null);
+const shotsDir = option('shots', null);
+const casual = Boolean(option('casual', false));
 
 // ----- The game, served from this folder -----
 
@@ -81,7 +87,7 @@ const BOSS_HOOK = `
 
 // ----- One fight, played in the page -----
 
-async function playFight({ faction, zone, limitSeconds, autoshot }) {
+async function playFight({ faction, zone, limitSeconds, autoshot, casual }) {
     const lab = window.__lab;
     const { spellSystem } = await import('./systems/spellSystem.js');
     const { gameClock } = await import('./utils/gameClock.js');
@@ -117,7 +123,7 @@ async function playFight({ faction, zone, limitSeconds, autoshot }) {
                 if (fight.phase === 'fight') {
                     if (start === null) start = gameClock.now();
                     end = gameClock.now();
-                    if (!spellSystem.hasUnrestrictedMovement()) cast('dragon_cry');
+                    if (!casual && !spellSystem.hasUnrestrictedMovement()) cast('dragon_cry');
                     if (spellSystem.hasUnrestrictedMovement()) dcFrames++;
                     if (fight.shielded) {
                         shieldFrames++;
@@ -137,7 +143,7 @@ async function playFight({ faction, zone, limitSeconds, autoshot }) {
                     y = Math.max(top, Math.min(H - p.height, bundle.y));
                 } else {
                     x = fight.x - p.width / 2;
-                    y = spellSystem.hasUnrestrictedMovement() && box ? box.y + box.height + 6 : top;
+                    y = casual ? H - p.height : spellSystem.hasUnrestrictedMovement() && box ? box.y + box.height + 6 : top;
                 }
                 p.x = Math.max(0, Math.min(lab.canvas.logicalWidth - p.width, x));
                 p.y = Math.max(0, Math.min(H - p.height, y));
@@ -188,7 +194,20 @@ async function runOne(job) {
     await page.goto(base, { waitUntil: 'load' });
     await page.waitForFunction(() => window.__lab && window.__boss, null, { timeout: 30000 });
     await page.waitForTimeout(1500);
-    const result = await page.evaluate(playFight, { ...job, limitSeconds, autoshot });
+    // Pictures of the fight as it goes, to see what a boss does
+    let shooting = Boolean(shotsDir);
+    const shots = (async () => {
+        if (!shooting) return;
+        fs.mkdirSync(shotsDir, { recursive: true });
+        for (let shot = 0; shooting; shot++) {
+            const at = String(shot * 5).padStart(4, '0');
+            await page.screenshot({ path: path.join(shotsDir, `${job.faction}-${job.zone}-${at}.png`) }).catch(() => {});
+            await page.waitForTimeout(500);
+        }
+    })();
+    const result = await page.evaluate(playFight, { ...job, limitSeconds, autoshot, casual });
+    shooting = false;
+    await shots;
     await page.close();
     return result;
 }
