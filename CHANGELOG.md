@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.40.1 - 2026-10-14
+
+### Fixed
+- Pressing Take, Leave, Sell or a pick in the inventory no longer throws its lists back to
+  the top: every list, and on a phone the whole window, stays where it was scrolled to. The
+  same for "Put on" and "Take off" in the character sheet's list; picking another slot still
+  starts its list from the top.
+
 ## 2.40.0 - 2026-10-14
 
 ### What's new

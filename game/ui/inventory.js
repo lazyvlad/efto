@@ -25,6 +25,7 @@ let notice = '';
 // Gear picked in one of the two lists of the Gear tab, to move to the other in one go:
 // { list: 'carried' or 'bank', ids: Set, last: the id pressed last, for a range with Shift }
 let picked = { list: null, ids: new Set(), last: null };
+let drawnTab = null;     // The tab drawn last, to keep where its lists were scrolled to
 let dragging = null;    // { list, ids } while gear is dragged from one list towards the other
 
 function clearPicked() {
@@ -101,6 +102,7 @@ export function openInventory(onClose = null) {
     whenClosed = onClose;
     notice = '';
     clearPicked();
+    drawnTab = null;
     layer.hidden = false;
     render();
     element('inventoryClose').focus({ preventScroll: true });
@@ -137,6 +139,8 @@ function render() {
     if (state.coins !== null) purse.append('You have ', make('strong', '', formatCoins(state.coins)));
 
     const body = element('inventoryBody');
+    // Drawn again after a press (Take, Leave, a pick): every list stays where it was scrolled to
+    const scrolled = tab === drawnTab ? scrollPositions(body) : null;
     body.textContent = '';
     const main = make('div', 'inventory-main');
     const side = make('aside', 'inventory-side');
@@ -148,6 +152,32 @@ function render() {
         renderBags(main, state);
         renderMaterials(main, state);
         renderBagShop(side, state);
+    }
+
+    if (scrolled) restoreScroll(body, scrolled);
+    drawnTab = tab;
+}
+
+// What scrolls in the inventory, each by a name that stays the same when it is drawn again
+function scrollers(body) {
+    const found = { body, main: body.querySelector('.inventory-main'), side: body.querySelector('.inventory-side-card') };
+    body.querySelectorAll('.inventory-gear-card[data-list]').forEach(box => {
+        found[`list-${box.dataset.list}`] = box.querySelector('.inventory-list');
+    });
+    return found;
+}
+
+function scrollPositions(body) {
+    const positions = {};
+    for (const [name, node] of Object.entries(scrollers(body))) {
+        if (node) positions[name] = node.scrollTop;
+    }
+    return positions;
+}
+
+function restoreScroll(body, positions) {
+    for (const [name, node] of Object.entries(scrollers(body))) {
+        if (node && positions[name]) node.scrollTop = positions[name];
     }
 }
 

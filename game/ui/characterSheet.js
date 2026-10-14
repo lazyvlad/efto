@@ -133,6 +133,11 @@ export function refreshCharacterSheet() {
 
 function render() {
     const state = game.getState();
+    // Drawn again after a press: the item list (and on a phone the whole sheet) stays where
+    // it was scrolled to
+    const items = element('sheetItems');
+    const sheetBody = document.querySelector('#characterSheet .sheet-body');
+    const scrolled = [items.scrollTop, sheetBody ? sheetBody.scrollTop : 0];
 
     renderHeading(state);
     renderSlots(state);
@@ -140,6 +145,9 @@ function render() {
     renderSets(state);
     renderOutfits(state);
     renderSlotItems(state);
+
+    items.scrollTop = scrolled[0];
+    if (sheetBody) sheetBody.scrollTop = scrolled[1];
 }
 
 function renderHeading(state) {
@@ -206,6 +214,8 @@ function renderSlots(state) {
 
             button.addEventListener('click', () => {
                 selectedSlot = slot.id;
+                // Another slot's things: from the top of the list
+                element('sheetItems').scrollTop = 0;
                 render();
             });
             holder.append(button);
