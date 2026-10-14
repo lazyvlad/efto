@@ -419,9 +419,10 @@ function heavyDamage() {
     return Math.round(fight.stats.damage * gameConfig.bosses.heavyDamage * enrage());
 }
 
-// Where the player's body is: what a charge, a blast or a stomp has to reach
+// Where the player's body is, head to feet: where a storm or a stomp finds him, and how close
+// he is. A charge and a burst hit only where he is drawn (Player.isHitBy).
 function playerBody(player) {
-    const box = player.getCollisionBounds();
+    const box = player.getBodyBounds();
     return { ...box, centerX: box.x + box.width / 2, centerY: box.y + box.height / 2 };
 }
 
@@ -904,13 +905,12 @@ function act(context) {
 
     if (fight.attack === 'charge') {
         // Down the lane to the bottom of the field and back up
-        const body = playerBody(player);
         const place = layout(canvas, fight.boss);
         const depth = canvas.logicalHeight - place.top - place.height;
         fight.drop = Math.sin(Math.PI * fight.doingSteps / CHARGE_STEPS) * depth;
 
         const box = hitBox(canvas);
-        const touching = box.x < body.x + body.width && box.x + box.width > body.x && box.y < body.y + body.height && box.y + box.height > body.y;
+        const touching = player.isHitBy(box);
         if (touching && !fight.attackData.hit) {
             fight.attackData.hit = true;
             hurtPlayer(context, heavyDamage());
@@ -932,8 +932,7 @@ function updateBombs(context) {
         bomb.steps++;
         if (bomb.steps < BOMB_FLIGHT_STEPS + BOMB_FUSE_STEPS) return true;
 
-        const body = playerBody(player);
-        if (Math.hypot(body.centerX - bomb.x, body.centerY - bomb.y) < bomb.radius + body.width / 2) {
+        if (player.isHitBy({ x: bomb.x, y: bomb.y, radius: bomb.radius })) {
             hurtPlayer(context, heavyDamage());
         } else {
             // A burst that missed: softer than a hit

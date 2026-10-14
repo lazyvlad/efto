@@ -4,6 +4,7 @@ import { assetRegistry } from '../data/assetRegistry.js';
 import { responsiveScaler } from '../utils/gameUtils.js';
 import { CharacterAnimator } from './CharacterAnimator.js';
 import { characterFor } from '../data/playerCharacters.js';
+import { maskOfPicture, maskHitsRect, maskHitsCircle } from '../utils/hitMask.js';
 
 // The player is a whole figure (data/playerCharacters.js has one for each side), so the
 // player's box is this many times taller than it is wide. The figure stands as tall as the
@@ -189,16 +190,64 @@ export class Player {
         ctx.restore();
     }
     
-    // What catches and gets hit: his head, arms and body, a square as wide as the player's box
-    // at the top of it. That is the size the player's whole box used to be, so catching and
-    // dodging are as they were; his legs neither catch nor get hit.
+    // What catches things: the player's box from his head to his feet (not the health bar
+    // under them). What hurts him goes by his shape instead (isHitBy below).
     getCollisionBounds() {
         return {
             x: this.x,
             y: this.y,
             width: this.width,
-            height: this.width
+            height: this.figureHeight()
         };
+    }
+    
+    // His body, head to feet: where a storm or a stomp finds him, and how close to a boss he is
+    getBodyBounds() {
+        return this.getCollisionBounds();
+    }
+    
+    // Where his picture is drawn, as CharacterAnimator.draw places it: by the middle of his feet
+    pictureBounds() {
+        const figureHeight = this.figureHeight();
+        const height = figureHeight / this.character.heightInPicture;
+        const width = height * (this.image.naturalWidth || this.image.width) / (this.image.naturalHeight || this.image.height);
+        const { foot } = this.character.rig;
+        return {
+            left: this.x + this.width / 2 - width * foot.u,
+            top: this.y + figureHeight - height * foot.v,
+            width,
+            height,
+        };
+    }
+    
+    // His shape (utils/hitMask.js), made once for each picture he wears; null until it has loaded
+    hitMask() {
+        if (this.maskOf !== this.image) {
+            if (!this.areImagesLoaded()) return null;
+            this.maskOf = this.image;
+            this.mask = maskOfPicture(this.image);
+        }
+        return this.mask;
+    }
+    
+    /**
+     * Whether something that hurts reaches him: a rectangle ({ x, y, width, height }), or a
+     * circle ({ x, y, radius }). Only where he is drawn counts; with his shape not to be had,
+     * his body's box does.
+     */
+    isHitBy(shape) {
+        const mask = this.hitMask();
+        if (shape.radius !== undefined) {
+            if (mask) return maskHitsCircle(mask, this.pictureBounds(), shape.x, shape.y, shape.radius);
+            const body = this.getBodyBounds();
+            const nearestX = Math.max(body.x, Math.min(shape.x, body.x + body.width));
+            const nearestY = Math.max(body.y, Math.min(shape.y, body.y + body.height));
+            return Math.hypot(nearestX - shape.x, nearestY - shape.y) <= shape.radius;
+        }
+        if (mask) return maskHitsRect(mask, this.pictureBounds(), shape);
+        const body = this.getBodyBounds();
+        return shape.x < body.x + body.width && shape.x + shape.width > body.x
+            && shape.y < body.y + body.height && shape.y + shape.height > body.y;
     }
     
     // Handle window resize with responsive scaling

@@ -104,6 +104,22 @@ export class DamageProjectile extends FallingObject {
         return !this.hasLeftScreen(canvas, gameState);
     }
 
+    // Whether it reaches the hunter: where he is drawn, not his box (Player.isHitBy). Its own
+    // picture has empty corners, so only the middle of it counts, along the whole way it went
+    // in the last step so a fast one cannot pass through him between steps.
+    checkCollision(player) {
+        if (!player.isHitBy) return super.checkCollision(player);
+        const inset = 0.2;
+        const prevX = this.prevX ?? this.x;
+        const prevY = this.prevY ?? this.y;
+        return player.isHitBy({
+            x: Math.min(this.x, prevX) + this.width * inset,
+            y: Math.min(this.y, prevY) + this.height * inset,
+            width: Math.abs(this.x - prevX) + this.width * (1 - 2 * inset),
+            height: Math.abs(this.y - prevY) + this.height * (1 - 2 * inset),
+        });
+    }
+
     draw(ctx) {
         ctx.save();
         
