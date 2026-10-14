@@ -91,56 +91,33 @@ export class Player {
     
     /**
      * Draw the player.
-     * @param {boolean} shieldActive  Whether a shield is around him
-     * @param {number}  health        How much health he has left, 0 to 1, shown under his feet
+     * @param {number}  shield  Steps (1/60 s) left of a Power Word: Shield around him, 0 for none
+     * @param {number}  health  How much health he has left, 0 to 1, shown under his feet
      */
-    draw(ctx, shieldActive = false, health = 1) {
+    draw(ctx, shield = 0, health = 1) {
         // The box holds him and, under his feet, his health bar
         const barRoom = this.width * HEALTH_BAR_ROOM;
         const figureHeight = this.height - barRoom;
+        const bubble = shield > 0 ? {
+            x: this.x + this.width / 2,
+            y: this.y + figureHeight / 2,
+            radius: figureHeight / 2 + 10,   // Around the whole of him
+            left: shield,
+        } : null;
         
         // His pet, on the ground beside him (the game gives him one: classes/Pet.js)
         if (this.pet) this.pet.draw(ctx, this, gameConfig.pet);
         
         ctx.save();
-        
-        // Draw shield border if active
-        if (shieldActive) {
-            const centerX = this.x + this.width / 2;
-            const centerY = this.y + figureHeight / 2;
-            const radius = figureHeight / 2 + 10; // Around the whole of him
-            
-            // Animated glow effect
-            const time = Date.now() * 0.005; // Slow animation
-            const glowIntensity = 0.7 + Math.sin(time) * 0.3; // Pulsing between 0.4 and 1.0
-            
-            // Outer glow
-            ctx.shadowColor = '#FFD700';
-            ctx.shadowBlur = 20 * glowIntensity;
-            ctx.strokeStyle = `rgba(255, 215, 0, ${glowIntensity})`;
-            ctx.lineWidth = 6;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-            ctx.stroke();
-            
-            // Inner border
-            ctx.shadowBlur = 10;
-            ctx.strokeStyle = `rgba(255, 215, 0, ${0.8 + glowIntensity * 0.2})`;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius - 5, 0, Math.PI * 2);
-            ctx.stroke();
-            
-            // Reset shadow
-            ctx.shadowBlur = 0;
-            ctx.shadowColor = 'transparent';
-        }
+        // The shield is round him: its haze behind him, its rim and light in front
+        if (bubble) drawShieldBack(ctx, bubble);
         
         // He stands in the middle of the player's box, his feet just above the health bar
         if (this.animator) {
             this.animator.draw(ctx, this.x + this.width / 2, this.y + figureHeight, figureHeight / this.character.heightInPicture);
         }
         
+        if (bubble) drawShieldFront(ctx, bubble);
         ctx.restore();
         
         this.drawHealthBar(ctx, this.y + figureHeight, barRoom, health);
@@ -253,4 +230,113 @@ export class Player {
     areImagesLoaded() {
         return this.image.complete && this.image.naturalWidth > 0;
     }
+}
+
+// ----- Power Word: Shield -----
+// A bubble of holy light round the hunter, as the priest's spell looks: a warm golden haze
+// inside, brightest at the edge, a glow thrown out round it, a bright rim with light running
+// along it and a gleam on top. It breathes slowly, and flickers in its last second and a half.
+
+const SHIELD_FADING = 90;
+
+// How strongly it shows now, 0 to 1
+function shieldStrength(left, time) {
+    if (left >= SHIELD_FADING) return 1;
+    return 0.35 + 0.65 * Math.abs(Math.cos(time * 9));
+}
+
+function shieldRadius({ radius }, time) {
+    return radius * (1 + Math.sin(time * 2.2) * 0.02);
+}
+
+function drawShieldBack(ctx, bubble) {
+    const time = performance.now() / 1000;
+    const r = shieldRadius(bubble, time);
+    const { x, y } = bubble;
+
+    ctx.save();
+    ctx.globalAlpha = shieldStrength(bubble.left, time);
+
+    // A shadow under its edge, so it stands out on a bright place too
+    const shade = ctx.createRadialGradient(x, y, r * 0.92, x, y, r * 1.12);
+    shade.addColorStop(0, 'rgba(40, 20, 0, 0)');
+    shade.addColorStop(0.5, 'rgba(40, 20, 0, 0.35)');
+    shade.addColorStop(1, 'rgba(40, 20, 0, 0)');
+    ctx.fillStyle = shade;
+    ctx.beginPath();
+    ctx.arc(x, y, r * 1.12, 0, Math.PI * 2);
+    ctx.fill();
+
+    // The glow it throws round itself
+    ctx.globalCompositeOperation = 'lighter';
+    const halo = ctx.createRadialGradient(x, y, r * 0.85, x, y, r * 1.45);
+    halo.addColorStop(0, 'rgba(255, 190, 50, 0)');
+    halo.addColorStop(0.3, 'rgba(255, 185, 40, 0.45)');
+    halo.addColorStop(1, 'rgba(255, 170, 20, 0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(x, y, r * 1.45, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+
+    // The haze inside: clear in the middle, thicker towards the edge, lit from above
+    const haze = ctx.createRadialGradient(x - r * 0.25, y - r * 0.3, r * 0.1, x, y, r);
+    haze.addColorStop(0, 'rgba(255, 250, 220, 0.14)');
+    haze.addColorStop(0.6, 'rgba(255, 222, 120, 0.14)');
+    haze.addColorStop(0.88, 'rgba(255, 205, 70, 0.32)');
+    haze.addColorStop(1, 'rgba(255, 190, 40, 0.6)');
+    ctx.fillStyle = haze;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+}
+
+function drawShieldFront(ctx, bubble) {
+    const time = performance.now() / 1000;
+    const r = shieldRadius(bubble, time);
+    const { x, y } = bubble;
+
+    ctx.save();
+    ctx.globalAlpha = shieldStrength(bubble.left, time);
+    ctx.lineCap = 'round';
+
+    // The rim, glowing
+    ctx.shadowColor = 'rgba(255, 180, 20, 1)';
+    ctx.shadowBlur = 24;
+    ctx.strokeStyle = 'rgba(255, 240, 175, 0.95)';
+    ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // A fainter ring just inside it
+    ctx.shadowBlur = 8;
+    ctx.strokeStyle = 'rgba(255, 225, 130, 0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, r - 6, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Light running round the rim, two ways at once
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.shadowColor = 'rgba(255, 210, 80, 1)';
+    ctx.shadowBlur = 30;
+    ctx.strokeStyle = 'rgba(255, 245, 200, 0.95)';
+    ctx.lineWidth = 6;
+    for (const start of [time * 1.6, -time * 1.1 + Math.PI]) {
+        ctx.beginPath();
+        ctx.arc(x, y, r, start, start + 0.8);
+        ctx.stroke();
+    }
+
+    // The gleam on top
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.shadowBlur = 12;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, y, r * 0.82, -2.5, -1.75);
+    ctx.stroke();
+    ctx.restore();
 }

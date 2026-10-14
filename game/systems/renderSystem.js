@@ -160,7 +160,7 @@ function renderGame({
     powerUps.forEach(powerUp => drawEntity(powerUp));
     window.arrows.forEach(arrow => drawEntity(arrow));
     combatTexts.forEach(text => drawEntity(text));
-    player.draw(ctx, gameState.shieldActive, gameState.health / gameState.maxHealth);
+    player.draw(ctx, gameState.shieldActive ? Math.max(1, gameState.shieldTimer) : 0, gameState.health / gameState.maxHealth);
     
     // Update DOM-based items panel (throttled for performance)
     // Only update every 10 frames to reduce DOM manipulation overhead
