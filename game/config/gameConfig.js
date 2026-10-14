@@ -524,6 +524,20 @@ export const gameConfig = {
             damage: 0.7,            // A stone does this many times the boss's damage
         },
 
+        // An Upheaval (Hogger, Taragaman; utils/upheaval.js): the boss turns gravity over, and its attack
+        // comes from every side in waves: rising out of the ground in columns with one gap,
+        // and flying in from the sides along one half of the band the hunter moves in. Each
+        // wave is marked on its edge first. The boss holds its other attacks meanwhile.
+        upheaval: {
+            waves: 5,
+            every: 54,              // Steps from one wave to the next
+            warn: 45,               // Steps a wave is marked before it comes in
+            rise: 1 / 150,          // How fast things rise: a share of the field's height a step
+            cross: 1 / 160,         // How fast they fly across: a share of its width a step
+            train: 3,               // How many fly in one line from a side
+            damage: 0.7,            // Each does this many times the boss's damage
+        },
+
         // Attacks that are more than a thrown thing hit harder: a charge, a blast, a stomp
         heavyDamage: 1.5,
         // A curse takes this share of the boss's damage every second, for this many seconds

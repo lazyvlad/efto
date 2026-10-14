@@ -116,9 +116,10 @@ test('every boss fights in one of the known ways, and each way is used', () => {
         assert.ok(bosses.some(boss => boss.behaviour === behaviour), `no boss is a ${behaviour}`);
         assert.ok(behaviours[behaviour].length > 0);
     }
-    // The first bosses are plain throwers
-    assert.equal(bossForZone('alliance', 1).behaviour, 'thrower');
-    assert.equal(bossForZone('alliance', 2).behaviour, 'brawler');
+    // The first Alliance boss brawls; the second, Hogger, calls on his pack in an Upheaval
+    assert.equal(bossForZone('alliance', 1).behaviour, 'brawler');
+    assert.equal(bossForZone('alliance', 2).behaviour, 'packleader');
+    assert.ok(behaviours.packleader.includes('upheaval'));
 });
 
 test('the settings in the game match the ones these tests describe', async () => {

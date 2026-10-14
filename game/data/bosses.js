@@ -22,6 +22,8 @@
 //   bomber   - lobs things that land near the player and burst a moment later
 //   pounder  - stomps: the ground hurts everywhere but one safe patch
 //   hexer    - a caster that also hexes the ground: as a stomp, everywhere but one safe patch
+//   warper   - a caster that turns gravity over: an Upheaval, its attack coming from every side
+//   packleader - a brawler that calls on his pack: an Upheaval between his throws and his rush
 //   warlord  - a fan of axes, a rush down the field, a throw and a row, one after the other
 //   brawler  - throws, and rushes down the field at the player in between
 //
@@ -37,6 +39,8 @@
 //             (assets/attacks/area/) and the colour the ground is marked in, as "r, g, b"
 //   warrior - a fighter in armor: arrows do less to it (bossStats below); Arcane Shot goes
 //             through armor
+//   upheaval - what it does as it sends an Upheaval, for its notice ("calls on his gnolls");
+//             without it, it "turns gravity over"
 //   nimble  - quick on its feet: now and then an arrow misses it altogether, which takes the
 //             edge off a Multishot from close by (bossStats below); an Arcane Shot never misses
 //   attack  - name and picture (assets/attacks/<side>/) of what it throws; "size" is how big
@@ -45,8 +49,8 @@
 
 const roster = {
     alliance: [
-        { id: 'garrick-padfoot', behaviour: 'thrower', nimble: true, name: 'Garrick Padfoot', image: '01-garrick-padfoot', attack: { name: 'Throwing Dagger', image: '01-garrick-dagger', size: 1.2, spin: 0.22 } },
-        { id: 'hogger', behaviour: 'brawler', warrior: true, name: 'Hogger', image: '02-hogger', attack: { name: 'Thrown Axe', image: '02-hogger-axe', size: 1.5, spin: 0.12 } },
+        { id: 'garrick-padfoot', behaviour: 'brawler', nimble: true, name: 'Garrick Padfoot', image: '01-garrick-padfoot', attack: { name: 'Throwing Dagger', image: '01-garrick-dagger', size: 1.2, spin: 0.22 } },
+        { id: 'hogger', behaviour: 'packleader', warrior: true, upheaval: 'calls on his gnolls', name: 'Hogger', image: '02-hogger', attack: { name: 'Thrown Axe', image: '02-hogger-axe', size: 1.5, spin: 0.12 } },
         { id: 'bazil-thredd', behaviour: 'cutthroat', nimble: true, name: 'Bazil Thredd', image: '03-bazil-thredd', attack: { name: 'Prison Shiv', image: '03-bazil-shiv', size: 1.2, spin: 0.22 } },
         { id: 'edwin-vancleef', behaviour: 'assassin', nimble: true, name: 'Edwin VanCleef', image: '04-edwin-vancleef', attack: { name: 'Defias Throwing Knife', image: '04-vancleef-knife', size: 1.2, spin: 0.22 } },
         { id: 'gath-ilzogg', behaviour: 'warlord', warrior: true, name: "Gath'Ilzogg", image: '05-gath-ilzogg', attack: { name: 'Blackrock War Axe', image: '05-gath-war-axe', size: 1.6, spin: 0.12 } },
@@ -59,7 +63,7 @@ const roster = {
     horde: [
         { id: 'sarkoth', behaviour: 'caster', name: 'Sarkoth', image: '01-sarkoth', attack: { name: 'Venom Sting', image: '01-sarkoth-venom', size: 1.3 } },
         { id: 'zalazane', behaviour: 'caster', name: 'Zalazane', image: '02-zalazane', attack: { name: 'Voodoo Spirit Bolt', image: '02-zalazane-voodoo', size: 1.4 } },
-        { id: 'taragaman', behaviour: 'caster', name: 'Taragaman the Hungerer', image: '03-taragaman', attack: { name: 'Demon Flame Bolt', image: '03-taragaman-flame', size: 1.4 } },
+        { id: 'taragaman', behaviour: 'warper', name: 'Taragaman the Hungerer', image: '03-taragaman', attack: { name: 'Demon Flame Bolt', image: '03-taragaman-flame', size: 1.4 } },
         { id: 'echeyakee', behaviour: 'charger', nimble: true, name: 'Echeyakee', image: '04-echeyakee', attack: { name: 'Lion Claw Rake', image: '04-echeyakee-claws', size: 1.5 } },
         { id: 'gerenzo-wrenchwhistle', behaviour: 'bomber', name: 'Gerenzo Wrenchwhistle', image: '05-gerenzo-wrenchwhistle', attack: { name: 'Clockwork Bomb', image: '05-gerenzo-bomb', size: 1.5, spin: 0.06 } },
         { id: 'shadumbra', behaviour: 'charger', nimble: true, name: 'Shadumbra', image: '06-shadumbra', attack: { name: 'Shadow Claw Slash', image: '06-shadumbra-claws', size: 1.5 } },
@@ -84,6 +88,12 @@ export const behaviours = {
     // The last boss of the Alliance side, a match for the Horde's: its bolts and its curse, and
     // every third attack the ground itself, which with her Rain of Fire leaves little room
     hexer: ['bolt', 'curse', 'hex'],
+    // Bolts and a curse, as the casters before it, and early on the field turned over: what
+    // sets this fight apart comes in every fight, however quick
+    warper: ['bolt', 'upheaval', 'bolt', 'curse', 'bolt'],
+    // A brawler that calls on his pack, who come at the player from every side: the Alliance
+    // side's first Upheaval
+    packleader: ['throw', 'upheaval', 'throw', 'charge', 'row'],
     warlord: ['fan', 'charge', 'throw', 'row'],
     brawler: ['throw', 'throw', 'charge', 'row']
 };

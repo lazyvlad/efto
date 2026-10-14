@@ -24,6 +24,7 @@ import { FIGURE_HEIGHT_TO_WIDTH } from '../classes/Player.js';
 import { playTotalSound, playScreamSound, playFireballImpactSound } from './audioSystem.js';
 import { areMessagesAboveField } from './hudNotificationSystem.js';
 import { keyName } from '../utils/keybindings.js';
+import { planUpheaval } from '../utils/upheaval.js';
 import { arrowDamage, damageAfterArmor, armorReduction } from '../utils/stats.js';
 import { getCurrentTotalCritRating } from './statEffectsSystem.js';
 
@@ -37,7 +38,7 @@ const ATTACK_SPEED = { min: 1.2, max: 2.0 };  // How fast a boss's attack falls,
 // How long the first boss stands to wind up each attack, in steps (60 = 1 second); later
 // bosses are quicker. The charge and the stomp show the player where the danger will be for
 // the whole of theirs.
-const WIND_UP = { throw: 24, row: 36, fan: 24, vanish: 18, charge: 54, bolt: 24, curse: 36, bomb: 24, stomp: 66, hex: 66, swipe: 30, riot: 48 };
+const WIND_UP = { throw: 24, row: 36, fan: 24, vanish: 18, charge: 54, bolt: 24, curse: 36, bomb: 24, stomp: 66, hex: 66, swipe: 30, riot: 48, upheaval: 60 };
 
 // The attacks that strike all of the ground but one safe patch, and what each looks like: the
 // colour the ground to be struck is marked in (as "r, g, b") and the colour of what rises
@@ -262,6 +263,7 @@ export function guardZone(gameState, canvas) {
         dodgeSteps: 0,          // Steps left of the sidestep under way
 
         bombs: [],              // Things lobbed at the player that have yet to burst
+        upheaval: null,         // An Upheaval under way: { waves, steps } (utils/upheaval.js)
         dodgedTextAt: -Infinity, // When "Dodge" was last shown
         sinceArrows: 0,
         sincePotion: 0
@@ -338,6 +340,123 @@ function updateRiot(context) {
 
     riot.fromLeft = !riot.fromLeft;
     if (++riot.thrown >= settings.stones) fight.riot = null;
+}
+
+// The top of the band the hunter moves in
+function floorTop(canvas) {
+    return canvas.logicalHeight * (1 - gameConfig.player.movableArea.heightPercent);
+}
+
+// Turn gravity over: plan the waves of an Upheaval, each to be marked and then sent
+function startUpheaval(context) {
+    const { canvas } = context;
+    // How big one is: the boss's own attack, as thrown
+    const probe = throwProjectile(context, 0);
+    context.fireballs.pop();
+
+    const settings = gameConfig.bosses.upheaval;
+    const field = { width: canvas.logicalWidth, height: canvas.logicalHeight, floorTop: floorTop(canvas) };
+    fight.upheaval = {
+        steps: 0,
+        waves: planUpheaval(field, probe.width, settings).map((wave, index) => ({
+            ...wave,
+            // Marked from this step on, sent at the next
+            markAt: index * settings.every,
+            sendAt: index * settings.every + settings.warn,
+            sent: false,
+        })),
+    };
+}
+
+// An Upheaval under way: each wave goes out when its mark has been up long enough
+function updateUpheaval(context) {
+    const upheaval = fight.upheaval;
+    if (!upheaval) return;
+
+    const settings = gameConfig.bosses.upheaval;
+    upheaval.steps++;
+
+    for (const wave of upheaval.waves) {
+        if (wave.sent || upheaval.steps < wave.sendAt) continue;
+        wave.sent = true;
+        for (const entry of wave.entries) {
+            const sent = throwProjectile(context, 0, {
+                flight: { vx: entry.vx, vy: entry.vy },
+                damage: Math.round(fight.stats.damage * settings.damage * enrage()),
+            });
+            sent.x = entry.x - sent.width / 2;
+            sent.y = entry.y - sent.height / 2;
+            sent.prevX = sent.x;
+            sent.prevY = sent.y;
+        }
+    }
+
+    if (upheaval.waves.every(wave => wave.sent)) {
+        fight.upheaval = null;
+        // Its round picks up again a moment later
+        fight.sinceAttack = 0;
+    }
+}
+
+// The marks of the waves about to come: the columns that will rise (and the one that will
+// not), and the edge and half of the band a line will fly in along
+function drawUpheaval(ctx, canvas, pulse) {
+    const top = floorTop(canvas);
+    const band = canvas.logicalHeight - top;
+    const { steps, waves } = fight.upheaval;
+
+    for (const wave of waves) {
+        if (wave.sent || steps < wave.markAt) continue;
+        // Brighter as it comes nearer
+        const near = Math.min(1, (steps - wave.markAt) / Math.max(1, wave.sendAt - wave.markAt));
+        const strength = (0.25 + 0.45 * near) * pulse;
+
+        if (wave.kind === 'floor') {
+            const slotWidth = wave.gap.right - wave.gap.left;
+            for (const entry of wave.entries) {
+                const left = entry.x - slotWidth / 2;
+                const glow = ctx.createLinearGradient(0, canvas.logicalHeight, 0, top);
+                glow.addColorStop(0, `rgba(190, 80, 255, ${strength})`);
+                glow.addColorStop(1, 'rgba(190, 80, 255, 0)');
+                ctx.fillStyle = glow;
+                ctx.fillRect(left + 3, top, slotWidth - 6, band);
+            }
+            // The column that stays clear
+            ctx.fillStyle = `rgba(90, 230, 120, ${0.18 + 0.12 * near})`;
+            ctx.fillRect(wave.gap.left, top, slotWidth, band);
+            ctx.strokeStyle = `rgba(190, 255, 200, ${0.5 + 0.4 * near})`;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(wave.gap.left, top, slotWidth, band);
+            continue;
+        }
+
+        // A line from a side: its half of the band, brightest at the edge it comes in at
+        const laneTop = wave.lane === 'high' ? top : top + band / 2;
+        for (const from of new Set(wave.entries.map(entry => entry.from))) {
+            const edge = from === 'left' ? 0 : canvas.logicalWidth;
+            const glow = ctx.createLinearGradient(edge, 0, from === 'left' ? canvas.logicalWidth : 0, 0);
+            glow.addColorStop(0, `rgba(190, 80, 255, ${strength * 1.4})`);
+            glow.addColorStop(0.35, `rgba(190, 80, 255, ${strength * 0.5})`);
+            glow.addColorStop(1, 'rgba(190, 80, 255, 0.04)');
+            ctx.fillStyle = glow;
+            ctx.fillRect(0, laneTop, canvas.logicalWidth, band / 2);
+
+            // Chevrons at the edge, pointing the way it will fly
+            const direction = from === 'left' ? 1 : -1;
+            const size = band * 0.12;
+            const middle = laneTop + band / 4;
+            ctx.strokeStyle = `rgba(235, 200, 255, ${0.5 + 0.5 * near})`;
+            ctx.lineWidth = 3;
+            for (let chevron = 0; chevron < 2; chevron++) {
+                const x = edge + direction * (size * 0.8 + chevron * size * 0.9);
+                ctx.beginPath();
+                ctx.moveTo(x - direction * size / 2, middle - size / 2);
+                ctx.lineTo(x, middle);
+                ctx.lineTo(x - direction * size / 2, middle + size / 2);
+                ctx.stroke();
+            }
+        }
+    }
 }
 
 // A row of projectiles across the screen, all at one speed, with one gap to stand in
@@ -825,6 +944,11 @@ function strike(context) {
         case 'row':
             throwRow(context);
             break;
+        case 'upheaval':
+            startUpheaval(context);
+            addNotification(context.gameState, `${fight.boss.name} ${fight.boss.upheaval || 'turns gravity over'}! Danger from every side`, 300, '#C77DFF');
+            playScreamSound();
+            break;
         case 'riot':
             fight.riot = { steps: 0, thrown: 0, fromLeft: Math.random() < 0.5 };
             addNotification(context.gameState, `${fight.boss.name} starts a riot! Watch the sides`, 240, '#FF6B35');
@@ -960,6 +1084,7 @@ function defeat(context) {
     fight.drop = 0;
     fight.bombs = [];
     fight.storm = null;
+    fight.upheaval = null;
     fight.doing = 'moving';
     defeated.push(boss.id);
     passed.push(boss.id);
@@ -1046,6 +1171,9 @@ export function updateBoss(context) {
             // Busy sidestepping
         } else if (fight.closeFor >= settings.melee.patience) {
             windUpExtra('swipe');
+        } else if (fight.upheaval) {
+            // Its own attacks wait while the field is turned over
+            fight.sinceVolley = Math.min(fight.sinceVolley, stats.volleyEvery / 2);
         } else if (fight.sinceVolley >= stats.volleyEvery / tempo) {
             fight.sinceVolley = 0;
             windUpExtra('row');
@@ -1055,7 +1183,7 @@ export function updateBoss(context) {
     } else if (fight.doing === 'winding') {
         // It lines up on the lane it means to charge down; otherwise it stands where it is
         if (fight.attack === 'charge') moveTowards(canvas, fight.attackData.x, canvas.logicalWidth * settings.movement.speed * 2.5);
-        const share = fight.attack === 'charge' || GROUND_STRIKES[fight.attack] || fight.attack === 'swipe' ? stats.heavyWindUp : stats.windUp;
+        const share = fight.attack === 'charge' || GROUND_STRIKES[fight.attack] || fight.attack === 'swipe' || fight.attack === 'upheaval' ? stats.heavyWindUp : stats.windUp;
         if (fight.doingSteps >= WIND_UP[fight.attack] * share / Math.sqrt(rage)) strike(context);
     } else {
         act(context);
@@ -1064,6 +1192,7 @@ export function updateBoss(context) {
     updateBombs(context);
     updateStorm(context);
     updateRiot(context);
+    updateUpheaval(context);
 
     if (++fight.sinceArrows >= settings.arrowsEvery) {
         fight.sinceArrows = 0;
@@ -1131,6 +1260,7 @@ function drawWarnings(ctx, canvas, place) {
     ctx.save();
 
     if (fight.storm) drawStorm(ctx, canvas, pulse);
+    if (fight.upheaval) drawUpheaval(ctx, canvas, pulse);
 
     if (fight.attack === 'charge' && fight.doing !== 'moving') {
         const width = place.width * 0.6;

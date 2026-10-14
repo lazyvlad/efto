@@ -48,10 +48,27 @@ export class BossProjectile extends DamageProjectile {
         this.follows = Boolean(attack.follows);
         // Called if it hurts the player (not if it is dodged or blocked)
         this.onPlayerHit = attack.onPlayerHit || null;
+        // One sent in an Upheaval (utils/upheaval.js) does not fall: it flies straight on, up
+        // out of the ground or across from a side, { vx, vy } a step, until it is off the field
+        this.flight = attack.flight || null;
     }
 
     update(deltaTimeMultiplier, canvas, gameState) {
         this.rotation += this.spin * deltaTimeMultiplier;
+
+        if (this.flight) {
+            this.x += this.flight.vx * deltaTimeMultiplier;
+            this.y += this.flight.vy * deltaTimeMultiplier;
+            // Pointing the way it goes (a picture points down)
+            if (!this.spin) this.rotation = Math.atan2(-this.flight.vx, this.flight.vy);
+            this.glowAnimation += 0.2 * deltaTimeMultiplier;
+
+            const width = canvas.logicalWidth;
+            const height = canvas.logicalHeight;
+            const gone = (this.flight.vx > 0 && this.x > width) || (this.flight.vx < 0 && this.x + this.width < 0)
+                || (this.flight.vy < 0 && this.y + this.height < 0) || (this.flight.vy > 0 && this.y > height);
+            return !gone;
+        }
 
         if (this.follows && gameState.player) {
             const target = gameState.player.x + gameState.player.width / 2 - this.width / 2;
