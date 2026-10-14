@@ -27,7 +27,7 @@ class GameHistoryController extends Controller
         // Games still open are in progress, or were never handed in
         $games = Gear::onSide($user->games(), $side)
             ->where('status', '!=', Game::OPEN)
-            ->with(['pickups', 'bossDrops' => fn ($drops) => $drops->orderBy('dropped_at')])
+            ->with(['pickups', 'scoreEntry', 'bossDrops' => fn ($drops) => $drops->orderBy('dropped_at')])
             ->latest('started_at')
             ->latest('id')
             ->paginate(20)

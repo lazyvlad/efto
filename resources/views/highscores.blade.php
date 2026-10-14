@@ -64,7 +64,14 @@
                                             <span class="text-gray-500">–</span>
                                         @endif
                                     </td>
-                                    <td class="py-2.5 px-2 text-right tabular-nums text-indigo-600">{{ number_format($score->score) }}</td>
+                                    <td class="py-2.5 px-2 text-right tabular-nums">
+                                        @if ($score->game_id)
+                                            {{-- How the game went, for anyone to see --}}
+                                            <a href="{{ route('games.show', $score->game_id) }}" class="text-indigo-600 hover:text-indigo-800 underline decoration-dotted underline-offset-4" title="{{ __('How this game went') }}">{{ number_format($score->score) }}</a>
+                                        @else
+                                            <span class="text-indigo-600">{{ number_format($score->score) }}</span>
+                                        @endif
+                                    </td>
                                     <td class="py-2.5 px-2 text-right tabular-nums text-gray-800">{{ $score->level }}</td>
                                     <td class="py-2.5 px-2 text-right tabular-nums text-gray-800 hidden sm:table-cell">{{ $score->game?->boss_drops_count ?: '–' }}</td>
                                     @php $gear = $score->game?->gear; @endphp
@@ -82,7 +89,7 @@
             </div>
 
             <p class="mt-4 px-4 sm:px-0 text-sm text-gray-500">
-                {{ __('The top :count scores. "Bosses" is how many bosses were defeated in that game. "Gear" is the strongest hunter set worn in it and how many of its pieces, which make the hunter tougher and his arrows hit harder; "none" is a game played without. Scores are grouped by the version of the game they were played in, the latest first: the game changes, and a score is a feat of its own version.', ['count' => config('game.leaderboard_size')]) }}
+                {{ __('The top :count scores. "Bosses" is how many bosses were defeated in that game. "Gear" is the strongest hunter set worn in it and how many of its pieces, which make the hunter tougher and his arrows hit harder; "none" is a game played without. Scores are grouped by the version of the game they were played in, the latest first: the game changes, and a score is a feat of its own version. Press a score to see how its game went, boss by boss.', ['count' => config('game.leaderboard_size')]) }}
             </p>
         </div>
     </div>
