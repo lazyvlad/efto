@@ -16,7 +16,9 @@ export const ACTIONS = [
     { id: 'set_1', name: 'Wear the first set', key: 'Digit1' },
     { id: 'set_2', name: 'Wear the second set', key: 'Digit2' },
     { id: 'set_3', name: 'Wear the third set', key: 'Digit3' },
-    { id: 'settings', name: 'Open and close Settings', key: 'KeyS' }
+    { id: 'settings', name: 'Open and close Settings', key: 'KeyS' },
+    { id: 'character', name: 'Open and close the character sheet', key: 'KeyC' },
+    { id: 'inventory', name: 'Open and close the inventory', key: 'KeyB' }
 ];
 
 const STORAGE_KEY = 'input_keybindings';

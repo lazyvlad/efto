@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Support\BossLoot;
 use App\Support\GameSettings;
+use App\Support\Gear;
 use App\Support\GuestName;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -51,6 +52,16 @@ class GameController extends Controller
                 'verified' => $user->canUseRewards(),
                 'quiver' => $user->canUseRewards() && $user->quiver,
                 'pieces' => $user->canUseRewards() ? $user->setPieces() : [],
+                // What the hunter is wearing, slot by slot (the game's character sheet)
+                // (null until the player has chosen: the game then puts on what they own)
+                'equipment' => $user->equipment === null || ! $user->canUseRewards()
+                    ? null
+                    : (object) Gear::valid($user, $user->equipment),
+                // The gear owned besides the sets, and how many of each (App\Support\Gear)
+                'gear' => (object) ($user->canUseRewards() ? Gear::owned($user) : []),
+                // The bags bought (their sizes) and the crafting materials brought back so far
+                'bags' => $user->canUseRewards() ? ($user->bags ?? []) : [],
+                'materials' => (object) ($user->materials ?? []),
                 // The bosses the player has beaten: the ones they may fight again on their own
                 'bosses' => $user->bossDrops()->distinct()->pluck('boss_id')->all(),
             ] : null,
@@ -65,6 +76,10 @@ class GameController extends Controller
             ] : null,
             // Boss Rush: what a logged-in player pays to enter
             'rush' => $user?->canUseRewards() ? ['fee' => (int) config('boss_loot.rush.entry_fee')] : null,
+            // Everything that can be worn besides the sets: where, what it gives, what it sells for
+            'gear' => (object) Gear::catalog(),
+            // Bags that can be bought: size in slots => price in copper
+            'bagsForSale' => (object) config('loot.bags.for_sale'),
             // Settings changed in the admin section, by their place in the game's gameConfig
             'settings' => (object) app(GameSettings::class)->forGame(),
             'csrfToken' => csrf_token(),
@@ -74,6 +89,9 @@ class GameController extends Controller
                 'scores' => route('scores.index'),
                 'games' => route('games.open'),
                 'collection' => route('collection'),
+                'equipment' => route('equipment.update'),
+                'bags' => route('bags.buy'),
+                'sell' => route('vendor.sell'),
                 'verify' => route('verification.notice'),
                 'history' => route('games.history'),
                 'login' => route('login'),

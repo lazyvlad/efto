@@ -1,0 +1,1 @@
+export const MATERIALS=new Set(["runecloth","rugged-leather","light-feather","kingsblood","fadeleaf","black-lotuses","mithril-bar","thorium-bar","arcane-crystal","sapphire-gem","pearl-gem","essence-of-water","dark-rune","righteous-orb","fiery-core","lava-core"]);export function categoryOf(e){return e?"set_piece"===e.type?"gear":MATERIALS.has(e.id)?"material":"junk":"junk"}

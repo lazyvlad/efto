@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\AvatarController;
+use App\Http\Controllers\BagController;
+use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\GameHistoryController;
 use App\Http\Controllers\GameRecordController;
@@ -9,6 +11,7 @@ use App\Http\Controllers\ItemController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScoreController;
+use App\Http\Controllers\VendorController;
 use Illuminate\Support\Facades\Route;
 
 // The landing page is the site header around the game; /play is the game on its own
@@ -47,6 +50,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/my-games', [GameHistoryController::class, 'index'])->name('games.history');
     // The same collection as data, for the game's loot screen
     Route::get('/api/collection', [GameHistoryController::class, 'collection'])->name('collection');
+    // What the hunter is wearing, set on the game's character sheet
+    Route::put('/api/equipment', [EquipmentController::class, 'update'])->middleware('throttle:60,1')->name('equipment.update');
+    // Gear sold for coins
+    Route::post('/api/sell', [VendorController::class, 'sell'])->middleware('throttle:60,1')->name('vendor.sell');
+    // A bag bought with coins, added to the backpack
+    Route::post('/api/bags', [BagController::class, 'buy'])->middleware('throttle:30,1')->name('bags.buy');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

@@ -179,6 +179,32 @@ return [
     // times what the game can have spawned in the time played
     'coins_spawn_allowance' => 1.5,
 
+    // Crafting materials (game/data/materials.js has the same list). A material pays no coins
+    // when a game ends: it is kept on the player's account, to be made into something later.
+    'materials' => [
+        'runecloth', 'rugged-leather', 'light-feather', 'kingsblood', 'fadeleaf', 'black-lotuses',
+        'mithril-bar', 'thorium-bar', 'arcane-crystal', 'sapphire-gem', 'pearl-gem',
+        'essence-of-water', 'dark-rune', 'righteous-orb', 'fiery-core', 'lava-core',
+    ],
+
+    // The hunter's bags (bags in game/config/gameConfig.js has the same numbers). Everything
+    // caught goes into them: a slot holds a stack of one kind. With no room left, what is
+    // caught is sold on the spot for less, and a material sold that way is not kept. Bags are
+    // bought with coins and added to the backpack: size in slots => price in copper.
+    'bags' => [
+        'backpack' => 16,
+        'bag_slots' => 4,
+        'stack' => 20,
+        'full_penalty' => 0.1,
+        'for_sale' => [
+            6 => 50000,
+            8 => 150000,
+            10 => 400000,
+            12 => 1000000,
+            14 => 2500000,
+        ],
+    ],
+
     // The hunter's sets, collected over many games: a logged-in player keeps every piece they
     // pick up. Each set starts to drop at a level (sets in game/config/gameConfig.js has the
     // same levels), so its pieces are held back until the seconds below unless the game started

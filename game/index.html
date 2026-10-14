@@ -61,6 +61,8 @@
     <link rel="stylesheet" href="styles/how-to-play.css">
     <link rel="stylesheet" href="styles/mobile.css">
     <link rel="stylesheet" href="styles/wow-theme.css">
+    <link rel="stylesheet" href="styles/character-sheet.css">
+    <link rel="stylesheet" href="styles/inventory.css">
     <!-- <link rel="stylesheet" href="styles/mobile-fixed.css"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
 </head>
@@ -151,6 +153,71 @@
         <svg class="mobile-pause-bars" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.2"/><rect x="14" y="4" width="5" height="16" rx="1.2"/></svg>
     </button>
 
+    <!-- The character sheet: the hunter and what he wears (ui/characterSheet.js). It opens over
+         the starting window or over the paused game. -->
+    <div id="characterSheet" class="character-sheet-layer" hidden>
+        <div class="character-sheet" role="dialog" aria-modal="true" aria-labelledby="sheetName">
+            <header class="sheet-heading">
+                <div>
+                    <h2 id="sheetName">Hunter</h2>
+                    <p id="sheetSubtitle"></p>
+                </div>
+                <div class="sheet-heading-buttons">
+                    <!-- Which character is shown, before a game; in a game it is the one being played -->
+                    <div class="sheet-sides" id="sheetSides" role="group" aria-label="Character shown">
+                        <button type="button" class="sheet-side-btn" data-side="alliance">Alliance</button>
+                        <button type="button" class="sheet-side-btn" data-side="horde">Horde</button>
+                    </div>
+                    <button type="button" id="characterSheetClose" class="sheet-close" aria-label="Close the character sheet">Close</button>
+                </div>
+            </header>
+
+            <div class="sheet-body">
+                <!-- The hunter with his slots around him: eight left, eight right, three below -->
+                <div class="sheet-stage">
+                    <div class="sheet-slots sheet-slots-left" id="sheetSlots-left"></div>
+                    <div class="sheet-figure"><img id="sheetFigure" alt=""></div>
+                    <div class="sheet-slots sheet-slots-right" id="sheetSlots-right"></div>
+                    <div class="sheet-slots sheet-slots-bottom" id="sheetSlots-bottom"></div>
+                </div>
+
+                <!-- What it all gives, the three sets, and the slot that is picked -->
+                <aside class="sheet-side">
+                    <section>
+                        <h3>Hunter</h3>
+                        <div id="sheetStats" class="sheet-stats"></div>
+                        <p id="sheetBonuses" class="sheet-bonuses"></p>
+                    </section>
+                    <section>
+                        <h3>Put on a whole set</h3>
+                        <div id="sheetSets" class="sheet-sets"></div>
+                    </section>
+                    <section class="sheet-slot-panel">
+                        <h3 id="sheetSlotName">Head</h3>
+                        <div id="sheetItems" class="sheet-items"></div>
+                    </section>
+                </aside>
+            </div>
+        </div>
+    </div>
+
+    <!-- The inventory: the bags and what is in them, the crafting materials kept, and the way
+         to the gear (ui/inventory.js). It opens over the starting window or the paused game. -->
+    <div id="inventory" class="character-sheet-layer inventory-layer" hidden>
+        <div class="inventory" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle">
+            <header class="inventory-heading">
+                <h2 id="inventoryTitle">Inventory</h2>
+                <button type="button" id="inventoryClose" class="sheet-close" aria-label="Close the inventory">Close</button>
+            </header>
+            <nav class="inventory-tabs" role="tablist">
+                <button type="button" class="inventory-tab" data-tab="bags" role="tab">Bags</button>
+                <button type="button" class="inventory-tab" data-tab="materials" role="tab">Materials</button>
+                <button type="button" class="inventory-tab" data-tab="gear" role="tab">Gear</button>
+            </nav>
+            <div class="inventory-body" id="inventoryBody"></div>
+        </div>
+    </div>
+
     <!-- Unified Pause Menu Screen -->
     <div id="pauseMenu" style="display: none;">
         <div id="pauseMenuContent" class="pause-content">
@@ -164,6 +231,10 @@
                         <!-- A logged-in player's coins (ui/accountBar.js) -->
                         <div id="startPurse" class="start-purse" hidden></div>
                         <div id="accountBar" class="account-bar" hidden></div>
+                        <!-- The hunter's gear (ui/characterSheet.js) -->
+                        <button type="button" id="characterBtn" class="music-toggle">Character</button>
+                        <!-- The bags and what is kept (ui/inventory.js) -->
+                        <button type="button" id="inventoryBtn" class="music-toggle">Inventory</button>
                         <!-- Turns the background music off and on (ui/musicButton.js) -->
                         <button type="button" id="musicToggleBtn" class="music-toggle" aria-pressed="true">Music: On</button>
                         <!-- The other screens of the game, under one menu -->
@@ -223,6 +294,10 @@
                     <button id="continuePauseBtn" class="pause-btn continue-btn">Continue
                     </button>
                     <button id="gameInfoPauseBtn" class="pause-btn info-btn">Game Info
+                    </button>
+                    <button id="characterPauseBtn" class="pause-btn info-btn">Character
+                    </button>
+                    <button id="inventoryPauseBtn" class="pause-btn info-btn">Inventory
                     </button>
                     <button id="itemBonusesPauseBtn" class="pause-btn bonuses-btn">
                         <span class="menu-button-label-full">Loot &amp; Bonuses</span>
@@ -461,7 +536,7 @@
                         </div>
                         <div class="item-type">
                             <img src="assets/items/dragonstalker-helmet.webp" alt="Dragonstalker helm" class="guide-item-icon">
-                            <span><strong>Set pieces:</strong> Giantstalker, Dragonstalker and Cryptstalker armour - 6 points each, kept on your account</span>
+                            <span><strong>Set pieces:</strong> Giantstalker, Dragonstalker and Cryptstalker armour - 6 points each, kept on your account. Every piece you own of the set you are wearing gives health, armor (hits hurt less) and attack power (arrows hit harder); each set is better than the one before</span>
                         </div>
                         <div class="item-type">
                             <img src="assets/items/drakefangtalisman.webp" alt="Drake Fang Talisman" class="guide-item-icon">
@@ -625,7 +700,7 @@
         
         <!-- Player Stats Section -->
         <div class="player-stats">
-            <div class="stat-row">
+            <div class="stat-row stat-row-extra">
                 <span class="stat-label"><span class="label-full">Speed:</span><span class="label-short">Speed</span></span>
                 <span class="stat-value" id="gameSpeed">1.0x</span>
             </div>
@@ -642,18 +717,32 @@
                 <span class="stat-label"><span class="label-full">Dodge Chance:</span><span class="label-short">Dodge</span></span>
                 <span class="stat-value" id="dodgeRating">0%</span>
             </div>
-            <!-- Removed Dodges Made - not needed -->
+            <!-- From the pieces owned of the set being worn (utils/stats.js) -->
             <div class="stat-row">
+                <span class="stat-label"><span class="label-full">Attack Power:</span><span class="label-short">Attack</span></span>
+                <span class="stat-value" id="attackPowerValue">0</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label"><span class="label-full">Armor:</span><span class="label-short">Armor</span></span>
+                <span class="stat-value" id="armorValue">0</span>
+            </div>
+            <!-- Removed Dodges Made - not needed -->
+            <div class="stat-row stat-row-extra">
                 <span class="stat-label"><span class="label-full">Health Saved:</span><span class="label-short">Saved</span></span>
                 <span class="stat-value" id="healthSavedFromDodges">0 HP</span>
             </div>
-            <div class="stat-row">
+            <div class="stat-row stat-row-extra">
                 <span class="stat-label"><span class="label-full">Dodge Area:</span><span class="label-short">Area</span></span>
                 <span class="stat-value" id="dodgeAreaExpansion">+0px</span>
             </div>
             <div class="stat-row">
                 <span class="stat-label"><span class="label-full">Arrows:</span><span class="label-short">Arrows</span></span>
                 <span class="stat-value" id="arrowCount">0</span>
+            </div>
+            <!-- How many of the bags' slots are taken (utils/bags.js) -->
+            <div class="stat-row">
+                <span class="stat-label"><span class="label-full">Bags:</span><span class="label-short">Bags</span></span>
+                <span class="stat-value" id="bagsValue">0/16</span>
             </div>
             <div class="stat-row">
                 <span class="stat-label"><span class="label-full">Coins:</span><span class="label-short">Coins</span></span>

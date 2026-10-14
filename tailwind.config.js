@@ -13,8 +13,9 @@ export default {
         extend: {
             fontFamily: {
                 // Running text; the display face is applied to headings, labels and buttons in app.css
-                sans: ['"Trebuchet MS"', '"Lucida Grande"', '"Segoe UI"', ...defaultTheme.fontFamily.sans],
-                display: ['Marcellus', 'Georgia', 'serif'],
+                // "Input Math" has the decorative letters some players write their names in
+                sans: ['"Trebuchet MS"', '"Lucida Grande"', '"Segoe UI"', '"Input Math"', ...defaultTheme.fontFamily.sans],
+                display: ['Marcellus', 'Georgia', '"Input Math"', 'serif'],
             },
 
             // The site shares the game's look: dark stone panels, gold trim. Rather than

@@ -11,8 +11,16 @@
     "file": "assets/marcellus-latin-86dSXJnk.woff2",
     "src": "game/assets/fonts/marcellus-latin.woff2"
   },
+  "game/assets/fonts/noto-sans-math.woff2": {
+    "file": "assets/noto-sans-math-BUqFb9Dg.woff2",
+    "src": "game/assets/fonts/noto-sans-math.woff2"
+  },
+  "game/assets/ui/character-sheet.webp": {
+    "file": "assets/character-sheet-BNtUE0dQ.webp",
+    "src": "game/assets/ui/character-sheet.webp"
+  },
   "game/game-modular.js": {
-    "file": "assets/game-modular-BNIpcWVC.js",
+    "file": "assets/game-modular-DKCCKHsS.js",
     "name": "game-modular",
     "src": "game/game-modular.js",
     "isEntry": true,
@@ -21,7 +29,7 @@
     ]
   },
   "game/styles/game.css": {
-    "file": "assets/game-C05XFPRG.css",
+    "file": "assets/game-NLgqn2xQ.css",
     "src": "game/styles/game.css",
     "isEntry": true,
     "name": "game",
@@ -58,7 +66,7 @@
     "isDynamicEntry": true
   },
   "resources/css/app.css": {
-    "file": "assets/app-DyZ5zPUt.css",
+    "file": "assets/app-7vmFXyN6.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",

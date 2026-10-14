@@ -201,9 +201,8 @@ function renderHighScoresList(scores) {
             <span class="score-name">Name</span>
             <span class="score-points">Score</span>
             <span class="score-level">Level</span>
-            <span class="score-ds">DS</span>
-            <span class="score-crit">Crit</span>
-            <span class="score-dodge">Dodge</span>
+            <span class="score-gear">Gear</span>
+            <span class="score-version">Version</span>
             <span class="score-date">Date</span>
         </div>
     `;
@@ -228,13 +227,14 @@ function renderHighScoresList(scores) {
         // Format level display
         const levelDisplay = score.level ? `Lv.${toNumber(score.level)}` : 'Lv.?';
         
-        // Format dragonstalker completions
-        const dsCompletions = toNumber(score.dragonstalkerCompletions);
-        const dsDisplay = `${dsCompletions}`;
-        
-        // Format crit and dodge ratings
-        const critDisplay = `${toNumber(score.finalCritRating)}%`;
-        const dodgeDisplay = `${toNumber(score.finalDodgeRating)}%`;
+        // How the score was made: the gear worn (the strongest set, and how many of its
+        // pieces) and the version of the game it was played in. Older scores have neither.
+        const gearDisplay = score.gear || 'none';
+        const stats = score.gearStats;
+        const gearTitle = stats
+            ? `+${toNumber(stats.health)} health, ${toNumber(stats.armor)} armor, ${toNumber(stats.attackPower)} attack power`
+            : 'Played without gear';
+        const versionDisplay = score.version || '-';
         
         html += `
             <div class="score-entry ${isTop3 ? 'top3' : ''}">
@@ -242,9 +242,8 @@ function renderHighScoresList(scores) {
                 <span class="score-name">${escapeHtml(score.name || 'Anonymous')}</span>
                 <span class="score-points">${toNumber(score.score)} pts</span>
                 <span class="score-level">${levelDisplay}</span>
-                <span class="score-ds">${dsDisplay}</span>
-                <span class="score-crit">${critDisplay}</span>
-                <span class="score-dodge">${dodgeDisplay}</span>
+                <span class="score-gear ${score.gear ? 'has-gear' : ''}" title="${escapeHtml(gearTitle)}">${escapeHtml(gearDisplay)}</span>
+                <span class="score-version ${score.version ? '' : 'is-unknown'}">${escapeHtml(versionDisplay)}</span>
                 <span class="score-date">${escapeHtml(displayDate)}</span>
             </div>
         `;

@@ -5,6 +5,7 @@ import { Particle } from '../classes/Particle.js';
 import { CombatText } from '../classes/CombatText.js';
 import { isHarmfulProjectile } from '../data/damageProjectiles.js';
 import { itemValueAtLevel } from '../utils/progression.js';
+import { damageAfterArmor } from '../utils/stats.js';
 import { startBackgroundMusic, playDragonstalkerSound, playTotalSound, playItemSound, playThunderSound } from './audioSystem.js';
 
 export function checkCollisions(context) {
@@ -301,10 +302,12 @@ export function checkCollisions(context) {
                             combatTexts.push(new CombatText(player.x + player.width/2, player.y, 'BLOCKED', '#FFD700', false));
                         } else {
                             // Track damage for hybrid progression
-                            trackActivity(gameState, 'damage', projectile.data.damage);
+                            // His armor takes its share off the hit (utils/stats.js)
+                            const taken = damageAfterArmor(projectile.data.damage, gameState.armor || 0, gameConfig.stats);
+                            trackActivity(gameState, 'damage', taken);
                             
-                            gameState.health = Math.max(0, gameState.health - projectile.data.damage);
-                            combatTexts.push(new CombatText(player.x + player.width/2, player.y, `-${projectile.data.damage}`, '#00BFFF', false));
+                            gameState.health = Math.max(0, gameState.health - taken);
+                            combatTexts.push(new CombatText(player.x + player.width/2, player.y, `-${taken}`, '#00BFFF', false));
                             
                             // Trigger player impact reaction
                             if (player.onHit) {
@@ -384,8 +387,9 @@ export function checkCollisions(context) {
                             // Still create particles and play sound for feedback
                             createCollectionParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles, '#FFD700');
                         } else {
-                            // Apply immediate damage for harmful projectiles
-                            const damage = projectile.data.damage || 5;
+                            // Apply immediate damage for harmful projectiles: his armor takes its
+                            // share off the hit (utils/stats.js)
+                            const damage = damageAfterArmor(projectile.data.damage || 5, gameState.armor || 0, gameConfig.stats);
                             
                             // Track damage for hybrid progression
                             trackActivity(gameState, 'damage', damage);

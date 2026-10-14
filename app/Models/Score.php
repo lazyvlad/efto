@@ -63,6 +63,7 @@ class Score extends Model
     public static function leaderboard(): array
     {
         return static::top()
+            ->with('game')
             ->get()
             ->map(fn (Score $score) => [
                 'name' => $score->name,
@@ -74,6 +75,10 @@ class Score extends Model
                 'finalDodgeRating' => $score->final_dodge_rating,
                 'timestamp' => $score->created_at?->toIso8601String(),
                 'registered' => $score->user_id !== null,
+                // How the score was made: the version of the game, and the gear worn
+                'version' => $score->game?->game_version,
+                'gear' => $score->game?->gearLabel(),
+                'gearStats' => $score->game?->gear,
             ])
             ->all();
     }

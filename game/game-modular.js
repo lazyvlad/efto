@@ -23,6 +23,13 @@ import { totalXpAtLevel } from './utils/progression.js';
 import { coinsForItem, coinsForBoss, formatCoins } from './utils/coins.js';
 import { quiverCapacity, startingArrows } from './utils/quiver.js';
 import { setById, piecesOf, ownedCount, setBonus, nextStep, bonusText } from './utils/sets.js';
+import { healthAtNewMax, armorReduction } from './utils/stats.js';
+import { validEquipment, equip, equipSet, mainSet, setsWorn, gearTotals, slotsFor } from './utils/gear.js';
+import { bagCapacity, slotsUsed, addToBags, soldShort } from './utils/bags.js';
+import { MATERIALS, categoryOf } from './data/materials.js';
+import { wearables, wearableById, isKeptGear, gearCatalog } from './data/wearables.js';
+import { initializeInventory, openInventory, closeInventory, isInventoryOpen, refreshInventory } from './ui/inventory.js';
+import { initializeCharacterSheet, refreshCharacterSheet, openCharacterSheet, closeCharacterSheet, isCharacterSheetOpen } from './ui/characterSheet.js';
 import { Pet } from './classes/Pet.js';
 import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost, renderGameModePicker, getGameMode, gameModeCost, rememberBeaten } from './ui/startZone.js';
 import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
@@ -187,8 +194,14 @@ let gameState = {
     quiverCapacity: 200, // The most arrows the quiver holds; more for a player with the large quiver
     coins: 0, // Coins earned in this game, in copper (utils/coins.js)
     bossLoot: [], // What the bosses defeated in this game dropped: { boss, item: { id, name, rarity }, kept }
-    wornSet: 'giantstalker', // The hunter set being worn (utils/sets.js); the player may change it at any time
-    setBonus: { crit: 0, dodge: 0, bossDamage: 0 }, // What wearing it gives with the pieces owned
+    wornSet: 'giantstalker', // The set most of what is worn belongs to: the one the set panel shows
+    equipment: {}, // What the hunter wears: { slotId: itemId } (utils/gear.js)
+    setBonus: { health: 0, armor: 0, attackPower: 0, crit: 0, dodge: 0, carrying: 0, bossDamage: 0, multishot: 0, arcane: 0 }, // What everything being worn gives (gearTotals in utils/gear.js)
+    gearUsed: null, // The strongest set worn in this game: { set, pieces, health, armor, attackPower }
+    bags: { contents: {}, overflow: {} }, // What the bags hold, and what did not fit: { itemId: count } each (utils/bags.js)
+    bagCapacity: 16, // Slots in the bags: the backpack and the bags bought
+    armor: 0, // Takes a share off every hit (utils/stats.js)
+    attackPower: 0, // Each point adds one hundredth to an arrow's damage
     victory: false, // The last boss of the side is down: the game is won
     mode: 'normal', // 'normal'; 'boss_rush': nothing but the bosses, back to back; 'boss_fight': the starting zone's boss alone
     bossFightWon: false, // Boss fight: the one boss is down
@@ -800,10 +813,17 @@ function finishGameNow() {
 
 const WORN_SET_KEY = 'input_worn_set';
 
+// Everything the player has that can be worn: the pieces of the sets, and the other gear
+// (what the bosses dropped, the weapons and jewellery caught), on the account or in this game
 function ownedPieces() {
-    const owned = new Set(siteBoot && siteBoot.user && siteBoot.user.pieces ? siteBoot.user.pieces : []);
+    const user = siteBoot && siteBoot.user ? siteBoot.user : null;
+    const owned = new Set(user && user.pieces ? user.pieces : []);
+    
+    for (const [itemId, count] of Object.entries(user && user.gear ? user.gear : {})) {
+        if (count > 0) owned.add(itemId);
+    }
     gameItems.forEach(item => {
-        if (item.type === 'set_piece' && item.collected > 0) owned.add(item.id);
+        if (item.collected > 0 && (item.type === 'set_piece' || isKeptGear(item.id))) owned.add(item.id);
     });
     return owned;
 }
@@ -818,32 +838,223 @@ function rememberedSet() {
     return setById(gameConfig.sets, id) ? id : gameConfig.sets[0].id;
 }
 
-// What the set being worn gives with the pieces owned now
-function refreshSetBonus() {
-    const set = setById(gameConfig.sets, gameState.wornSet);
-    gameState.setBonus = setBonus(set, ownedCount(piecesOf(gameItems, gameState.wornSet), ownedPieces()));
-    dragonstalkerCache.lastUpdate = 0;  // The panel shows it at once
+// ----- What the hunter wears (utils/gear.js) -----
+// One item in each slot of the character sheet. A logged-in player's is kept on their account
+// (INPUT_BOOT.user.equipment) and saved there when it changes; everyone's is kept in this
+// browser too. Putting a whole set on (its key, or its button on the set panel) puts on every
+// piece of it that is owned.
+
+const EQUIPMENT_KEY = 'input_equipment';
+let equipmentSaveTimer = null;
+
+// What was last being worn in this browser
+function storedEquipment() {
+    try {
+        return JSON.parse(localStorage.getItem(EQUIPMENT_KEY)) || null;
+    } catch (e) {
+        return null;
+    }
 }
 
-// Put a set on. It can be changed at any time, in a fight too.
-function wearSet(setId, announce = true) {
-    const set = setById(gameConfig.sets, setId);
-    if (!set) return;
+// As a game starts: what the player chose to wear, as far as they still own it. A player who
+// has never chosen starts in the pieces they own of the set they last wore, as before there
+// was a character sheet.
+function restoreEquipment() {
+    const owned = ownedPieces();
+    const account = siteBoot && siteBoot.user ? siteBoot.user.equipment : undefined;
+    const chosen = account !== undefined ? account : storedEquipment();
     
-    gameState.wornSet = set.id;
+    gameState.equipment = chosen
+        ? validEquipment(chosen, wearables(), owned)
+        : equipSet({}, rememberedSet(), wearables(), owned);
+    gameState.wornSet = mainSet(gameState.equipment, wearables(), gameConfig.sets) || rememberedSet();
     refreshSetBonus();
+}
+
+// Keep what is worn: in this browser at once, on the account a moment later (so a string of
+// changes on the sheet is one request)
+function saveEquipment() {
     try {
-        localStorage.setItem(WORN_SET_KEY, set.id);
+        localStorage.setItem(EQUIPMENT_KEY, JSON.stringify(gameState.equipment));
+        localStorage.setItem(WORN_SET_KEY, gameState.wornSet);
     } catch (e) {
         // Storage unavailable: worn for this game
     }
     
+    if (!(siteBoot && siteBoot.user && siteBoot.urls && siteBoot.urls.equipment)) return;
+    
+    siteBoot.user.equipment = { ...gameState.equipment };
+    clearTimeout(equipmentSaveTimer);
+    equipmentSaveTimer = setTimeout(() => {
+        fetch(siteBoot.urls.equipment, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': siteBoot.csrfToken || '' },
+            credentials: 'same-origin',
+            keepalive: true,
+            body: JSON.stringify({ equipment: gameState.equipment })
+        }).catch(() => { /* Kept in this browser; saved with the next change */ });
+    }, 600);
+}
+
+// Wear this. Anything that cannot be worn (not owned, in the wrong slot) is left out.
+function setEquipment(equipment) {
+    gameState.equipment = validEquipment(equipment, wearables(), ownedPieces());
+    gameState.wornSet = mainSet(gameState.equipment, wearables(), gameConfig.sets) || gameState.wornSet;
+    refreshSetBonus();
+    saveEquipment();
+}
+
+// What everything being worn gives now
+function refreshSetBonus() {
+    gameState.setBonus = gearTotals(gameState.equipment, wearables(), gameConfig.sets);
+    dragonstalkerCache.lastUpdate = 0;  // The panel shows it at once
+    
+    // The hunter's stats follow what he wears (utils/stats.js). Health keeps its proportion,
+    // so changing gear neither heals nor hurts.
+    gameState.armor = gameState.setBonus.armor;
+    gameState.attackPower = gameState.setBonus.attackPower;
+    
+    if (gameState.gameRunning) noteGearUsed();
+    const maxHealth = gameConfig.player.maxHealth + gameState.setBonus.health;
+    if (maxHealth !== gameState.maxHealth) {
+        gameState.health = healthAtNewMax(gameState.health, gameState.maxHealth, maxHealth);
+        gameState.maxHealth = maxHealth;
+    }
+    
+    refreshCharacterSheet();
+}
+
+// The strongest gear worn in this game is handed in with its score: the leaderboard says how
+// a score was made. Strongest, so that changing down at the end does not hide it. It is named
+// after the set most of it belongs to.
+function noteGearUsed() {
+    const strength = gear => gear ? gear.health + gear.armor + gear.attackPower : 0;
+    const set = mainSet(gameState.equipment, wearables(), gameConfig.sets);
+    const worn = {
+        set,
+        pieces: set ? setsWorn(gameState.equipment, wearables())[set] : 0,
+        health: gameState.setBonus.health,
+        armor: gameState.setBonus.armor,
+        attackPower: gameState.setBonus.attackPower,
+    };
+    
+    if (worn.pieces > 0 && strength(worn) > strength(gameState.gearUsed)) {
+        gameState.gearUsed = worn;
+    }
+    return gameState.gearUsed;
+}
+
+// Put a set on: every piece of it that is owned, each in its slot. It can be changed at any
+// time, in a fight too.
+function wearSet(setId, announce = true) {
+    const set = setById(gameConfig.sets, setId);
+    if (!set) return;
+    
+    setEquipment(equipSet(gameState.equipment, set.id, wearables(), ownedPieces()));
+    // Shown on the set panel even with no piece of it owned yet
+    gameState.wornSet = set.id;
+    dragonstalkerCache.lastUpdate = 0;
+    saveEquipment();
+    
     if (announce) {
         const pieces = piecesOf(gameItems, set.id);
-        const owned = ownedCount(pieces, ownedPieces());
-        const gives = bonusText(gameState.setBonus) || `no bonus yet (${nextStep(set, owned)} pieces for the first)`;
-        addNotification(gameState, `Wearing ${set.name} (${owned}/${pieces.length}): ${gives}`, 240, '#C77DFF');
+        const worn = setsWorn(gameState.equipment, wearables())[set.id] || 0;
+        const gives = bonusText(gameState.setBonus) || `nothing yet (${nextStep(set, worn)} pieces for its first bonus)`;
+        addNotification(gameState, `Wearing ${set.name} (${worn}/${pieces.length}): ${gives}`, 240, '#C77DFF');
     }
+}
+
+// A piece was just caught: it goes on at once if it belongs to the set being worn, or if
+// nothing is in its slot
+function wearCaughtPiece(item) {
+    const emptySlot = slotsFor(item).find(slotId => !gameState.equipment[slotId]);
+    const slotId = item.set === gameState.wornSet ? (emptySlot || slotsFor(item)[0]) : emptySlot;
+    
+    if (slotId && !Object.values(gameState.equipment).includes(item.id)) {
+        setEquipment(equip(gameState.equipment, slotId, item));
+    } else {
+        refreshSetBonus();
+    }
+}
+
+// Open the inventory. In a game the game is paused while it is open, and goes on when it is
+// closed, unless it was opened from the pause menu, which it then goes back to.
+function showInventory() {
+    // Before the first game what is owned has not been put on yet: what is worn is shown
+    // in the gear list, and selling must not save an empty hunter over the one chosen
+    if (!gameState.gameRunning && !gameState.showingPauseMenu) restoreEquipment();
+
+    const fromPlay = gameState.gameRunning && !gameState.showingPauseMenu && gameState.currentScreen === 'game';
+    if (fromPlay) showPauseMenu();
+    
+    openInventory(() => {
+        // Not when it was left for the character sheet, which then has the game paused
+        if (fromPlay && gameState.showingPauseMenu && !isCharacterSheetOpen()) hidePauseMenu();
+    });
+}
+
+// Buy a bag with coins. Resolves to what went wrong, in words, or '' when it is bought.
+async function buyBag(size) {
+    try {
+        const response = await fetch(siteBoot.urls.bags, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': siteBoot.csrfToken || '' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ size })
+        });
+        const result = await response.json();
+        
+        if (!response.ok) return result.message || 'The bag could not be bought.';
+        
+        siteBoot.user.bags = result.bags;
+        siteBoot.user.coins = result.coins;
+        renderAccountBar();
+        return '';
+    } catch (e) {
+        return 'The bag could not be bought: no answer from the site.';
+    }
+}
+
+// Sell gear for coins. Resolves to what went wrong, in words, or '' when it is sold.
+async function sellGear(itemId, count) {
+    try {
+        const response = await fetch(siteBoot.urls.sell, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': siteBoot.csrfToken || '' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ item: itemId, count })
+        });
+        const result = await response.json();
+        
+        if (!response.ok) return result.message || 'It could not be sold.';
+        
+        siteBoot.user.gear = result.gear;
+        siteBoot.user.coins = result.coins;
+        siteBoot.user.equipment = result.equipment;
+        renderAccountBar();
+        // The last one sold is no longer worn
+        setEquipment(gameState.equipment);
+        return '';
+    } catch (e) {
+        return 'It could not be sold: no answer from the site.';
+    }
+}
+
+// Open the character sheet. Over the starting window it shows what a game will start in. In
+// a game the game is paused while it is open, and goes on when it is closed, unless it was
+// opened from the pause menu, which it then goes back to.
+function showCharacterSheet() {
+    // Before the first game what is owned has not been put on yet
+    if (!gameState.gameRunning && !gameState.showingPauseMenu) restoreEquipment();
+    
+    const fromPlay = gameState.gameRunning && !gameState.showingPauseMenu && gameState.currentScreen === 'game';
+    if (fromPlay) showPauseMenu();
+    
+    openCharacterSheet(() => {
+        if (fromPlay && gameState.showingPauseMenu) hidePauseMenu();
+    });
+    // The key of the sheet closes the inventory first
+    if (isInventoryOpen()) closeInventory();
 }
 
 // The next set in order, for the tap on the panel
@@ -1054,14 +1265,16 @@ function startGame() {
     gameState.rushPause = 60;
     gameState.rushComplete = false;
     gameState.bossFightWon = false;
+    gameState.gearUsed = null;
     gameState.bossDownFor = undefined;
     gameState.victory = false;
     gameState.afterLastBoss = 0;
     gameState.levelCap = undefined;
     
     // The set worn last time is worn again, with what its owned pieces give
-    wearSet(rememberedSet(), false);
+    restoreEquipment();
     gameState.coins = 0;
+    emptyBags();
     gameState.bossLoot = [];
     
     // Reset bullet time system
@@ -1300,14 +1513,16 @@ function restartGame() {
     gameState.rushPause = 60;
     gameState.rushComplete = false;
     gameState.bossFightWon = false;
+    gameState.gearUsed = null;
     gameState.bossDownFor = undefined;
     gameState.victory = false;
     gameState.afterLastBoss = 0;
     gameState.levelCap = undefined;
     
     // The set worn last time is worn again, with what its owned pieces give
-    wearSet(rememberedSet(), false);
+    restoreEquipment();
     gameState.coins = 0;
+    emptyBags();
     gameState.bossLoot = [];
     
     // Reset bullet time system
@@ -2024,6 +2239,86 @@ function setupUIEventHandlers() {
     // Which key does what can be changed under Settings (ui/keyBindingsScreen.js)
     initializeKeyBindings();
     initializeMusicButton();
+    
+    // The character sheet (ui/characterSheet.js): told what is worn and owned, and it says
+    // back what the player wants on
+    initializeCharacterSheet({
+        getState: () => ({
+            equipment: gameState.equipment,
+            owned: ownedPieces(),
+            faction: gameState.faction || getFaction(),
+            name: getAccountName() || gameState.playerName || document.getElementById('playerNameInput')?.value || 'Hunter',
+            level: (gameState.currentLevel || 0) + 1,
+            playing: gameState.gameRunning || gameState.showingPauseMenu,
+            totals: gameState.setBonus,
+            maxHealth: gameState.maxHealth,
+            armorReduction: armorReduction(gameState.armor || 0, gameConfig.stats),
+            crit: getCurrentTotalCritRating(),
+            dodge: getCurrentTotalDodgeRating(),
+            // What is lost on things caught with the bags full, after what the gear takes off
+            fullBagLoss: Math.max(0, gameConfig.bags.fullPenalty - gameState.setBonus.carrying),
+        }),
+        onEquip: (slotId, item) => setEquipment(equip(gameState.equipment, slotId, item)),
+        onWearSet: setId => wearSet(setId, false),
+    });
+    // The inventory (ui/inventory.js): the bags, the materials kept, and bags to buy
+    initializeInventory({
+        getState: () => {
+            const user = siteBoot && siteBoot.user ? siteBoot.user : null;
+            const playing = gameState.gameRunning || gameState.showingPauseMenu;
+            
+            return {
+                playing,
+                contents: playing ? gameState.bags.contents : {},
+                overflow: playing ? gameState.bags.overflow : {},
+                capacity: bagCapacity(gameConfig.bags, user && user.bags ? user.bags : []),
+                bags: user && user.bags ? user.bags : [],
+                bagSlots: gameConfig.bags.bagSlots,
+                forSale: user && siteBoot.bagsForSale ? siteBoot.bagsForSale : null,
+                coins: user ? user.coins || 0 : null,
+                canSpend: Boolean(user && user.verified),
+                bank: user && user.materials ? user.materials : {},
+                loggedIn: Boolean(user),
+                // The gear owned besides the sets: how many of each, and which are being worn
+                gear: user && user.gear ? user.gear : {},
+                worn: Object.values(gameState.equipment),
+                fullBagLoss: Math.max(0, gameConfig.bags.fullPenalty - gameState.setBonus.carrying),
+            };
+        },
+        onBuyBag: buyBag,
+        onSell: sellGear,
+        // The sheet closes the inventory itself once it is open, so the game stays paused
+        onOpenGear: () => showCharacterSheet(),
+    });
+    document.getElementById('inventoryBtn')?.addEventListener('click', () => showInventory());
+    document.getElementById('inventoryPauseBtn')?.addEventListener('click', () => showInventory());
+    // Its key (B, unless the player changed it): opens it, and closes it again
+    document.addEventListener('keydown', event => {
+        const typing = document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+        if (actionFor(event.code) !== 'inventory' || typing || event.ctrlKey || event.altKey || event.metaKey) return;
+        
+        event.preventDefault();
+        if (isInventoryOpen()) {
+            closeInventory();
+        } else if (!isCharacterSheetOpen()) {
+            showInventory();
+        }
+    });
+    
+    document.getElementById('characterBtn')?.addEventListener('click', () => showCharacterSheet());
+    document.getElementById('characterPauseBtn')?.addEventListener('click', () => showCharacterSheet());
+    // Its key (C, unless the player changed it): opens it, and closes it again
+    document.addEventListener('keydown', event => {
+        const typing = document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+        if (actionFor(event.code) !== 'character' || typing || event.ctrlKey || event.altKey || event.metaKey) return;
+        
+        event.preventDefault();
+        if (isCharacterSheetOpen()) {
+            closeCharacterSheet();
+        } else {
+            showCharacterSheet();
+        }
+    });
     
     // Wearing another hunter set: its key while playing (1, 2 and 3 unless the player changed
     // them), or a tap on the set panel (it only takes taps while the game is paused)
@@ -2968,7 +3263,8 @@ function updatePlayerStats(gameState) {
         const spellCritBonusPercent = Math.round(spellCritBonus * 100);
         
         // Get temporary item crit bonuses
-        let tempItemCritBonus = 0;
+        // What the set being worn adds is counted with them (utils/sets.js)
+        let tempItemCritBonus = gameState.setBonus ? gameState.setBonus.crit : 0;
         temporaryStatEffects.critRatingEffects.forEach(effect => {
             tempItemCritBonus += effect.bonus;
         });
@@ -3042,7 +3338,7 @@ function updatePlayerStats(gameState) {
         const tempDodgeBonusPercent = Math.round(tempDodgeBonus * 100);
         
         // Get temporary item dodge bonuses
-        let tempItemDodgeBonus = 0;
+        let tempItemDodgeBonus = gameState.setBonus ? gameState.setBonus.dodge : 0;
         temporaryStatEffects.dodgeRatingEffects.forEach(effect => {
             tempItemDodgeBonus += effect.bonus;
         });
@@ -3163,6 +3459,27 @@ function updatePlayerStats(gameState) {
     }
     
     // Update arrow count display
+    // Attack power and armor, from the pieces owned of the set being worn (utils/stats.js)
+    const attackPowerElement = document.getElementById('attackPowerValue');
+    if (attackPowerElement) {
+        attackPowerElement.textContent = String(gameState.attackPower || 0);
+        attackPowerElement.title = `Arrows do ${gameState.attackPower || 0}% more damage`;
+    }
+    const armorElement = document.getElementById('armorValue');
+    if (armorElement) {
+        const blocked = Math.round(armorReduction(gameState.armor || 0, gameConfig.stats) * 100);
+        armorElement.textContent = blocked > 0 ? `${gameState.armor} (-${blocked}%)` : String(gameState.armor || 0);
+        armorElement.title = `Hits do ${blocked}% less damage`;
+    }
+    
+    // How full the bags are: red once nothing more fits
+    const bagsElement = document.getElementById('bagsValue');
+    if (bagsElement) {
+        const room = bagRoom();
+        bagsElement.textContent = `${room.used}/${room.capacity}`;
+        bagsElement.style.color = room.used >= room.capacity ? '#FF6B6B' : '';
+    }
+    
     const arrowCountElement = document.getElementById('arrowCount');
     if (arrowCountElement) {
         arrowCountElement.textContent = `${gameState.arrowCount || 0}/${gameState.quiverCapacity}`;
@@ -3350,6 +3667,60 @@ function resetItemsListCache() {
     itemsListCache.needsUpdate = true;
 }
 
+// ----- The bags (utils/bags.js) -----
+// Everything caught goes into the bags. What is only worth selling pays its coins; a crafting
+// material pays none, and is kept on the account when the game ends. With the bags full,
+// whatever is caught is sold on the spot for less, a material too. A piece of a hunter set is
+// worn, not carried: it takes no room.
+
+// The bags as a game starts: empty, with the room of the backpack and the bags bought
+function emptyBags() {
+    gameState.bags = { contents: {}, overflow: {} };
+    gameState.bagCapacity = bagCapacity(gameConfig.bags, siteBoot && siteBoot.user && siteBoot.user.bags ? siteBoot.user.bags : []);
+    gameState.bagsFullSaid = false;
+}
+
+// Something worth coins was caught: into the bags with it, and the coins it comes to
+function stowCatch(itemData) {
+    const worth = coinsForItem(itemData.type, gameConfig.coins);
+    const kind = categoryOf(itemData);
+    
+    // A weapon or a piece of jewellery: kept to wear or to sell later. It pays nothing now,
+    // takes no room, and goes on if nothing is in its slot.
+    if (isKeptGear(itemData.id)) {
+        if (siteBoot && siteBoot.user) {
+            siteBoot.user.gear = siteBoot.user.gear || {};
+            siteBoot.user.gear[itemData.id] = (siteBoot.user.gear[itemData.id] || 0) + 1;
+        }
+        wearCaughtPiece(wearableById(itemData.id));
+        return;
+    }
+    
+    if (kind === 'gear') {
+        gameState.coins += worth;
+        return;
+    }
+    
+    if (addToBags(gameState.bags, itemData.id, gameState.bagCapacity, gameConfig.bags.stack)) {
+        // Carried: junk is as good as sold, a material is kept
+        if (kind === 'junk') gameState.coins += worth;
+    } else {
+        // Gear that helps with carrying takes some of the loss away
+        gameState.coins += soldShort(worth, gameConfig.bags, gameState.setBonus.carrying);
+        if (!gameState.bagsFullSaid) {
+            gameState.bagsFullSaid = true;
+            const share = Math.round((1 - Math.max(0, gameConfig.bags.fullPenalty - gameState.setBonus.carrying)) * 100);
+            addNotification(gameState, `Your bags are full: what does not fit sells for ${share}%`, 300, '#FF6B35');
+        }
+    }
+    refreshInventory();
+}
+
+// How full the bags are: { used, capacity }
+function bagRoom() {
+    return { used: slotsUsed(gameState.bags.contents, gameConfig.bags.stack), capacity: gameState.bagCapacity };
+}
+
 // Trigger items list update when an item is collected
 function onItemCollected(itemData, fallingItem = null) {
     // Mark that we need to update the items list
@@ -3358,7 +3729,7 @@ function onItemCollected(itemData, fallingItem = null) {
     const dropId = fallingItem ? fallingItem.dropId : null;
     lootSystem.recordPickup(itemData.id, dropId);
     if (lootSystem.earnsCoins(itemData, dropId)) {
-        gameState.coins += coinsForItem(itemData.type, gameConfig.coins);
+        stowCatch(itemData);
     }
     
     // A rare catch may draw a remark, Thunder Fury always its own
@@ -3375,7 +3746,7 @@ function onItemCollected(itemData, fallingItem = null) {
             siteBoot.user.pieces = siteBoot.user.pieces || [];
             if (!siteBoot.user.pieces.includes(itemData.id)) siteBoot.user.pieces.push(itemData.id);
         }
-        refreshSetBonus();
+        wearCaughtPiece(itemData);
         
         const set = setById(gameConfig.sets, itemData.set);
         const pieces = piecesOf(gameItems, itemData.set);
@@ -3401,6 +3772,10 @@ function getGameSummary() {
         level: gameState.currentLevel,
         gameTime: Math.round(gameState.elapsedTime || 0),
         dragonstalkerCompletions: gameState.dragonstalkerCompletions,
+        // The strongest set worn, and what it gave (null: nothing worn that gave anything)
+        gear: noteGearUsed() || null,
+        // How much of each thing caught did not fit in the bags and was sold short
+        overflow: gameState.bags.overflow,
         // Ratings as percentages with one decimal
         finalCritRating: Math.round(getCurrentTotalCritRating() * 1000) / 10,
         finalDodgeRating: Math.round(getCurrentTotalDodgeRating() * 1000) / 10
@@ -3472,10 +3847,11 @@ function updateDragonstalkerProgressPanel(gameState, gameItems) {
         progressFill.style.width = `${pieces.length > 0 ? (piecesOwned / pieces.length) * 100 : 0}%`;
         
         // Pieces owned, and what wearing the set gives with them (in short on phones)
-        const gives = bonusText(gameState.setBonus);
+        // The stats the pieces give are in the hunter's own panel; here, what the set's steps give
+        const gives = bonusText(gameState.setBonus, { stats: false });
         const isMobile = responsiveScaler.deviceType === 'mobile';
         progressText.textContent = gives && !isMobile
-            ? `${piecesOwned}/${pieces.length} \u00b7 ${gives.replace(' damage to bosses', ' boss dmg')}`
+            ? `${piecesOwned}/${pieces.length} \u00b7 ${gives.replace(' damage to bosses', ' boss dmg').replace('Arcane Shot', 'Arcane')}`
             : `${piecesOwned}/${pieces.length}`;
     }
     
@@ -3572,6 +3948,13 @@ function showCoinsEarned(banked = null) {
     const earned = banked ? banked.earned : gameState.coins;
     let text = `Coins earned: ${formatCoins(earned)}`;
     
+    // The crafting materials brought back, by name
+    const kept = Object.entries(gameState.bags.contents).filter(([itemId]) => MATERIALS.has(itemId));
+    if (kept.length > 0) {
+        const names = kept.map(([itemId, count]) => `${count} ${gameItems.find(item => item.id === itemId)?.name || itemId}`);
+        text += ` | Materials: ${names.join(', ')}`;
+    }
+    
     if (banked && banked.balance !== null && banked.balance !== undefined) {
         text += ` | Purse: ${formatCoins(banked.balance)}`;
         if (siteBoot && siteBoot.user) {
@@ -3608,6 +3991,10 @@ function endGame() {
             recorded.then(result => {
                 if (result.scores) cacheHighScores(result.scores);
                 if (result.coins) showCoinsEarned(result.coins);
+                // What is kept on the account now, for the inventory
+                if (result.materials && result.materials.bank && siteBoot && siteBoot.user) {
+                    siteBoot.user.materials = result.materials.bank;
+                }
                 
                 if (result.mode === 'boss_rush' || result.mode === 'boss_fight') {
                     if (newHighScoreElement) {

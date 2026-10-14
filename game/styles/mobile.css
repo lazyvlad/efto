@@ -519,9 +519,8 @@
         grid-template-columns: 42px minmax(0, 1fr) 72px;
         grid-template-areas:
             "rank name points"
-            "rank level level"
-            "rank ds crit"
-            "rank dodge dodge";
+            "rank level version"
+            "rank gear gear";
         gap: 4px 8px;
         align-items: center;
         padding: 10px 12px;
@@ -557,21 +556,17 @@
         text-align: left;
     }
 
-    .score-ds {
-        grid-area: ds;
+    .score-gear {
+        grid-area: gear;
     }
 
-    .score-crit {
-        grid-area: crit;
+    .score-version {
+        grid-area: version;
+        text-align: right !important;
     }
 
-    .score-dodge {
-        grid-area: dodge;
-    }
-
-    .score-ds,
-    .score-crit,
-    .score-dodge {
+    .score-gear,
+    .score-version {
         min-width: 0;
         margin-left: 0;
         text-align: left;
@@ -579,19 +574,19 @@
         font-variant-numeric: tabular-nums;
     }
 
-    .score-ds::before {
-        content: 'DS ';
+    .score-gear::before {
+        content: 'Gear ';
         color: #aaa;
     }
 
-    .score-crit::before {
-        content: 'Crit ';
+    .score-version::before {
+        content: 'v';
         color: #aaa;
     }
 
-    .score-dodge::before {
-        content: 'Dodge ';
-        color: #aaa;
+    /* A score from before versions were kept */
+    .score-version.is-unknown::before {
+        content: '';
     }
     
     /* Game Over */

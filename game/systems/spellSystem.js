@@ -585,6 +585,9 @@ class SpellSystem {
                     arrow.critBonus = crit_bonus;
                 }
                 
+                // Which shot it came from: a set may add to what that shot does (utils/stats.js)
+                if (spell.id === 'multishot') arrow.multishot = true;
+                
                 // An Arcane Shot breaks boss shields and is not stopped by projectiles
                 if (arrowData.arcane) {
                     arrow.arcane = true;

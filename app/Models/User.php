@@ -56,6 +56,10 @@ class User extends Authenticatable implements MustVerifyEmail
             'quiver' => 'boolean',
             'news_emails' => 'boolean',
             'granted_pieces' => 'array',
+            'equipment' => 'array',
+            'bags' => 'array',
+            'materials' => 'array',
+            'sold' => 'array',
             'is_admin' => 'boolean',
             'blocked_at' => 'datetime',
         ];

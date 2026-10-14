@@ -28,7 +28,7 @@ function generateCritSystemContent(gameState, gameItems) {
     
     let content = `
         <p>• ${baseCritPercent}% base chance to ${critMultiplier}x points from any item</p>
-        <p>• Wearing Dragonstalker Armor: more crit the more of its pieces you own</p>
+        <p>• Wearing Dragonstalker Armor: +2% crit at 3 pieces, +5% at 5, and Arcane Shot hits half as hard again at 8</p>
     `;
     
     // Add item-based crit bonuses dynamically
@@ -71,7 +71,7 @@ function generateDodgeSystemContent(gameState, gameItems) {
     
     let content = `
         <p>• ${baseDodgePercent}% base chance to avoid damage from projectiles and item misses</p>
-        <p>• Wearing Giantstalker Armor: more dodge the more of its pieces you own</p>
+        <p>• Wearing Giantstalker Armor: +2% dodge at 3 pieces, +5% at 5, and Multishot hits 40% harder at 8</p>
     `;
     
     // Add item-based dodge bonuses dynamically

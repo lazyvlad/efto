@@ -22,6 +22,8 @@
                                 <th class="py-3 px-2 text-right font-normal">{{ __('Score') }}</th>
                                 <th class="py-3 px-2 text-right font-normal">{{ __('Level') }}</th>
                                 <th class="py-3 px-2 text-right font-normal hidden sm:table-cell">{{ __('Bosses') }}</th>
+                                <th class="py-3 px-2 font-normal hidden md:table-cell">{{ __('Gear') }}</th>
+                                <th class="py-3 px-2 font-normal hidden md:table-cell">{{ __('Version') }}</th>
                                 <th class="py-3 ps-2 pe-4 sm:pe-6 text-right font-normal hidden sm:table-cell">{{ __('Date') }}</th>
                             </tr>
                         </thead>
@@ -45,6 +47,12 @@
                                     <td class="py-2.5 px-2 text-right tabular-nums text-indigo-600">{{ number_format($score->score) }}</td>
                                     <td class="py-2.5 px-2 text-right tabular-nums text-gray-800">{{ $score->level }}</td>
                                     <td class="py-2.5 px-2 text-right tabular-nums text-gray-800 hidden sm:table-cell">{{ $score->game?->boss_drops_count ?: '–' }}</td>
+                                    @php $gear = $score->game?->gear; @endphp
+                                    <td class="py-2.5 px-2 whitespace-nowrap hidden md:table-cell {{ $gear ? 'text-purple-400' : 'text-gray-500' }}"
+                                        @if ($gear) title="{{ __('+:health health, :armor armor, :attack attack power', ['health' => $gear['health'], 'armor' => $gear['armor'], 'attack' => $gear['attackPower']]) }}" @endif>
+                                        {{ $score->game?->gearLabel() ?? __('none') }}
+                                    </td>
+                                    <td class="py-2.5 px-2 tabular-nums text-gray-500 whitespace-nowrap hidden md:table-cell">{{ $score->game?->game_version ?? '–' }}</td>
                                     <td class="py-2.5 ps-2 pe-4 sm:pe-6 text-right text-gray-500 whitespace-nowrap hidden sm:table-cell">{{ $score->created_at?->format('M j, Y') }}</td>
                                 </tr>
                             @endforeach
@@ -54,7 +62,7 @@
             </div>
 
             <p class="mt-4 px-4 sm:px-0 text-sm text-gray-500">
-                {{ __('The top :count scores. "Bosses" is how many bosses were defeated in that game.', ['count' => config('game.leaderboard_size')]) }}
+                {{ __('The top :count scores. "Bosses" is how many bosses were defeated in that game. "Gear" is the strongest hunter set worn in it and how many of its pieces, which make the hunter tougher and his arrows hit harder; "none" is a game played without. "Version" is the version of the game it was played in: the game changes, and a score is a feat of its own version.', ['count' => config('game.leaderboard_size')]) }}
             </p>
         </div>
     </div>

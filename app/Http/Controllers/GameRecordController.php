@@ -7,6 +7,7 @@ use App\Models\Game;
 use App\Models\GameDrop;
 use App\Models\Score;
 use App\Models\User;
+use App\Support\Bags;
 use App\Support\BossLoot;
 use App\Support\Coins;
 use App\Support\DiscordFeed;
@@ -217,6 +218,16 @@ class GameRecordController extends Controller
             'items.*' => ['integer', 'min:0', 'max:100000'],
             'offline' => ['nullable', 'boolean'],
             'abandoned' => ['nullable', 'boolean'],
+            // How much of each thing caught did not fit in the bags
+            'overflow' => ['nullable', 'array', 'max:200'],
+            'overflow.*' => ['integer', 'min:0', 'max:100000'],
+            // The strongest set worn in the game and what it gave
+            'gear' => ['nullable', 'array'],
+            'gear.set' => ['required_with:gear', 'string', 'in:'.implode(',', array_keys(config('loot.sets')))],
+            'gear.pieces' => ['required_with:gear', 'integer', 'min:0', 'max:20'],
+            'gear.health' => ['nullable', 'integer', 'min:0', 'max:10000'],
+            'gear.armor' => ['nullable', 'integer', 'min:0', 'max:10000'],
+            'gear.attackPower' => ['nullable', 'integer', 'min:0', 'max:10000'],
         ]);
 
         // Handing the same game in twice changes nothing
@@ -227,7 +238,8 @@ class GameRecordController extends Controller
 
         $entry = $game->scoreEntry;
         // The balance is only for the player whose game this is
-        $owner = $game->user_id !== null && $game->user_id === $request->user()?->id ? $game->user : null;
+        // Read afresh: the game has just paid into the purse and the bank
+        $owner = $game->user_id !== null && $game->user_id === $request->user()?->id ? $game->user()->first() : null;
 
         return response()->json([
             'success' => true,
@@ -235,6 +247,8 @@ class GameRecordController extends Controller
             'mode' => $game->mode,
             'rank' => $entry ? Score::query()->where('score', '>', $entry->score)->count() + 1 : null,
             'coins' => ['earned' => $game->coins, 'balance' => $owner?->coins],
+            // The crafting materials this game brought back, and all the player now has
+            'materials' => ['kept' => (object) ($game->materials ?? []), 'bank' => $owner ? (object) ($owner->materials ?? []) : null],
             'scores' => Score::leaderboard(),
         ]);
     }
@@ -267,14 +281,21 @@ class GameRecordController extends Controller
             'final_crit_rating' => round($data['finalCritRating'] ?? 0, 1),
             'final_dodge_rating' => round($data['finalDodgeRating'] ?? 0, 1),
             'items' => $items,
+            'gear' => $this->gear($data['gear'] ?? null),
             'ended_at' => now(),
         ]);
 
         // Every recorded game earns its coins, finished or not: what was caught was caught
-        $coins = Coins::earned($game, $items);
-        $game->update(['coins' => $coins]);
-        if ($coins > 0 && $game->user_id !== null) {
-            $game->user()->increment('coins', $coins);
+        // What was only worth selling is sold; the crafting materials are kept. What did not
+        // fit in the bags was sold short, a material with it (App\Support\Bags).
+        $settled = Bags::settle($game, $items, $data['overflow'] ?? []);
+        $coins = $settled['coins'];
+        $game->update(['coins' => $coins, 'materials' => $settled['materials'] ?: null]);
+        if ($game->user_id !== null) {
+            if ($coins > 0) {
+                $game->user()->increment('coins', $coins);
+            }
+            Bags::keep($game->user()->first(), $settled['materials']);
         }
 
         // Only games that count go on the leaderboard, and Boss Rush and boss fights are not
@@ -292,6 +313,28 @@ class GameRecordController extends Controller
                 'final_dodge_rating' => $game->final_dodge_rating,
             ]);
         }
+    }
+
+    /**
+     * The gear a game was played in, as it is kept: the set, how many of its pieces (never
+     * more than it has), and what they gave. Nothing when no piece was worn.
+     */
+    private function gear(?array $gear): ?array
+    {
+        $pieces = count(config('loot.sets.'.($gear['set'] ?? '').'.pieces', []));
+        $worn = min($pieces, (int) ($gear['pieces'] ?? 0));
+
+        if ($worn < 1) {
+            return null;
+        }
+
+        return [
+            'set' => $gear['set'],
+            'pieces' => $worn,
+            'health' => (int) ($gear['health'] ?? 0),
+            'armor' => (int) ($gear['armor'] ?? 0),
+            'attackPower' => (int) ($gear['attackPower'] ?? 0),
+        ];
     }
 
     private function dropsPayload(Game $game, int $chunk): array

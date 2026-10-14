@@ -112,7 +112,8 @@ class BossLootTest extends TestCase
         $this->travel(25)->seconds();
         $this->postJson(route('games.boss', $game), ['boss' => 'garrick-padfoot'])->assertOk();
 
-        // 4 regular (10) + 2 green (25) + 1 epic the server offered (100) + the first boss (100)
+        // 4 regular (10) + 2 green (25) + the first boss (100). The epic the server offered is a
+        // weapon: it is kept to wear or sell later, and pays nothing now.
         $this->postJson(route('games.finish', $game), [
             'score' => 50,
             'gameTime' => 24,
@@ -120,15 +121,16 @@ class BossLootTest extends TestCase
             'items' => ['ring1' => 4, 'gizmos' => 2, 'maladath' => 1],
         ])
             ->assertOk()
-            ->assertJsonPath('coins.earned', 290)
-            ->assertJsonPath('coins.balance', 290);
+            ->assertJsonPath('coins.earned', 190)
+            ->assertJsonPath('coins.balance', 190);
 
-        $this->assertSame(290, $game->fresh()->coins);
-        $this->assertSame(290, $user->fresh()->coins);
+        $this->assertSame(190, $game->fresh()->coins);
+        $this->assertSame(190, $user->fresh()->coins);
+        $this->assertSame(1, \App\Support\Gear::owned($user)['maladath']);
 
         // Handing it in again pays nothing more
         $this->postJson(route('games.finish', $game), ['score' => 50, 'items' => ['ring1' => 400]]);
-        $this->assertSame(290, $user->fresh()->coins);
+        $this->assertSame(190, $user->fresh()->coins);
     }
 
     public function test_rare_items_the_server_did_not_offer_and_impossible_counts_earn_nothing(): void

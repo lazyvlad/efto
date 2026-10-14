@@ -149,6 +149,52 @@ class GameRecordTest extends TestCase
         $this->assertSame(10, $game->fresh()->score);
     }
 
+    public function test_the_leaderboard_says_how_a_score_was_made(): void
+    {
+        // One game in gear, in a version of the game
+        $geared = $this->openGame(['name' => 'Geared', 'version' => '2.35.0']);
+        $this->travel(25)->seconds();
+        $this->postJson(route('games.finish', $geared), [
+            'score' => 500, 'gameTime' => 24,
+            // More pieces than the set has are not believed
+            'gear' => ['set' => 'cryptstalker', 'pieces' => 14, 'health' => 45, 'armor' => 72, 'attackPower' => 54],
+        ])->assertOk();
+
+        // One without, and one whose set has no piece worn
+        $bare = $this->openGame(['name' => 'Bare', 'version' => '2.35.0']);
+        $this->travel(25)->seconds();
+        $this->postJson(route('games.finish', $bare), ['score' => 300, 'gameTime' => 24])->assertOk();
+        $empty = $this->openGame(['name' => 'Empty']);
+        $this->travel(25)->seconds();
+        $this->postJson(route('games.finish', $empty), ['score' => 200, 'gameTime' => 24, 'gear' => ['set' => 'giantstalker', 'pieces' => 0]])->assertOk();
+
+        $this->assertSame(['set' => 'cryptstalker', 'pieces' => 9, 'health' => 45, 'armor' => 72, 'attackPower' => 54], $geared->fresh()->gear);
+        $this->assertNull($bare->fresh()->gear);
+        $this->assertNull($empty->fresh()->gear);
+
+        // The game's own high score screen is told
+        $this->getJson(route('scores.index'))
+            ->assertOk()
+            ->assertJsonPath('0.name', 'Geared')
+            ->assertJsonPath('0.gear', 'Cryptstalker 9/9')
+            ->assertJsonPath('0.gearStats.attackPower', 54)
+            ->assertJsonPath('0.version', '2.35.0')
+            ->assertJsonPath('1.gear', null)
+            ->assertJsonPath('1.version', '2.35.0')
+            ->assertJsonPath('2.version', null);
+
+        // And the site's page shows it
+        $this->get(route('highscores'))
+            ->assertOk()
+            ->assertSee('Cryptstalker 9/9')
+            ->assertSee('2.35.0')
+            ->assertSee('Gear');
+
+        // A set that does not exist is refused
+        $other = $this->openGame();
+        $this->postJson(route('games.finish', $other), ['score' => 1, 'gear' => ['set' => 'made-up', 'pieces' => 3]])->assertStatus(422);
+    }
+
     public function test_offline_games_are_recorded_but_stay_off_the_leaderboard(): void
     {
         $game = $this->openGame();

@@ -24,6 +24,8 @@ import { FIGURE_HEIGHT_TO_WIDTH } from '../classes/Player.js';
 import { playTotalSound, playScreamSound, playFireballImpactSound } from './audioSystem.js';
 import { areMessagesAboveField } from './hudNotificationSystem.js';
 import { keyName } from '../utils/keybindings.js';
+import { arrowDamage, damageAfterArmor } from '../utils/stats.js';
+import { getCurrentTotalCritRating } from './statEffectsSystem.js';
 
 const INTRO_STEPS = 120;
 // In a boss fight (the one boss and nothing else) it is there almost at once
@@ -389,9 +391,11 @@ function hurtPlayer(context, damage) {
     } else if (gameState.shieldActive) {
         combatTexts.push(new CombatText(x, player.y, 'BLOCKED', '#FFD700', false));
     } else {
-        trackActivity(gameState, 'damage', damage);
-        gameState.health = Math.max(0, gameState.health - damage);
-        combatTexts.push(new CombatText(x, player.y, `-${damage}`, '#FF4500', false));
+        // His armor takes its share off the hit
+        const taken = damageAfterArmor(damage, gameState.armor || 0, gameConfig.stats);
+        trackActivity(gameState, 'damage', taken);
+        gameState.health = Math.max(0, gameState.health - taken);
+        combatTexts.push(new CombatText(x, player.y, `-${taken}`, '#FF4500', false));
         if (player.onHit) player.onHit();
     }
     playFireballImpactSound();
@@ -488,12 +492,24 @@ function takeArrowHits(context) {
             }
         }
 
-        const critChance = Math.min(gameState.critRating + (arrow.critBonus || 0), gameState.critRatingCap);
+        // The hunter's crit with what his set and the things he caught add, and the shot's own
+        const critChance = Math.min(getCurrentTotalCritRating(gameState) + (arrow.critBonus || 0), gameState.critRatingCap);
         const isCrit = Math.random() < critChance;
-        const arrowDamage = gameConfig.bosses.arrowDamage * (arrow.arcane ? gameConfig.bosses.arcaneDamage : 1);
-        // The set being worn may add to what arrows do to a boss (utils/sets.js)
-        const fromSet = 1 + (gameState.setBonus ? gameState.setBonus.bossDamage : 0);
-        const damage = Math.round(arrowDamage * weakened * fromSet * (isCrit ? gameState.critMultiplier : 1));
+        // What the arrow does: the hunter's attack power, what his set adds to this kind of
+        // shot and against bosses, the boss's armor (which an Arcane Shot goes through), how
+        // weakened the boss is, and the crit (utils/stats.js)
+        const set = gameState.setBonus || {};
+        const damage = arrowDamage({
+            base: gameConfig.bosses.arrowDamage,
+            attackPower: gameState.attackPower || 0,
+            worth: arrow.arcane ? gameConfig.bosses.arcaneDamage : 1,
+            shotBonus: arrow.arcane ? set.arcane || 0 : arrow.multishot ? set.multishot || 0 : 0,
+            bossArmor: fight.boss.armor || 0,
+            ignoresArmor: Boolean(arrow.arcane),
+            weakened,
+            bossDamage: set.bossDamage || 0,
+            crit: isCrit ? gameState.critMultiplier : 1,
+        });
 
         fight.health = Math.max(0, fight.health - damage);
         fight.hitFlash = HIT_FLASH_STEPS;

@@ -25,11 +25,23 @@
     unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
+/* Names written in the decorative letters some players use (bold, script and the like, which
+   are characters of their own in Unicode). Few devices have a font with them all, so one comes
+   with the game; it is only fetched when a name on the screen needs it. */
+@font-face {
+    font-family: 'Input Math';
+    src: url('../assets/fonts/noto-sans-math.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+    unicode-range: U+1D400-1D7FF;
+}
+
 :root {
-    --wow-font: 'Marcellus', 'Friz Quadrata TT', 'Friz Quadrata', Georgia, 'Times New Roman', serif;
+    --wow-font: 'Marcellus', 'Friz Quadrata TT', 'Friz Quadrata', Georgia, 'Times New Roman', 'Input Math', serif;
     /* Running text and figures: the display face draws 1 and 0 like the letters I and O */
-    --wow-body: 'Trebuchet MS', 'Lucida Grande', 'Segoe UI', Verdana, sans-serif;
-    --wow-numbers: 'Arial Narrow', 'Roboto Condensed', Arial, sans-serif;
+    --wow-body: 'Trebuchet MS', 'Lucida Grande', 'Segoe UI', Verdana, 'Input Math', sans-serif;
+    --wow-numbers: 'Arial Narrow', 'Roboto Condensed', Arial, 'Input Math', sans-serif;
 
     /* Interface text colours */
     --wow-gold: #ffd100;
@@ -763,16 +775,17 @@
     color: #fff;
 }
 
-#pauseMenu .score-entry .score-ds {
+/* How a score was made: gold when gear was worn, quiet when not */
+#pauseMenu .score-entry .score-gear {
+    color: #8c8371;
+}
+
+#pauseMenu .score-entry .score-gear.has-gear {
     color: var(--wow-epic);
 }
 
-#pauseMenu .score-entry .score-crit {
-    color: var(--wow-legendary);
-}
-
-#pauseMenu .score-entry .score-dodge {
-    color: var(--wow-uncommon);
+#pauseMenu .score-entry .score-version {
+    color: #b9ae96;
 }
 
 #pauseMenu .score-entry .score-date {
@@ -969,9 +982,8 @@ body #loadingScreen {
 #pauseMenu .score-entry .score-rank,
 #pauseMenu .score-entry .score-points,
 #pauseMenu .score-entry .score-level,
-#pauseMenu .score-entry .score-ds,
-#pauseMenu .score-entry .score-crit,
-#pauseMenu .score-entry .score-dodge,
+#pauseMenu .score-entry .score-gear,
+#pauseMenu .score-entry .score-version,
 #pauseMenu .score-entry .score-date,
 #pauseMenu .volume-display,
 #pauseMenu .summary-value,
@@ -1688,7 +1700,7 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
 #pauseMenu .loot-section-note {
     margin-left: 10px;
     color: #a89a78;
-    font-family: Arial, sans-serif;
+    font-family: Arial, 'Input Math', sans-serif;
     font-size: 12px;
     font-weight: 400;
 }
@@ -1806,7 +1818,7 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
     padding: 0;
     transform: none !important;
     color: #fff;
-    font-family: Arial, sans-serif;
+    font-family: Arial, 'Input Math', sans-serif;
     font-size: 13px;
     font-weight: 700;
     background: #215b96;
@@ -1858,7 +1870,7 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
 
 #pauseMenu .travel-card-side {
     color: #a89a78;
-    font-family: Arial, sans-serif;
+    font-family: Arial, 'Input Math', sans-serif;
     font-size: 11px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -1872,7 +1884,7 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
 
 #pauseMenu .travel-card p {
     margin: 0 0 8px;
-    font-family: Arial, sans-serif;
+    font-family: Arial, 'Input Math', sans-serif;
     font-size: 14px;
     line-height: 1.4;
 }
@@ -1885,7 +1897,7 @@ body.force-mobile-panels #itemsCollectionPanel#itemsCollectionPanel .player-name
     max-width: 1500px;
     margin: 12px auto 0;
     color: #a89a78;
-    font-family: Arial, sans-serif;
+    font-family: Arial, 'Input Math', sans-serif;
     font-size: 12px;
 }
 
@@ -1961,7 +1973,7 @@ body.site-framed #pauseMenu .start-header-side {
 #pauseMenu .start-purse {
     padding: 6px 12px;
     color: #cfc4ad;
-    font-family: Arial, sans-serif;
+    font-family: Arial, 'Input Math', sans-serif;
     font-size: 14px;
     white-space: nowrap;
     background: rgba(0, 0, 0, 0.45);
@@ -2204,7 +2216,7 @@ body.start-window-open #dragonstalkerProgressPanel#dragonstalkerProgressPanel {
 }
 
 #pauseMenu .key-binding-name {
-    font-family: Arial, sans-serif;
+    font-family: Arial, 'Input Math', sans-serif;
     font-size: 14px;
     color: var(--wow-text);
 }
@@ -2214,7 +2226,7 @@ body.start-window-open #dragonstalkerProgressPanel#dragonstalkerProgressPanel {
     margin: 0;
     padding: 6px 10px;
     color: #ffd100;
-    font-family: Arial, sans-serif;
+    font-family: Arial, 'Input Math', sans-serif;
     font-size: 14px;
     font-weight: 700;
     background: linear-gradient(180deg, #1c1712, #070605);
@@ -2296,5 +2308,10 @@ body.start-window-open #dragonstalkerProgressPanel#dragonstalkerProgressPanel {
 
     body #itemsCollectionPanel#itemsCollectionPanel .player-name {
         font-size: 13px !important;
+    }
+
+    /* Attack power and armor take the room of the two least needed rows */
+    body #itemsCollectionPanel#itemsCollectionPanel .stat-row-extra {
+        display: none !important;
     }
 }

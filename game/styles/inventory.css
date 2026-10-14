@@ -1,0 +1,330 @@
+/* The inventory (ui/inventory.js): the bags, the materials kept, and the way to the gear.
+   It uses the dark layer of the character sheet (character-sheet.css) and is one panel on
+   every screen, as wide as it can use: on a phone it is the whole screen. */
+
+.inventory {
+    display: flex;
+    flex-direction: column;
+    width: min(96vw, 720px);
+    max-height: min(94vh, 780px);
+    max-height: min(94dvh, 780px);
+    box-sizing: border-box;
+    color: #f1e6c8;
+    font-family: var(--wow-body, 'Trebuchet MS', sans-serif);
+    font-size: 14px;
+    background: linear-gradient(180deg, #1c2a1c, #101710);
+    border: 2px solid #8f7a45;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #000, 0 12px 40px rgba(0, 0, 0, 0.7);
+    overflow: hidden;
+}
+
+.inventory-heading {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.35);
+    border-bottom: 1px solid #8f7a45;
+}
+
+.inventory-heading h2 {
+    margin: 0;
+    font-family: var(--wow-font, Georgia, serif);
+    font-size: 20px;
+    font-weight: 400;
+    color: #f6e3a1;
+}
+
+.inventory .sheet-close {
+    padding: 7px 16px;
+    font-size: 14px;
+}
+
+.inventory-tabs {
+    flex: none;
+    display: flex;
+    gap: 4px;
+    padding: 8px 14px 0;
+    border-bottom: 1px solid rgba(143, 122, 69, 0.6);
+}
+
+.inventory-tab {
+    padding: 8px 16px;
+    font: inherit;
+    font-family: var(--wow-font, Georgia, serif);
+    font-size: 15px;
+    color: #cdbf9a;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(143, 122, 69, 0.6);
+    border-bottom: 0;
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+}
+
+.inventory-tab.is-shown {
+    color: #2a2010;
+    background: linear-gradient(180deg, #e2c98c, #b9975a);
+    border-color: #f6e3a1;
+}
+
+.inventory-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 14px 16px;
+}
+
+.inventory-summary {
+    margin: 0 0 10px;
+    line-height: 1.4;
+    color: #cdbf9a;
+}
+
+.inventory-summary strong {
+    color: #ffd100;
+}
+
+.inventory-summary strong.is-full {
+    color: #ff6b6b;
+}
+
+.inventory-note {
+    margin: 10px 0 0;
+    font-size: 13px;
+    color: #cdbf9a;
+}
+
+.inventory-subheading {
+    margin: 18px 0 8px;
+    padding-bottom: 4px;
+    font-family: var(--wow-font, Georgia, serif);
+    font-size: 16px;
+    font-weight: 400;
+    color: #f6e3a1;
+    border-bottom: 1px solid rgba(143, 122, 69, 0.6);
+}
+
+/* The slots of the bags: squares a finger can find, as many across as fit */
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+    gap: 6px;
+}
+
+.inventory-slot {
+    position: relative;
+    aspect-ratio: 1;
+    background: rgba(8, 12, 9, 0.85);
+    border: 2px solid #4d4630;
+    border-radius: 5px;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.8);
+    overflow: hidden;
+}
+
+.inventory-slot img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+/* What is in a slot: kept for crafting, or sold when the game ends */
+.inventory-slot.is-material {
+    border-color: #4d9bff;
+}
+
+.inventory-slot.is-junk {
+    border-color: #8c8371;
+}
+
+.inventory-count {
+    position: absolute;
+    right: 2px;
+    bottom: 1px;
+    padding: 0 3px;
+    font: 700 12px Arial, sans-serif;
+    color: #fff;
+    text-shadow: 0 0 3px #000, 0 0 3px #000;
+}
+
+.inventory-bags,
+.inventory-shop {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.inventory-bag {
+    padding: 6px 10px;
+    font-size: 13px;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(143, 122, 69, 0.7);
+    border-radius: 4px;
+}
+
+.inventory-bag.is-empty {
+    color: #8c8371;
+    border-style: dashed;
+}
+
+.inventory-shop {
+    margin-top: 10px;
+}
+
+.inventory-buy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 88px;
+    padding: 8px 12px;
+    font: inherit;
+    color: #f1e6c8;
+    background: #2f4630;
+    border: 1px solid #14210f;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.inventory-buy:hover:not(:disabled) {
+    background: #3d5a3e;
+    border-color: #f1d98a;
+}
+
+.inventory-buy:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.inventory-price {
+    font-size: 13px;
+    color: #ffd100;
+}
+
+.inventory-open-gear {
+    flex-direction: row;
+    padding: 10px 18px;
+}
+
+.inventory-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.inventory-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(77, 155, 255, 0.5);
+    border-radius: 4px;
+}
+
+.inventory-row img {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.inventory-row-text {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.inventory-row-name,
+.inventory-row-note {
+    display: block;
+}
+
+.inventory-row-note {
+    font-size: 12px;
+    color: #8fc0ff;
+}
+
+.inventory-row-count {
+    flex: none;
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffd100;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Gear in the list: the colour of how rare it is, and the way to sell it */
+.inventory-gear[data-rarity="uncommon"] {
+    border-color: rgba(30, 255, 0, 0.55);
+}
+
+.inventory-gear[data-rarity="rare"] {
+    border-color: rgba(77, 155, 255, 0.7);
+}
+
+.inventory-gear[data-rarity="epic"] {
+    border-color: rgba(180, 114, 224, 0.75);
+}
+
+.inventory-gear .inventory-row-note {
+    color: #f1e6c8;
+}
+
+.inventory-row-from {
+    display: block;
+    font-size: 12px;
+    color: #a89c80;
+}
+
+.inventory-sell {
+    flex: none;
+    padding: 7px 10px;
+    font: inherit;
+    font-size: 13px;
+    color: #2a2010;
+    background: linear-gradient(180deg, #e2c98c, #b9975a);
+    border: 1px solid #f6e3a1;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* The last one: quieter, so it is not pressed by habit */
+.inventory-sell.is-last {
+    color: #f1e6c8;
+    background: rgba(0, 0, 0, 0.35);
+    border-color: rgba(143, 122, 69, 0.7);
+}
+
+.inventory-sell:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.inventory-sell-all {
+    flex-direction: row;
+    margin: 10px 0 0;
+}
+
+.inventory-list {
+    margin-top: 12px;
+}
+
+.inventory-note.is-warning {
+    color: #ff9c6b;
+}
+
+/* A phone: the whole screen */
+@media (max-width: 600px), (max-height: 520px) {
+    .inventory-layer {
+        align-items: stretch;
+    }
+
+    .inventory {
+        width: 100%;
+        max-height: none;
+        border-radius: 0;
+    }
+}

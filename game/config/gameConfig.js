@@ -295,22 +295,52 @@ export const gameConfig = {
     // Three armour sets, collected piece by piece over many games. A logged-in player keeps
     // every piece they catch on their account; a guest has only what this game gave them. Each
     // set drops from a level on (the site holds them back the same way: sets in
-    // config/loot.php), and wearing one gives a bonus that grows with the pieces owned. The
-    // player picks which set to wear and may change it at any time, in a fight too.
-    //   bonuses - what wearing the set gives once this many pieces are owned (the highest
-    //             reached counts): crit and dodge are added to the ratings, bossDamage to
-    //             what arrows do to a boss (0.05 = +5%)
+    // config/loot.php). The player picks which set to wear and may change it at any time, in
+    // a fight too. What wearing one gives is set out under "THE HUNTER'S SETS" below.
+
+    // === THE HUNTER'S BAGS ===
+    // Everything caught goes into the bags (utils/bags.js). The site has the same numbers
+    // ("bags" in config/loot.php) and the prices of the bags that can be bought.
+    bags: {
+        backpack: 16,               // Slots everyone has
+        bagSlots: 4,                // Bags that can be added to the backpack
+        stack: 20,                  // How many of one kind a slot holds
+        fullPenalty: 0.1,           // With no room left, what is caught sells for this much less (0.1 = 90% of its worth)
+    },
+
+    // === THE HUNTER'S STATS ===
+    // Health, armor and attack power (utils/stats.js). They come from the pieces owned of the
+    // set being worn, below. A hunter with no pieces has the base health and no armor or
+    // attack power.
+    stats: {
+        armorHalvesAt: 150,         // Armor that takes half off a hit: 50 armor takes a quarter, 150 half
+        mostArmorReduction: 0.6,    // Armor never takes more than this share off a hit
+    },
+
+    // === THE HUNTER'S SETS ===
+    // Each set is better than the one before. Wearing one gives two things:
+    //   perPiece  for every piece of it owned: health, armor and attack power (1 attack power
+    //             = 1% more arrow damage). A full Giantstalker: +24 health, 32 armor, 16 attack power.
+    //   bonuses   at so many pieces, something of the set's own. The highest step reached is
+    //             the one that counts, so each step names everything it gives:
+    //               dodge, crit   added to the chance
+    //               multishot     more damage from Multishot arrows (0.4 = +40%)
+    //               arcane        more damage from Arcane Shot
+    //               bossDamage    more damage from every arrow, against bosses
     sets: [
         {
             id: 'giantstalker', name: 'Giantstalker Armor', tier: 1, fromLevel: 3,
-            bonuses: [{ pieces: 3, dodge: 0.02 }, { pieces: 5, dodge: 0.04 }, { pieces: 8, dodge: 0.06 }],
+            perPiece: { health: 3, armor: 4, attackPower: 2 },
+            bonuses: [{ pieces: 3, dodge: 0.02 }, { pieces: 5, dodge: 0.05 }, { pieces: 8, dodge: 0.05, multishot: 0.4 }],
         },
         {
             id: 'dragonstalker', name: 'Dragonstalker Armor', tier: 2, fromLevel: 9,
-            bonuses: [{ pieces: 3, crit: 0.02 }, { pieces: 5, crit: 0.04 }, { pieces: 8, crit: 0.06 }],
+            perPiece: { health: 4, armor: 6, attackPower: 4 },
+            bonuses: [{ pieces: 3, crit: 0.02 }, { pieces: 5, crit: 0.05 }, { pieces: 8, crit: 0.05, arcane: 0.5 }],
         },
         {
             id: 'cryptstalker', name: 'Cryptstalker Armor', tier: 3, fromLevel: 15,
+            perPiece: { health: 5, armor: 8, attackPower: 6 },
             bonuses: [{ pieces: 2, bossDamage: 0.05 }, { pieces: 4, bossDamage: 0.1 }, { pieces: 6, bossDamage: 0.15 }, { pieces: 8, bossDamage: 0.2 }],
         },
     ],

@@ -45,6 +45,8 @@ class Game extends Model
         'final_crit_rating',
         'final_dodge_rating',
         'items',
+        'gear',
+        'materials',
         'coins',
         'game_version',
         'started_at',
@@ -64,6 +66,8 @@ class Game extends Model
             'final_crit_rating' => 'float',
             'final_dodge_rating' => 'float',
             'items' => 'array',
+            'gear' => 'array',
+            'materials' => 'array',
             'coins' => 'integer',
             'started_at' => 'datetime',
             'ended_at' => 'datetime',
@@ -117,6 +121,21 @@ class Game extends Model
     public function isOpen(): bool
     {
         return $this->status === self::OPEN;
+    }
+
+    /**
+     * The gear the game was played in, in a few words ("Cryptstalker 9/9"), or null when the
+     * hunter wore nothing that gave anything.
+     */
+    public function gearLabel(): ?string
+    {
+        $set = config('loot.sets.'.($this->gear['set'] ?? ''));
+
+        if (! $set || ($this->gear['pieces'] ?? 0) < 1) {
+            return null;
+        }
+
+        return strtok($set['name'], ' ').' '.$this->gear['pieces'].'/'.count($set['pieces']);
     }
 
     public function isBossRush(): bool

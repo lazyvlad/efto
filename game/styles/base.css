@@ -7,7 +7,7 @@ body, html {
     height: 100%;
     overflow: hidden;
     background: #0d0b09;
-    font-family: Arial, sans-serif;
+    font-family: Arial, 'Input Math', sans-serif;
 }
 
 /* The background behind the canvas: two layers that fade from one picture to the next.

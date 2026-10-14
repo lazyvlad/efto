@@ -1,5 +1,138 @@
 # Changelog
 
+## 2.35.0 - 2026-10-14
+
+### What's new
+
+**The hunter has stats: health, armor and attack power**
+- Every piece you own of the set you are wearing now gives three things:
+  - **Health**: more of it. The health bar shows the new most ("124/124").
+  - **Armor**: every hit that lands does less. 50 armor takes a quarter off, 150 half, and
+    it can never take more than 60%. Curses and other damage over time are not hits, and
+    go through.
+  - **Attack power**: each point adds 1% to what an arrow does.
+- Each set is better than the one before:
+
+  | A full set | Health | Armor | Attack power |
+  |---|---|---|---|
+  | Giantstalker (8) | +24 | 32, hits do 18% less | 16 |
+  | Dragonstalker (8) | +32 | 48, 24% less | 32 |
+  | Cryptstalker (9) | +45 | 72, 32% less | 54 |
+
+- Attack power and armor have a row each in the hunter's panel.
+- Changing sets keeps your health in proportion: three quarters full stays three quarters
+  full, so swapping back and forth neither heals nor hurts.
+
+**The sets' own bonuses are new**
+- Giantstalker: +2% dodge at 3 pieces, +5% at 5, and at 8 **Multishot hits 40% harder**.
+- Dragonstalker: +2% crit at 3 pieces, +5% at 5, and at 8 **Arcane Shot hits 50% harder**.
+- Cryptstalker: as before, up to +20% damage to bosses from every arrow.
+
+**The character sheet**
+- A new window shows the hunter with a slot for everything he can wear, nineteen of them,
+  and what it all gives him: health, armor, attack power, crit and dodge.
+- Open it with the "Character" button on the starting window or in the pause menu, or with
+  the C key (it can be changed in Settings). In a game the game is paused while it is open.
+- Press a slot to see what you own that fits it, and press an item to put it on or take it
+  off. "Put on a whole set" puts on every piece you own of that set in one press.
+- Gear is now worn slot by slot, so sets can be mixed: each piece gives its own stats, and
+  each set gives the bonus that the number of its pieces being worn reaches. The 1, 2 and 3
+  keys and the buttons on the set panel put a whole set on, as before.
+- What you wear is kept on your account and is what your next game starts in. It can be
+  changed during a game too. A piece caught during a game goes on at once if its slot is
+  empty or it belongs to the set you are wearing.
+- A player who has never chosen starts in the pieces they own of the set they last wore, so
+  nothing changes for them until they open the sheet.
+- On a computer it is the painted frame with the hunter in the middle. On a phone, upright
+  or sideways, it is laid out for a thumb: the numbers in a row, the three sets, the slots
+  as a grid of squares, and under them the items for the slot you pressed.
+- Slots that nothing in the game fills yet (neck, back, trinkets, weapons and the like) are
+  shown empty, ready for boss loot.
+
+**Bags, materials and the inventory**
+- Everything caught in a game now goes into the hunter's bags. A slot holds up to 20 of one
+  kind; a full stack starts another slot. Everyone has a backpack of 16 slots. The hunter's
+  panel shows how many slots are taken.
+- Once the bags are full, what does not fit is sold on the spot for 90% of its worth. A
+  message says so the first time.
+- **Crafting materials are kept, not sold.** Sixteen things that fall are materials: cloth,
+  leather, herbs, bars, gems and reagents. A material that is carried pays no coins when the
+  game ends: it goes onto the account, to be made into things later. Everything else is sold
+  when the game ends, as before. So a game pays fewer coins than it did, and brings back
+  materials instead.
+- **Bags are bought with coins** and added to the backpack, up to four: 6 slots for 5 gold,
+  8 for 15, 10 for 40, 12 for 100 and 14 for 250. With all four slots taken, a bigger bag
+  replaces the smallest. The four biggest make 72 slots, room for every kind of thing in the
+  game.
+- **The inventory**, opened with the "Inventory" button on the starting window or in the
+  pause menu, or the B key: the bags and the stacks in them, the materials kept on the
+  account, and the way to the character sheet. Bags are bought there, between games.
+- Pieces of the hunter sets are worn, not carried: they take no room in the bags.
+- Guests have the backpack and no account to keep materials on.
+
+**What the bosses drop can be worn, and sold**
+- The item a boss drops is now gear: it has a slot on the character sheet (neck, back,
+  trinket, a weapon hand and so on) and gives health, armor or attack power. A boss further
+  along gives more. What you already won from bosses counts from the start.
+- The weapons and jewellery that fall in a game (Ashkandi, Maladath, Ashjre'thul, Onslaught
+  Girdle, Brutality Blade, the rings and the rest) are kept and can be worn too, no longer
+  turned to coins.
+- **Carrying**, a new stat: each point takes 1% off what is lost when a full bag forces a
+  sale. The blue boss items and the purple trinkets have it, 1 to 3 points by how far along
+  the boss is. The character sheet shows what full bags pay with the gear you have on.
+- The inventory's **Gear** tab lists this gear with what it gives and what a vendor pays.
+  Only one of a thing can be worn, so "Sell 2 spare" sells all but one, and "Sell every
+  spare one" does that for the whole list. The last one can be sold too, after a warning
+  that you will no longer be able to wear it; if it was on, it comes off.
+
+**High scores say how they were made**
+- The high score tables, in the game and on the site, have two new columns:
+  - **Gear**: the strongest hunter set worn in that game and how many of its pieces
+    ("Cryptstalker 9/9"), or "none". Pointing at it shows the health, armor and attack power
+    it gave. It is the strongest worn at any point, so changing down before the end does not
+    hide it.
+  - **Version**: the version of the game the score was made in.
+- In the game's table these replace "DS", which had shown nothing since the sets changed,
+  and "Crit" and "Dodge". Scores from before this version show "none" for gear.
+
+### Fixed
+- A name written in decorative letters (the bold, script and similar alphabets some players
+  use, such as 𝓓𝓐𝓒𝓞) showed as an empty space on devices with no font for them. A font
+  that has them now comes with the game and the site, and is only fetched when a name on
+  the screen needs it.
+- The crit a set gives was never counted for arrows shot at a boss, only for catching items.
+  It is now.
+- The hunter's panel shows the crit and dodge a set gives, added to the number.
+
+### For developers
+- `game/utils/stats.js` has the formulas (`armorReduction`, `damageAfterArmor`,
+  `arrowDamage`, `healthAtNewMax`), tested in `game/tests/stats.test.mjs`. An arrow on a
+  boss does: base x (1 + attack power / 100) x the shot's worth x (1 + what the set adds to
+  that shot) x (1 - the boss's armor) x weakened x (1 + the set's boss damage) x crit.
+- The numbers are under `stats` and `sets` in `gameConfig.js`: `perPiece` for the stats and
+  `bonuses` for the steps.
+- The fallback font is Noto Sans Math (SIL Open Font License; the licence is beside it in
+  `public/fonts`), declared as "Input Math" for U+1D400 to U+1D7FF only and put at the end of
+  the game's and the site's font lists.
+- New migration: `equipment` on `users`. `PUT /api/equipment` keeps what the sheet sets,
+  leaving out anything not owned or in a slot it does not fit (`App\Support\Gear`).
+- `game/utils/gear.js` has the rules of wearing things (slots, what fits where, what it all
+  adds up to), tested in `game/tests/gear.test.mjs`; `game/ui/characterSheet.js` draws the
+  sheet. An item says where it is worn with `slot`; to make something wearable, give it a
+  slot and its stats.
+- New migration: `bags` and `materials` on `users`, `materials` on `games`.
+- `game/utils/bags.js` has the rules of the bags and `game/data/materials.js` the list of
+  materials; the site has the same numbers and list under `bags` and `materials` in
+  `config/loot.php`, with the bags' prices, and a test keeps them the same.
+- The game says, when it ends, how much of each thing did not fit (`overflow`).
+  `App\Support\Bags::settle()` works out the coins and the materials kept from that. It does
+  not believe more was carried than the player's bags hold: then everything is paid as sold
+  short and no material is kept.
+- New migration: `gear` on `games`. The game hands it in when it ends; the site keeps the
+  set, the number of pieces (never more than the set has) and what they gave.
+- Bosses can have armor: an `armor` share (0 to 1) on a boss in `game/data/bosses.js` is
+  taken off arrows, except an Arcane Shot's, which goes through it. No boss has any yet.
+
 ## 2.34.1 - 2026-10-13
 
 ### Changed
