@@ -283,8 +283,12 @@
     box-shadow: 0 0 20px rgba(255, 0, 0, 0.4);
 }
 
-/* The three sets to choose from, under the panel's heading: a button each, with its key.
+/* The player's saved sets, under the panel's heading: a button each, with its key.
    They take the mouse and the finger although the rest of the panel lets them through. */
+.set-switch[hidden] {
+    display: none;
+}
+
 .set-switch {
     display: flex;
     gap: 4px;
@@ -341,8 +345,7 @@
 
 /* Where keys mean nothing (phones and tablets) and where room is short: the name alone, short */
 @media (max-width: 768px), (hover: none) and (pointer: coarse) {
-    .set-switch-key,
-    .set-switch-rest {
+    .set-switch-key {
         display: none;
     }
 

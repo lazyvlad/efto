@@ -1123,6 +1123,7 @@ function refreshSetBonus() {
     }
     
     refreshCharacterSheet();
+    refreshSetSwitch();
     dressHunter();
 }
 
@@ -1184,31 +1185,6 @@ function noteGearUsed() {
     return gameState.gearUsed;
 }
 
-// Put a set on: every piece of it that is owned, each in its slot. It can be changed at any
-// time, in a fight too.
-function wearSet(setId, announce = true) {
-    const set = setById(gameConfig.sets, setId);
-    if (!set) return;
-    
-    const wanted = equipSet(gameState.equipment, set.id, wearables(), availablePieces());
-    const refused = noRoomFor(wanted);
-    if (refused) return refused;
-    
-    setEquipment(wanted);
-    // Shown on the set panel even with no piece of it owned yet
-    gameState.wornSet = set.id;
-    dragonstalkerCache.lastUpdate = 0;
-    saveEquipment();
-    
-    if (announce) {
-        const pieces = piecesOf(gameItems, set.id);
-        const worn = setsWorn(gameState.equipment, wearables())[set.id] || 0;
-        const gives = bonusText(gameState.setBonus) || `nothing yet (${nextStep(set, worn)} pieces for its first bonus)`;
-        addNotification(gameState, `Wearing ${set.name} (${worn}/${pieces.length}): ${gives}`, 240, '#C77DFF');
-    }
-    return '';
-}
-
 // A piece was just caught: it goes on at once if it belongs to the set being worn, or if
 // nothing is in its slot
 function wearCaughtPiece(item) {
@@ -1223,41 +1199,55 @@ function wearCaughtPiece(item) {
 }
 
 // ----- Sets of the player's own -----
-// What is worn saved under a name, to put on again in one press (the character sheet's "Your
-// sets"). On an account they are kept there (INPUT_BOOT.user.outfits); a guest's in this
-// browser. A saved set is kept as it was: putting it on takes only what is owned and, in a
-// game, carried.
+// What is worn saved under a name, to put on again in one press: on the character sheet's
+// "Your sets", and in play with their keys (1 to 4 unless the player changed them) or the
+// buttons on the set panel. Each hunter keeps his own, as he keeps his own loot. On an account
+// they are kept there (INPUT_BOOT.user.outfits, { alliance: [...], horde: [...] }); a guest's in
+// this browser. A saved set is kept as it was: putting it on takes only what is owned and, in
+// a game, carried.
 const OUTFITS_KEY = 'input_outfits';
 const MOST_OUTFITS = 4;
+const OUTFIT_KEYS = ['set_1', 'set_2', 'set_3', 'set_4'];
 
-function outfits() {
-    if (hasBank()) return siteBoot.user.outfits || [];
+// A side's sets. (Saved before each hunter had his own, one list was kept: it is the Alliance
+// hunter's, as the loot of then is.)
+function outfits(side = currentSide()) {
+    if (hasBank()) {
+        const saved = siteBoot.user.outfits;
+        if (Array.isArray(saved)) return side === 'alliance' ? saved : [];
+        return saved && Array.isArray(saved[side]) ? saved[side] : [];
+    }
     try {
-        const kept = JSON.parse(localStorage.getItem(OUTFITS_KEY) || '[]');
-        return Array.isArray(kept) ? kept : [];
+        const own = JSON.parse(localStorage.getItem(`${OUTFITS_KEY}_${side}`) || 'null');
+        if (Array.isArray(own)) return own;
+        const shared = side === 'alliance' ? JSON.parse(localStorage.getItem(OUTFITS_KEY) || '[]') : [];
+        return Array.isArray(shared) ? shared : [];
     } catch (e) {
         return [];
     }
 }
 
-function keepOutfits(list) {
+function keepOutfits(list, side = currentSide()) {
     if (hasBank()) {
-        siteBoot.user.outfits = list;
+        const saved = siteBoot.user.outfits;
+        const both = Array.isArray(saved) ? { alliance: saved, horde: [] } : { alliance: [], horde: [], ...(saved || {}) };
+        siteBoot.user.outfits = { ...both, [side]: list };
         if (siteBoot.urls && siteBoot.urls.outfits) {
             fetch(siteBoot.urls.outfits, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': siteBoot.csrfToken || '' },
                 credentials: 'same-origin',
-                body: JSON.stringify({ outfits: list })
+                body: JSON.stringify({ side, outfits: list })
             }).catch(() => { /* Kept for this visit; saved with the next change */ });
         }
-        return;
+    } else {
+        try {
+            localStorage.setItem(`${OUTFITS_KEY}_${side}`, JSON.stringify(list));
+        } catch (e) {
+            // Storage unavailable: kept for this visit
+        }
     }
-    try {
-        localStorage.setItem(OUTFITS_KEY, JSON.stringify(list));
-    } catch (e) {
-        // Storage unavailable: kept for this visit
-    }
+    refreshSetSwitch();
 }
 
 // The same things in the same slots
@@ -1266,27 +1256,44 @@ function sameEquipment(a, b) {
     return [...keys].every(slotId => (a[slotId] || null) === (b[slotId] || null));
 }
 
-// For the sheet: each set's name, how many of its pieces can be put on now, and whether it is on
+// What of a saved set can be put on now
+function wearableOf(outfit) {
+    return validEquipment(outfit.equipment || {}, wearables(), availablePieces());
+}
+
+// For the sheet: each set's name, how many of its pieces can be put on now, whether it is
+// on, and whether what is worn now differs from what it keeps (so saving it changes it)
 function outfitsForSheet() {
     return outfits().map(outfit => {
-        const wearable = validEquipment(outfit.equipment || {}, wearables(), availablePieces());
-        return { name: outfit.name, pieces: Object.keys(wearable).length, isOn: sameEquipment(wearable, gameState.equipment) && Object.keys(wearable).length > 0 };
+        const wearable = wearableOf(outfit);
+        return {
+            name: outfit.name,
+            pieces: Object.keys(wearable).length,
+            isOn: sameEquipment(wearable, gameState.equipment) && Object.keys(wearable).length > 0,
+            isSaved: sameEquipment(outfit.equipment || {}, gameState.equipment),
+        };
     });
 }
 
 // Put a saved set on: what of it can be worn, in place of everything worn now
-function wearOutfit(index) {
+function wearOutfit(index, announce = false) {
     const outfit = outfits()[index];
     if (!outfit) return '';
     
-    const wanted = validEquipment(outfit.equipment || {}, wearables(), availablePieces());
+    const wanted = wearableOf(outfit);
     const refused = noRoomFor(wanted);
     if (refused) return refused;
     
     setEquipment(wanted);
+    dragonstalkerCache.lastUpdate = 0;
+    if (announce) {
+        const gives = bonusText(gameState.setBonus);
+        addNotification(gameState, `Wearing ${outfit.name}${gives ? `: ${gives}` : ''}`, 240, '#C77DFF');
+    }
     return '';
 }
 
+// What is worn now, kept as a new set
 function saveOutfit(name) {
     const list = outfits();
     if (list.length >= MOST_OUTFITS) return `You keep ${MOST_OUTFITS} sets: forget one to save another.`;
@@ -1295,8 +1302,67 @@ function saveOutfit(name) {
     return '';
 }
 
+// What is worn now, kept in a set saved before (in place of what it kept)
+function updateOutfit(index) {
+    const list = outfits();
+    if (!list[index]) return '';
+    
+    keepOutfits(list.map((outfit, at) => (at === index ? { ...outfit, equipment: { ...gameState.equipment } } : outfit)));
+    return '';
+}
+
+function renameOutfit(index, name) {
+    const list = outfits();
+    if (!list[index] || !name) return;
+    
+    keepOutfits(list.map((outfit, at) => (at === index ? { ...outfit, name } : outfit)));
+}
+
 function deleteOutfit(index) {
     keepOutfits(outfits().filter((outfit, at) => at !== index));
+}
+
+// In play: the next saved set in order, for the tap on the set panel
+function wearNextOutfit() {
+    const list = outfitsForSheet();
+    if (list.length === 0) return;
+    const on = list.findIndex(outfit => outfit.isOn);
+    wearOutfit((on + 1) % list.length, true);
+}
+
+// The set panel's buttons: one for each saved set, with its key; the one on is lit. Made again
+// only when the sets or what is worn change.
+let setSwitchShows = '';
+function refreshSetSwitch() {
+    const holder = document.getElementById('setSwitch');
+    if (!holder) return;
+    
+    const list = outfitsForSheet();
+    const shows = JSON.stringify(list.map(outfit => [outfit.name, outfit.isOn])) + OUTFIT_KEYS.map(keyName).join();
+    if (shows === setSwitchShows) return;
+    setSwitchShows = shows;
+    
+    holder.textContent = '';
+    holder.hidden = list.length === 0;
+    list.forEach((outfit, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = outfit.isOn ? 'set-switch-btn is-worn' : 'set-switch-btn';
+        button.setAttribute('aria-pressed', String(outfit.isOn));
+        button.title = `Wear ${outfit.name}`;
+        const key = document.createElement('span');
+        key.className = 'set-switch-key';
+        key.textContent = keyName(OUTFIT_KEYS[index]);
+        const name = document.createElement('span');
+        name.className = 'set-switch-name';
+        name.textContent = outfit.name;
+        button.append(key, name);
+        button.addEventListener('click', event => {
+            event.stopPropagation();
+            if (gameState.currentScreen === 'game') wearOutfit(index, true);
+        });
+        holder.append(button);
+    });
 }
 
 // The Close of the character sheet and the inventory, as on the game's other screens: shut
@@ -1399,11 +1465,6 @@ function showCharacterSheet() {
     if (isInventoryOpen()) closeInventory();
 }
 
-// The next set in order, for the tap on the panel
-function wearNextSet() {
-    const index = gameConfig.sets.findIndex(set => set.id === gameState.wornSet);
-    wearSet(gameConfig.sets[(index + 1) % gameConfig.sets.length].id);
-}
 
 // The starting window is the world map: what is picked there is the side and the zone the game
 // starts in. Each pick is set where the rest of the code looks for it (the side, the starting
@@ -2671,7 +2732,6 @@ function setupUIEventHandlers() {
             return { text: `Your hunter already carries ${gameConfig.bags.carry} things. Leave something in the bank to make room for it.`, kind: 'warning', chooseLeave: true };
         },
         onChooseLeave: () => showInventory('gear'),
-        onWearSet: setId => wearSet(setId, false),
         onOpenInventory: () => showInventory(),
         // Between games the sheet's Alliance and Horde dress (and play) that side's hunter: the
         // map moves to where that side starts
@@ -2684,6 +2744,8 @@ function setupUIEventHandlers() {
         onCloseAll: closeWindowsAndResume,
         onWearOutfit: wearOutfit,
         onSaveOutfit: saveOutfit,
+        onUpdateOutfit: updateOutfit,
+        onRenameOutfit: renameOutfit,
         onDeleteOutfit: deleteOutfit,
     });
     // The inventory (ui/inventory.js): the bags, the materials kept, and bags to buy
@@ -2756,27 +2818,19 @@ function setupUIEventHandlers() {
         }
     });
     
-    // Wearing another hunter set: its key while playing (1, 2 and 3 unless the player changed
-    // them), or a tap on the set panel (it only takes taps while the game is paused)
+    // Wearing a saved set in play: its key (1 to 4 unless the player changed them), or its
+    // button on the set panel (refreshSetSwitch)
     document.addEventListener('keydown', event => {
-        const index = ['set_1', 'set_2', 'set_3'].indexOf(actionFor(event.code));
+        const index = OUTFIT_KEYS.indexOf(actionFor(event.code));
         const typing = document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
-        if (index < 0 || typing || !gameState.gameRunning || !gameConfig.sets[index]) return;
+        if (index < 0 || typing || !gameState.gameRunning || !outfits()[index]) return;
         
-        wearSet(gameConfig.sets[index].id);
-    });
-    // The three buttons on the set panel: they say that there is a choice, and make it by
-    // mouse or finger
-    document.querySelectorAll('#setSwitch .set-switch-btn').forEach(button => {
-        button.addEventListener('click', event => {
-            event.stopPropagation();
-            if (gameState.currentScreen === 'game') wearSet(button.dataset.set);
-        });
+        wearOutfit(index, true);
     });
     const setPanelHeader = document.querySelector('#dragonstalkerProgressPanel .dragonstalker-panel-header');
     if (setPanelHeader) {
         setPanelHeader.addEventListener('click', () => {
-            if (gameState.currentScreen === 'game') wearNextSet();
+            if (gameState.currentScreen === 'game') wearNextOutfit();
         });
     }
     

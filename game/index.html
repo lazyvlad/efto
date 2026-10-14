@@ -199,8 +199,7 @@
                         <p id="sheetBonuses" class="sheet-bonuses window-reward"></p>
                         <p id="sheetFullBags" class="sheet-fullbags"></p>
                     </section>
-                    <div id="sheetSets" class="sheet-sets" role="group" aria-label="Put on a whole set"></div>
-                    <!-- The sets the player saved: put on in one press -->
+                    <!-- The sets the player saved (each hunter his own): put on in one press -->
                     <div id="sheetOutfits" class="sheet-outfits" role="group" aria-label="Your sets"></div>
                     <section class="window-card sheet-slot-panel">
                         <p class="window-label">The slot picked</p>
@@ -605,7 +604,7 @@
                     <p>• Use Zandalari spell for +20% points and to slow down all falling objects</p>
                     <p>• Collect Speed Boost projectiles to increase game speed and scoring</p>
                     <p>• Thunder Fury automatically collects all items on screen AND increases crit chance</p>
-                    <p>• Wear the hunter set that suits the moment: press <span data-key-of="set_1">1</span>, <span data-key-of="set_2">2</span> or <span data-key-of="set_3">3</span> to change it (or tap the set panel while paused)</p>
+                    <p>• Save sets of your own on the character sheet, and wear the one that suits the moment: press <span data-key-of="set_1">1</span>, <span data-key-of="set_2">2</span>, <span data-key-of="set_3">3</span> or <span data-key-of="set_4">4</span> to change it (or tap the set panel while paused)</p>
                     <p>• Higher game speeds = more items = higher scores</p>
                 </div>
             </div>
@@ -838,13 +837,9 @@
             </div>
         </div>
         
-        <!-- The three hunter sets: press one (or its key) to wear it. The one being worn is lit.
-             The names are the sets' in config/gameConfig.js. -->
-        <div class="set-switch" id="setSwitch" role="group" aria-label="Wear a hunter set">
-            <button type="button" class="set-switch-btn" data-set="giantstalker"><span class="set-switch-key" data-key-of="set_1">1</span><span class="set-switch-name">Giant<span class="set-switch-rest">stalker</span></span></button>
-            <button type="button" class="set-switch-btn" data-set="dragonstalker"><span class="set-switch-key" data-key-of="set_2">2</span><span class="set-switch-name">Dragon<span class="set-switch-rest">stalker</span></span></button>
-            <button type="button" class="set-switch-btn" data-set="cryptstalker"><span class="set-switch-key" data-key-of="set_3">3</span><span class="set-switch-name">Crypt<span class="set-switch-rest">stalker</span></span></button>
-        </div>
+        <!-- The player's saved sets (each hunter his own): press one, or its key, to wear it. The
+             one on is lit. Made by refreshSetSwitch in game-modular.js; hidden with none saved. -->
+        <div class="set-switch" id="setSwitch" role="group" aria-label="Wear one of your sets" hidden></div>
 
         <div class="dragonstalker-items-list" id="dragonstalkerItemsList">
             <!-- Dragonstalker items will be populated here -->

@@ -352,6 +352,29 @@ class Gear
         return $all;
     }
 
+    /**
+     * Both hunters' saved sets (the character sheet's "Your sets"): { alliance: [...], horde:
+     * [...] }. A list saved before each hunter had his own is the Alliance hunter's, as the
+     * loot of then is.
+     *
+     * @return array<string, array<int, array>>
+     */
+    public static function allOutfits(User $user): array
+    {
+        $saved = $user->outfits ?? [];
+        $all = array_fill_keys(self::SIDES, []);
+        if (array_is_list($saved)) {
+            $all['alliance'] = $saved;
+
+            return $all;
+        }
+        foreach (self::SIDES as $side) {
+            $all[$side] = is_array($saved[$side] ?? null) ? array_values($saved[$side]) : [];
+        }
+
+        return $all;
+    }
+
     private static function isPerSide(array $saved): bool
     {
         return array_intersect(array_map('strval', array_keys($saved)), self::SIDES) !== [];

@@ -68,8 +68,8 @@ class GameController extends Controller
                     : collect(Gear::allCarried($user))->map(
                         fn ($chosen, $side) => $chosen === null ? null : Gear::carried($user, $chosen, null, $side)
                     )->all(),
-                // The sets saved on the character sheet
-                'outfits' => $user->outfits ?? [],
+                // The sets saved on the character sheet, each hunter's own
+                'outfits' => Gear::allOutfits($user),
                 // The gear owned besides the sets, and how many of each (App\Support\Gear)
                 'gear' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => (object) ($user->canUseRewards() ? Gear::owned($user, $side) : [])])->all(),
                 // The bags bought (their sizes) and the crafting materials brought back so far

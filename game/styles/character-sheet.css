@@ -311,33 +311,8 @@
     color: #b9ad92;
 }
 
-.sheet-sets {
-    flex: none;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 8px;
-}
-
-.sheet-set {
-    padding: 8px 4px;
-    font-size: 14px;
-}
-
-.sheet-set span {
-    display: block;
-}
-
-.sheet-set-count {
-    font-family: 'Trebuchet MS', 'Segoe UI', Verdana, sans-serif;
-    font-size: 11px;
-    color: #b9ad92;
-}
-
-.sheet-set.is-on .sheet-set-count {
-    color: #d6e6ff;
-}
-
-/* The sets the player saved, under the three hunter sets */
+/* The sets the player saved: the set, put on in one press, and under it what can be done with
+   it. Saving what is worn into it is the one that changes it. */
 .sheet-outfits {
     flex: none;
 }
@@ -353,43 +328,93 @@
 }
 
 .sheet-outfit {
-    position: relative;
+    min-width: 0;
     display: flex;
+    flex-direction: column;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid #3d3219;
+    border-radius: 5px;
 }
 
 .sheet-outfit-wear {
-    flex: 1 1 auto;
+    position: relative;
     min-width: 0;
-    padding: 7px 26px 7px 8px;
+    padding: 7px 30px 7px 8px;
     font-size: 14px;
     text-align: left;
+    border-radius: 4px 4px 0 0;
 }
 
-.sheet-outfit-wear span {
+.sheet-outfit-wear > span {
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-/* Forgetting one: a small cross in its corner */
-.sheet-outfit-forget {
+.sheet-set-count {
+    font-family: 'Trebuchet MS', 'Segoe UI', Verdana, sans-serif;
+    font-size: 11px;
+    color: #b9ad92;
+}
+
+.sheet-outfit-wear.is-on .sheet-set-count {
+    color: #d6e6ff;
+}
+
+/* Its key in play, in the corner */
+.sheet-outfit-wear > .sheet-outfit-key {
     position: absolute;
-    top: 3px;
-    right: 3px;
-    width: 22px;
-    height: 22px;
-    padding: 0;
-    font-size: 14px;
-    line-height: 1;
-    color: #a89a78;
+    top: 6px;
+    right: 6px;
+    min-width: 16px;
+    padding: 0 3px;
+    font: 700 11px Arial, sans-serif;
+    line-height: 16px;
+    text-align: center;
+    color: #ffd100;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid #8f7a45;
+    border-radius: 3px;
+}
+
+.sheet-outfit-actions {
+    display: flex;
+}
+
+.sheet-outfit-action {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 5px 2px;
+    font-size: 12px;
+    color: #c9bd9d;
     background: none;
     border: 0;
+    border-top: 1px solid #3d3219;
     cursor: pointer;
 }
 
-.sheet-outfit-forget:hover {
+.sheet-outfit-action + .sheet-outfit-action {
+    border-left: 1px solid #3d3219;
+}
+
+.sheet-outfit-action:hover:not(:disabled) {
+    color: #fff5d6;
+    background: rgba(255, 230, 160, 0.06);
+}
+
+.sheet-outfit-action.is-forget:hover {
     color: #ffb3a8;
+}
+
+.sheet-outfit-action:disabled {
+    color: #6f6655;
+    cursor: default;
+}
+
+.sheet-outfit-action:focus-visible {
+    outline: 2px solid #fff2ba;
+    outline-offset: -2px;
 }
 
 .sheet-outfit-save {
@@ -547,8 +572,7 @@
 
     .sheet-side > .window-card:first-child { order: 1; }
     .sheet-stage { order: 2; }
-    .sheet-sets { order: 3; }
-    .sheet-outfits { order: 4; }
+    .sheet-outfits { order: 3; }
     .sheet-slot-panel { order: 5; }
 
     .window-card {
@@ -668,9 +692,8 @@
         display: none;
     }
 
-    .sheet-set {
-        min-height: 44px;
-        font-size: 13px;
+    .sheet-outfit-action {
+        min-height: 36px;
     }
 
     .sheet-slot-panel {
@@ -708,7 +731,6 @@
     }
 
     .sheet-side > .window-card:first-child,
-    .sheet-sets,
     .sheet-outfits,
     .sheet-slot-panel {
         grid-column: 2;

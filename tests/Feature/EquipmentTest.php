@@ -245,25 +245,49 @@ class EquipmentTest extends TestCase
         $this->assertSame((int) $found[1], config('gear.carry'));
     }
 
-    public function test_a_player_keeps_sets_of_their_own(): void
+    public function test_each_hunter_keeps_sets_of_his_own(): void
     {
         $user = User::factory()->create();
 
-        $this->actingAs($user)->putJson(route('outfits.update'), ['outfits' => [
+        $this->actingAs($user)->putJson(route('outfits.update'), ['side' => 'alliance', 'outfits' => [
             ['name' => ' Boss gear ', 'equipment' => ['head' => 'giantstalker-helmet', 'mainhand' => 'ashkandi2', 'nose' => 'x', 'feet' => '']],
             ['name' => 'Empty', 'equipment' => []],
-        ]])->assertOk()->assertJsonPath('outfits.0.name', 'Boss gear')
-            ->assertJsonPath('outfits.0.equipment', ['head' => 'giantstalker-helmet', 'mainhand' => 'ashkandi2']);
+        ]])->assertOk()->assertJsonPath('outfits.alliance.0.name', 'Boss gear')
+            ->assertJsonPath('outfits.alliance.0.equipment', ['head' => 'giantstalker-helmet', 'mainhand' => 'ashkandi2'])
+            ->assertJsonPath('outfits.horde', []);
 
-        $this->assertCount(2, $user->fresh()->outfits);
-        $this->get(route('play'))->assertSee('"outfits":[{"name":"Boss gear"', false);
+        // The Horde hunter's are his own: saving them leaves the Alliance hunter's as they are
+        $this->putJson(route('outfits.update'), ['side' => 'horde', 'outfits' => [['name' => 'Totem', 'equipment' => ['ranged' => 'starter-horde-totem']]]])
+            ->assertOk()->assertJsonPath('outfits.horde.0.name', 'Totem')
+            ->assertJsonPath('outfits.alliance.1.name', 'Empty');
+        $this->assertCount(2, Gear::allOutfits($user->fresh())['alliance']);
+        $this->get(route('play'))->assertSee('"outfits":{"alliance":[{"name":"Boss gear"', false);
 
-        // No more than four, each named
+        // Saved again into one (the game sends the hunter's whole list, the set changed in it)
+        $this->putJson(route('outfits.update'), ['side' => 'alliance', 'outfits' => [
+            ['name' => 'Boss gear', 'equipment' => ['head' => 'cryptstalker-helmet']],
+            ['name' => 'Empty', 'equipment' => []],
+        ]])->assertOk()->assertJsonPath('outfits.alliance.0.equipment', ['head' => 'cryptstalker-helmet']);
+
+        // No more than four for a hunter, each named, and for a side there is
         $five = array_fill(0, 5, ['name' => 'Set', 'equipment' => []]);
-        $this->putJson(route('outfits.update'), ['outfits' => $five])->assertStatus(422);
-        $this->putJson(route('outfits.update'), ['outfits' => [['equipment' => []]]])->assertStatus(422);
+        $this->putJson(route('outfits.update'), ['side' => 'horde', 'outfits' => $five])->assertStatus(422);
+        $this->putJson(route('outfits.update'), ['side' => 'horde', 'outfits' => [['equipment' => []]]])->assertStatus(422);
+        $this->putJson(route('outfits.update'), ['side' => 'goblin', 'outfits' => []])->assertStatus(422);
+        $this->putJson(route('outfits.update'), ['outfits' => []])->assertStatus(422);
 
         auth()->logout();
-        $this->putJson(route('outfits.update'), ['outfits' => []])->assertUnauthorized();
+        $this->putJson(route('outfits.update'), ['side' => 'alliance', 'outfits' => []])->assertUnauthorized();
+    }
+
+    public function test_sets_saved_before_each_hunter_had_his_own_are_the_alliance_hunters(): void
+    {
+        $user = User::factory()->create(['outfits' => [['name' => 'Old', 'equipment' => ['head' => 'giantstalker-helmet']]]]);
+
+        $this->assertSame(['alliance' => [['name' => 'Old', 'equipment' => ['head' => 'giantstalker-helmet']]], 'horde' => []], Gear::allOutfits($user));
+
+        // Saving the Horde hunter's keeps them the Alliance hunter's
+        $this->actingAs($user)->putJson(route('outfits.update'), ['side' => 'horde', 'outfits' => [['name' => 'New', 'equipment' => []]]])
+            ->assertOk()->assertJsonPath('outfits.alliance.0.name', 'Old');
     }
 }

@@ -2,8 +2,8 @@
 //
 // It opens over whatever is on the screen: over the starting window before a game, and over
 // the game itself, which is paused while it is open. Pressing a slot shows the items the
-// player owns that fit it; pressing one of those puts it on. The three sets have a button
-// each that puts on every piece owned of that set.
+// player owns that fit it; pressing one of those puts it on. The player's own sets ("Your
+// sets") are each put on in one press, and what he wears can be saved into one, or as a new one.
 //
 // The rules of wearing things are in utils/gear.js. This file only draws the sheet and passes
 // what the player asks for back to the game (game-modular.js), which keeps what is worn.
@@ -11,8 +11,13 @@
 import { wearables, wearableById } from '../data/wearables.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { playerCharacters } from '../data/playerCharacters.js';
-import { SLOTS, itemsForSlot, itemStats, setsWorn } from '../utils/gear.js';
-import { piecesOf, bonusText, nextStep } from '../utils/sets.js';
+import { SLOTS, itemsForSlot, itemStats } from '../utils/gear.js';
+import { bonusText } from '../utils/sets.js';
+import { keyName } from '../utils/keybindings.js';
+import { askConfirm, askText } from './gameDialog.js';
+
+// The keys that wear the saved sets in play, in order (utils/keybindings.js)
+const OUTFIT_KEYS = ['set_1', 'set_2', 'set_3', 'set_4'];
 
 let game = null;            // What the game gave when it set the sheet up
 let selectedSlot = 'head';
@@ -57,16 +62,17 @@ export function isCharacterSheetOpen() {
  *        zone picture the hunter is shown in), carried (Set, or null for a guest), carryLimit }
  * @param {Function} options.onEquip - (slotId, item or null) put an item on, or take one off.
  *        Returns why it could not be, in words, or ''.
- * @param {Function} options.onWearSet - (setId) put on every piece owned of a set. Returns
- *        the same.
  * @param {Function} options.onOpenInventory - () open the inventory in its place
  * @param {Function} options.onShowSide - (side) between games: dress and play that side's hunter
  * @param {Function} options.onCloseAll - () close the sheet and every menu, and go on with the
  *        game if one is under way (Back, the sheet's other way out, goes to where it was opened)
  * @param {Function} options.onWearOutfit - (index) put on a saved set; returns why not, or ''
- * @param {Function} options.onSaveOutfit - (name) save what is worn as a set; the same
+ * @param {Function} options.onSaveOutfit - (name) save what is worn as a new set; the same
+ * @param {Function} options.onUpdateOutfit - (index) save what is worn into a saved set
+ * @param {Function} options.onRenameOutfit - (index, name) give a saved set another name
  * @param {Function} options.onDeleteOutfit - (index) forget a saved set
- *        For these the state has outfits: [{ name, pieces, isOn }] and mostOutfits.
+ *        For these the state has outfits: [{ name, pieces, isOn, isSaved (it keeps just what
+ *        is worn now) }] and mostOutfits.
  */
 export function initializeCharacterSheet(options) {
     game = options;
@@ -141,7 +147,6 @@ function render() {
     renderHeading(state);
     renderSlots(state);
     renderStats(state);
-    renderSets(state);
     renderOutfits(state);
     renderSlotItems(state);
 
@@ -258,39 +263,8 @@ function renderStats(state) {
         + (state.totals.carrying ? ` (your gear takes ${percent(state.totals.carrying)} off the loss)` : '');
 }
 
-function renderSets(state) {
-    const worn = setsWorn(state.equipment, wearables());
-    const holder = element('sheetSets');
-    holder.textContent = '';
-
-    for (const set of gameConfig.sets) {
-        const pieces = piecesOf(wearables(), set.id);
-        const owned = pieces.filter(piece => state.owned.has(piece.id)).length;
-        const on = worn[set.id] || 0;
-        const next = nextStep(set, on);
-
-        const button = make('button', 'game-btn sheet-set');
-        button.type = 'button';
-        button.disabled = owned === 0;
-        // Every piece owned of it is on
-        button.classList.toggle('is-on', on > 0 && on === owned);
-        button.append(
-            make('span', 'sheet-set-name', set.name.split(' ')[0]),
-            make('span', 'sheet-set-count', owned === 0 ? 'none owned' : `${on}/${owned} on`)
-        );
-        button.title = owned === 0
-            ? `You own no piece of ${set.name} yet`
-            : `Put on the ${owned} ${owned === 1 ? 'piece' : 'pieces'} you own of ${set.name}${next ? ` (its next bonus is at ${next})` : ''}`;
-        button.addEventListener('click', () => {
-            const refused = game.onWearSet(set.id);
-            notice = refused ? { itemId: null, text: refused, kind: 'warning', chooseLeave: true } : null;
-            render();
-        });
-        holder.append(button);
-    }
-}
-
-// The sets the player saved: each put on in one press, and what is worn now saved as one
+// The sets the player saved (each hunter his own): each put on in one press, or in play by its
+// key; what is worn now can be saved into one, in place of what it kept, or as a new one
 function renderOutfits(state) {
     const holder = element('sheetOutfits');
     holder.textContent = '';
@@ -299,44 +273,83 @@ function renderOutfits(state) {
     holder.append(make('p', 'window-label sheet-outfits-label', 'Your sets'));
     const row = make('div', 'sheet-outfit-row');
     holder.append(row);
+    const wearing = Object.keys(state.equipment).length;
 
     state.outfits.forEach((outfit, index) => {
-        const card = make('div', 'sheet-outfit');
+        const card = make('div', outfit.isOn ? 'sheet-outfit is-on' : 'sheet-outfit');
         const wear = make('button', outfit.isOn ? 'game-btn is-on sheet-outfit-wear' : 'game-btn sheet-outfit-wear');
         wear.type = 'button';
-        wear.append(make('span', 'sheet-set-name', outfit.name), make('span', 'sheet-set-count', `${outfit.pieces} ${outfit.pieces === 1 ? 'piece' : 'pieces'}${outfit.isOn ? ' · on' : ''}`));
-        wear.title = `Put on ${outfit.name}`;
+        const key = keyName(OUTFIT_KEYS[index]);
+        wear.append(
+            make('span', 'sheet-set-name', outfit.name),
+            make('span', 'sheet-set-count', `${outfit.pieces} ${outfit.pieces === 1 ? 'piece' : 'pieces'}${outfit.isOn ? ' · on' : ''}`)
+        );
+        if (key) wear.append(make('span', 'sheet-outfit-key', key));
+        wear.title = `Put on ${outfit.name}${key ? ` (${key} while playing)` : ''}`;
         wear.addEventListener('click', () => {
             const refused = game.onWearOutfit(index);
             notice = refused ? { itemId: null, text: refused, kind: 'warning', chooseLeave: true } : null;
             render();
         });
 
-        const forget = make('button', 'sheet-outfit-forget', '×');
+        const actions = make('div', 'sheet-outfit-actions');
+        // What he wears now, kept in this set in place of what it had
+        const save = make('button', 'sheet-outfit-action', outfit.isSaved ? 'Saved' : 'Save');
+        save.type = 'button';
+        save.disabled = outfit.isSaved || wearing === 0;
+        save.title = outfit.isSaved ? `${outfit.name} keeps just what he wears` : `Keep what he wears now in ${outfit.name}`;
+        save.addEventListener('click', async () => {
+            const sure = await askConfirm({
+                title: `Save into ${outfit.name}?`,
+                text: `What he wears now is kept in ${outfit.name}, in place of what it had.`,
+                yes: 'Save',
+            });
+            if (!sure) return;
+            game.onUpdateOutfit(index);
+            render();
+        });
+
+        const rename = make('button', 'sheet-outfit-action', 'Rename');
+        rename.type = 'button';
+        rename.title = `Give ${outfit.name} another name`;
+        rename.addEventListener('click', async () => {
+            const name = await askText({ title: 'Rename this set', value: outfit.name, yes: 'Rename', maxLength: 24 });
+            if (!name || name === outfit.name) return;
+            game.onRenameOutfit(index, name.slice(0, 24));
+            render();
+        });
+
+        const forget = make('button', 'sheet-outfit-action is-forget', 'Forget');
         forget.type = 'button';
-        forget.setAttribute('aria-label', `Forget ${outfit.name}`);
         forget.title = `Forget ${outfit.name}`;
-        forget.addEventListener('click', () => {
-            if (!window.confirm(`Forget the set "${outfit.name}"? What you own stays yours.`)) return;
+        forget.addEventListener('click', async () => {
+            const sure = await askConfirm({
+                title: `Forget ${outfit.name}?`,
+                text: 'The set is gone; what you own stays yours.',
+                yes: 'Forget it',
+                danger: true,
+            });
+            if (!sure) return;
             game.onDeleteOutfit(index);
             render();
         });
 
-        card.append(wear, forget);
+        actions.append(save, rename, forget);
+        card.append(wear, actions);
         row.append(card);
     });
 
-    // What is worn now is not one of them: it can be saved
-    const wearing = Object.keys(state.equipment).length;
-    if (wearing > 0 && !state.outfits.some(outfit => outfit.isOn)) {
-        const save = make('button', 'game-btn sheet-outfit-save', state.outfits.length >= state.mostOutfits ? `You keep ${state.mostOutfits} sets` : '+ Save what he wears');
+    // What is worn now, as a set of its own
+    if (wearing > 0 && !state.outfits.some(outfit => outfit.isSaved)) {
+        const full = state.outfits.length >= state.mostOutfits;
+        const save = make('button', 'game-btn sheet-outfit-save', full ? `You keep ${state.mostOutfits} sets` : '+ Save as a new set');
         save.type = 'button';
-        save.disabled = state.outfits.length >= state.mostOutfits;
-        save.title = save.disabled ? 'Forget one to save another' : 'Keep these pieces as a set of your own, to put on in one press';
-        save.addEventListener('click', () => {
-            const name = window.prompt('A name for this set', `Set ${state.outfits.length + 1}`);
-            if (name === null || !name.trim()) return;
-            const refused = game.onSaveOutfit(name.trim().slice(0, 24));
+        save.disabled = full;
+        save.title = full ? 'Forget one, or save into one of yours' : 'Keep what he wears as a set of your own, to put on in one press';
+        save.addEventListener('click', async () => {
+            const name = await askText({ title: 'Name this set', value: `Set ${state.outfits.length + 1}`, yes: 'Save', maxLength: 24 });
+            if (!name) return;
+            const refused = game.onSaveOutfit(name.slice(0, 24));
             notice = refused ? { itemId: null, text: refused, kind: 'warning' } : null;
             render();
         });
