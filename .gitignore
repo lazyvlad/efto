@@ -46,3 +46,5 @@ Thumbs.db
 
 # Original artwork as uploaded (large zips); the game uses the converted copies in game/assets
 /game-art/
+# The art agent's working folder: sources, previews and deliveries (art-workbench/WORKING-TOGETHER.md)
+/art-workbench/

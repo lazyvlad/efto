@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.0.2 - 2026-10-14
+
+### Changed
+- **The Ancient Sinew Wrapped Lamina has its looks:** moss-green dragonhide bound in ivory
+  sinew, bronze leaf fittings and a fan of feathered arrows on his back, a sinew-laced harness
+  across his chest, on both hunters, and an icon of its own in place of the arrows' picture.
+- The Alliance hunter's tabard has an icon to match its new painting.
+
 ## 3.0.1 - 2026-10-14
 
 ### Changed
