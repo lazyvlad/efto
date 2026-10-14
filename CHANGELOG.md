@@ -1,5 +1,69 @@
 # Changelog
 
+## 2.41.0 - 2026-10-14
+
+### What's new
+
+**The hunter wears what you put on him**
+- Your hunter is now drawn in his gear: every set piece, every piece of boss loot, the
+  weapons, the capes and the starting clothes have a look of their own, on both hunters. His
+  picture is put together from what he wears and changes the moment you change it: on the
+  character sheet, in play, in the inventory and at the end of a game. Rings and trinkets are
+  worn but not seen; nothing is drawn on the tauren's head (his cap and horns are his own).
+- **Starting clothes are gear.** The Alliance hunter starts in his pajama top and trousers,
+  boots, belt, bracers, grips, quiver, tabard and bow; the Horde hunter in his bone amulet, mantle,
+  leather vest, bracers, grips, war belt, leggings, hoof guards, warcloth and totem. Each
+  piece gives a little (+1 armor, health or attack power), comes off like anything else and
+  is replaced by better gear; with a slot empty he is in plain clothes. Every player has both
+  sets, for good: they are never sold and never count towards the 36 he carries.
+- **Each hunter has his own outfit.** The Alliance and the Horde hunter are dressed apart:
+  pick a side on the map, or press Alliance or Horde on the character sheet, and that
+  hunter's outfit is the one worn and changed. What you own is shared.
+- **Each hunter has his own loot.** Everything won is the hunter's who won it: his side's
+  boss loot, and the set pieces and gear caught in his games. The other hunter starts from
+  nothing of it, which is what levelling an alt is for. Each sells only his own, and wears
+  only his own starting clothes. Loot from games played before there were two sides is the
+  Alliance hunter's; what was sold then came out of his first.
+- **Each hunter carries his own 36,** chosen for him alone; the inventory shows the hunter of
+  the side picked. A choice made before this is both hunters', each keeping what is his.
+- **Power Word: Shield looks the part:** a bubble of golden light round the hunter, with a
+  glow thrown round it, a shadow under its edge so it shows on bright places too, light
+  running round its rim and a gleam on top. It breathes, and flickers as it runs out.
+- **A boss brought down fast is worth more.** Besides the points for defeating it, a boss
+  pays 3 points for every point of damage a second done to it over the fight (its health
+  over the seconds it lasted): Hogger in 20 seconds is 25 a second, 75 points more.
+- **The modes are buttons with pictures** on the main menu: the place for a normal game, its
+  boss for a boss fight, three of the side's bosses for Boss Rush, with its price. One that
+  can't be chosen yet says why.
+- An outfit saved before this is now both hunters', each in his own clothes wherever it left
+  a slot empty, less what is the other side's.
+- Boss loot has pictures of its own in the inventory and on the character sheet, instead of
+  its boss's portrait.
+- **The Alliance hunter has a tabard of his own,** the Pajama Hunter Tabard: royal blue and
+  gold, with a lion's head on a shield. A stand-in until the art is painted.
+- The Horde hunter's Warcloth hangs over his belt, so no belt covers its emblem.
+- The capes that fall (Miner's, Wolfmaster, Woven, Traveler's), the Walking Stick (held in
+  both hands) and the Emerald and Silver Bands are gear now: kept, worn, and sold when spare,
+  instead of sold for coins as a game ends.
+- **Wearing something from the bank.** With 36 things carried, the character sheet now says
+  why a piece from the bank can't go on, right under it. Its button says **Swap in** when
+  the slot holds something carried: one press puts it on and sends the old piece to the bank.
+  Otherwise the button says **No room**, and **Choose what to leave** opens the inventory on
+  its Gear tab.
+
+### For developers
+- The art: `game/assets/wearables/` (800px WebP, from the pack in
+  `game-art/latest-for-game-agent`), `game/data/hunterArt.js` written from its manifest,
+  `game/utils/hunterLooks.js` puts a picture together; icons in `game/assets/items/gear/`.
+- `config('gear.starter')`; `users.equipment` is `{ alliance, horde }` (an older single
+  outfit is read as both); `PUT /api/equipment` takes `side`. `Gear::catalog()` gives boss
+  loot and starting clothes a `side`; `Gear::valid($user, $wanted, $side)` leaves out the other
+  side's. `users.carried` is `{ alliance, horde }` too (an older single list is both's),
+  read with `Gear::carriedFor` / `Gear::allCarried`. Ownership is per side: `Gear::owned($user,
+  $side)`, `$user->setPieces($side)`, `users.sold` as `{ alliance, horde }` (`Gear::sold`),
+  `POST /api/sell` takes `side`; the page boot's `pieces` and `gear` are by side.
+- `bosses.speedBonus.perDps` in `game/config/gameConfig.js`; `speedBonus()` in `game/data/bosses.js`.
+
 ## 2.40.1 - 2026-10-14
 
 ### Fixed
