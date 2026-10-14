@@ -36,7 +36,7 @@ class GamePageTest extends TestCase
             $this->get(route($page))
                 ->assertOk()
                 ->assertSee('<meta property="og:title" content="'.e(config('app.name')).'">', false)
-                ->assertSee('<meta property="og:image" content="'.asset('images/input-card.jpg').'">', false)
+                ->assertSee('<meta property="og:image" content="'.\App\Support\Fingerprint::asset('images/input-card.jpg').'">', false)
                 ->assertSee('<meta property="og:url" content="'.route($page).'">', false)
                 ->assertSee('<meta name="twitter:card" content="summary_large_image">', false);
         }

@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.39.1 - 2026-10-14
+
+### Fixed
+- A new logo, tab icon, phone icon or share card reaches every browser on its next visit:
+  their addresses now carry a fingerprint of the file ("input-logo.webp?v=561ea547"), which
+  changes with the file, so no browser can go on showing an older copy it kept. The game's
+  scripts and styles already worked this way; these pictures, whose names never change, did
+  not.
+
+### For developers
+- `App\Support\Fingerprint::asset()` for a fixed-name file under `public/`; the game page
+  fingerprints its logo, icons and manifest (`GameController::FIXED_NAMES`). The icons in
+  `site.webmanifest` carry theirs by hand: after a new icon, `FingerprintTest` says which to
+  update.
+
 ## 2.39.0 - 2026-10-14
 
 ### What's new

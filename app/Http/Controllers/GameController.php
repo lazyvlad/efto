@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Support\BossLoot;
+use App\Support\Fingerprint;
 use App\Support\GameSettings;
 use App\Support\Gear;
 use App\Support\GuestName;
@@ -119,11 +120,33 @@ class GameController extends Controller
             // Counted once: framed by the landing page, that page has already counted the visit
             .($request->boolean('embedded') ? '' : "\n    ".trim(view('layouts.analytics')->render()));
 
-        $html = preg_replace('/<head(\s[^>]*)?>/i', "$0\n    ".$head, $this->hashed($folder, file_get_contents($indexPath)), 1);
+        $html = preg_replace('/<head(\s[^>]*)?>/i', "$0\n    ".$head, $this->fingerprinted($folder, $this->hashed($folder, file_get_contents($indexPath))), 1);
 
         return response($html)
             ->header('Content-Type', 'text/html; charset=utf-8')
             ->header('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+
+    /** The game's files whose names never change, which its page links to */
+    private const FIXED_NAMES = [
+        'favicon.ico', 'favicon-16x16.png', 'favicon-32x32.png', 'apple-touch-icon.png',
+        'site.webmanifest', 'assets/ui/input-logo.webp',
+    ];
+
+    /**
+     * The game's page with its logo, icons and manifest fingerprinted (App\Support\Fingerprint),
+     * so a browser fetches them again when they change rather than keeping an older copy.
+     */
+    private function fingerprinted(string $folder, string $html): string
+    {
+        foreach (self::FIXED_NAMES as $name) {
+            $version = Fingerprint::of(public_path($folder.'/'.$name));
+            if ($version !== '') {
+                $html = str_replace('"'.$name.'"', '"'.$name.'?v='.$version.'"', $html);
+            }
+        }
+
+        return $html;
     }
 
     /**

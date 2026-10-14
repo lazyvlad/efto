@@ -63,7 +63,9 @@ function createNavigationElement(screenKey) {
 
     const logo = document.createElement('img');
     logo.className = 'window-logo';
-    logo.src = 'assets/ui/input-logo.webp';
+    // The same address as the page's own logos, which the site stamps with the file's
+    // fingerprint so a new logo is never kept from an older copy
+    logo.src = document.querySelector('img.window-logo')?.getAttribute('src') || 'assets/ui/input-logo.webp';
     logo.alt = '';
     logo.width = 1200;
     logo.height = 891;
