@@ -105,6 +105,7 @@ class Gear
                         'value' => (int) config("gear.boss_value_per_zone.$rarity") * $zone,
                         'from' => $boss['name'],
                         'side' => $side,
+                        'binding' => 'pickup',
                     ];
                 }
             }
@@ -122,6 +123,7 @@ class Gear
                 'twoHanded' => self::isTwoHanded($itemId),
                 'value' => (int) config("loot.coins.$type"),
                 'from' => 'Falls in a game',
+                'binding' => 'equip',
             ];
         }
 
@@ -137,6 +139,7 @@ class Gear
             'value' => 0,
             'from' => 'A boss, now and then',
             'quiverSlots' => (int) config('boss_loot.quiver.slots', 4),
+            'binding' => 'pickup',
         ];
 
         // The clothes the hunters start in
@@ -153,11 +156,116 @@ class Gear
                     'from' => $side === 'alliance' ? 'The Alliance hunter\'s first clothes' : 'The Horde hunter\'s first clothes',
                     'starter' => $side,
                     'side' => $side,
+                    'binding' => 'pickup',
                 ];
             }
         }
 
         return $catalog;
+    }
+
+    /**
+     * The gear that binds when worn, between the hunters: what each sent the other, and what
+     * each has bound by wearing it (users.gear_ledger).
+     *
+     * @return array{sent: array<string, array<string, int>>, bound: array<string, array<string, int>>}
+     */
+    public static function ledger(User $user): array
+    {
+        $saved = $user->gear_ledger ?? [];
+        $ledger = [];
+        foreach (['sent', 'bound'] as $kind) {
+            foreach (self::SIDES as $side) {
+                $ledger[$kind][$side] = array_map('intval', (array) ($saved[$kind][$side] ?? []));
+            }
+        }
+
+        return $ledger;
+    }
+
+    /** How a thing binds: 'pickup' (to the hunter who got it), 'equip' (when worn), or 'account' */
+    public static function binding(string $itemId): string
+    {
+        return self::catalog()[$itemId]['binding'] ?? 'pickup';
+    }
+
+    /**
+     * How many of each thing a hunter has bound to himself: the bound-on-pickup things he has,
+     * and of the rest, the copies he bound by wearing one (one he wears counts, if he never
+     * did before this was kept).
+     *
+     * @return array<string, int>
+     */
+    public static function bound(User $user, string $side): array
+    {
+        $owned = self::owned($user, $side);
+        $ledger = self::ledger($user)['bound'][$side];
+        $worn = array_count_values(array_values(self::equipmentFor($user, $side) ?? []));
+        $bound = [];
+        foreach ($owned as $itemId => $count) {
+            $copies = self::binding($itemId) === 'equip'
+                ? max($ledger[$itemId] ?? 0, $worn[$itemId] ?? 0)
+                : $count;
+            if ($copies > 0) {
+                $bound[$itemId] = min($count, $copies);
+            }
+        }
+
+        return $bound;
+    }
+
+    /** Copies of a thing a hunter can send the other: his, binding when worn, not yet bound */
+    public static function sendable(User $user, string $side, string $itemId): int
+    {
+        if (self::binding($itemId) !== 'equip') {
+            return 0;
+        }
+
+        return max(0, (self::owned($user, $side)[$itemId] ?? 0) - (self::bound($user, $side)[$itemId] ?? 0));
+    }
+
+    /** Send so many unbound copies of a thing to the other hunter. Returns why not, or null. */
+    public static function send(User $user, string $side, string $itemId, int $count): ?string
+    {
+        if (self::binding($itemId) !== 'equip') {
+            return 'That is bound to your hunter: it cannot be sent.';
+        }
+        if ($count < 1 || $count > self::sendable($user, $side, $itemId)) {
+            return 'Only copies not yet worn can be sent, and no more than there are.';
+        }
+
+        $ledger = self::ledger($user);
+        $ledger['sent'][$side][$itemId] = ($ledger['sent'][$side][$itemId] ?? 0) + $count;
+        $user->forceFill(['gear_ledger' => self::ledgerForSaving($ledger)])->save();
+
+        return null;
+    }
+
+    /** What a hunter wears that binds when worn is his now: one copy of each */
+    public static function bindWorn(User $user, string $side, array $worn): void
+    {
+        $ledger = self::ledger($user);
+        $changed = false;
+        foreach (array_count_values(array_values($worn)) as $itemId => $count) {
+            if (self::binding((string) $itemId) === 'equip' && ($ledger['bound'][$side][$itemId] ?? 0) < $count) {
+                $ledger['bound'][$side][$itemId] = $count;
+                $changed = true;
+            }
+        }
+        if ($changed) {
+            $user->forceFill(['gear_ledger' => self::ledgerForSaving($ledger)])->save();
+        }
+    }
+
+    private static function ledgerForSaving(array $ledger): array
+    {
+        foreach ($ledger as $kind => $sides) {
+            foreach ($sides as $side => $counts) {
+                $ledger[$kind][$side] = (object) array_filter($counts);
+            }
+        }
+
+        return $ledger;
     }
 
     /** The game's own picture of an item (game/assets/items/gear), if it has one */
@@ -239,10 +347,17 @@ class Gear
 
         $catalog = self::catalog();
         $sold = self::sold($user, $side);
+        $ledger = self::ledger($user);
+        $other = $side === 'alliance' ? 'horde' : 'alliance';
         $owned = [];
 
-        foreach (self::found($user, $side) as $itemId => $count) {
-            $left = $count - (int) ($sold[$itemId] ?? 0);
+        // What he found and what the other hunter sent him, less what he sent and sold
+        $has = self::found($user, $side);
+        foreach ($ledger['sent'][$other] as $itemId => $count) {
+            $has[$itemId] = ($has[$itemId] ?? 0) + $count;
+        }
+        foreach ($has as $itemId => $count) {
+            $left = $count - (int) ($ledger['sent'][$side][$itemId] ?? 0) - (int) ($sold[$itemId] ?? 0);
             if (isset($catalog[$itemId]) && $left > 0) {
                 $owned[$itemId] = $left;
             }

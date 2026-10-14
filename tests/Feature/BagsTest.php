@@ -42,8 +42,9 @@ class BagsTest extends TestCase
             ->assertJsonPath('bags.thorium-bar', 1);
 
         // In the bags, not the bank, from one game to the next
-        $this->assertEquals(['runecloth' => 3, 'thorium-bar' => 1], $user->fresh()->bag_contents);
-        $this->assertNull($user->fresh()->materials);
+        $this->assertEquals(['runecloth' => 3, 'thorium-bar' => 1], Bags::contents($user->fresh(), 'alliance'));
+        $this->assertSame([], Bags::contents($user->fresh(), 'horde'));
+        $this->assertSame([], Bags::bank($user->fresh(), 'alliance'));
         $this->assertSame(90, $user->fresh()->coins);
 
         // The next game adds to what is there
@@ -141,6 +142,34 @@ class BagsTest extends TestCase
             // 16 slots: potions take 1 + 2, so 13 for arrows, 2600 at most
             ->assertJsonPath('bags.arrows', 50 + 2000);
         $finish(600, ['stored' => ['arrows' => 3000]])->assertJsonPath('bags.arrows', 2600);
+    }
+
+    public function test_each_hunter_has_his_own_bags_and_bank_and_sends_the_other_what_he_likes(): void
+    {
+        $user = User::factory()->create();
+        // Kept before each hunter had his own: the Alliance hunter's
+        $user->forceFill(['materials' => ['kingsblood' => 30], 'bag_contents' => ['runecloth' => 5]])->save();
+        $this->assertSame(['kingsblood' => 30], Bags::bank($user, 'alliance'));
+        $this->assertSame([], Bags::bank($user, 'horde'));
+
+        // A Horde game keeps what it brings in the Horde hunter's bags
+        $this->actingAs($user);
+        $token = $this->postJson(route('games.open'), ['name' => 'Bob', 'faction' => 'horde'])->json('game');
+        $this->travel(600)->seconds();
+        $this->postJson(route('games.finish', $token), ['score' => 5, 'gameTime' => 590, 'items' => ['fadeleaf' => 4]])
+            ->assertOk()->assertJsonPath('bags.fadeleaf', 4)->assertJsonMissingPath('bags.runecloth');
+        $this->assertSame(['runecloth' => 5], Bags::contents($user->fresh(), 'alliance'));
+
+        // The Horde hunter has no kingsblood of his own to move; the Alliance hunter sends him ten
+        $this->postJson(route('bags.move'), ['item' => 'kingsblood', 'count' => 1, 'to' => 'bags', 'side' => 'horde'])->assertStatus(422);
+        $this->postJson(route('bags.send'), ['item' => 'kingsblood', 'count' => 10, 'side' => 'alliance'])
+            ->assertOk()->assertJsonPath('bank.kingsblood', 20)->assertJsonPath('all.bank.horde.kingsblood', 10);
+        $this->postJson(route('bags.move'), ['item' => 'kingsblood', 'count' => 10, 'to' => 'bags', 'side' => 'horde'])
+            ->assertOk()->assertJsonPath('bags.kingsblood', 10)->assertJsonPath('bags.fadeleaf', 4);
+
+        // No more than he has, and only what is kept (no gear, no junk)
+        $this->postJson(route('bags.send'), ['item' => 'kingsblood', 'count' => 21, 'side' => 'alliance'])->assertStatus(422);
+        $this->postJson(route('bags.send'), ['item' => 'bread', 'count' => 1, 'side' => 'alliance'])->assertStatus(422);
     }
 
     public function test_what_is_crafted_needs_room_in_the_bags(): void

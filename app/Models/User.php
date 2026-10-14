@@ -60,6 +60,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'carried' => 'array',
             'outfits' => 'array',
             'bag_contents' => 'array',
+            'gear_ledger' => 'array',
             'bags' => 'array',
             'materials' => 'array',
             'sold' => 'array',

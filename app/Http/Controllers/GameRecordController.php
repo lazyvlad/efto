@@ -256,8 +256,8 @@ class GameRecordController extends Controller
             'coins' => ['earned' => $game->coins, 'balance' => $owner?->coins],
             // The crafting materials this game brought back, what is in the bank, and what is in
             // the bags now
-            'materials' => ['kept' => (object) ($game->materials ?? []), 'bank' => $owner ? (object) ($owner->materials ?? []) : null],
-            'bags' => $owner ? (object) Bags::contents($owner) : null,
+            'materials' => ['kept' => (object) ($game->materials ?? []), 'bank' => $owner ? (object) Bags::bank($owner, $game->faction ?: 'alliance') : null],
+            'bags' => $owner ? (object) Bags::contents($owner, $game->faction ?: 'alliance') : null,
             'scores' => Score::leaderboard(),
         ]);
     }
@@ -307,7 +307,7 @@ class GameRecordController extends Controller
             }
             $kept = fn ($list) => array_filter($list ?? [], fn ($count, $itemId) => Bags::keepable((string) $itemId), ARRAY_FILTER_USE_BOTH);
             $stored = array_intersect_key($kept($data['stored'] ?? []), config('crafting.stored_per_minute', []));
-            Bags::afterGame($game->user()->first(), $settled['materials'], $kept($data['used'] ?? []), $stored, (int) $game->game_time);
+            Bags::afterGame($game->user()->first(), $game->faction ?: 'alliance', $settled['materials'], $kept($data['used'] ?? []), $stored, (int) $game->game_time);
         }
 
         // Only games that count go on the leaderboard, and Boss Rush and boss fights are not

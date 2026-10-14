@@ -53,6 +53,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/collection', [GameHistoryController::class, 'collection'])->name('collection');
     // What the hunter is wearing, set on the game's character sheet
     Route::put('/api/equipment', [EquipmentController::class, 'update'])->middleware('throttle:60,1')->name('equipment.update');
+    Route::post('/api/gear/send', [EquipmentController::class, 'send'])->middleware('throttle:60,1')->name('gear.send');
     // The sets saved on the character sheet
     Route::put('/api/outfits', [OutfitController::class, 'update'])->middleware('throttle:60,1')->name('outfits.update');
     // Gear sold for coins
@@ -60,6 +61,7 @@ Route::middleware('auth')->group(function () {
     // A bag bought with coins, added to the backpack
     Route::post('/api/bags', [BagController::class, 'buy'])->middleware('throttle:30,1')->name('bags.buy');
     Route::post('/api/bags/move', [BagController::class, 'move'])->middleware('throttle:120,1')->name('bags.move');
+    Route::post('/api/bags/send', [BagController::class, 'send'])->middleware('throttle:60,1')->name('bags.send');
     Route::post('/api/craft', [BagController::class, 'craft'])->middleware('throttle:60,1')->name('craft');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

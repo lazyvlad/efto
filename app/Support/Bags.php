@@ -12,7 +12,9 @@ use App\Models\User;
  * only worth selling is sold for its coins when the game ends; a crafting material stays in
  * the bags instead, from one game to the next (users.bag_contents), with whatever was crafted
  * from such things (config/crafting.php). Between games the player moves materials between
- * the bags and the bank (users.materials, without limit), and crafts from what is in the bags.
+ * the bags and the bank (users.materials, without limit), sends them to the other hunter, and
+ * crafts from what is in the bags. Each hunter has his own bags and bank; the bags themselves
+ * (users.bags, bought from the one purse) are both's.
  * Once the bags are full, what is caught has nowhere to go and is sold on the spot for less;
  * a material sold that way is not kept. Pieces of the hunter sets are worn, not carried, and
  * take no room.
@@ -114,7 +116,7 @@ class Bags
         // More carried than the bags hold, with what was in them when the game began: the
         // game's account of them cannot be right, and everything is paid as if there had been
         // no room for it
-        $stored = self::contents($game->user);
+        $stored = self::contents($game->user, $game->faction ?: 'alliance');
         if (self::slotsUsed(self::plus($stored, array_filter($carried))) > self::capacity($game->user)) {
             $short = array_map(fn (int $count, string $itemId) => $count + $short[$itemId], $carried, array_keys($carried));
             $short = array_combine(array_keys($carried), $short);
@@ -155,13 +157,66 @@ class Bags
     }
 
     /**
-     * What is in a player's bags between games: [itemId => count].
+     * What is in a hunter's bags between games: [itemId => count]. Each hunter has his own
+     * (users.bag_contents is { alliance, horde }); what was kept before that is the Alliance
+     * hunter's, as the loot of then is.
      *
      * @return array<string, int>
      */
-    public static function contents(?User $user): array
+    public static function contents(?User $user, string $side = 'alliance'): array
     {
-        return array_filter(array_map('intval', $user?->bag_contents ?? []), fn (int $count) => $count > 0);
+        return self::ofSide($user?->bag_contents, $side);
+    }
+
+    /**
+     * What a hunter keeps in the bank: materials, potions, arrows; without limit. Each hunter
+     * has his own (users.materials is { alliance, horde }; what was kept before is the Alliance
+     * hunter's).
+     *
+     * @return array<string, int>
+     */
+    public static function bank(?User $user, string $side = 'alliance'): array
+    {
+        return self::ofSide($user?->materials, $side);
+    }
+
+    /** Both hunters' bags and bank, as kept: { alliance: [...], horde: [...] } each */
+    public static function allKept(User $user): array
+    {
+        $all = [];
+        foreach (Gear::SIDES as $side) {
+            $all['bags'][$side] = (object) self::contents($user, $side);
+            $all['bank'][$side] = (object) self::bank($user, $side);
+        }
+
+        return $all;
+    }
+
+    /** One hunter's part of a { alliance, horde } column, or the whole of one kept before */
+    private static function ofSide(?array $saved, string $side): array
+    {
+        $saved ??= [];
+        $perSide = array_intersect(array_keys($saved), Gear::SIDES) !== [];
+        $mine = $perSide ? ($saved[$side] ?? []) : ($side === 'alliance' ? $saved : []);
+
+        return array_filter(array_map('intval', is_array($mine) ? $mine : []), fn (int $count) => $count > 0);
+    }
+
+    /** Keep a hunter's bags and bank as they are now, the other hunter's as they were */
+    private static function keep(User $user, string $side, ?array $contents = null, ?array $bank = null): void
+    {
+        $fill = [];
+        foreach (['bag_contents' => [$contents, 'contents'], 'materials' => [$bank, 'bank']] as $column => [$new, $read]) {
+            if ($new === null) {
+                continue;
+            }
+            $both = [];
+            foreach (Gear::SIDES as $each) {
+                $both[$each] = (object) ($each === $side ? array_filter($new) : self::$read($user, $each));
+            }
+            $fill[$column] = $both;
+        }
+        $user->forceFill($fill)->save();
     }
 
     /** Whether a thing can be kept in the bags between games and in the bank: a material, or something crafted */
@@ -173,17 +228,18 @@ class Bags
     /**
      * After a game: what was drunk or shot from the bags is gone ($used: [itemId => count], no
      * more than there was), and the materials it brought back ($kept) and what it put in them
-     * ($stored: potions, spare arrows) stay in the bags with what was there. What it says it
-     * stored is believed only as far as the time played allows (crafting.stored_per_minute) and
-     * there is room.
+     * ($stored: potions, spare arrows) stay in the bags of the hunter who played it, with what
+     * was there. What it says it stored is believed only as far as the time played allows
+     * (crafting.stored_per_minute) and there is room.
      *
      * @param  array<string, int>  $kept
      * @param  array<string, int>  $used
      * @param  array<string, int>  $stored
      */
-    public static function afterGame(User $user, array $kept, array $used = [], array $stored = [], int $gameSeconds = 0): void
+    public static function afterGame(User $user, string $side, array $kept, array $used = [], array $stored = [], int $gameSeconds = 0): void
     {
-        $contents = self::contents($user);
+        $before = self::contents($user, $side);
+        $contents = $before;
         foreach ($used as $itemId => $count) {
             if (isset($contents[$itemId])) {
                 $contents[$itemId] -= min($contents[$itemId], max(0, (int) $count));
@@ -200,21 +256,21 @@ class Bags
             }
             $contents = self::plus($contents, [$itemId => $count]);
         }
-        if ($contents === self::contents($user)) {
+        if ($contents === $before) {
             return;
         }
 
-        $user->forceFill(['bag_contents' => array_filter($contents)])->save();
+        self::keep($user, $side, $contents);
     }
 
     /**
-     * Move a stack between the bank and the bags. Into the bags only as far as they have
-     * room. Returns why it cannot be, or null when it was moved.
+     * Move a stack between a hunter's bank and his bags. Into the bags only as far as they
+     * have room. Returns why it cannot be, or null when it was moved.
      */
-    public static function move(User $user, string $itemId, int $count, bool $toBags): ?string
+    public static function move(User $user, string $side, string $itemId, int $count, bool $toBags): ?string
     {
-        $bank = array_map('intval', $user->materials ?? []);
-        $contents = self::contents($user);
+        $bank = self::bank($user, $side);
+        $contents = self::contents($user, $side);
         $from = $toBags ? ($bank[$itemId] ?? 0) : ($contents[$itemId] ?? 0);
         if ($count < 1 || $count > $from) {
             return $toBags ? 'There is not that much of it in the bank.' : 'There is not that much of it in your bags.';
@@ -231,23 +287,43 @@ class Bags
             $bank[$itemId] = ($bank[$itemId] ?? 0) + $count;
         }
 
-        $user->forceFill(['bag_contents' => array_filter($contents), 'materials' => array_filter($bank)])->save();
+        self::keep($user, $side, $contents, $bank);
 
         return null;
     }
 
     /**
-     * Make so many of a recipe from what is in the bags; what is made goes into them. Returns
-     * why it cannot be, or null when it was made.
+     * Send so many of a kept thing from one hunter's bank to the other's (materials, potions,
+     * arrows: they are not bound). Returns why it cannot be, or null when it was sent.
      */
-    public static function craft(User $user, string $recipeId, int $count): ?string
+    public static function send(User $user, string $from, string $itemId, int $count): ?string
+    {
+        $to = $from === 'alliance' ? 'horde' : 'alliance';
+        $bank = self::bank($user, $from);
+        if ($count < 1 || $count > ($bank[$itemId] ?? 0)) {
+            return 'There is not that much of it in the bank.';
+        }
+
+        $bank[$itemId] -= $count;
+        $theirs = self::plus(self::bank($user, $to), [$itemId => $count]);
+        self::keep($user, $from, null, $bank);
+        self::keep($user->refresh(), $to, null, $theirs);
+
+        return null;
+    }
+
+    /**
+     * Make so many of a recipe from what is in a hunter's bags; what is made goes into them.
+     * Returns why it cannot be, or null when it was made.
+     */
+    public static function craft(User $user, string $side, string $recipeId, int $count): ?string
     {
         $needs = config("crafting.recipes.{$recipeId}");
         if (! is_array($needs) || $count < 1) {
             return 'There is no such recipe.';
         }
 
-        $contents = self::contents($user);
+        $contents = self::contents($user, $side);
         foreach ($needs as $itemId => $each) {
             if (($contents[$itemId] ?? 0) < $each * $count) {
                 return 'There is not enough of what it takes in your bags.';
@@ -259,7 +335,7 @@ class Bags
             return 'There is no room in your bags for what it makes.';
         }
 
-        $user->forceFill(['bag_contents' => $contents])->save();
+        self::keep($user, $side, $contents);
 
         return null;
     }

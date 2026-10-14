@@ -47,6 +47,42 @@ class EquipmentController extends Controller
             'carried' => array_key_exists('carried', $data) || $user->carried !== null ? $allCarried : null,
         ])->save();
 
+        // What binds when worn is his now
+        Gear::bindWorn($user, $side, $worn);
+
         return response()->json(['equipment' => (object) $worn, 'side' => $side, 'carried' => $carried]);
+    }
+
+    /**
+     * Send gear that binds when worn to the other hunter: only copies not yet worn. What the
+     * sender no longer has is no longer worn or carried by him.
+     */
+    public function send(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'item' => ['required', 'string', 'max:60'],
+            'count' => ['required', 'integer', 'min:1', 'max:1000'],
+            'side' => ['required', 'in:alliance,horde'],
+        ]);
+
+        $user = $request->user();
+        $refused = Gear::send($user, $data['side'], $data['item'], (int) $data['count']);
+        abort_if($refused !== null, 422, (string) $refused);
+
+        // What he no longer has comes off him
+        $user = $user->fresh();
+        $all = Gear::allEquipment($user);
+        foreach ($all as $hunter => $chosen) {
+            $all[$hunter] = $chosen === null ? null : (object) Gear::valid($user, $chosen, $hunter);
+        }
+        if ($user->equipment !== null) {
+            $user->forceFill(['equipment' => $all])->save();
+        }
+
+        return response()->json([
+            'gear' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => (object) Gear::owned($user, $side)])->all(),
+            'bound' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => (object) Gear::bound($user, $side)])->all(),
+            'equipment' => $user->fresh()->equipment,
+        ]);
     }
 }

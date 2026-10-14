@@ -62,14 +62,36 @@ class BagController extends Controller
             'item' => ['required', 'string', 'max:60'],
             'count' => ['required', 'integer', 'min:1', 'max:100000'],
             'to' => ['required', 'in:bags,bank'],
+            'side' => ['sometimes', 'in:alliance,horde'],
         ]);
         abort_unless(Bags::keepable($data['item']), 422, 'That is not kept in the bags.');
 
         $user = $request->user();
-        $refused = Bags::move($user, $data['item'], (int) $data['count'], $data['to'] === 'bags');
+        $side = $data['side'] ?? 'alliance';
+        $refused = Bags::move($user, $side, $data['item'], (int) $data['count'], $data['to'] === 'bags');
         abort_if($refused !== null, 422, (string) $refused);
 
-        return response()->json(self::kept($user));
+        return response()->json(self::kept($user, $side));
+    }
+
+    /**
+     * Send a kept thing (a material, a potion, arrows) from one hunter's bank to the other's,
+     * between games: they are not bound to either.
+     */
+    public function send(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'item' => ['required', 'string', 'max:60'],
+            'count' => ['required', 'integer', 'min:1', 'max:100000'],
+            'side' => ['required', 'in:alliance,horde'],
+        ]);
+        abort_unless(Bags::keepable($data['item']), 422, 'That cannot be sent.');
+
+        $user = $request->user();
+        $refused = Bags::send($user, $data['side'], $data['item'], (int) $data['count']);
+        abort_if($refused !== null, 422, (string) $refused);
+
+        return response()->json(self::kept($user, $data['side']));
     }
 
     /**
@@ -80,20 +102,22 @@ class BagController extends Controller
         $data = $request->validate([
             'recipe' => ['required', 'string', 'in:'.implode(',', array_keys(config('crafting.recipes')))],
             'count' => ['required', 'integer', 'min:1', 'max:1000'],
+            'side' => ['sometimes', 'in:alliance,horde'],
         ]);
 
         $user = $request->user();
-        $refused = Bags::craft($user, $data['recipe'], (int) $data['count']);
+        $side = $data['side'] ?? 'alliance';
+        $refused = Bags::craft($user, $side, $data['recipe'], (int) $data['count']);
         abort_if($refused !== null, 422, (string) $refused);
 
-        return response()->json(self::kept($user));
+        return response()->json(self::kept($user, $side));
     }
 
-    /** What is in the bags and in the bank now */
-    private static function kept(User $user): array
+    /** What is in a hunter's bags and bank now, and both hunters' (for a send) */
+    private static function kept(User $user, string $side): array
     {
         $user->refresh();
 
-        return ['bags' => (object) Bags::contents($user), 'bank' => (object) ($user->materials ?? [])];
+        return ['side' => $side, 'bags' => (object) Bags::contents($user, $side), 'bank' => (object) Bags::bank($user, $side)] + ['all' => Bags::allKept($user)];
     }
 }

@@ -13,7 +13,7 @@
 // opens over the starting window or over the paused game. The rules of the bags are in
 // utils/bags.js; this file draws them and passes on what the player asks for.
 
-import { askConfirm } from './gameDialog.js';
+import { askConfirm, askText } from './gameDialog.js';
 import { gameItems } from '../data/gameItems.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { MATERIALS, categoryOf } from '../data/materials.js';
@@ -366,7 +366,7 @@ function renderBags(main, state) {
     if (short > 0) {
         box.append(make('p', 'inventory-text window-warning', `${short} ${short === 1 ? 'thing' : 'things'} did not fit this game and ${short === 1 ? 'was' : 'were'} sold short.`));
     }
-    if (notice && sideShows !== 'vendor') box.append(make('p', 'inventory-text window-warning', notice));
+    if (notice && !notice.startsWith('Sent ') && sideShows !== 'vendor') box.append(make('p', 'inventory-text window-warning', notice));
     main.append(box);
 }
 
@@ -444,10 +444,28 @@ function renderBank(side, state) {
         button.disabled = state.playing || busy || fits === 0;
         button.title = state.playing ? 'Between games' : fits === 0 ? 'Your bags are full' : fits < count ? `${fits} of them fit in your bags` : `All ${count} to your bags`;
         button.addEventListener('click', () => move(itemId, fits, 'bags'));
-        row.append(picture, text, make('span', 'inventory-row-count', String(count)), button);
+        // To the other hunter: materials, potions and arrows are not bound
+        const other = state.otherSide === 'horde' ? 'Horde' : 'Alliance';
+        const send = make('button', 'game-btn inventory-bank-btn', 'Send');
+        send.type = 'button';
+        send.disabled = state.playing || busy;
+        send.title = state.playing ? 'Between games' : `Send to the ${other} hunter's bank`;
+        send.addEventListener('click', async () => {
+            const name = item ? item.name : itemId;
+            const answer = await askText({ title: `Send ${name} to the ${other} hunter`, text: `How many? You have ${count}.`, value: String(count), yes: 'Send', maxLength: 6 });
+            const many = Math.floor(Number(answer));
+            if (!answer || !(many > 0)) return;
+            busy = true;
+            notice = (await game.onSend(itemId, Math.min(many, count))) || '';
+            busy = false;
+            if (!notice) notice = `Sent ${Math.min(many, count)} ${name} to the ${other} hunter.`;
+            render();
+        });
+        row.append(picture, text, make('span', 'inventory-row-count', String(count)), button, send);
         list.append(row);
     }
     box.append(list);
+    if (notice && notice.startsWith('Sent ')) box.append(make('p', 'inventory-text inventory-made', notice));
     box.append(make('p', 'inventory-text inventory-fine', state.playing
         ? 'Things are moved between the bank and your bags between games.'
         : `Gear in the bank is under Gear. A stack moved to your bags takes one slot for every ${gameConfig.bags.stack}.`));
@@ -782,7 +800,14 @@ function gearRow({ item, count, sells }, state, carried, full, list) {
     picture.alt = '';
     picture.draggable = false;
 
-    const about = [item.twoHanded ? 'Two-handed' : '', item.from, worn ? 'being worn' : '', sells ? `sells for ${formatCoins(item.value)}${count > 1 ? ' each' : ''}` : ''].filter(Boolean).join(' · ');
+    // Bound to him when picked up (boss loot, set pieces, his own clothes), or when worn: gear
+    // that falls in a game can be sent to the other hunter until then
+    const bound = (state.bound && state.bound[item.id]) || 0;
+    const sendable = item.binding === 'equip' ? Math.max(0, count - bound) : 0;
+    const binding = item.binding === 'equip'
+        ? (sendable === 0 ? 'Bound (worn)' : bound > 0 ? `Binds when equipped · ${sendable} not yet bound` : 'Binds when equipped')
+        : 'Soulbound';
+    const about = [binding, item.twoHanded ? 'Two-handed' : '', item.from, worn ? 'being worn' : '', sells ? `sells for ${formatCoins(item.value)}${count > 1 ? ' each' : ''}` : ''].filter(Boolean).join(' · ');
     const text = make('span', 'window-item-text');
     text.append(
         make('span', 'window-item-name', count > 1 ? `${item.name} ×${count}` : item.name),
@@ -802,6 +827,27 @@ function gearRow({ item, count, sells }, state, carried, full, list) {
             : (full ? `Your hunter already carries ${state.carryLimit} things` : 'Take it into the game');
         carry.addEventListener('click', () => moveAcross([item.id], !taken));
         buttons.append(carry);
+    }
+
+    // To the other hunter: only copies not yet bound, between games
+    if (!state.playing && sendable > 0) {
+        const other = state.otherSide === 'horde' ? 'Horde' : 'Alliance';
+        const send = make('button', 'game-btn inventory-send', 'Send');
+        send.type = 'button';
+        send.title = `Send to the ${other} hunter (${sendable} not yet bound)`;
+        send.addEventListener('click', async () => {
+            let many = 1;
+            if (sendable > 1) {
+                const answer = await askText({ title: `Send ${item.name} to the ${other} hunter`, text: `How many? ${sendable} are not yet bound.`, value: String(sendable), yes: 'Send', maxLength: 4 });
+                many = Math.floor(Number(answer));
+                if (!answer || !(many > 0)) return;
+            } else if (!(await askConfirm({ title: `Send ${item.name} to the ${other} hunter?`, text: 'It is his then, until one of them wears it.', yes: 'Send' }))) {
+                return;
+            }
+            notice = (await game.onSendGear(item.id, Math.min(many, sendable))) || '';
+            render();
+        });
+        buttons.append(send);
     }
 
     if (sells && state.canSpend) {

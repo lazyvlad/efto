@@ -153,6 +153,42 @@ class EquipmentTest extends TestCase
         $this->assertArrayHasKey('garricks-red-bandana', Gear::owned($user));
     }
 
+    public function test_gear_that_binds_when_worn_can_be_sent_to_the_other_hunter_until_it_is_worn(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+        $alliance = \App\Models\Game::create(['token' => 'b1', 'user_id' => $user->id, 'name' => 'A', 'faction' => 'alliance', 'status' => \App\Models\Game::FINISHED, 'started_at' => now()]);
+        foreach ([3, 4, 5] as $at) {
+            $alliance->drops()->create(['item_id' => 'miners-cape', 'chunk' => 0, 'at_seconds' => $at, 'claimed_at' => now()]);
+        }
+        $this->assertSame('equip', Gear::binding('miners-cape'));
+        $this->assertSame('pickup', Gear::binding('cape-of-the-brotherhood'));
+        $this->assertSame(3, Gear::sendable($user, 'alliance', 'miners-cape'));
+
+        // He wears one: that copy is his for good, the other two can still go
+        $this->actingAs($user)->putJson(route('equipment.update'), ['side' => 'alliance', 'equipment' => ['back' => 'miners-cape']])->assertOk();
+        $this->assertSame(1, Gear::bound($user->fresh(), 'alliance')['miners-cape']);
+        $this->assertSame(2, Gear::sendable($user->fresh(), 'alliance', 'miners-cape'));
+
+        $this->postJson(route('gear.send'), ['item' => 'miners-cape', 'count' => 3, 'side' => 'alliance'])->assertStatus(422);
+        $this->postJson(route('gear.send'), ['item' => 'miners-cape', 'count' => 2, 'side' => 'alliance'])
+            ->assertOk()->assertJsonPath('gear.alliance.miners-cape', 1)->assertJsonPath('gear.horde.miners-cape', 2);
+        // Still wearing his own
+        $this->assertSame('miners-cape', Gear::worn($user->fresh(), 'alliance')['back']);
+
+        // Sent copies are unbound for the Horde hunter until he wears one
+        $this->assertSame(2, Gear::sendable($user->fresh(), 'horde', 'miners-cape'));
+        $this->putJson(route('equipment.update'), ['side' => 'horde', 'equipment' => ['back' => 'miners-cape']])->assertOk();
+        $this->assertSame(1, Gear::sendable($user->fresh(), 'horde', 'miners-cape'));
+        // ...and one goes back
+        $this->postJson(route('gear.send'), ['item' => 'miners-cape', 'count' => 1, 'side' => 'horde'])
+            ->assertOk()->assertJsonPath('gear.alliance.miners-cape', 2)->assertJsonPath('gear.horde.miners-cape', 1);
+
+        // Bound when picked up: boss loot never goes
+        $user->bossDrops()->create(['boss_id' => 'edwin-vancleef', 'item_id' => 'cape-of-the-brotherhood', 'rarity' => 'rare', 'dropped_at' => now()]);
+        $this->postJson(route('gear.send'), ['item' => 'cape-of-the-brotherhood', 'count' => 1, 'side' => 'alliance'])->assertStatus(422);
+        $this->get(route('play'))->assertSee('"bound":{"alliance":{', false);
+    }
+
     public function test_each_hunter_owns_what_he_won_and_sells_only_that(): void
     {
         $user = User::factory()->create(['email_verified_at' => now()]);

@@ -73,11 +73,15 @@ class GameController extends Controller
                 'outfits' => Gear::allOutfits($user),
                 // The gear owned besides the sets, and how many of each (App\Support\Gear)
                 'gear' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => (object) ($user->canUseRewards() ? Gear::owned($user, $side) : [])])->all(),
+                // Of that, the copies bound to each hunter (the rest, gear that binds when worn,
+                // can be sent to the other)
+                'bound' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => (object) ($user->canUseRewards() ? Gear::bound($user, $side) : [])])->all(),
                 // The bags bought (their sizes), what is in them between games, and the bank of
                 // materials and what is crafted from them (App\Support\Bags)
                 'bags' => $user->canUseRewards() ? ($user->bags ?? []) : [],
-                'bagContents' => (object) Bags::contents($user),
-                'materials' => (object) ($user->materials ?? []),
+                // ...each hunter his own: { alliance, horde } each
+                'bagContents' => Bags::allKept($user)['bags'],
+                'materials' => Bags::allKept($user)['bank'],
                 // The bosses the player has beaten: the ones they may fight again on their own
                 'bosses' => $user->bossDrops()->distinct()->pluck('boss_id')->all(),
             ] : null,
@@ -111,6 +115,8 @@ class GameController extends Controller
                 'outfits' => route('outfits.update'),
                 'bags' => route('bags.buy'),
                 'bagsMove' => route('bags.move'),
+                'bagsSend' => route('bags.send'),
+                'gearSend' => route('gear.send'),
                 'craft' => route('craft'),
                 'sell' => route('vendor.sell'),
                 'verify' => route('verification.notice'),

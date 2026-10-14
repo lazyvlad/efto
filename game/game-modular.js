@@ -1063,6 +1063,15 @@ function carryMany(itemIds, take) {
 // changes on the sheet is one request)
 function saveEquipment() {
     const side = currentSide();
+    // What binds when worn is his now (the site does the same when it is saved)
+    if (siteBoot && siteBoot.user) {
+        const bound = { ...sideOf(siteBoot.user.bound, side) };
+        for (const itemId of Object.values(gameState.equipment)) {
+            const item = gearCatalog()[itemId];
+            if (item && item.binding === 'equip') bound[itemId] = Math.max(bound[itemId] || 0, 1);
+        }
+        setSideOf('bound', side, bound);
+    }
     try {
         localStorage.setItem(`${EQUIPMENT_KEY}_${side}`, JSON.stringify(gameState.equipment));
         localStorage.setItem(WORN_SET_KEY, gameState.wornSet);
@@ -2806,7 +2815,11 @@ function setupUIEventHandlers() {
                 forSale: user && siteBoot.bagsForSale ? siteBoot.bagsForSale : null,
                 coins: user ? user.coins || 0 : null,
                 canSpend: Boolean(user && user.verified),
-                bank: user && user.materials ? user.materials : {},
+                bank: bankContents(),
+                otherSide: currentSide() === 'alliance' ? 'horde' : 'alliance',
+                // The copies of each thing bound to this hunter (the rest that bind when worn
+                // can be sent to the other)
+                bound: user ? sideOf(user.bound) : {},
                 loggedIn: Boolean(user),
                 // The gear owned besides the sets: how many of each, and which are being worn
                 gear: user ? accountGear() : {},
@@ -2825,6 +2838,8 @@ function setupUIEventHandlers() {
         },
         onBuyBag: buyBag,
         onMove: moveKept,
+        onSend: sendKept,
+        onSendGear: sendGear,
         onCraft: craft,
         onSell: sellGear,
         onCarry: carryMany,
@@ -4247,7 +4262,7 @@ function resetItemsListCache() {
 // (materials, what was crafted, potions and spare arrows) takes its room from what the game
 // catches. Then the quiver is topped up from the spare arrows.
 function emptyBags() {
-    const kept = siteBoot && siteBoot.user && siteBoot.user.bagContents ? siteBoot.user.bagContents : {};
+    const kept = siteBoot && siteBoot.user ? sideOf(siteBoot.user.bagContents, gameState.faction || currentSide()) : {};
     gameState.bags = { contents: { ...kept }, overflow: {} };
     gameState.bagsAtStart = { ...kept };
     gameState.potionReadyAt = {};
@@ -4262,10 +4277,30 @@ function emptyBags() {
     };
 }
 
-// What the bags hold between games (or in the game being played)
+// A hunter's part of what the site keeps for both ({ alliance, horde }); a page from before
+// each hunter had his own sent one lot, which is the Alliance hunter's
+function sideOf(kept, side = currentSide()) {
+    if (!kept) return {};
+    if (kept.alliance === undefined && kept.horde === undefined) return side === 'alliance' ? kept : {};
+    return kept[side] || {};
+}
+
+// Set a hunter's part, keeping the other's
+function setSideOf(key, side, value) {
+    const kept = siteBoot.user[key];
+    const both = kept && (kept.alliance !== undefined || kept.horde !== undefined) ? kept : { alliance: kept || {}, horde: {} };
+    siteBoot.user[key] = { ...both, [side]: value || {} };
+}
+
+// What the bags hold between games (or in the game being played): this hunter's
 function bagContents() {
     if (gameState.gameRunning || gameState.showingPauseMenu) return gameState.bags.contents;
-    return siteBoot && siteBoot.user && siteBoot.user.bagContents ? siteBoot.user.bagContents : {};
+    return siteBoot && siteBoot.user ? sideOf(siteBoot.user.bagContents) : {};
+}
+
+// What this hunter keeps in the bank
+function bankContents() {
+    return siteBoot && siteBoot.user ? sideOf(siteBoot.user.materials) : {};
 }
 
 // What a game did to the kept things in the bags that are not materials (potions, arrows): what
@@ -4394,8 +4429,11 @@ async function postKept(url, body, failed) {
         const result = await response.json();
         if (!response.ok) return result.message || failed;
         
-        siteBoot.user.bagContents = result.bags || {};
-        siteBoot.user.materials = result.bank || {};
+        // Both hunters' bags and bank as they are now (a send changes the other's too)
+        if (result.all) {
+            siteBoot.user.bagContents = result.all.bags;
+            siteBoot.user.materials = result.all.bank;
+        }
         return '';
     } catch (e) {
         return `${failed} No answer from the site.`;
@@ -4405,13 +4443,44 @@ async function postKept(url, body, failed) {
 function moveKept(itemId, count, to) {
     if (!hasBank() || !siteBoot.urls.bagsMove) return Promise.resolve('Log in to keep things in the bank.');
     if (isPlaying()) return Promise.resolve('Things are moved between the bank and your bags between games.');
-    return postKept(siteBoot.urls.bagsMove, { item: itemId, count, to }, 'It could not be moved.');
+    return postKept(siteBoot.urls.bagsMove, { item: itemId, count, to, side: currentSide() }, 'It could not be moved.');
+}
+
+// Send gear that binds when worn to the other hunter: copies not yet worn, between games
+async function sendGear(itemId, count) {
+    if (!hasBank() || !siteBoot.urls.gearSend) return 'Log in to keep gear.';
+    if (isPlaying()) return 'Gear is sent between games.';
+    try {
+        const response = await fetch(siteBoot.urls.gearSend, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': siteBoot.csrfToken || '' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ item: itemId, count, side: currentSide() })
+        });
+        const result = await response.json();
+        if (!response.ok) return result.message || 'It could not be sent.';
+        
+        siteBoot.user.gear = result.gear;
+        siteBoot.user.bound = result.bound;
+        if (result.equipment) siteBoot.user.equipment = result.equipment;
+        restoreEquipment();
+        return '';
+    } catch (e) {
+        return 'It could not be sent: no answer from the site.';
+    }
+}
+
+// Send from this hunter's bank to the other's: materials, potions and arrows are not bound
+function sendKept(itemId, count) {
+    if (!hasBank() || !siteBoot.urls.bagsSend) return Promise.resolve('Log in to keep things in the bank.');
+    if (isPlaying()) return Promise.resolve('Things are sent between games.');
+    return postKept(siteBoot.urls.bagsSend, { item: itemId, count, side: currentSide() }, 'It could not be sent.');
 }
 
 function craft(recipeId, count) {
     if (!hasBank() || !siteBoot.urls.craft) return Promise.resolve('Log in to craft.');
     if (isPlaying()) return Promise.resolve('Crafting is done between games.');
-    return postKept(siteBoot.urls.craft, { recipe: recipeId, count }, 'It could not be made.');
+    return postKept(siteBoot.urls.craft, { recipe: recipeId, count, side: currentSide() }, 'It could not be made.');
 }
 
 // Something worth coins was caught: into the bags with it, and the coins it comes to
@@ -4812,12 +4881,12 @@ function endGame() {
                 // What is kept on the account now, for the inventory, and the totals beside
                 // the materials brought home
                 if (result.materials && result.materials.bank && siteBoot && siteBoot.user) {
-                    siteBoot.user.materials = result.materials.bank;
+                    setSideOf('materials', gameState.faction, result.materials.bank);
                 }
                 // The bags as they are kept now: the materials this game brought, less what
                 // was drunk
                 if (result.bags && siteBoot && siteBoot.user) {
-                    siteBoot.user.bagContents = result.bags;
+                    setSideOf('bagContents', gameState.faction, result.bags);
                     showGameOverResult({ home: summary.home.map(thing => thing.material && result.bags[thing.material]
                         ? { ...thing, note: `${result.bags[thing.material]} in your bags now` }
                         : thing) });
