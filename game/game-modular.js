@@ -2766,6 +2766,15 @@ function restartGameFromUI() {
 
 // ===== UI EVENT HANDLERS =====
 
+// Between games the character sheet's and the inventory's Alliance and Horde show (and play)
+// that side's hunter: the map moves to where that side starts
+function showSide(side) {
+    if (isPlaying() || side === currentSide()) return;
+    setFaction(side);
+    showStartMap();
+    restoreEquipment();
+}
+
 // Set up UI event handlers
 function setupUIEventHandlers() {
     
@@ -2828,12 +2837,7 @@ function setupUIEventHandlers() {
         onOpenInventory: () => showInventory(),
         // Between games the sheet's Alliance and Horde dress (and play) that side's hunter: the
         // map moves to where that side starts
-        onShowSide: side => {
-            if (isPlaying() || side === currentSide()) return;
-            setFaction(side);
-            showStartMap();
-            restoreEquipment();
-        },
+        onShowSide: showSide,
         onCloseAll: closeWindowsAndResume,
         onWearOutfit: wearOutfit,
         onSaveOutfit: saveOutfit,
@@ -2876,6 +2880,9 @@ function setupUIEventHandlers() {
                 // takes into a game (the other hunter's things are in his own inventory)
                 owned: [...forSide(ownedPieces())],
                 faction: currentSide(),
+                // Whose inventory it is, for its heading
+                name: getAccountName() || gameState.playerName || document.getElementById('playerNameInput')?.value || 'Hunter',
+                level: (gameState.currentLevel || 0) + 1,
                 carried: gameState.carried,
                 carryLimit: gameConfig.bags.carry,
                 // The pictures of the place and the hunter, for the gear tab
@@ -2888,6 +2895,7 @@ function setupUIEventHandlers() {
         onMove: moveKept,
         onSend: sendKept,
         onSendGear: sendGear,
+        onShowSide: showSide,
         onCraft: craft,
         onSell: sellGear,
         onCarry: carryMany,

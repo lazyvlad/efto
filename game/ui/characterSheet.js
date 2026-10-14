@@ -170,7 +170,8 @@ function renderHeading(state) {
     });
 
     element('sheetName').textContent = state.name || 'Hunter';
-    element('sheetSubtitle').textContent = state.playing ? `Level ${state.level} \u00b7 ${side}` : `${side} \u00b7 Hunter`;
+    element('sheetSubtitle').textContent = state.playing ? `${side} hunter \u00b7 Level ${state.level}` : `${side} hunter`;
+    element('sheetSubtitle').dataset.side = faction;
 
     // The hunter stands in the place picked on the map, or the one the game is in
     // (made whole first: a url() in a style is read against the stylesheet, not the page)

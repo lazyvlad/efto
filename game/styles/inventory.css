@@ -23,14 +23,22 @@
     gap: 22px;
 }
 
-/* Named for those who hear the page; the medallion and the tabs say it for the rest */
-.inventory-title {
-    position: absolute;
-    width: 1px;
-    height: 1px;
+/* Whose inventory: the hunter's side and name */
+.inventory-who {
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+.inventory-who h2 {
+    margin: 0;
+    font-size: 22px;
     overflow: hidden;
-    clip: rect(0 0 0 0);
+    text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+#inventorySides[hidden] {
+    display: none;
 }
 
 .inventory-tab {

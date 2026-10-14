@@ -45,6 +45,26 @@
     color: #a89a78;
 }
 
+/* Whose window it is: the hunter's side, in its colour, with a crest-like mark before it */
+.side-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.side-label::before {
+    content: '';
+    width: 10px;
+    height: 12px;
+    clip-path: polygon(0 0, 100% 0, 100% 62%, 50% 100%, 0 62%);
+    background: currentColor;
+}
+
+.side-label[data-side="alliance"] { color: #6fa8ff; }
+.side-label[data-side="horde"] { color: #ff6a5c; }
+
 /* A dark inset card, like the place card beside the map */
 .window-card {
     box-sizing: border-box;

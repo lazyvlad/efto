@@ -78,6 +78,8 @@ export function isInventoryOpen() {
  *        For that the state has owned (ids, what the hunter of the side, faction, can wear),
  *        carried (ids), carryLimit and playing, and scene
  *        and figure: the pictures of the place and the hunter for the gear tab.
+ * @param {Function} options.onShowSide - (side) between games: show (and play) that side's
+ *        hunter. The state's faction, name and level say whose inventory it is.
  * @param {Function} options.onOpenGear - () open the character sheet
  * @param {Function} options.onCloseAll - () close the inventory and every menu, and go on with
  *        the game if one is under way (Back goes to where it was opened from)
@@ -90,6 +92,16 @@ export function initializeInventory(options) {
 
     element('inventoryClose').addEventListener('click', closeInventory);
     element('inventoryCharacter').addEventListener('click', () => game.onOpenGear());
+    layer.querySelectorAll('.inventory-side-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            if (button.dataset.side === game.getState().faction) return;
+            game.onShowSide(button.dataset.side);
+            notice = '';
+            clearPicked();
+            drawnTab = null;
+            render();
+        });
+    });
     element('inventoryCloseAll').addEventListener('click', () => game.onCloseAll());
     layer.addEventListener('click', event => {
         if (event.target === layer) closeInventory();
@@ -150,11 +162,27 @@ function render() {
         button.setAttribute('aria-selected', String(shown));
     });
 
-    // What the player has to spend
+    // Whose it is: the hunter being played, or the one picked between games
+    const faction = state.faction === 'horde' ? 'horde' : 'alliance';
+    const sideName = faction === 'horde' ? 'Horde' : 'Alliance';
+    element('inventory').dataset.side = faction;
+    const subtitle = element('inventorySubtitle');
+    subtitle.textContent = state.playing ? `${sideName} hunter \u00b7 Level ${state.level}` : `${sideName} hunter`;
+    subtitle.dataset.side = faction;
+    element('inventoryTitle').textContent = `${state.name || 'Hunter'}'s inventory`;
+    element('inventorySides').hidden = state.playing;
+    document.querySelectorAll('#inventorySides .inventory-side-btn').forEach(button => {
+        const shown = button.dataset.side === faction;
+        button.classList.toggle('is-on', shown);
+        button.setAttribute('aria-pressed', String(shown));
+    });
+
+    // What the player has to spend (one purse, both hunters')
     const purse = element('inventoryPurse');
     purse.hidden = state.coins === null;
     purse.textContent = '';
-    if (state.coins !== null) purse.append('You have ', make('strong', '', formatCoins(state.coins)));
+    if (state.coins !== null) purse.append('Purse ', make('strong', '', formatCoins(state.coins)));
+    purse.title = 'One purse for both hunters';
 
     const body = element('inventoryBody');
     // Drawn again after a press (Take, Leave, a pick): every list stays where it was scrolled to
