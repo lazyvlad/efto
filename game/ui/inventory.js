@@ -10,6 +10,7 @@
 // opens over the starting window or over the paused game. The rules of the bags are in
 // utils/bags.js; this file draws them and passes on what the player asks for.
 
+import { askConfirm } from './gameDialog.js';
 import { gameItems } from '../data/gameItems.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { MATERIALS, categoryOf } from '../data/materials.js';
@@ -654,9 +655,14 @@ function gearRow({ item, count, sells }, state, carried, full, list) {
             button.textContent = 'Sell the last';
             button.classList.add('is-last');
             button.title = `Pays ${formatCoins(item.value)}. You will no longer be able to wear it.`;
-            button.addEventListener('click', () => {
-                const warning = `This is your only ${item.name}${worn ? ', and you are wearing it' : ''}. Once it is sold you can no longer wear it, until you find another. Sell it for ${formatCoins(item.value)}?`;
-                if (!window.confirm(warning)) return;
+            button.addEventListener('click', async () => {
+                const sure = await askConfirm({
+                    title: `Sell your only ${item.name}?`,
+                    text: `${worn ? 'You are wearing it. ' : ''}Once it is sold you can no longer wear it, until you find another. It pays ${formatCoins(item.value)}.`,
+                    yes: 'Sell it',
+                    danger: true,
+                });
+                if (!sure) return;
                 button.disabled = true;
                 sell(item.id, 1);
             });

@@ -33,6 +33,7 @@ import { initializeCharacterSheet, refreshCharacterSheet, openCharacterSheet, cl
 import { Pet } from './classes/Pet.js';
 import { playerCharacters, characterFor } from './data/playerCharacters.js';
 import { hunterPicture } from './utils/hunterLooks.js';
+import { askConfirm } from './ui/gameDialog.js';
 import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost, renderGameModePicker, getGameMode, gameModeCost, rememberBeaten } from './ui/startZone.js';
 import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
 import { showGameOverSummary, showGameOverResult } from './ui/gameOverScreen.js';
@@ -802,8 +803,9 @@ function activeDebuffs() {
 
 // The player ends the game from the pause menu: it is handed in as it stands, like any game
 // that ran to its end
-function finishGameNow() {
-    if (!window.confirm('Finish this game now? It is recorded with the score you have.')) return;
+async function finishGameNow() {
+    const sure = await askConfirm({ title: 'Finish this game now?', text: 'It is recorded with the score you have.', yes: 'Finish it', no: 'Keep playing' });
+    if (!sure || !gameState.showingPauseMenu) return;
     
     gameState.showingPauseMenu = false;
     gameState.gamePaused = false;
