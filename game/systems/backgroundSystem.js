@@ -84,6 +84,11 @@ export function setFaction(id) {
     }
 }
 
+// The picture showing now (its path), for the windows that show the hunter in his place
+export function currentBackgroundImage() {
+    return current ? current.image : null;
+}
+
 // The backgrounds of the chosen side, in order
 export function factionBackgrounds() {
     return faction ? backgrounds[faction] : [];

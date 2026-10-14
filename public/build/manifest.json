@@ -15,12 +15,8 @@
     "file": "assets/noto-sans-math-BUqFb9Dg.woff2",
     "src": "game/assets/fonts/noto-sans-math.woff2"
   },
-  "game/assets/ui/character-sheet.webp": {
-    "file": "assets/character-sheet-BNtUE0dQ.webp",
-    "src": "game/assets/ui/character-sheet.webp"
-  },
   "game/game-modular.js": {
-    "file": "assets/game-modular-BvM0tJLg.js",
+    "file": "assets/game-modular-jGC_pJSP.js",
     "name": "game-modular",
     "src": "game/game-modular.js",
     "isEntry": true,
@@ -29,7 +25,7 @@
     ]
   },
   "game/styles/game.css": {
-    "file": "assets/game-D1Y0kuNv.css",
+    "file": "assets/game-VsIM4ApP.css",
     "src": "game/styles/game.css",
     "isEntry": true,
     "name": "game",
@@ -66,7 +62,7 @@
     "isDynamicEntry": true
   },
   "resources/css/app.css": {
-    "file": "assets/app-7vmFXyN6.css",
+    "file": "assets/app-bHvqRO2p.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",

@@ -107,13 +107,22 @@
         color: #fff;
     }
 
-    /* The wordmark: sized by the text size given where it is used, never stretched */
+    /* The medallion: sized by the text size given where it is used, never stretched. It is
+       nearly as tall as it is wide, so it is drawn taller than the bar it sits in and hangs
+       over its edges, rather than making the bar taller. */
     .site-logo {
         display: block;
-        height: 2.2em;
+        height: 3.6em;
+        margin: -0.7em 0;
         width: auto;
         max-width: 90vw;
         filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.6));
+    }
+
+    /* In the bar along the top of the page it hangs down over the bar's edge, not up out of
+       the window */
+    nav .site-logo {
+        transform: translateY(0.35em);
     }
 
     /* The film on the About page: square, so it is kept from filling the whole column */

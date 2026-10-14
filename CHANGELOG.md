@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.37.0 - 2026-10-14
+
+### What's new
+
+**A new logo**
+- The game has a new logo: a bronze compass medallion with the sea of the starting map in
+  it, the name in ivory across it and an arrow under it. It is on the starting window, in
+  the bar along the top of the site and on the log-in pages.
+
+**The character sheet and the inventory look like the starting map**
+- Both are now drawn like the starting map's window: dark stone with a thin gold trim, gold
+  headings and the same buttons, with the new logo in their top row.
+- On the character sheet the hunter stands in the painting of the place picked on the map
+  (in a game, the place the game is in), with his slots down both sides of him. Beside him:
+  what he has, as four figures, the three sets, and the slot that is picked, with "Put on"
+  in red.
+- The character sheet has an Inventory button, and the inventory a Character button, so
+  either opens the other in its place.
+- The inventory is as large as the character sheet. **Bags** shows the slots of your bags,
+  the materials you have kept, and the bag vendor beside them; **Gear** shows what your
+  hunter carries and what is in the bank side by side, with the hunter, how much he
+  carries, and the button that sells every spare copy. Materials no longer have a tab of
+  their own.
+- On a phone both are the whole screen, as before.
+
 ## 2.36.0 - 2026-10-14
 
 ### What's new

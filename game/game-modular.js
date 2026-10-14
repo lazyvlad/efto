@@ -31,6 +31,7 @@ import { wearables, wearableById, isKeptGear, gearCatalog } from './data/wearabl
 import { initializeInventory, openInventory, closeInventory, isInventoryOpen, refreshInventory } from './ui/inventory.js';
 import { initializeCharacterSheet, refreshCharacterSheet, openCharacterSheet, closeCharacterSheet, isCharacterSheetOpen } from './ui/characterSheet.js';
 import { Pet } from './classes/Pet.js';
+import { playerCharacters } from './data/playerCharacters.js';
 import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost, renderGameModePicker, getGameMode, gameModeCost, rememberBeaten } from './ui/startZone.js';
 import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
 import { showTravelMap } from './ui/travelMap.js';
@@ -41,7 +42,7 @@ import { actionFor, keyName, resetKeys } from './utils/keybindings.js';
 import { say, preloadVoiceLines, resetVoiceLines, updateBanter, watchHealth, forgetHealth } from './systems/voiceSystem.js';
 import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies } from './systems/bossSystem.js';
 import { BossProjectile } from './classes/BossProjectile.js';
-import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground } from './systems/backgroundSystem.js';
+import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground, currentBackgroundImage } from './systems/backgroundSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState, updateMouseLock } from './systems/inputSystem.js';
 // drawSettings removed - now using HTML+CSS guide
 
@@ -1067,6 +1068,8 @@ function showInventory() {
         // Not when it was left for the character sheet, which then has the game paused
         if (fromPlay && gameState.showingPauseMenu && !isCharacterSheetOpen()) hidePauseMenu();
     });
+    // Opened from the character sheet: in its place
+    if (isCharacterSheetOpen()) closeCharacterSheet();
 }
 
 // Buy a bag with coins. Resolves to what went wrong, in words, or '' when it is bought.
@@ -1127,7 +1130,8 @@ function showCharacterSheet() {
     if (fromPlay) showPauseMenu();
     
     openCharacterSheet(() => {
-        if (fromPlay && gameState.showingPauseMenu) hidePauseMenu();
+        // Not when it was left for the inventory, which then has the game paused
+        if (fromPlay && gameState.showingPauseMenu && !isInventoryOpen()) hidePauseMenu();
     });
     // The key of the sheet closes the inventory first
     if (isInventoryOpen()) closeInventory();
@@ -2326,6 +2330,9 @@ function setupUIEventHandlers() {
             inBank: ownedPieces().size - availablePieces().size,
             // What a player with an account takes into a game (a guest has no bank)
             carried: hasBank() ? new Set(gameState.carried) : null,
+            carryLimit: gameConfig.bags.carry,
+            // The place picked on the map, or the one the game is in
+            scene: currentBackgroundImage(),
             faction: gameState.faction || getFaction(),
             name: getAccountName() || gameState.playerName || document.getElementById('playerNameInput')?.value || 'Hunter',
             level: (gameState.currentLevel || 0) + 1,
@@ -2345,6 +2352,7 @@ function setupUIEventHandlers() {
             return refused;
         },
         onWearSet: setId => wearSet(setId, false),
+        onOpenInventory: () => showInventory(),
     });
     // The inventory (ui/inventory.js): the bags, the materials kept, and bags to buy
     initializeInventory({
@@ -2372,6 +2380,9 @@ function setupUIEventHandlers() {
                 owned: [...ownedPieces()],
                 carried: gameState.carried,
                 carryLimit: gameConfig.bags.carry,
+                // The pictures of the place and the hunter, for the gear tab
+                scene: currentBackgroundImage(),
+                figure: (playerCharacters[gameState.faction || getFaction()] || playerCharacters.alliance).image,
                 fullBagLoss: Math.max(0, gameConfig.bags.fullPenalty - gameState.setBonus.carrying),
             };
         },

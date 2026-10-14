@@ -52,20 +52,21 @@
     <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
-    <link rel="stylesheet" href="styles/base.css?v=2.36.0">
-    <link rel="stylesheet" href="styles/ui-components.css?v=2.36.0">
-    <link rel="stylesheet" href="styles/settings.css?v=2.36.0">
-    <link rel="stylesheet" href="styles/notifications.css?v=2.36.0">
-    <link rel="stylesheet" href="styles/game-panels.css?v=2.36.0">
-    <link rel="stylesheet" href="styles/spell-bar.css?v=2.36.0">
-    <link rel="stylesheet" href="styles/how-to-play.css?v=2.36.0">
-    <link rel="stylesheet" href="styles/mobile.css?v=2.36.0">
-    <link rel="stylesheet" href="styles/wow-theme.css?v=2.36.0">
-    <link rel="stylesheet" href="styles/character-sheet.css?v=2.36.0">
-    <link rel="stylesheet" href="styles/inventory.css?v=2.36.0">
-    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.36.0"> -->
+    <link rel="stylesheet" href="styles/base.css?v=2.37.0">
+    <link rel="stylesheet" href="styles/ui-components.css?v=2.37.0">
+    <link rel="stylesheet" href="styles/settings.css?v=2.37.0">
+    <link rel="stylesheet" href="styles/notifications.css?v=2.37.0">
+    <link rel="stylesheet" href="styles/game-panels.css?v=2.37.0">
+    <link rel="stylesheet" href="styles/spell-bar.css?v=2.37.0">
+    <link rel="stylesheet" href="styles/how-to-play.css?v=2.37.0">
+    <link rel="stylesheet" href="styles/mobile.css?v=2.37.0">
+    <link rel="stylesheet" href="styles/wow-theme.css?v=2.37.0">
+    <link rel="stylesheet" href="styles/game-window.css?v=2.37.0">
+    <link rel="stylesheet" href="styles/character-sheet.css?v=2.37.0">
+    <link rel="stylesheet" href="styles/inventory.css?v=2.37.0">
+    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.37.0"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
-  <!-- Built: 2026-10-14T03:05:32.608Z | Version: 2.36.0 | Mode: Production -->
+  <!-- Built: 2026-10-14T03:56:39.664Z | Version: 2.37.0 | Mode: Production -->
 </head>
 <body>
     <!-- The background: two layers that fade from one picture to the next (backgroundSystem.js) -->
@@ -157,43 +158,48 @@
     <!-- The character sheet: the hunter and what he wears (ui/characterSheet.js). It opens over
          the starting window or over the paused game. -->
     <div id="characterSheet" class="character-sheet-layer" hidden>
-        <div class="character-sheet" role="dialog" aria-modal="true" aria-labelledby="sheetName">
+        <div class="character-sheet game-window" role="dialog" aria-modal="true" aria-labelledby="sheetName">
             <header class="sheet-heading">
-                <div>
+                <img class="window-logo" src="assets/ui/input-logo.webp" alt="" width="1200" height="891">
+                <div class="sheet-who">
+                    <p id="sheetSubtitle" class="window-label"></p>
                     <h2 id="sheetName">Hunter</h2>
-                    <p id="sheetSubtitle"></p>
                 </div>
                 <div class="sheet-heading-buttons">
                     <!-- Which character is shown, before a game; in a game it is the one being played -->
-                    <div class="sheet-sides" id="sheetSides" role="group" aria-label="Character shown">
-                        <button type="button" class="sheet-side-btn" data-side="alliance">Alliance</button>
-                        <button type="button" class="sheet-side-btn" data-side="horde">Horde</button>
+                    <div class="joined-buttons" id="sheetSides" role="group" aria-label="Character shown">
+                        <button type="button" class="game-btn sheet-side-btn" data-side="alliance">Alliance</button>
+                        <button type="button" class="game-btn sheet-side-btn" data-side="horde">Horde</button>
                     </div>
-                    <button type="button" id="characterSheetClose" class="sheet-close" aria-label="Close the character sheet">Close</button>
+                    <button type="button" id="sheetInventory" class="game-btn">Inventory</button>
+                    <button type="button" id="characterSheetClose" class="game-btn" aria-label="Close the character sheet">Close</button>
                 </div>
             </header>
 
             <div class="sheet-body">
-                <!-- The hunter with his slots around him: eight left, eight right, three below -->
-                <div class="sheet-stage">
-                    <div class="sheet-slots sheet-slots-left" id="sheetSlots-left"></div>
+                <!-- The hunter in the place he is in, with his slots around him: eight left,
+                     eight right, three below -->
+                <div class="sheet-stage" id="sheetStage">
                     <div class="sheet-figure"><img id="sheetFigure" alt=""></div>
+                    <div class="sheet-slots sheet-slots-left" id="sheetSlots-left"></div>
                     <div class="sheet-slots sheet-slots-right" id="sheetSlots-right"></div>
                     <div class="sheet-slots sheet-slots-bottom" id="sheetSlots-bottom"></div>
                 </div>
 
                 <!-- What it all gives, the three sets, and the slot that is picked -->
                 <aside class="sheet-side">
-                    <section>
-                        <h3>Hunter</h3>
+                    <section class="window-card">
+                        <div class="window-card-title">
+                            <h3>What he has</h3>
+                            <span id="sheetCarrying" class="window-label"></span>
+                        </div>
                         <div id="sheetStats" class="sheet-stats"></div>
-                        <p id="sheetBonuses" class="sheet-bonuses"></p>
+                        <p id="sheetBonuses" class="sheet-bonuses window-reward"></p>
+                        <p id="sheetFullBags" class="sheet-fullbags"></p>
                     </section>
-                    <section>
-                        <h3>Put on a whole set</h3>
-                        <div id="sheetSets" class="sheet-sets"></div>
-                    </section>
-                    <section class="sheet-slot-panel">
+                    <div id="sheetSets" class="sheet-sets" role="group" aria-label="Put on a whole set"></div>
+                    <section class="window-card sheet-slot-panel">
+                        <p class="window-label">The slot picked</p>
                         <h3 id="sheetSlotName">Head</h3>
                         <div id="sheetItems" class="sheet-items"></div>
                     </section>
@@ -202,19 +208,23 @@
         </div>
     </div>
 
-    <!-- The inventory: the bags and what is in them, the crafting materials kept, and the way
-         to the gear (ui/inventory.js). It opens over the starting window or the paused game. -->
+    <!-- The inventory: the bags and what is in them, the crafting materials kept, and the gear
+         owned (ui/inventory.js). It opens over the starting window or the paused game. -->
     <div id="inventory" class="character-sheet-layer inventory-layer" hidden>
-        <div class="inventory" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle">
-            <header class="inventory-heading">
-                <h2 id="inventoryTitle">Inventory</h2>
-                <button type="button" id="inventoryClose" class="sheet-close" aria-label="Close the inventory">Close</button>
+        <div class="inventory game-window" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle">
+            <header class="inventory-top">
+                <img class="window-logo" src="assets/ui/input-logo.webp" alt="" width="1200" height="891">
+                <h2 id="inventoryTitle" class="inventory-title">Inventory</h2>
+                <nav class="joined-buttons inventory-tabs" role="tablist" aria-label="Inventory">
+                    <button type="button" class="game-btn inventory-tab" data-tab="bags" role="tab">Bags</button>
+                    <button type="button" class="game-btn inventory-tab" data-tab="gear" role="tab">Gear</button>
+                </nav>
+                <div class="inventory-top-side">
+                    <span id="inventoryPurse" class="inventory-purse" hidden></span>
+                    <button type="button" id="inventoryCharacter" class="game-btn">Character</button>
+                    <button type="button" id="inventoryClose" class="game-btn" aria-label="Close the inventory">Close</button>
+                </div>
             </header>
-            <nav class="inventory-tabs" role="tablist">
-                <button type="button" class="inventory-tab" data-tab="bags" role="tab">Bags</button>
-                <button type="button" class="inventory-tab" data-tab="materials" role="tab">Materials</button>
-                <button type="button" class="inventory-tab" data-tab="gear" role="tab">Gear</button>
-            </nav>
             <div class="inventory-body" id="inventoryBody"></div>
         </div>
     </div>
@@ -227,7 +237,7 @@
                 <!-- The starting window is the world map: a pin for every zone, and beside it the
                      place that is picked with what is needed to start there (ui/travelMap.js) -->
                 <div class="start-header">
-                    <h2 class="start-logo"><img src="assets/ui/input-logo.webp" alt="I N P U T" width="840" height="229"></h2>
+                    <h2 class="start-logo"><img src="assets/ui/input-logo.webp" alt="I N P U T" width="1200" height="891"></h2>
                     <div class="start-header-side">
                         <!-- A logged-in player's coins (ui/accountBar.js) -->
                         <div id="startPurse" class="start-purse" hidden></div>
@@ -791,7 +801,7 @@
     </div>
 
     <!-- Game Script -->
-    <script type="module" src="game-modular.20onox26.js?v=2.36.0"></script>
+    <script type="module" src="game-modular.vr9u7per.js?v=2.37.0"></script>
     
 
 

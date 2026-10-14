@@ -1951,7 +1951,9 @@ body.site-framed #pauseMenu .start-header-side {
 
 #pauseMenu .start-logo img {
     display: block;
-    height: 56px;
+    /* The medallion is nearly square: taller than the header row, hanging over it */
+    height: 96px;
+    margin: -20px 0;
     width: auto;
     max-width: 60vw;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));

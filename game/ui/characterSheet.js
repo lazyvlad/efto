@@ -54,11 +54,13 @@ export function isCharacterSheetOpen() {
  * Set the sheet up.
  * @param {Object} options
  * @param {Function} options.getState - () => { equipment, owned (Set), faction, name, level,
- *        totals, maxHealth, armorReduction (0-1), crit (0-1), dodge (0-1), playing }
+ *        totals, maxHealth, armorReduction (0-1), crit (0-1), dodge (0-1), playing, scene (the
+ *        zone picture the hunter is shown in), carried (Set, or null for a guest), carryLimit }
  * @param {Function} options.onEquip - (slotId, item or null) put an item on, or take one off.
  *        Returns why it could not be, in words, or ''.
  * @param {Function} options.onWearSet - (setId) put on every piece owned of a set. Returns
  *        the same.
+ * @param {Function} options.onOpenInventory - () open the inventory in its place
  */
 export function initializeCharacterSheet(options) {
     game = options;
@@ -67,6 +69,7 @@ export function initializeCharacterSheet(options) {
     if (!sheet) return;
 
     element('characterSheetClose').addEventListener('click', closeCharacterSheet);
+    element('sheetInventory').addEventListener('click', () => game.onOpenInventory());
     sheet.querySelectorAll('.sheet-side-btn').forEach(button => {
         button.addEventListener('click', () => {
             shownSide = button.dataset.side;
@@ -139,12 +142,16 @@ function renderHeading(state) {
     element('sheetSides').hidden = state.playing;
     document.querySelectorAll('#sheetSides .sheet-side-btn').forEach(button => {
         const shown = button.dataset.side === faction;
-        button.classList.toggle('is-shown', shown);
+        button.classList.toggle('is-on', shown);
         button.setAttribute('aria-pressed', String(shown));
     });
 
     element('sheetName').textContent = state.name || 'Hunter';
-    element('sheetSubtitle').textContent = [state.playing ? `Level ${state.level}` : '', side].filter(Boolean).join(' · ');
+    element('sheetSubtitle').textContent = state.playing ? `Level ${state.level} \u00b7 ${side}` : `${side} \u00b7 Hunter`;
+
+    // The hunter stands in the place picked on the map, or the one the game is in
+    // (made whole first: a url() in a style is read against the stylesheet, not the page)
+    if (state.scene) element('sheetStage').style.setProperty('--sheet-scene', `url("${new URL(state.scene, document.baseURI).href}")`);
 
     const character = playerCharacters[faction] || playerCharacters.alliance;
     const figure = element('sheetFigure');
@@ -194,25 +201,24 @@ function renderSlots(state) {
 
 function renderStats(state) {
     const percent = share => `${Math.round(share * 100)}%`;
-    const rows = [
-        ['Health', String(state.maxHealth), state.totals.health ? `+${state.totals.health} from gear` : ''],
-        ['Armor', String(state.totals.armor), state.totals.armor ? `hits do ${percent(state.armorReduction)} less` : ''],
-        ['Attack power', String(state.totals.attackPower), state.totals.attackPower ? `arrows do ${state.totals.attackPower}% more` : ''],
-        ['Crit', percent(state.crit), ''],
-        ['Dodge', percent(state.dodge), ''],
-        // What things caught with the bags full sell for: better with gear that helps carrying
-        ['Full bags', percent(1 - state.fullBagLoss), state.totals.carrying ? `gear takes ${percent(state.totals.carrying)} off the loss` : 'what does not fit sells for this'],
+    const cells = [
+        ['Health', String(state.maxHealth), state.totals.health ? `+${state.totals.health} from gear` : '', 'is-health'],
+        ['Armor', String(state.totals.armor), state.totals.armor ? `hits do ${percent(state.armorReduction)} less` : '', ''],
+        ['Attack power', String(state.totals.attackPower), state.totals.attackPower ? `arrows do ${state.totals.attackPower}% more` : '', 'is-attack'],
+        ['Crit · Dodge', `${percent(state.crit)} · ${percent(state.dodge)}`, '', ''],
     ];
 
-    const list = element('sheetStats');
-    list.textContent = '';
-    for (const [label, value, note] of rows) {
-        const row = make('div', 'sheet-stat');
-        const name = make('span', 'sheet-stat-name', label);
-        if (note) name.append(make('small', '', note));
-        row.append(name, make('span', 'sheet-stat-value', value));
-        list.append(row);
+    const grid = element('sheetStats');
+    grid.textContent = '';
+    for (const [label, value, note, kind] of cells) {
+        const cell = make('div', `sheet-stat ${kind}`.trim());
+        cell.append(make('span', 'sheet-stat-name', label), make('span', 'sheet-stat-value', value));
+        if (note) cell.append(make('span', 'sheet-stat-note', note));
+        grid.append(cell);
     }
+
+    // How much gear the hunter takes into a game (a guest has no bank, so no count)
+    element('sheetCarrying').textContent = state.carried ? `Carrying ${state.carried.size} of ${state.carryLimit}` : '';
 
     // What the sets being worn add of their own, beyond the stats
     const extras = bonusText(state.totals, { stats: false });
@@ -221,6 +227,10 @@ function renderStats(state) {
         : state.owned.size === 0
             ? 'You own no gear yet. Pieces of the hunter sets fall from level 3 on; with an account they are kept.'
             : 'No set bonus yet';
+
+    // What things caught with the bags full sell for: better with gear that helps carrying
+    element('sheetFullBags').textContent = `Full bags: what does not fit sells for ${percent(1 - state.fullBagLoss)}`
+        + (state.totals.carrying ? ` (your gear takes ${percent(state.totals.carrying)} off the loss)` : '');
 }
 
 function renderSets(state) {
@@ -234,10 +244,11 @@ function renderSets(state) {
         const on = worn[set.id] || 0;
         const next = nextStep(set, on);
 
-        const button = make('button', 'sheet-set');
+        const button = make('button', 'game-btn sheet-set');
         button.type = 'button';
-        button.disabled = owned === 0 || on === owned;
-        button.classList.toggle('is-worn', on > 0 && on === owned);
+        button.disabled = owned === 0;
+        // Every piece owned of it is on
+        button.classList.toggle('is-on', on > 0 && on === owned);
         button.append(
             make('span', 'sheet-set-name', set.name.split(' ')[0]),
             make('span', 'sheet-set-count', owned === 0 ? 'none owned' : `${on}/${owned} on`)
@@ -264,7 +275,7 @@ function renderSlotItems(state) {
     list.textContent = '';
 
     // Why the last thing pressed could not be put on
-    if (notice) list.append(make('p', 'sheet-empty sheet-notice', notice));
+    if (notice) list.append(make('p', 'sheet-empty window-warning', notice));
     // In a game only what the hunter took along can be put on
     if (state.playing && state.inBank > 0) {
         list.append(make('p', 'sheet-empty', `${state.inBank} more ${state.inBank === 1 ? 'thing is' : 'things are'} in the bank, out of reach until the game is over.`));
@@ -279,23 +290,25 @@ function renderSlotItems(state) {
         const worn = item.id === wornId;
         // Not among what the hunter takes into a game: putting it on takes it along
         const banked = Boolean(state.carried) && !state.carried.has(item.id);
-        const row = make('button', 'sheet-item');
+        const row = make('button', 'window-item sheet-item');
         row.type = 'button';
         row.classList.toggle('is-worn', worn);
 
-        const picture = make('img', 'sheet-item-icon');
+        const picture = make('img');
         picture.src = item.image;
         picture.alt = '';
         row.dataset.rarity = item.rarity || 'epic';
 
-        const text = make('span', 'sheet-item-text');
+        const about = [item.from, worn ? 'being worn' : '', banked ? 'in the bank' : ''].filter(Boolean).join(' \u00b7 ');
+        const text = make('span', 'window-item-text');
         text.append(
-            make('span', 'sheet-item-name', item.name),
-            make('span', 'sheet-item-stats', statsText(itemStats(item, gameConfig.sets)) || 'No stats'),
-            ...(item.from || banked ? [make('span', 'sheet-item-from', [item.from, banked ? 'in the bank' : ''].filter(Boolean).join(' \u00b7 '))] : [])
+            make('span', 'window-item-name', item.name),
+            make('span', 'window-item-stats', statsText(itemStats(item, gameConfig.sets)) || 'No stats'),
+            ...(about ? [make('span', 'window-item-note', about)] : [])
         );
 
-        row.append(picture, text, make('span', 'sheet-item-action', worn ? 'Take off' : 'Put on'));
+        // Looks like a button; the whole row is the one that is pressed
+        row.append(picture, text, make('span', worn ? 'game-btn sheet-item-action' : 'game-btn is-primary sheet-item-action', worn ? 'Take off' : 'Put on'));
         row.addEventListener('click', () => {
             notice = game.onEquip(slot.id, worn ? null : item) || '';
             render();
