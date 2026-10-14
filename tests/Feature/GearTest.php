@@ -34,7 +34,8 @@ class GearTest extends TestCase
                 }
             }
         }
-        $this->assertCount(60 + count(config('gear.drops')), $catalog);
+        $starter = count(config('gear.starter.alliance')) + count(config('gear.starter.horde'));
+        $this->assertCount(60 + count(config('gear.drops')) + $starter, $catalog);
 
         // The same kind of thing from an early boss and the last: a one-handed weapon each
         $this->assertSame(['attackPower' => 9, 'crit' => 1], $catalog['cruel-barb']['stats']);
@@ -51,7 +52,7 @@ class GearTest extends TestCase
     public function test_the_weapons_and_jewellery_that_fall_are_items_of_the_game(): void
     {
         foreach (array_keys(config('gear.drops')) as $itemId) {
-            $this->assertContains($itemId, array_merge(config('loot.items.epic'), config('loot.items.special')), "$itemId does not fall");
+            $this->assertContains($itemId, array_merge(config('loot.items.epic'), config('loot.items.special'), config('loot.items.regular')), "$itemId does not fall");
         }
     }
 
@@ -62,7 +63,7 @@ class GearTest extends TestCase
         $this->drop($user, 'edwin-vancleef', 'cape-of-the-brotherhood');
         $this->drop($user, 'hogger', 'hoggers-trophy-axe', 'epic');
 
-        $this->assertSame(['cape-of-the-brotherhood' => 2, 'hoggers-trophy-axe' => 1], Gear::owned($user));
+        $this->assertSame(['cape-of-the-brotherhood' => 2, 'hoggers-trophy-axe' => 1], $this->found($user));
 
         $this->actingAs($user)->putJson(route('equipment.update'), ['equipment' => [
             'back' => 'cape-of-the-brotherhood',
@@ -73,7 +74,7 @@ class GearTest extends TestCase
         ]])->assertOk()->assertJsonPath('equipment', ['back' => 'cape-of-the-brotherhood', 'mainhand' => 'hoggers-trophy-axe']);
 
         $this->get(route('play'))
-            ->assertSee('"gear":{"cape-of-the-brotherhood":2,"hoggers-trophy-axe":1}', false)
+            ->assertSee('"gear":{"alliance":{"cape-of-the-brotherhood":2,"hoggers-trophy-axe":1,', false)
             ->assertSee('"cape-of-the-brotherhood":{"name":"Cape of the Brotherhood"', false);
     }
 
@@ -88,16 +89,19 @@ class GearTest extends TestCase
         $this->drop($user, 'chief-ukorz-sandscalp', 'ripsaw');
         $this->assertSame(0.0, Gear::carrying($user));
 
-        $user->forceFill(['equipment' => ['back' => 'cape-of-the-brotherhood', 'mainhand' => 'ripsaw']])->save();
-        $this->assertEqualsWithDelta(0.05, Gear::carrying($user->fresh()), 1e-9);
+        // Each hunter's by his own side's loot: the cape is the Alliance's, Ripsaw the Horde's
+        $user->forceFill(['equipment' => [
+            'alliance' => ['back' => 'cape-of-the-brotherhood', 'mainhand' => 'ripsaw'],
+            'horde' => ['back' => 'cape-of-the-brotherhood', 'mainhand' => 'ripsaw'],
+        ]])->save();
+        $this->assertEqualsWithDelta(0.02, Gear::carrying($user->fresh(), 'alliance'), 1e-9);
+        $this->assertEqualsWithDelta(0.03, Gear::carrying($user->fresh(), 'horde'), 1e-9);
 
-        // A game with things sold short: a green item is worth 25c, sold short for 24 with
-        // five hundredths of the loss taken off (22 or 23 without)
-        $token = $this->actingAs($user)->postJson(route('games.open'), ['faction' => 'alliance'])->json('game');
+        // A game with things sold short, with three hundredths of the loss taken off
+        $token = $this->actingAs($user)->postJson(route('games.open'), ['faction' => 'horde'])->json('game');
         $this->travel(600)->seconds();
         $this->postJson(route('games.finish', $token), ['score' => 5, 'gameTime' => 590, 'items' => ['gold-coin' => 4], 'overflow' => ['gold-coin' => 4]])
-            ->assertJsonPath('coins.earned', 4 * Bags::soldShort(25, 0.05));
-        $this->assertSame(24, Bags::soldShort(25, 0.05));
+            ->assertJsonPath('coins.earned', 4 * Bags::soldShort(25, 0.03));
     }
 
     public function test_gear_is_sold_for_coins_and_the_last_one_is_no_longer_worn(): void
@@ -115,16 +119,16 @@ class GearTest extends TestCase
             ->assertJsonPath('sold', 2)
             ->assertJsonPath('coins', 2 * $value)
             ->assertJsonPath('gear.cape-of-the-brotherhood', 1)
-            ->assertJsonPath('equipment.back', 'cape-of-the-brotherhood');
+            ->assertJsonPath('equipment.alliance.back', 'cape-of-the-brotherhood');
 
         // The last: gone from the hunter too. Asking to sell more than there are sells what there is.
         $this->postJson(route('vendor.sell'), ['item' => 'cape-of-the-brotherhood', 'count' => 5])
             ->assertOk()
             ->assertJsonPath('sold', 1)
             ->assertJsonPath('coins', 3 * $value)
-            ->assertJsonPath('gear', [])
-            ->assertJsonPath('equipment', []);
-        $this->assertSame([], $user->fresh()->equipment);
+            ->assertJsonMissingPath('gear.cape-of-the-brotherhood')
+            ->assertJsonMissingPath('equipment.alliance.back');
+        $this->assertArrayNotHasKey('back', $user->fresh()->equipment['alliance']);
 
         // Nothing left to sell, and a piece of a set is not for sale
         $this->postJson(route('vendor.sell'), ['item' => 'cape-of-the-brotherhood', 'count' => 1])->assertStatus(422);
@@ -133,7 +137,7 @@ class GearTest extends TestCase
 
         // Finding it again, it is theirs again
         $this->drop($user, 'edwin-vancleef', 'cape-of-the-brotherhood');
-        $this->assertSame(['cape-of-the-brotherhood' => 1], Gear::owned($user->fresh()));
+        $this->assertSame(['cape-of-the-brotherhood' => 1], $this->found($user->fresh()));
     }
 
     public function test_a_weapon_caught_in_a_game_is_kept_and_can_be_sold(): void
@@ -147,7 +151,7 @@ class GearTest extends TestCase
         // It pays nothing when the game ends
         $this->postJson(route('games.finish', $token), ['score' => 5, 'gameTime' => 25, 'pickups' => [$drop->id], 'items' => ['ashkandi2' => 1]])
             ->assertJsonPath('coins.earned', 0);
-        $this->assertSame(['ashkandi2' => 1], Gear::owned($user));
+        $this->assertSame(['ashkandi2' => 1], $this->found($user));
 
         $this->putJson(route('equipment.update'), ['equipment' => ['mainhand' => 'ashkandi2']])->assertJsonPath('equipment.mainhand', 'ashkandi2');
         $this->postJson(route('vendor.sell'), ['item' => 'ashkandi2', 'count' => 1])->assertOk()->assertJsonPath('coins', 100);
@@ -179,5 +183,11 @@ class GearTest extends TestCase
 
         $this->assertSame(['mainhand' => 'hoggers-trophy-axe'], Gear::valid($user, ['mainhand' => 'hoggers-trophy-axe', 'offhand' => 'stockade-shiv']));
         $this->assertSame(['offhand' => 'stockade-shiv'], Gear::valid($user, ['offhand' => 'stockade-shiv']));
+    }
+
+    /** What a player owns besides the clothes both hunters start in */
+    private function found(User $user): array
+    {
+        return array_filter(Gear::owned($user), fn ($count, $itemId) => ! Gear::isStarter($itemId), ARRAY_FILTER_USE_BOTH);
     }
 }

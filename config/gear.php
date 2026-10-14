@@ -97,7 +97,7 @@ return [
      * worth that, a boss's two-handed weapon gives this many times what a one-handed weapon of
      * its rarity and zone gives; the two that fall in a game say what they give below.
      */
-    'two_handed' => ['hoggers-trophy-axe', 'gathilzoggs-war-axe', 'ashkandi2', 'crulshorukh'],
+    'two_handed' => ['hoggers-trophy-axe', 'gathilzoggs-war-axe', 'ashkandi2', 'crulshorukh', 'walking-stick'],
     'two_handed_factor' => 1.7,
 
     'drops' => [
@@ -111,6 +111,46 @@ return [
         'circle-of-applied-force' => ['slot' => 'ring', 'stats' => ['attackPower' => 5, 'health' => 4]],
         'drakefangtalisman' => ['slot' => 'trinket', 'stats' => ['attackPower' => 6, 'dodge' => 1, 'carrying' => 2]],
         'onslaught' => ['slot' => 'belt', 'stats' => ['attackPower' => 6, 'health' => 5]],
+        // The plain things that fall often, kept and worn since the hunters are drawn wearing
+        // them: a few capes, a walking stick held in both hands, two simple rings
+        'miners-cape' => ['slot' => 'back', 'rarity' => 'common', 'stats' => ['armor' => 2]],
+        'wolf-master' => ['slot' => 'back', 'rarity' => 'common', 'stats' => ['armor' => 3, 'health' => 1]],
+        'cape21' => ['slot' => 'back', 'rarity' => 'common', 'stats' => ['armor' => 3]],
+        'cape05' => ['slot' => 'back', 'rarity' => 'common', 'stats' => ['armor' => 2, 'health' => 2]],
+        'walking-stick' => ['slot' => 'mainhand', 'rarity' => 'common', 'stats' => ['attackPower' => 3]],
+        'ring1' => ['slot' => 'ring', 'rarity' => 'common', 'stats' => ['health' => 2]],
+        'ring2' => ['slot' => 'ring', 'rarity' => 'common', 'stats' => ['armor' => 2]],
+    ],
+
+    /*
+     * The clothes each hunter starts in: gear like any other, worn slot by slot, taken off and
+     * replaced by better things. Every account (and every guest) has both sets, once; they
+     * are never sold and never count towards what a hunter carries. Each side's hunter starts
+     * in its own (game/data/hunterArt.js draws them). By the sheet's slot.
+     */
+    'starter' => [
+        'alliance' => [
+            'chest' => ['id' => 'starter-alliance-pajama-top', 'name' => 'Pajama Hunter Top', 'slot' => 'chest', 'stats' => ['armor' => 1]],
+            'legs' => ['id' => 'starter-alliance-pajama-legs', 'name' => 'Pajama Hunter Trousers', 'slot' => 'legs', 'stats' => ['armor' => 1]],
+            'feet' => ['id' => 'starter-alliance-leather-boots', 'name' => 'Pajama Hunter Leather Boots', 'slot' => 'boots', 'stats' => ['armor' => 1]],
+            'waist' => ['id' => 'starter-alliance-leather-belt', 'name' => 'Pajama Hunter Leather Belt', 'slot' => 'belt', 'stats' => ['armor' => 1]],
+            'wrist' => ['id' => 'starter-alliance-bracers', 'name' => 'Pajama Hunter Bracers', 'slot' => 'bracers', 'stats' => ['armor' => 1]],
+            'hands' => ['id' => 'starter-alliance-grips', 'name' => 'Pajama Hunter Leather Grips', 'slot' => 'hands', 'stats' => ['armor' => 1]],
+            'back' => ['id' => 'starter-alliance-quiver', 'name' => 'Pajama Hunter Quiver and Harness', 'slot' => 'back', 'stats' => ['health' => 1]],
+            'ranged' => ['id' => 'starter-alliance-bow', 'name' => 'Pajama Hunter Bow', 'slot' => 'ranged', 'stats' => ['attackPower' => 1]],
+        ],
+        'horde' => [
+            'neck' => ['id' => 'starter-horde-bone-amulet', 'name' => 'Horde Hunter Bone Amulet', 'slot' => 'neck', 'stats' => ['health' => 1]],
+            'shoulder' => ['id' => 'starter-horde-mantle', 'name' => 'Horde Hunter Shoulder Mantle', 'slot' => 'shoulders', 'stats' => ['armor' => 1]],
+            'chest' => ['id' => 'starter-horde-leather-vest', 'name' => 'Horde Hunter Leather Vest', 'slot' => 'chest', 'stats' => ['armor' => 1]],
+            'wrist' => ['id' => 'starter-horde-bracers', 'name' => 'Horde Hunter Bracers', 'slot' => 'bracers', 'stats' => ['armor' => 1]],
+            'hands' => ['id' => 'starter-horde-grips', 'name' => 'Horde Hunter Fingerless Grips', 'slot' => 'hands', 'stats' => ['armor' => 1]],
+            'waist' => ['id' => 'starter-horde-belt', 'name' => 'Horde Hunter War Belt', 'slot' => 'belt', 'stats' => ['armor' => 1]],
+            'legs' => ['id' => 'starter-horde-leather-legs', 'name' => 'Horde Hunter Leather Leggings', 'slot' => 'legs', 'stats' => ['armor' => 1]],
+            'feet' => ['id' => 'starter-horde-hoofguards', 'name' => 'Horde Hunter Hoof Guards', 'slot' => 'boots', 'stats' => ['armor' => 1]],
+            'tabard' => ['id' => 'starter-horde-warcloth', 'name' => 'Horde Hunter Warcloth', 'slot' => 'tabard', 'stats' => ['health' => 1]],
+            'ranged' => ['id' => 'starter-horde-totem', 'name' => 'Horde Hunter Totem', 'slot' => 'ranged', 'stats' => ['attackPower' => 1]],
+        ],
     ],
 
 ];

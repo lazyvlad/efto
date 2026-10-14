@@ -52,21 +52,26 @@ class GameController extends Controller
                 'coins' => (int) $user->coins,
                 'verified' => $user->canUseRewards(),
                 'quiver' => $user->canUseRewards() && $user->quiver,
-                'pieces' => $user->canUseRewards() ? $user->setPieces() : [],
+                // Each hunter's own set pieces, and below his other gear: { alliance, horde }
+                'pieces' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => $user->canUseRewards() ? $user->setPieces($side) : []])->all(),
                 // What the hunter is wearing, slot by slot (the game's character sheet)
                 // (null until the player has chosen: the game then puts on what they own)
-                'equipment' => $user->equipment === null || ! $user->canUseRewards()
-                    ? null
-                    : (object) Gear::valid($user, $user->equipment),
-                // What the hunter takes into a game, of everything owned (null until chosen:
-                // the game then takes what is worn and whatever else there is room for)
+                // Each hunter's outfit, null for one never chosen (the game then dresses it in
+                // what that side starts in)
+                'equipment' => ! $user->canUseRewards() ? null : collect(Gear::allEquipment($user))->map(
+                    fn ($chosen, $side) => $chosen === null ? null : (object) Gear::valid($user, $chosen, $side)
+                )->all(),
+                // What each hunter takes into a game, of everything owned (null until chosen:
+                // the game then takes what he wears and whatever else of his there is room for)
                 'carried' => $user->carried === null || ! $user->canUseRewards()
                     ? null
-                    : Gear::carried($user, $user->carried),
+                    : collect(Gear::allCarried($user))->map(
+                        fn ($chosen, $side) => $chosen === null ? null : Gear::carried($user, $chosen, null, $side)
+                    )->all(),
                 // The sets saved on the character sheet
                 'outfits' => $user->outfits ?? [],
                 // The gear owned besides the sets, and how many of each (App\Support\Gear)
-                'gear' => (object) ($user->canUseRewards() ? Gear::owned($user) : []),
+                'gear' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => (object) ($user->canUseRewards() ? Gear::owned($user, $side) : [])])->all(),
                 // The bags bought (their sizes) and the crafting materials brought back so far
                 'bags' => $user->canUseRewards() ? ($user->bags ?? []) : [],
                 'materials' => (object) ($user->materials ?? []),

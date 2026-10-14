@@ -34,18 +34,24 @@ class EquipmentTest extends TestCase
             'finger1' => 'cryptstalker-ring',
         ]);
 
+        // The Alliance hunter's (the side said or not); the Horde hunter's is still unchosen
         $this->assertSame(
-            ['head' => 'giantstalker-helmet', 'chest' => 'cryptstalker-chest', 'finger1' => 'cryptstalker-ring'],
+            ['alliance' => ['head' => 'giantstalker-helmet', 'chest' => 'cryptstalker-chest', 'finger1' => 'cryptstalker-ring'], 'horde' => null],
             $user->fresh()->equipment
         );
 
-        // The game is handed it with its page
-        $this->get(route('play'))->assertSee('"equipment":{"head":"giantstalker-helmet","chest":"cryptstalker-chest","finger1":"cryptstalker-ring"}', false);
+        // The game is handed both with its page
+        $this->get(route('play'))->assertSee('"equipment":{"alliance":{"head":"giantstalker-helmet","chest":"cryptstalker-chest","finger1":"cryptstalker-ring"},"horde":null}', false);
+
+        // The Horde hunter dressed apart
+        $this->putJson(route('equipment.update'), ['side' => 'horde', 'equipment' => ['chest' => 'giantstalker-chest']])->assertOk();
+        $this->assertSame(['chest' => 'giantstalker-chest'], $user->fresh()->equipment['horde']);
+        $this->assertSame('cryptstalker-chest', $user->fresh()->equipment['alliance']['chest']);
 
         // Everything taken off: remembered as a choice, not as never having chosen
         $this->putJson(route('equipment.update'), ['equipment' => []])->assertOk();
-        $this->assertSame([], $user->fresh()->equipment);
-        $this->get(route('play'))->assertSee('"equipment":{}', false);
+        $this->assertSame([], $user->fresh()->equipment['alliance']);
+        $this->get(route('play'))->assertSee('"equipment":{"alliance":{},"horde":{"chest":"giantstalker-chest"}}', false);
     }
 
     public function test_a_piece_taken_back_is_no_longer_worn(): void
@@ -56,12 +62,91 @@ class EquipmentTest extends TestCase
 
         Grants::takeBackSet($user->fresh(), 'giantstalker');
 
-        $this->actingAs($user->fresh())->get(route('play'))->assertSee('"equipment":{}', false);
+        // (an outfit saved before each hunter had his own: both wear it, in their own clothes
+        // where it left a slot empty)
+        $page = $this->actingAs($user->fresh())->get(route('play'));
+        $page->assertDontSee('"head":"giantstalker-helmet"', false);
+        $page->assertSee('"alliance":{"back":"starter-alliance-quiver","chest":"starter-alliance-pajama-top"', false);
+        $page->assertSee('"horde":{"neck":"starter-horde-bone-amulet"', false);
     }
 
     public function test_a_player_who_has_never_chosen_is_told_apart(): void
     {
-        $this->actingAs(User::factory()->create())->get(route('play'))->assertSee('"equipment":null', false);
+        $this->actingAs(User::factory()->create())->get(route('play'))->assertSee('"equipment":{"alliance":null,"horde":null}', false);
+    }
+
+    public function test_the_clothes_a_hunter_starts_in_are_his_and_not_carried_or_sold(): void
+    {
+        $user = User::factory()->create();
+        $owned = Gear::owned($user);
+        foreach (array_merge(Gear::starterLoadout('alliance'), Gear::starterLoadout('horde')) as $itemId) {
+            $this->assertSame(1, $owned[$itemId], $itemId);
+        }
+
+        // Worn without counting towards the carried: none of it is in the list
+        $response = $this->actingAs($user)->putJson(route('equipment.update'), ['equipment' => Gear::starterLoadout('alliance'), 'carried' => []])
+            ->assertOk();
+        $this->assertEquals(Gear::starterLoadout('alliance'), $response->json('equipment'));
+        $this->assertSame([], $response->json('carried'));
+
+        // Never for sale
+        $user->forceFill(['email_verified_at' => now()])->save();
+        $this->postJson(route('vendor.sell'), ['item' => 'starter-alliance-bow', 'count' => 1])->assertStatus(422);
+    }
+
+    public function test_each_hunter_wears_only_his_own_sides_loot_and_clothes(): void
+    {
+        $user = User::factory()->create();
+        $user->bossDrops()->create(['boss_id' => 'garrick-padfoot', 'item_id' => 'garricks-red-bandana', 'rarity' => 'uncommon', 'dropped_at' => now()]);
+        $user->bossDrops()->create(['boss_id' => 'sarkoth', 'item_id' => 'scorpid-stinger', 'rarity' => 'uncommon', 'dropped_at' => now()]);
+
+        $this->assertSame('alliance', Gear::catalog()['garricks-red-bandana']['side']);
+        $this->assertSame('horde', Gear::catalog()['starter-horde-bone-amulet']['side']);
+
+        // The Horde's loot and clothes are left out of the Alliance hunter's outfit, and the other way round
+        $mixed = ['head' => 'garricks-red-bandana', 'offhand' => 'scorpid-stinger', 'neck' => 'starter-horde-bone-amulet'];
+        $this->actingAs($user)->putJson(route('equipment.update'), ['side' => 'alliance', 'equipment' => $mixed])
+            ->assertOk()->assertJsonPath('equipment', ['head' => 'garricks-red-bandana']);
+        $this->putJson(route('equipment.update'), ['side' => 'horde', 'equipment' => $mixed])
+            ->assertOk()->assertJsonPath('equipment', ['neck' => 'starter-horde-bone-amulet', 'offhand' => 'scorpid-stinger']);
+
+        // Both are still owned
+        $this->assertArrayHasKey('scorpid-stinger', Gear::owned($user));
+        $this->assertArrayHasKey('garricks-red-bandana', Gear::owned($user));
+    }
+
+    public function test_each_hunter_owns_what_he_won_and_sells_only_that(): void
+    {
+        $user = User::factory()->create(['email_verified_at' => now()]);
+        $horde = \App\Models\Game::create(['token' => 'h1', 'user_id' => $user->id, 'name' => 'A', 'faction' => 'horde', 'status' => \App\Models\Game::FINISHED, 'started_at' => now()]);
+        $horde->drops()->create(['item_id' => 'giantstalker-helmet', 'chunk' => 0, 'at_seconds' => 3, 'claimed_at' => now()]);
+        $horde->drops()->create(['item_id' => 'ring1', 'chunk' => 0, 'at_seconds' => 4, 'claimed_at' => now()]);
+        $alliance = \App\Models\Game::create(['token' => 'a1', 'user_id' => $user->id, 'name' => 'A', 'faction' => 'alliance', 'status' => \App\Models\Game::FINISHED, 'started_at' => now()]);
+        $alliance->drops()->create(['item_id' => 'ring1', 'chunk' => 0, 'at_seconds' => 4, 'claimed_at' => now()]);
+        $alliance->drops()->create(['item_id' => 'ring1', 'chunk' => 0, 'at_seconds' => 5, 'claimed_at' => now()]);
+
+        // The set piece is the Horde hunter's only; each has his own rings
+        $this->assertSame(['giantstalker-helmet'], $user->setPieces('horde'));
+        $this->assertSame([], $user->setPieces('alliance'));
+        $this->assertSame(1, Gear::owned($user, 'horde')['ring1']);
+        $this->assertSame(2, Gear::owned($user, 'alliance')['ring1']);
+        $this->assertArrayNotHasKey('starter-alliance-bow', Gear::owned($user, 'horde'));
+
+        // The Alliance hunter cannot wear the Horde hunter's helmet
+        $this->actingAs($user)->putJson(route('equipment.update'), ['side' => 'alliance', 'equipment' => ['head' => 'giantstalker-helmet']])
+            ->assertOk()->assertJsonPath('equipment', []);
+
+        // Sold by one hunter, the other's are untouched
+        $this->postJson(route('vendor.sell'), ['item' => 'ring1', 'count' => 5, 'side' => 'alliance'])->assertOk()
+            ->assertJsonPath('sold', 2)->assertJsonPath('side', 'alliance')->assertJsonMissingPath('gear.ring1');
+        $this->assertSame(1, Gear::owned($user->fresh(), 'horde')['ring1']);
+
+        // What was sold before each hunter had his own: the Alliance hunter's first, then the Horde's
+        $user->forceFill(['sold' => ['ring1' => 3]])->save();
+        $this->assertArrayNotHasKey('ring1', Gear::owned($user->fresh(), 'alliance'));
+        $this->assertArrayNotHasKey('ring1', Gear::owned($user->fresh(), 'horde'));
+        $user->forceFill(['sold' => ['ring1' => 2]])->save();
+        $this->assertSame(1, Gear::owned($user->fresh(), 'horde')['ring1']);
     }
 
     public function test_it_is_for_logged_in_players(): void
@@ -111,7 +196,7 @@ class EquipmentTest extends TestCase
             'equipment' => ['head' => 'cryptstalker-helmet'],
             'carried' => ['cryptstalker-helmet', 'cryptstalker-chest', 'cryptstalker-chest', 'ds_legs', ...array_values($pieces), 'cryptstalker-boots'],
         ])->assertOk()->assertJsonPath('carried', ['cryptstalker-helmet', 'cryptstalker-chest', ...array_values($pieces)]);
-        $this->assertCount(10, $user->fresh()->carried);
+        $this->assertCount(10, $user->fresh()->carried['alliance']);
 
         // What is not carried cannot be worn
         $this->putJson(route('equipment.update'), ['equipment' => ['head' => 'cryptstalker-helmet', 'feet' => 'cryptstalker-boots']])
@@ -124,7 +209,32 @@ class EquipmentTest extends TestCase
         ])->assertOk()->assertJsonPath('carried', ['cryptstalker-helmet', 'cryptstalker-boots'])
             ->assertJsonPath('equipment', ['feet' => 'cryptstalker-boots']);
 
-        $this->get(route('play'))->assertSee('"carried":["cryptstalker-helmet","cryptstalker-boots"]', false);
+        $this->get(route('play'))->assertSee('"carried":{"alliance":["cryptstalker-helmet","cryptstalker-boots"],"horde":null}', false);
+    }
+
+    public function test_each_hunter_carries_his_own(): void
+    {
+        config(['gear.carry' => 3]);
+        $user = User::factory()->create();
+        Grants::giveSet($user, 'giantstalker');
+        $user->bossDrops()->create(['boss_id' => 'garrick-padfoot', 'item_id' => 'garricks-red-bandana', 'rarity' => 'uncommon', 'dropped_at' => now()]);
+        $user->bossDrops()->create(['boss_id' => 'sarkoth', 'item_id' => 'scorpid-stinger', 'rarity' => 'uncommon', 'dropped_at' => now()]);
+
+        // A list saved before each hunter had his own is both's, less the other side's loot
+        $user->forceFill(['carried' => ['garricks-red-bandana', 'scorpid-stinger', 'giantstalker-helmet']])->save();
+        $this->actingAs($user)->get(route('play'))->assertSee(
+            '"carried":{"alliance":["garricks-red-bandana","giantstalker-helmet"],"horde":["scorpid-stinger","giantstalker-helmet"]}', false
+        );
+
+        // Each chooses his own, from his own and what either can wear
+        $this->putJson(route('equipment.update'), ['side' => 'horde', 'equipment' => [], 'carried' => ['scorpid-stinger', 'garricks-red-bandana', 'giantstalker-boots', 'giantstalker-belt']])
+            ->assertOk()->assertJsonPath('carried', ['scorpid-stinger', 'giantstalker-boots', 'giantstalker-belt']);
+        $this->putJson(route('equipment.update'), ['side' => 'alliance', 'equipment' => [], 'carried' => ['giantstalker-helmet']])
+            ->assertOk()->assertJsonPath('carried', ['giantstalker-helmet']);
+        $this->assertSame(
+            ['alliance' => ['giantstalker-helmet'], 'horde' => ['scorpid-stinger', 'giantstalker-boots', 'giantstalker-belt']],
+            $user->fresh()->carried
+        );
     }
 
     public function test_the_game_and_the_site_agree_on_how_much_is_carried(): void

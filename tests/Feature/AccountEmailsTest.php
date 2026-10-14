@@ -68,7 +68,7 @@ class AccountEmailsTest extends TestCase
         $piece = $game->drops()->create(['item_id' => 'giantstalker-helmet', 'chunk' => 0, 'at_seconds' => 3]);
         $this->travel(60)->seconds();
         $this->postJson(route('games.boss', $game), ['boss' => 'garrick-padfoot'])->assertOk()->assertJsonPath('kept', true);
-        $this->postJson(route('games.finish', $game), ['score' => 10, 'gameTime' => 50, 'pickups' => [$piece->id], 'items' => ['ring1' => 2]])
+        $this->postJson(route('games.finish', $game), ['score' => 10, 'gameTime' => 50, 'pickups' => [$piece->id], 'items' => ['bread' => 2]])
             ->assertOk()
             ->assertJsonPath('coins.balance', 20320);
         $this->assertTrue($user->fresh()->quiver);
@@ -76,14 +76,14 @@ class AccountEmailsTest extends TestCase
 
         // ...but the game is not handed any of it to use
         $html = $this->actingAs($user->fresh())->get(route('play'))->getContent();
-        $this->assertStringContainsString('"verified":false,"quiver":false,"pieces":[]', $html);
+        $this->assertStringContainsString('"verified":false,"quiver":false,"pieces":{"alliance":[],"horde":[]}', $html);
         $this->assertStringContainsString('"skip":null,"rush":null', $html);
         $this->get(route('games.history'))->assertSee('Your account is not activated yet.');
 
         // Activated, it all counts
         $user->markEmailAsVerified();
         $html = $this->actingAs($user->fresh())->get(route('play'))->getContent();
-        $this->assertStringContainsString('"verified":true,"quiver":true,"pieces":["giantstalker-helmet"]', $html);
+        $this->assertStringContainsString('"verified":true,"quiver":true,"pieces":{"alliance":["giantstalker-helmet"],"horde":[]}', $html);
         $this->assertStringContainsString('"rush":{"fee":5000}', $html);
         $this->get(route('games.history'))->assertDontSee('Your account is not activated yet.');
         $this->postJson(route('games.open'), ['faction' => 'alliance', 'startZone' => 2])->assertOk();

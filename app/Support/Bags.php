@@ -67,7 +67,7 @@ class Bags
         // now and take no room (config/gear.php)
         $kept_gear = array_keys(config('gear.drops'));
         // What the gear being worn takes off the loss on things that did not fit
-        $carrying = Gear::carrying($game->user);
+        $carrying = Gear::carrying($game->user, $game->faction);
 
         // What was caught, as far as the site believes it. The rare things it handed out
         // itself; the common ones as the game reports them, but no more than can have fallen

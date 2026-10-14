@@ -59,7 +59,8 @@ export function isInventoryOpen() {
  * @param {Function} options.onSell - (itemId, count) => Promise resolving to an error message or ''
  * @param {Function} options.onCarry - (itemIds, take) take things into the game or leave them
  *        in the bank, as many as there is room for; returns an error message or ''
- *        For that the state has owned (ids), carried (ids), carryLimit and playing, and scene
+ *        For that the state has owned (ids, what the hunter of the side, faction, can wear),
+ *        carried (ids), carryLimit and playing, and scene
  *        and figure: the pictures of the place and the hunter for the gear tab.
  * @param {Function} options.onOpenGear - () open the character sheet
  * @param {Function} options.onCloseAll - () close the inventory and every menu, and go on with
@@ -361,7 +362,8 @@ async function sell(itemId, count) {
 // thing can be worn, so the spare ones are for selling, and the last one can be sold too,
 // after a warning: it is then no longer the player's to wear.
 function renderGear(main, side, state) {
-    const owned = state.loggedIn ? state.owned.map(itemId => wearableById(itemId)).filter(Boolean)
+    // (the clothes the hunters start in are always with them, and in neither list)
+    const owned = state.loggedIn ? state.owned.map(itemId => wearableById(itemId)).filter(item => item && !item.starter)
         .map(item => ({ item, count: state.gear[item.id] || 1, sells: Boolean(state.gear[item.id]) && item.value > 0 })) : [];
     const carried = new Set(state.carried);
     const full = carried.size >= state.carryLimit;
@@ -522,7 +524,9 @@ function renderCarrySide(side, state, owned, carried, full) {
         return;
     }
 
-    text.append(make('p', 'window-label', state.playing ? 'What he took into this game' : 'What he takes into a game'));
+    // Each hunter carries his own: his side's loot, and the gear either can wear
+    const hunter = state.faction === 'horde' ? 'The Horde hunter' : 'The Alliance hunter';
+    text.append(make('p', 'window-label', state.playing ? `What ${hunter.toLowerCase()} took into this game` : `What ${hunter.toLowerCase()} takes into a game`));
     text.append(make('h3', 'inventory-side-title', `Carrying ${carried.size} of ${state.carryLimit}`));
 
     const bar = make('div', 'inventory-bar');
@@ -533,7 +537,7 @@ function renderCarrySide(side, state, owned, carried, full) {
 
     text.append(make('p', 'inventory-text', state.playing
         ? 'Only what he took along can be put on now. The rest waits in the bank until the game is over.'
-        : 'Only what he carries can be put on while playing. The rest waits in the bank until the game is over.'));
+        : 'Only what he carries can be put on while playing. The rest waits in the bank until the game is over. His own clothes are always with him and do not count.'));
     if (!state.playing) text.append(make('p', 'inventory-text window-warning', 'What he wears counts: leaving a thing that is on takes it off.'));
     if (notice) text.append(make('p', 'inventory-text window-warning', notice));
 

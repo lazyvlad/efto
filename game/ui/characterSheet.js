@@ -17,9 +17,6 @@ import { piecesOf, bonusText, nextStep } from '../utils/sets.js';
 let game = null;            // What the game gave when it set the sheet up
 let selectedSlot = 'head';
 let whenClosed = null;
-// The character shown, when the player picked the other one to look at. Both wear the same
-// things; in a game it is always the one being played.
-let shownSide = null;
 // What became of the last thing pressed, shown under it: { itemId, text, kind ('info' or
 // 'warning'), chooseLeave (a way to the inventory to make room) }, or null
 let notice = null;
@@ -63,6 +60,7 @@ export function isCharacterSheetOpen() {
  * @param {Function} options.onWearSet - (setId) put on every piece owned of a set. Returns
  *        the same.
  * @param {Function} options.onOpenInventory - () open the inventory in its place
+ * @param {Function} options.onShowSide - (side) between games: dress and play that side's hunter
  * @param {Function} options.onCloseAll - () close the sheet and every menu, and go on with the
  *        game if one is under way (Back, the sheet's other way out, goes to where it was opened)
  * @param {Function} options.onWearOutfit - (index) put on a saved set; returns why not, or ''
@@ -81,7 +79,7 @@ export function initializeCharacterSheet(options) {
     element('characterSheetCloseAll').addEventListener('click', () => game.onCloseAll());
     sheet.querySelectorAll('.sheet-side-btn').forEach(button => {
         button.addEventListener('click', () => {
-            shownSide = button.dataset.side;
+            game.onShowSide(button.dataset.side);
             render();
         });
     });
@@ -109,7 +107,6 @@ export function openCharacterSheet(onClose = null) {
     if (!sheet || !game) return;
 
     whenClosed = onClose;
-    shownSide = null;
     sheet.hidden = false;
     document.body.classList.add('character-sheet-open');
     render();
@@ -153,8 +150,8 @@ function render() {
 }
 
 function renderHeading(state) {
-    // In a game the hunter is the one being played; before one, either can be looked at
-    const faction = (!state.playing && shownSide) || state.faction || 'alliance';
+    // The hunter being played, or dressed: each side's has his own outfit
+    const faction = state.faction || 'alliance';
     const side = faction[0].toUpperCase() + faction.slice(1);
 
     element('sheetSides').hidden = state.playing;
@@ -379,7 +376,7 @@ function renderSlotItems(state) {
         const worn = item.id === wornId;
         // Not among what the hunter takes into a game: putting it on takes it along, or, with
         // no room, swaps it for what the slot holds (which goes to the bank)
-        const banked = Boolean(state.carried) && !state.carried.has(item.id);
+        const banked = Boolean(state.carried) && !item.starter && !state.carried.has(item.id);
         const full = Boolean(state.carried) && state.carried.size >= state.carryLimit;
         const swaps = banked && full && Boolean(wornId) && state.carried.has(wornId);
         const action = worn ? 'Take off' : banked && full ? (swaps ? 'Swap in' : 'No room') : 'Put on';

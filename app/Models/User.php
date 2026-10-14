@@ -117,27 +117,33 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * The pieces of the hunter sets this player has: picked up in any of their games (a piece
-     * caught is theirs for good, however that game ended) or given to them by an admin.
+     * The pieces of the hunter sets a side's hunter has: picked up in any of his side's games
+     * (a piece caught is his for good, however that game ended; each hunter has his own), or
+     * given by an admin (to both). With no side, both hunters' together.
      *
      * @return array<int, string>
      */
-    public function setPieces(): array
+    public function setPieces(?string $side = null): array
     {
-        return array_values(array_unique(array_merge($this->caughtPieces(), $this->granted_pieces ?? [])));
+        return array_values(array_unique(array_merge($this->caughtPieces($side), $this->granted_pieces ?? [])));
     }
 
     /**
-     * The set pieces the player picked up themselves, in any of their games.
+     * The set pieces a side's hunter picked up himself (with no side, either did).
      *
      * @return array<int, string>
      */
-    public function caughtPieces(): array
+    public function caughtPieces(?string $side = null): array
     {
         return GameDrop::query()
             ->whereNotNull('claimed_at')
             ->whereIn('item_id', config('loot.items.set_piece'))
-            ->whereHas('game', fn ($game) => $game->where('user_id', $this->id))
+            ->whereHas('game', function ($game) use ($side) {
+                $game->where('user_id', $this->id);
+                if ($side !== null) {
+                    \App\Support\Gear::onSide($game, $side);
+                }
+            })
             ->distinct()
             ->pluck('item_id')
             ->all();

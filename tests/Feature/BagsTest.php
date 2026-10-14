@@ -66,16 +66,17 @@ class BagsTest extends TestCase
         $user = User::factory()->create();
 
         // Seventeen kinds of thing in a backpack of sixteen slots, and nothing said to be short
-        $kinds = ['ring1', 'ring2', 'miners-cape', 'walking-stick', 'gold', 'wolf-master', 'cape21', 'cape05', 'fork-knife',
-            'hard-cheese', 'bread', 'fish', 'swiss-army', 'gizmos', 'copper-coin', 'gold-coin', 'runecloth'];
+        // (gear that is kept, a cape or a ring, takes no room: none of it here)
+        $kinds = ['gold', 'fork-knife', 'hard-cheese', 'bread', 'fish', 'swiss-army', 'gizmos', 'copper-coin', 'gold-coin',
+            'silver-coin', 'bronze-coin', 'arcane-crystal', 'sapphire-gem', 'pearl-gem', 'light-feather', 'kingsblood', 'runecloth'];
         $this->assertCount(17, $kinds);
 
         $response = $this->play(array_fill_keys($kinds, 1), [], $user);
 
-        // Everything is paid as sold short, and the material is not kept
+        // Everything is paid as sold short, and the materials are not kept
         $response->assertJsonPath('materials.kept', []);
         $this->assertNull($user->fresh()->materials);
-        $this->assertSame(12 * 9 + 4 * Bags::soldShort(25) + 9, $response->json('coins.earned'));
+        $this->assertSame(11 * 9 + 6 * Bags::soldShort(25), $response->json('coins.earned'));
 
         // One kind fewer, and it all fits
         $this->play(array_fill_keys(array_slice($kinds, 1), 1), [], $user)->assertJsonPath('materials.kept.runecloth', 1);

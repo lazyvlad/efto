@@ -118,7 +118,7 @@ class BossLootTest extends TestCase
             'score' => 50,
             'gameTime' => 24,
             'pickups' => [$rare->id],
-            'items' => ['ring1' => 4, 'gizmos' => 2, 'maladath' => 1],
+            'items' => ['bread' => 4, 'gizmos' => 2, 'maladath' => 1],
         ])
             ->assertOk()
             ->assertJsonPath('coins.earned', 190)
@@ -129,7 +129,7 @@ class BossLootTest extends TestCase
         $this->assertSame(1, \App\Support\Gear::owned($user)['maladath']);
 
         // Handing it in again pays nothing more
-        $this->postJson(route('games.finish', $game), ['score' => 50, 'items' => ['ring1' => 400]]);
+        $this->postJson(route('games.finish', $game), ['score' => 50, 'items' => ['bread' => 400]]);
         $this->assertSame(190, $user->fresh()->coins);
     }
 
@@ -143,7 +143,7 @@ class BossLootTest extends TestCase
         $this->postJson(route('games.finish', $game), [
             'score' => 50,
             'gameTime' => 10,
-            'items' => ['ring1' => 5000, 'ThunderFury' => 20, 'zee' => 3],
+            'items' => ['bread' => 5000, 'ThunderFury' => 20, 'zee' => 3],
         ])->assertJsonPath('coins.earned', 90);
 
         $this->assertSame(90, $user->fresh()->coins);
@@ -154,7 +154,7 @@ class BossLootTest extends TestCase
         $game = $this->openGame();
         $this->travel(25)->seconds();
 
-        $this->postJson(route('games.finish', $game), ['score' => 5, 'gameTime' => 20, 'items' => ['ring1' => 3]])
+        $this->postJson(route('games.finish', $game), ['score' => 5, 'gameTime' => 20, 'items' => ['bread' => 3]])
             ->assertJsonPath('coins.earned', 30)
             ->assertJsonPath('coins.balance', null);
     }
@@ -411,7 +411,8 @@ class BossLootTest extends TestCase
         $this->assertEqualsCanonicalizing(['giantstalker-helmet', 'ds_chest'], $user->setPieces());
 
         $html = $this->actingAs($user)->get(route('play'))->getContent();
-        $this->assertStringContainsString('"pieces":[', $html);
+        // (an old game, before there were sides, was the Alliance hunter's)
+        $this->assertStringContainsString('"pieces":{"alliance":[', $html);
         $this->assertStringContainsString('giantstalker-helmet', $html);
 
         $response = $this->getJson(route('collection'))->assertOk()

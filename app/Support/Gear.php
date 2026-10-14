@@ -35,6 +35,9 @@ class Gear
         'mainhand' => ['mainhand'], 'offhand' => ['offhand'], 'ranged' => ['ranged'],
     ];
 
+    /** The two hunters, each with an outfit of their own */
+    public const SIDES = ['alliance', 'horde'];
+
     /** What kind of thing is worn in a slot, for what it gives ("budget" in config/gear.php). */
     private const KIND = [
         'mainhand' => 'weapon', 'offhand' => 'weapon', 'ranged' => 'weapon',
@@ -46,7 +49,10 @@ class Gear
      * and the weapons and jewellery that fall in a game. By item id: name, picture, where it
      * is worn (the game's word), rarity, what it gives, what it sells for, and where from.
      *
-     * @return array<string, array{name: string, image: string, slot: string, rarity: string, stats: array<string, int>, value: int, from: string}>
+     * Boss loot and the clothes a hunter starts in are one side's ('side'): the other side's
+     * hunter never wears them. The rest is either's.
+     *
+     * @return array<string, array{name: string, image: string, slot: string, rarity: string, stats: array<string, int>, value: int, from: string, side?: string}>
      */
     public static function catalog(): array
     {
@@ -58,7 +64,8 @@ class Gear
         $catalog = [];
         $slots = config('gear.boss_slots');
 
-        foreach (config('boss_loot.bosses') as $bosses) {
+        // A boss's loot is its side's: only that side's hunter wears it
+        foreach (config('boss_loot.bosses') as $side => $bosses) {
             $zone = 0;
             foreach ($bosses as $boss) {
                 $zone++;
@@ -70,14 +77,15 @@ class Gear
 
                     $catalog[$item['id']] = [
                         'name' => $item['name'],
-                        // It has no picture of its own: its boss's stands for it
-                        'image' => $boss['image'],
+                        // Its own picture, or else its boss's stands for it
+                        'image' => self::iconOf($item['id']) ?? $boss['image'],
                         'slot' => $slot,
                         'rarity' => $rarity,
                         'stats' => self::bossItemStats($slot, $rarity, $zone, self::isTwoHanded($item['id'])),
                         'twoHanded' => self::isTwoHanded($item['id']),
                         'value' => (int) config("gear.boss_value_per_zone.$rarity") * $zone,
                         'from' => $boss['name'],
+                        'side' => $side,
                     ];
                 }
             }
@@ -90,7 +98,7 @@ class Gear
                 'name' => $items[$itemId]['name'],
                 'image' => $items[$itemId]['image'],
                 'slot' => $drop['slot'],
-                'rarity' => 'epic',
+                'rarity' => $drop['rarity'] ?? 'epic',
                 'stats' => $drop['stats'],
                 'twoHanded' => self::isTwoHanded($itemId),
                 'value' => (int) config("loot.coins.$type"),
@@ -98,7 +106,49 @@ class Gear
             ];
         }
 
+        // The clothes the hunters start in
+        foreach (config('gear.starter') as $side => $pieces) {
+            foreach ($pieces as $piece) {
+                $catalog[$piece['id']] = [
+                    'name' => $piece['name'],
+                    'image' => self::iconOf($piece['id']) ?? 'assets/items/gear/'.$piece['id'].'.webp',
+                    'slot' => $piece['slot'],
+                    'rarity' => 'common',
+                    'stats' => $piece['stats'],
+                    'twoHanded' => false,
+                    'value' => 0,
+                    'from' => $side === 'alliance' ? 'The Alliance hunter\'s first clothes' : 'The Horde hunter\'s first clothes',
+                    'starter' => $side,
+                    'side' => $side,
+                ];
+            }
+        }
+
         return $catalog;
+    }
+
+    /** The game's own picture of an item (game/assets/items/gear), if it has one */
+    private static function iconOf(string $itemId): ?string
+    {
+        return is_file(base_path('game/assets/items/gear/'.$itemId.'.webp')) ? 'assets/items/gear/'.$itemId.'.webp' : null;
+    }
+
+    /** What a side's hunter starts in: [slot => itemId] */
+    public static function starterLoadout(string $side): array
+    {
+        return array_map(fn ($piece) => $piece['id'], config("gear.starter.$side", []));
+    }
+
+    /** Whether an item is one of the clothes the hunters start in */
+    public static function isStarter(string $itemId): bool
+    {
+        foreach (self::SIDES as $side) {
+            if (in_array($itemId, self::starterLoadout($side), true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** Whether a weapon is held in both hands, keeping the off hand empty. */
@@ -134,12 +184,52 @@ class Gear
     }
 
     /**
-     * How many of each catalogue item a player owns: what the bosses dropped for them and
-     * what they caught, less what they have sold. Only items they have at least one of.
+     * How many of each catalogue item a side's hunter owns: what his side's bosses dropped and
+     * what he caught in his side's games, less what he has sold, and the clothes he starts
+     * in. Each hunter has his own: nothing won by one is the other's. Only items he has at
+     * least one of. With no side, both hunters' together.
      *
      * @return array<string, int>
      */
-    public static function owned(User $user): array
+    public static function owned(User $user, ?string $side = null): array
+    {
+        if ($side === null) {
+            $both = [];
+            foreach (self::SIDES as $each) {
+                foreach (self::owned($user, $each) as $itemId => $count) {
+                    $both[$itemId] = ($both[$itemId] ?? 0) + $count;
+                }
+            }
+
+            return $both;
+        }
+
+        $catalog = self::catalog();
+        $sold = self::sold($user, $side);
+        $owned = [];
+
+        foreach (self::found($user, $side) as $itemId => $count) {
+            $left = $count - (int) ($sold[$itemId] ?? 0);
+            if (isset($catalog[$itemId]) && $left > 0) {
+                $owned[$itemId] = $left;
+            }
+        }
+
+        // He has the clothes he starts in, once
+        foreach (self::starterLoadout($side) as $itemId) {
+            $owned[$itemId] = 1;
+        }
+
+        return $owned;
+    }
+
+    /**
+     * Everything a side's hunter ever won that is kept to wear or sell, sold or not: the loot
+     * of his side's bosses, and the gear caught in his side's games.
+     *
+     * @return array<string, int>
+     */
+    private static function found(User $user, string $side): array
     {
         $catalog = self::catalog();
 
@@ -147,54 +237,177 @@ class Gear
             ->selectRaw('item_id, count(*) as found')
             ->groupBy('item_id')
             ->pluck('found', 'item_id')
+            ->filter(fn ($count, $itemId) => ($catalog[$itemId]['side'] ?? null) === $side)
             ->all();
 
         $caught = \App\Models\GameDrop::query()
             ->whereNotNull('claimed_at')
             ->whereIn('item_id', array_keys(config('gear.drops')))
-            ->whereHas('game', fn ($game) => $game->where('user_id', $user->id))
+            ->whereHas('game', fn ($game) => self::onSide($game->where('user_id', $user->id), $side))
             ->selectRaw('item_id, count(*) as found')
             ->groupBy('item_id')
             ->pluck('found', 'item_id')
             ->all();
 
-        $sold = $user->sold ?? [];
-        $owned = [];
-
-        foreach ($found + $caught as $itemId => $count) {
-            $left = (int) $count - (int) ($sold[$itemId] ?? 0);
-            if (isset($catalog[$itemId]) && $left > 0) {
-                $owned[$itemId] = $left;
+        $all = [];
+        foreach ([$found, $caught] as $counts) {
+            foreach ($counts as $itemId => $count) {
+                $all[$itemId] = ($all[$itemId] ?? 0) + (int) $count;
             }
         }
 
-        return $owned;
+        return $all;
     }
 
     /**
-     * What a player's hunter is wearing, with anything they no longer own taken out.
+     * Games played as a side's hunter. A game from before there were two sides was the
+     * Alliance hunter's, the only one there was.
+     */
+    public static function onSide($games, string $side)
+    {
+        return $side === 'alliance'
+            ? $games->where(fn ($query) => $query->where('faction', 'alliance')->orWhereNull('faction'))
+            : $games->where('faction', $side);
+    }
+
+    /**
+     * How many of each item a side's hunter has sold ({ alliance: {...}, horde: {...} } in
+     * users.sold). What was sold before each hunter had his own was taken from the Alliance
+     * hunter's, and what he did not have from the Horde hunter's.
+     *
+     * @return array<string, int>
+     */
+    public static function sold(User $user, string $side): array
+    {
+        $sold = $user->sold ?? [];
+        if (self::isPerSide($sold)) {
+            return $sold[$side] ?? [];
+        }
+        if ($side === 'alliance') {
+            return $sold;
+        }
+
+        $alliance = self::found($user, 'alliance');
+        $rest = [];
+        foreach ($sold as $itemId => $count) {
+            $over = (int) $count - ($alliance[$itemId] ?? 0);
+            if ($over > 0) {
+                $rest[$itemId] = $over;
+            }
+        }
+
+        return $rest;
+    }
+
+    /** Both hunters' sold counts, the old single list shared out between them */
+    public static function allSold(User $user): array
+    {
+        $all = [];
+        foreach (self::SIDES as $side) {
+            $all[$side] = (object) self::sold($user, $side);
+        }
+
+        return $all;
+    }
+
+    /**
+     * What a side's hunter is wearing, with anything they no longer own taken out: what they
+     * chose, or what that side starts in if they never chose.
      *
      * @return array<string, string>
      */
-    public static function worn(User $user): array
+    public static function worn(User $user, string $side = 'alliance'): array
     {
-        return self::valid($user, $user->equipment ?? []);
+        return self::valid($user, self::equipmentFor($user, $side) ?? self::starterLoadout($side), $side);
     }
 
     /**
-     * What a player's hunter takes into a game (carriedOf in game/utils/gear.js): what they
-     * chose, as far as they still own it, no more than the limit; what is worn is added
-     * while there is room. A player who never chose takes what they wear and then whatever
-     * else they own, in the order the game lists it, up to the limit.
+     * What a player chose for a side's hunter to wear, as they saved it, or null if they never
+     * chose. Each hunter has an outfit of its own ({ alliance: {...}, horde: {...} }). Saved
+     * before that, one outfit was worn by both: it becomes each side's, with the clothes that
+     * side starts in put on wherever that outfit left a slot empty (they were drawn on the
+     * hunter then, as part of him).
+     */
+    public static function equipmentFor(User $user, string $side): ?array
+    {
+        $saved = $user->equipment;
+        if ($saved === null) {
+            return null;
+        }
+        if (self::isPerSide($saved)) {
+            return isset($saved[$side]) && is_array($saved[$side]) ? $saved[$side] : null;
+        }
+
+        return $saved + self::starterLoadout($side);
+    }
+
+    /** Both hunters' outfits as saved, the old single outfit made into two */
+    public static function allEquipment(User $user): array
+    {
+        $all = [];
+        foreach (self::SIDES as $side) {
+            $all[$side] = self::equipmentFor($user, $side);
+        }
+
+        return $all;
+    }
+
+    private static function isPerSide(array $saved): bool
+    {
+        return array_intersect(array_map('strval', array_keys($saved)), self::SIDES) !== [];
+    }
+
+    /**
+     * What a player chose for a side's hunter to carry, as they saved it, or null if they
+     * never chose. Each hunter carries his own ({ alliance: [...], horde: [...] }); a list
+     * saved before that is both's (each keeps of it what he can wear).
+     *
+     * @return array<int, mixed>|null
+     */
+    public static function carriedFor(User $user, string $side): ?array
+    {
+        $saved = $user->carried;
+        if ($saved === null) {
+            return null;
+        }
+        if (self::isPerSide($saved)) {
+            return isset($saved[$side]) && is_array($saved[$side]) ? array_values($saved[$side]) : null;
+        }
+
+        return array_values($saved);
+    }
+
+    /** Both hunters' carried lists as saved, the old single list made into two */
+    public static function allCarried(User $user): array
+    {
+        $all = [];
+        foreach (self::SIDES as $side) {
+            $all[$side] = self::carriedFor($user, $side);
+        }
+
+        return $all;
+    }
+
+    /**
+     * What a side's hunter takes into a game (carriedOf in game/utils/gear.js): what was
+     * chosen, as far as it is still owned and his to wear, no more than the limit; what is
+     * worn is added while there is room. A hunter whose player never chose takes what he
+     * wears and then whatever else of his is owned, in the order the game lists it, up to the
+     * limit.
      *
      * @param  array<int, mixed>|null  $chosen
      * @return array<int, string>
      */
-    public static function carried(User $user, ?array $chosen, ?array $worn = null): array
+    public static function carried(User $user, ?array $chosen, ?array $worn = null, string $side = 'alliance'): array
     {
         $limit = (int) config('gear.carry');
-        $owned = array_merge($user->setPieces(), array_keys(self::owned($user)));
-        $worn = array_values($worn ?? self::worn($user));
+        $catalog = self::catalog();
+        // The clothes the hunters start in are always with them, and never count; the other
+        // side's loot is never his
+        $counted = fn ($itemId) => is_string($itemId) && ! self::isStarter($itemId)
+            && ($catalog[$itemId]['side'] ?? $side) === $side;
+        $owned = array_values(array_filter(array_merge($user->setPieces($side), array_keys(self::owned($user, $side))), $counted));
+        $worn = array_values(array_filter($worn ?? self::worn($user, $side), $counted));
 
         $list = $chosen === null ? array_merge($worn, $owned) : $chosen;
         $carried = [];
@@ -214,7 +427,7 @@ class Gear
      * How much the gear being worn takes off the loss on things caught with the bags full,
      * as a share (0.02 = two hundredths).
      */
-    public static function carrying(?User $user): float
+    public static function carrying(?User $user, ?string $side = null): float
     {
         if (! $user) {
             return 0.0;
@@ -222,7 +435,7 @@ class Gear
 
         $catalog = self::catalog();
         $points = 0;
-        foreach (self::worn($user) as $itemId) {
+        foreach (self::worn($user, $side ?? 'alliance') as $itemId) {
             $points += $catalog[$itemId]['stats']['carrying'] ?? 0;
         }
 
@@ -254,15 +467,17 @@ class Gear
     /**
      * What the player asked to wear with everything taken out that cannot be worn: slots that
      * do not exist, items that are not theirs, items where they do not fit, second copies of
-     * one item, and anything in the off hand while a two-handed weapon is worn.
+     * one item, anything in the off hand while a two-handed weapon is worn, and, for a side's
+     * hunter, the other side's things.
      *
      * @param  array<string, mixed>  $wanted  [slot => itemId]
      * @return array<string, string>
      */
-    public static function valid(User $user, array $wanted): array
+    public static function valid(User $user, array $wanted, ?string $side = null): array
     {
         $fits = self::slots();
-        $owned = array_merge($user->setPieces(), array_keys(self::owned($user)));
+        $catalog = self::catalog();
+        $owned = array_merge($user->setPieces($side), array_keys(self::owned($user, $side)));
         $worn = [];
 
         foreach (self::SLOTS as $slot) {
@@ -271,6 +486,7 @@ class Gear
             if (is_string($itemId)
                 && in_array($itemId, $owned, true)
                 && in_array($slot, $fits[$itemId] ?? [], true)
+                && ($side === null || ($catalog[$itemId]['side'] ?? $side) === $side)
                 && ! in_array($itemId, $worn, true)) {
                 $worn[$slot] = $itemId;
             }

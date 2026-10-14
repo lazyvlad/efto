@@ -816,19 +816,81 @@ function finishGameNow() {
 
 const WORN_SET_KEY = 'input_worn_set';
 
-// Everything the player has that can be worn: the pieces of the sets, and the other gear
+// Each hunter has his own things: INPUT_BOOT.user.pieces and .gear are { alliance, horde }.
+// These give a side's hunter's own, to read and to add to. (A page from before each hunter had
+// his own handed over one list: it is taken as the Alliance hunter's.)
+function bySide(user, key, side, empty) {
+    let value = user[key];
+    if (!value || (value.alliance === undefined && value.horde === undefined)) {
+        value = { alliance: value || empty(), horde: empty() };
+        user[key] = value;
+    }
+    if (!value[side]) value[side] = empty();
+    return value[side];
+}
+
+function accountPieces(side = currentSide()) {
+    return bySide(siteBoot.user, 'pieces', side, () => []);
+}
+
+function accountGear(side = currentSide()) {
+    return bySide(siteBoot.user, 'gear', side, () => ({}));
+}
+
+// Everything a side's hunter has that can be worn: the pieces of the sets, and the other gear
 // (what the bosses dropped, the weapons and jewellery caught), on the account or in this game
-function ownedPieces() {
+function ownedPieces(side = currentSide()) {
     const user = siteBoot && siteBoot.user ? siteBoot.user : null;
-    const owned = new Set(user && user.pieces ? user.pieces : []);
+    const owned = new Set(user ? accountPieces(side) : []);
     
-    for (const [itemId, count] of Object.entries(user && user.gear ? user.gear : {})) {
+    for (const [itemId, count] of Object.entries(user ? accountGear(side) : {})) {
         if (count > 0) owned.add(itemId);
     }
     gameItems.forEach(item => {
         if (item.collected > 0 && (item.type === 'set_piece' || isKeptGear(item.id))) owned.add(item.id);
     });
+    // Everyone, guests too, has the clothes his hunter starts in
+    Object.values(starterLoadout(side)).forEach(itemId => owned.add(itemId));
     return owned;
+}
+
+// The clothes the hunters start in (INPUT_BOOT.gear, from config/gear.php): gear like any other,
+// but never carried, counted or sold
+function starterItems() {
+    return Object.entries(gearCatalog()).filter(([, item]) => item.starter).map(([itemId]) => itemId);
+}
+
+function isStarter(itemId) {
+    const item = gearCatalog()[itemId];
+    return Boolean(item && item.starter);
+}
+
+// What a side's hunter starts in: { slotId: itemId } (each piece in the first slot it fits)
+function starterLoadout(side) {
+    const outfit = {};
+    for (const [itemId, item] of Object.entries(gearCatalog())) {
+        if (item.starter !== side) continue;
+        const slotId = slotsFor({ slot: item.slot }).find(candidate => !outfit[candidate]);
+        if (slotId) outfit[slotId] = itemId;
+    }
+    return outfit;
+}
+
+// The side whose hunter is being played, or dressed
+function currentSide() {
+    return (isPlaying() ? gameState.faction : getFaction()) || gameState.faction || 'alliance';
+}
+
+// Each hunter has things of his own: a boss's loot is worn only by its side's hunter, and the
+// clothes each starts in only by him (gear.side, from Gear::catalog). The rest is either's.
+function wornBy(itemId, side = currentSide()) {
+    const item = gearCatalog()[itemId];
+    return !item || !item.side || item.side === side;
+}
+
+// Of these, what a side's hunter can wear
+function forSide(itemIds, side = currentSide()) {
+    return new Set([...itemIds].filter(itemId => wornBy(itemId, side)));
 }
 
 function rememberedSet() {
@@ -850,33 +912,69 @@ function rememberedSet() {
 const EQUIPMENT_KEY = 'input_equipment';
 let equipmentSaveTimer = null;
 
-// What was last being worn in this browser
-function storedEquipment() {
+// What was last being worn in this browser by a side's hunter. Before each hunter had his own
+// outfit, one was kept for both: it is each side's then, in its own clothes where it left a
+// slot empty (they were drawn on him then, as part of him).
+function storedEquipment(side) {
     try {
-        return JSON.parse(localStorage.getItem(EQUIPMENT_KEY)) || null;
+        const own = JSON.parse(localStorage.getItem(`${EQUIPMENT_KEY}_${side}`));
+        if (own) return own;
+        const shared = JSON.parse(localStorage.getItem(EQUIPMENT_KEY));
+        return shared ? { ...starterLoadout(side), ...shared } : null;
     } catch (e) {
         return null;
     }
 }
 
-// As a game starts: what the player chose to wear, as far as they still own it. A player who
-// has never chosen starts in the pieces they own of the set they last wore, as before there
-// was a character sheet.
-function restoreEquipment() {
-    const owned = ownedPieces();
+// What a side's hunter was chosen to wear: on the account ({ alliance, horde }, null for one
+// never chosen), or in this browser
+function chosenEquipment(side) {
     const account = siteBoot && siteBoot.user ? siteBoot.user.equipment : undefined;
-    const chosen = account !== undefined ? account : storedEquipment();
+    if (account !== undefined && account !== null) {
+        // An account answered in the old shape (one outfit for both)
+        const perSide = Object.prototype.hasOwnProperty.call(account, 'alliance') || Object.prototype.hasOwnProperty.call(account, 'horde');
+        return perSide ? account[side] || null : { ...starterLoadout(side), ...account };
+    }
+    return account === null ? null : storedEquipment(side);
+}
+
+// As a game starts, and when the side changes: what the player chose for that side's hunter to
+// wear, as far as they still own it. A hunter never dressed starts in his own clothes and the
+// pieces owned of the set last worn.
+function restoreEquipment() {
+    const side = currentSide();
+    const owned = forSide(ownedPieces(), side);
+    const chosen = chosenEquipment(side);
     
     gameState.equipment = chosen
         ? validEquipment(chosen, wearables(), owned)
-        : equipSet({}, rememberedSet(), wearables(), owned);
+        : equipSet(starterLoadout(side), rememberedSet(), wearables(), owned);
     // Only what the hunter carries can be worn
     if (hasBank()) {
-        gameState.carried = carriedOf(siteBoot.user.carried || null, Object.values(gameState.equipment), owned, gameConfig.bags.carry);
-        gameState.equipment = validEquipment(gameState.equipment, wearables(), new Set(gameState.carried));
+        gameState.carried = carriedOf(chosenCarried(side), countedOf(Object.values(gameState.equipment)), countedOf(owned), gameConfig.bags.carry);
+        gameState.equipment = validEquipment(gameState.equipment, wearables(), withStarter(gameState.carried));
     }
     gameState.wornSet = mainSet(gameState.equipment, wearables(), gameConfig.sets) || rememberedSet();
     refreshSetBonus();
+}
+
+// What a side's hunter was chosen to carry (INPUT_BOOT.user.carried, { alliance, horde }), or
+// null if never: a list from before each hunter carried his own is both's
+function chosenCarried(side) {
+    const saved = siteBoot && siteBoot.user ? siteBoot.user.carried : null;
+    if (!saved) return null;
+    if (Array.isArray(saved)) return saved;
+    return Array.isArray(saved[side]) ? saved[side] : null;
+}
+
+// What counts towards what a hunter carries: anything but the clothes he starts in
+function countedOf(itemIds) {
+    return [...itemIds].filter(itemId => !isStarter(itemId));
+}
+
+// What is carried, and the clothes, which always are: what this side's hunter can wear of it
+function withStarter(carried) {
+    return forSide([...carried, ...starterItems()]);
 }
 
 // ----- What the hunter carries (carriedOf in utils/gear.js) -----
@@ -899,12 +997,12 @@ function caughtGear() {
     return gameItems.filter(item => item.collected > 0 && (item.type === 'set_piece' || isKeptGear(item.id))).map(item => item.id);
 }
 
-// What can be put on right now
+// What can be put on right now, by this side's hunter
 function availablePieces() {
     const owned = ownedPieces();
-    if (!hasBank() || !isPlaying()) return owned;
+    if (!hasBank() || !isPlaying()) return forSide(owned);
     
-    return new Set([...gameState.carried.filter(itemId => owned.has(itemId)), ...caughtGear()]);
+    return forSide([...gameState.carried.filter(itemId => owned.has(itemId)), ...caughtGear(), ...starterItems()]);
 }
 
 // Why this cannot be worn now, in words, or '' when it can: between games there must be room
@@ -912,7 +1010,7 @@ function availablePieces() {
 function noRoomFor(equipment) {
     if (!hasBank() || isPlaying()) return '';
     
-    const worn = Object.values(validEquipment(equipment, wearables(), ownedPieces()));
+    const worn = countedOf(Object.values(validEquipment(equipment, wearables(), ownedPieces())));
     return fitsCarried(gameState.carried, worn, gameConfig.bags.carry)
         ? ''
         : `Your hunter already carries ${gameConfig.bags.carry} things. Leave something in the bank to make room.`;
@@ -928,10 +1026,10 @@ function carryMany(itemIds, take) {
     let moved = 0;
     
     if (take) {
-        const owned = ownedPieces();
+        const owned = forSide(ownedPieces());
         for (const itemId of itemIds) {
             if (carried.length >= limit) break;
-            if (owned.has(itemId) && !carried.includes(itemId)) {
+            if (owned.has(itemId) && !isStarter(itemId) && !carried.includes(itemId)) {
                 carried.push(itemId);
                 moved++;
             }
@@ -943,7 +1041,7 @@ function carryMany(itemIds, take) {
     }
     
     gameState.carried = carried;
-    gameState.equipment = validEquipment(gameState.equipment, wearables(), new Set(gameState.carried));
+    gameState.equipment = validEquipment(gameState.equipment, wearables(), withStarter(gameState.carried));
     gameState.wornSet = mainSet(gameState.equipment, wearables(), gameConfig.sets) || gameState.wornSet;
     refreshSetBonus();
     saveEquipment();
@@ -959,8 +1057,9 @@ function carryMany(itemIds, take) {
 // Keep what is worn: in this browser at once, on the account a moment later (so a string of
 // changes on the sheet is one request)
 function saveEquipment() {
+    const side = currentSide();
     try {
-        localStorage.setItem(EQUIPMENT_KEY, JSON.stringify(gameState.equipment));
+        localStorage.setItem(`${EQUIPMENT_KEY}_${side}`, JSON.stringify(gameState.equipment));
         localStorage.setItem(WORN_SET_KEY, gameState.wornSet);
     } catch (e) {
         // Storage unavailable: worn for this game
@@ -968,8 +1067,15 @@ function saveEquipment() {
     
     if (!(siteBoot && siteBoot.user && siteBoot.urls && siteBoot.urls.equipment)) return;
     
-    siteBoot.user.equipment = { ...gameState.equipment };
-    siteBoot.user.carried = [...gameState.carried];
+    const outfits = siteBoot.user.equipment && (siteBoot.user.equipment.alliance !== undefined || siteBoot.user.equipment.horde !== undefined)
+        ? siteBoot.user.equipment
+        : { alliance: chosenEquipment('alliance'), horde: chosenEquipment('horde') };
+    siteBoot.user.equipment = { ...outfits, [side]: { ...gameState.equipment } };
+    siteBoot.user.carried = {
+        alliance: chosenCarried('alliance'),
+        horde: chosenCarried('horde'),
+        [side]: [...gameState.carried],
+    };
     clearTimeout(equipmentSaveTimer);
     equipmentSaveTimer = setTimeout(() => {
         fetch(siteBoot.urls.equipment, {
@@ -977,7 +1083,7 @@ function saveEquipment() {
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': siteBoot.csrfToken || '' },
             credentials: 'same-origin',
             keepalive: true,
-            body: JSON.stringify({ equipment: gameState.equipment, carried: gameState.carried })
+            body: JSON.stringify({ equipment: gameState.equipment, side, carried: gameState.carried })
         }).catch(() => { /* Kept in this browser; saved with the next change */ });
     }, 600);
 }
@@ -988,8 +1094,8 @@ function setEquipment(equipment) {
     // Between games what is put on is taken along (the callers have seen to it that there is
     // room); what is no longer owned is no longer carried
     if (hasBank() && !isPlaying()) {
-        gameState.carried = carriedOf(gameState.carried, Object.values(gameState.equipment), ownedPieces(), gameConfig.bags.carry);
-        gameState.equipment = validEquipment(gameState.equipment, wearables(), new Set(gameState.carried));
+        gameState.carried = carriedOf(gameState.carried, countedOf(Object.values(gameState.equipment)), countedOf(forSide(ownedPieces())), gameConfig.bags.carry);
+        gameState.equipment = validEquipment(gameState.equipment, wearables(), withStarter(gameState.carried));
     }
     gameState.wornSet = mainSet(gameState.equipment, wearables(), gameConfig.sets) || gameState.wornSet;
     refreshSetBonus();
@@ -1214,13 +1320,14 @@ async function sellGear(itemId, count) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': siteBoot.csrfToken || '' },
             credentials: 'same-origin',
-            body: JSON.stringify({ item: itemId, count })
+            body: JSON.stringify({ item: itemId, count, side: currentSide() })
         });
         const result = await response.json();
         
         if (!response.ok) return result.message || 'It could not be sold.';
         
-        siteBoot.user.gear = result.gear;
+        accountGear(result.side || currentSide());
+        siteBoot.user.gear[result.side || currentSide()] = result.gear;
         siteBoot.user.coins = result.coins;
         siteBoot.user.equipment = result.equipment;
         renderAccountBar();
@@ -1268,6 +1375,8 @@ function showStartMap() {
             if (!faction) return;   // A place that is not in the game yet
             
             setFaction(faction);
+            // Each side's hunter has his own outfit
+            if (!isPlaying()) restoreEquipment();
             document.querySelectorAll('#factionPicker input[name="faction"]').forEach(option => {
                 option.checked = option.value === faction;
             });
@@ -2478,7 +2587,7 @@ function setupUIEventHandlers() {
             equipment: gameState.equipment,
             owned: availablePieces(),
             // In a game: how much of what is owned was left in the bank
-            inBank: ownedPieces().size - availablePieces().size,
+            inBank: forSide(ownedPieces()).size - availablePieces().size,
             // What a player with an account takes into a game (a guest has no bank)
             carried: hasBank() ? new Set(gameState.carried) : null,
             carryLimit: gameConfig.bags.carry,
@@ -2486,7 +2595,7 @@ function setupUIEventHandlers() {
             mostOutfits: MOST_OUTFITS,
             // The place picked on the map, or the one the game is in
             scene: currentBackgroundImage(),
-            faction: gameState.faction || getFaction(),
+            faction: currentSide(),
             name: getAccountName() || gameState.playerName || document.getElementById('playerNameInput')?.value || 'Hunter',
             level: (gameState.currentLevel || 0) + 1,
             playing: gameState.gameRunning || gameState.showingPauseMenu,
@@ -2518,6 +2627,14 @@ function setupUIEventHandlers() {
         onChooseLeave: () => showInventory('gear'),
         onWearSet: setId => wearSet(setId, false),
         onOpenInventory: () => showInventory(),
+        // Between games the sheet's Alliance and Horde dress (and play) that side's hunter: the
+        // map moves to where that side starts
+        onShowSide: side => {
+            if (isPlaying() || side === currentSide()) return;
+            setFaction(side);
+            showStartMap();
+            restoreEquipment();
+        },
         onCloseAll: closeWindowsAndResume,
         onWearOutfit: wearOutfit,
         onSaveOutfit: saveOutfit,
@@ -2542,11 +2659,12 @@ function setupUIEventHandlers() {
                 bank: user && user.materials ? user.materials : {},
                 loggedIn: Boolean(user),
                 // The gear owned besides the sets: how many of each, and which are being worn
-                gear: user && user.gear ? user.gear : {},
+                gear: user ? accountGear() : {},
                 worn: Object.values(gameState.equipment),
-                // Everything that can be worn and is owned, and what of it the hunter takes
-                // into a game
-                owned: [...ownedPieces()],
+                // Everything this side's hunter can wear and is owned, and what of it he
+                // takes into a game (the other hunter's things are in his own inventory)
+                owned: [...forSide(ownedPieces())],
+                faction: currentSide(),
                 carried: gameState.carried,
                 carryLimit: gameConfig.bags.carry,
                 // The pictures of the place and the hunter, for the gear tab
@@ -2653,6 +2771,7 @@ function setupUIEventHandlers() {
     document.querySelectorAll('#factionPicker input[name="faction"]').forEach(option => {
         option.addEventListener('change', () => {
             setFaction(option.value);
+            if (!isPlaying()) restoreEquipment();
             renderStartZonePicker(option.value);
             document.getElementById('factionPicker').classList.remove('needs-choice');
             showStartingBackground();
@@ -3978,8 +4097,8 @@ function stowCatch(itemData) {
     // takes no room, and goes on if nothing is in its slot.
     if (isKeptGear(itemData.id)) {
         if (siteBoot && siteBoot.user) {
-            siteBoot.user.gear = siteBoot.user.gear || {};
-            siteBoot.user.gear[itemData.id] = (siteBoot.user.gear[itemData.id] || 0) + 1;
+            const gear = accountGear();
+            gear[itemData.id] = (gear[itemData.id] || 0) + 1;
         }
         wearCaughtPiece(wearableById(itemData.id));
         return;
@@ -4032,8 +4151,8 @@ function onItemCollected(itemData, fallingItem = null) {
     // a logged-in player keeps it (the site records the pickup)
     if (itemData.type === 'set_piece') {
         if (siteBoot && siteBoot.user && dropId !== null && dropId !== undefined) {
-            siteBoot.user.pieces = siteBoot.user.pieces || [];
-            if (!siteBoot.user.pieces.includes(itemData.id)) siteBoot.user.pieces.push(itemData.id);
+            const pieces = accountPieces();
+            if (!pieces.includes(itemData.id)) pieces.push(itemData.id);
         }
         wearCaughtPiece(itemData);
         
@@ -4213,6 +4332,11 @@ function onBossDefeated(boss) {
             combatTexts.push(new CombatText((canvas.logicalWidth || canvas.width) / 2, player.y - 90, 'Large quiver!', '#FF8000', true));
         }
         if (!drop.item) return;
+        // Kept: its side's hunter owns it from now on
+        if (drop.kept && siteBoot && siteBoot.user && isKeptGear(drop.item.id)) {
+            const gear = accountGear(boss.faction);
+            gear[drop.item.id] = (gear[drop.item.id] || 0) + 1;
+        }
         
         // Listed with the game's loot, in the panel and on the loot screen
         gameState.bossLoot.push({ boss, item: drop.item, kept: drop.kept, timesFound: drop.timesFound });
