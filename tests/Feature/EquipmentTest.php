@@ -134,4 +134,26 @@ class EquipmentTest extends TestCase
         $this->assertSame(1, preg_match('/carry: (\d+),/', $config, $found));
         $this->assertSame((int) $found[1], config('gear.carry'));
     }
+
+    public function test_a_player_keeps_sets_of_their_own(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->putJson(route('outfits.update'), ['outfits' => [
+            ['name' => ' Boss gear ', 'equipment' => ['head' => 'giantstalker-helmet', 'mainhand' => 'ashkandi2', 'nose' => 'x', 'feet' => '']],
+            ['name' => 'Empty', 'equipment' => []],
+        ]])->assertOk()->assertJsonPath('outfits.0.name', 'Boss gear')
+            ->assertJsonPath('outfits.0.equipment', ['head' => 'giantstalker-helmet', 'mainhand' => 'ashkandi2']);
+
+        $this->assertCount(2, $user->fresh()->outfits);
+        $this->get(route('play'))->assertSee('"outfits":[{"name":"Boss gear"', false);
+
+        // No more than four, each named
+        $five = array_fill(0, 5, ['name' => 'Set', 'equipment' => []]);
+        $this->putJson(route('outfits.update'), ['outfits' => $five])->assertStatus(422);
+        $this->putJson(route('outfits.update'), ['outfits' => [['equipment' => []]]])->assertStatus(422);
+
+        auth()->logout();
+        $this->putJson(route('outfits.update'), ['outfits' => []])->assertUnauthorized();
+    }
 }

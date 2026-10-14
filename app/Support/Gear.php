@@ -74,7 +74,8 @@ class Gear
                         'image' => $boss['image'],
                         'slot' => $slot,
                         'rarity' => $rarity,
-                        'stats' => self::bossItemStats($slot, $rarity, $zone),
+                        'stats' => self::bossItemStats($slot, $rarity, $zone, self::isTwoHanded($item['id'])),
+                        'twoHanded' => self::isTwoHanded($item['id']),
                         'value' => (int) config("gear.boss_value_per_zone.$rarity") * $zone,
                         'from' => $boss['name'],
                     ];
@@ -91,6 +92,7 @@ class Gear
                 'slot' => $drop['slot'],
                 'rarity' => 'epic',
                 'stats' => $drop['stats'],
+                'twoHanded' => self::isTwoHanded($itemId),
                 'value' => (int) config("loot.coins.$type"),
                 'from' => 'Falls in a game',
             ];
@@ -99,16 +101,23 @@ class Gear
         return $catalog;
     }
 
+    /** Whether a weapon is held in both hands, keeping the off hand empty. */
+    public static function isTwoHanded(string $itemId): bool
+    {
+        return in_array($itemId, config('gear.two_handed', []), true);
+    }
+
     /**
      * What a boss's item gives: the budget of its kind and rarity, grown by its boss's zone.
      *
      * @return array<string, int>
      */
-    private static function bossItemStats(string $slot, string $rarity, int $zone): array
+    private static function bossItemStats(string $slot, string $rarity, int $zone, bool $twoHanded = false): array
     {
         $budget = config('gear.budget');
         $kind = self::KIND[$slot] ?? 'armor';
-        $growth = 1 + ($zone - 1) * $budget['per_zone'];
+        // Held in both hands it gives more, for the off hand it keeps empty
+        $growth = (1 + ($zone - 1) * $budget['per_zone']) * ($twoHanded ? (float) config('gear.two_handed_factor') : 1);
 
         $stats = [];
         foreach ($budget[$kind][$rarity] as $stat => $amount) {
@@ -244,8 +253,8 @@ class Gear
 
     /**
      * What the player asked to wear with everything taken out that cannot be worn: slots that
-     * do not exist, items that are not theirs, items where they do not fit, and second copies
-     * of one item.
+     * do not exist, items that are not theirs, items where they do not fit, second copies of
+     * one item, and anything in the off hand while a two-handed weapon is worn.
      *
      * @param  array<string, mixed>  $wanted  [slot => itemId]
      * @return array<string, string>
@@ -265,6 +274,11 @@ class Gear
                 && ! in_array($itemId, $worn, true)) {
                 $worn[$slot] = $itemId;
             }
+        }
+
+        // A weapon held in both hands leaves nothing for the off hand
+        if (isset($worn['mainhand']) && self::isTwoHanded($worn['mainhand'])) {
+            unset($worn['offhand']);
         }
 
         return $worn;

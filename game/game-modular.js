@@ -34,6 +34,7 @@ import { Pet } from './classes/Pet.js';
 import { playerCharacters } from './data/playerCharacters.js';
 import { getStartZone, renderStartZonePicker, setUnlockedZone, skipCost, renderGameModePicker, getGameMode, gameModeCost, rememberBeaten } from './ui/startZone.js';
 import { renderThisGame, renderAllTime } from './ui/lootScreen.js';
+import { showGameOverSummary, showGameOverResult } from './ui/gameOverScreen.js';
 import { showTravelMap } from './ui/travelMap.js';
 import { initializeKeyBindings } from './ui/keyBindingsScreen.js';
 import { initializeMusicButton } from './ui/musicButton.js';
@@ -42,7 +43,7 @@ import { actionFor, keyName, resetKeys } from './utils/keybindings.js';
 import { say, preloadVoiceLines, resetVoiceLines, updateBanter, watchHealth, forgetHealth } from './systems/voiceSystem.js';
 import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies } from './systems/bossSystem.js';
 import { BossProjectile } from './classes/BossProjectile.js';
-import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground, currentBackgroundImage } from './systems/backgroundSystem.js';
+import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground, currentBackgroundImage, currentBackgroundName } from './systems/backgroundSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState, updateMouseLock } from './systems/inputSystem.js';
 // drawSettings removed - now using HTML+CSS guide
 
@@ -1048,10 +1049,87 @@ function wearCaughtPiece(item) {
     const slotId = item.set === gameState.wornSet ? (emptySlot || slotsFor(item)[0]) : emptySlot;
     
     if (slotId && !Object.values(gameState.equipment).includes(item.id)) {
-        setEquipment(equip(gameState.equipment, slotId, item));
+        setEquipment(equip(gameState.equipment, slotId, item, wearables()));
     } else {
         refreshSetBonus();
     }
+}
+
+// ----- Sets of the player's own -----
+// What is worn saved under a name, to put on again in one press (the character sheet's "Your
+// sets"). On an account they are kept there (INPUT_BOOT.user.outfits); a guest's in this
+// browser. A saved set is kept as it was: putting it on takes only what is owned and, in a
+// game, carried.
+const OUTFITS_KEY = 'input_outfits';
+const MOST_OUTFITS = 4;
+
+function outfits() {
+    if (hasBank()) return siteBoot.user.outfits || [];
+    try {
+        const kept = JSON.parse(localStorage.getItem(OUTFITS_KEY) || '[]');
+        return Array.isArray(kept) ? kept : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function keepOutfits(list) {
+    if (hasBank()) {
+        siteBoot.user.outfits = list;
+        if (siteBoot.urls && siteBoot.urls.outfits) {
+            fetch(siteBoot.urls.outfits, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': siteBoot.csrfToken || '' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ outfits: list })
+            }).catch(() => { /* Kept for this visit; saved with the next change */ });
+        }
+        return;
+    }
+    try {
+        localStorage.setItem(OUTFITS_KEY, JSON.stringify(list));
+    } catch (e) {
+        // Storage unavailable: kept for this visit
+    }
+}
+
+// The same things in the same slots
+function sameEquipment(a, b) {
+    const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+    return [...keys].every(slotId => (a[slotId] || null) === (b[slotId] || null));
+}
+
+// For the sheet: each set's name, how many of its pieces can be put on now, and whether it is on
+function outfitsForSheet() {
+    return outfits().map(outfit => {
+        const wearable = validEquipment(outfit.equipment || {}, wearables(), availablePieces());
+        return { name: outfit.name, pieces: Object.keys(wearable).length, isOn: sameEquipment(wearable, gameState.equipment) && Object.keys(wearable).length > 0 };
+    });
+}
+
+// Put a saved set on: what of it can be worn, in place of everything worn now
+function wearOutfit(index) {
+    const outfit = outfits()[index];
+    if (!outfit) return '';
+    
+    const wanted = validEquipment(outfit.equipment || {}, wearables(), availablePieces());
+    const refused = noRoomFor(wanted);
+    if (refused) return refused;
+    
+    setEquipment(wanted);
+    return '';
+}
+
+function saveOutfit(name) {
+    const list = outfits();
+    if (list.length >= MOST_OUTFITS) return `You keep ${MOST_OUTFITS} sets: forget one to save another.`;
+    
+    keepOutfits([...list, { name, equipment: { ...gameState.equipment } }]);
+    return '';
+}
+
+function deleteOutfit(index) {
+    keepOutfits(outfits().filter((outfit, at) => at !== index));
 }
 
 // Open the inventory. In a game the game is paused while it is open, and goes on when it is
@@ -2118,9 +2196,43 @@ function updatePauseMenuContent() {
                           (gameState.currentScreen === 'game' && gameState.health > 0);
     
     if (gameInProgress) {
+        renderPauseStatus();
         menuScreenManager.showPauseMenu();
     } else {
         menuScreenManager.showNameEntry();
+    }
+}
+
+// The pause menu's top: where the game is, and how it stands
+function renderPauseStatus() {
+    const where = document.getElementById('pauseWhere');
+    const holder = document.getElementById('pauseStatus');
+    if (!where || !holder) return;
+    
+    where.textContent = ['Paused', currentBackgroundName(), `level ${(gameState.currentLevel || 0) + 1}`].filter(Boolean).join(' \u00b7 ');
+    
+    const seconds = Math.floor(gameState.elapsedTime || 0);
+    const user = siteBoot && siteBoot.user ? siteBoot.user : null;
+    const capacity = bagCapacity(gameConfig.bags, user && user.bags ? user.bags : []);
+    const cells = [
+        ['Score', Math.round(gameState.score || 0).toLocaleString('en-US'), 'is-score'],
+        ['Health', `${Math.ceil(gameState.health || 0)} / ${gameState.maxHealth}`, 'is-health'],
+        ['Time', `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`, ''],
+        ['Bags', `${slotsUsed((gameState.bags && gameState.bags.contents) || {}, gameConfig.bags.stack)} / ${capacity}`, ''],
+    ];
+    
+    holder.textContent = '';
+    for (const [label, value, kind] of cells) {
+        const cell = document.createElement('div');
+        cell.className = `pause-status-cell ${kind}`.trim();
+        const name = document.createElement('span');
+        name.className = 'window-label';
+        name.textContent = label;
+        const figure = document.createElement('span');
+        figure.className = 'pause-status-value';
+        figure.textContent = value;
+        cell.append(name, figure);
+        holder.append(cell);
     }
 }
 
@@ -2331,6 +2443,8 @@ function setupUIEventHandlers() {
             // What a player with an account takes into a game (a guest has no bank)
             carried: hasBank() ? new Set(gameState.carried) : null,
             carryLimit: gameConfig.bags.carry,
+            outfits: outfitsForSheet(),
+            mostOutfits: MOST_OUTFITS,
             // The place picked on the map, or the one the game is in
             scene: currentBackgroundImage(),
             faction: gameState.faction || getFaction(),
@@ -2346,13 +2460,16 @@ function setupUIEventHandlers() {
             fullBagLoss: Math.max(0, gameConfig.bags.fullPenalty - gameState.setBonus.carrying),
         }),
         onEquip: (slotId, item) => {
-            const wanted = equip(gameState.equipment, slotId, item);
+            const wanted = equip(gameState.equipment, slotId, item, wearables());
             const refused = noRoomFor(wanted);
             if (!refused) setEquipment(wanted);
             return refused;
         },
         onWearSet: setId => wearSet(setId, false),
         onOpenInventory: () => showInventory(),
+        onWearOutfit: wearOutfit,
+        onSaveOutfit: saveOutfit,
+        onDeleteOutfit: deleteOutfit,
     });
     // The inventory (ui/inventory.js): the bags, the materials kept, and bags to buy
     initializeInventory({
@@ -2625,9 +2742,18 @@ function setupUIEventHandlers() {
         });
     }
     
+    // Play again: the same place and the same kind of game, at once
     if (restartBtn) {
-        restartBtn.addEventListener('click', restartGameFromUI);
+        restartBtn.addEventListener('click', () => {
+            menuScreenManager.hideAll();
+            restartGame();
+            startGameFromUI();
+        });
     }
+    
+    // Back to the map, to pick again
+    const gameOverMapBtn = document.getElementById('gameOverMapBtn');
+    if (gameOverMapBtn) gameOverMapBtn.addEventListener('click', restartGameFromUI);
     
     if (viewScoresBtn2) {
         viewScoresBtn2.addEventListener('click', function() {
@@ -2680,6 +2806,9 @@ function setupUIEventHandlers() {
             showSettings('pause'); // Pass 'pause' to indicate we came from pause menu
         });
     }
+    
+    const highScoresPauseBtn = document.getElementById('highScoresPauseBtn');
+    if (highScoresPauseBtn) highScoresPauseBtn.addEventListener('click', () => showHighScores(true));
     
     // Item bonuses button handler
     const itemBonusesPauseBtn = document.getElementById('itemBonusesPauseBtn');
@@ -4033,7 +4162,7 @@ function onBossDefeated(boss) {
         if (!drop.item) return;
         
         // Listed with the game's loot, in the panel and on the loot screen
-        gameState.bossLoot.push({ boss, item: drop.item, kept: drop.kept });
+        gameState.bossLoot.push({ boss, item: drop.item, kept: drop.kept, timesFound: drop.timesFound });
         itemsListCache.needsUpdate = true;
         if (!gameState.gameRunning) return;
         
@@ -4048,46 +4177,113 @@ function onBossDefeated(boss) {
 
 // What the game earned, on the game over screen. "banked" is the server's answer once it has
 // recorded the game: { earned, balance }, balance being null for guests.
-function showCoinsEarned(banked = null) {
-    const element = document.getElementById('coinsEarned');
-    if (!element) return;
+// What a game brought home and what it was, for the end of the game (ui/gameOverScreen.js)
+function gameOverSummary() {
+    const faction = gameState.faction || getFaction() || 'alliance';
+    const side = faction[0].toUpperCase() + faction.slice(1);
+    const place = currentBackgroundName();
+    const name = gameState.playerName || getAccountName() || 'The hunter';
+    const loggedIn = Boolean(siteBoot && siteBoot.user);
+    const fell = !gameState.victory && !gameState.rushComplete && !gameState.bossFightWon && gameState.health <= 0;
+    const seconds = Math.floor(gameState.elapsedTime || 0);
+    const minutes = Math.floor(seconds / 60);
+    const modeLabel = { normal: 'normal game', boss_rush: 'Boss Rush', boss_fight: 'boss fight' }[gameState.mode] || 'normal game';
     
-    const earned = banked ? banked.earned : gameState.coins;
-    let text = `Coins earned: ${formatCoins(earned)}`;
-    
-    // The crafting materials brought back, by name
-    const kept = Object.entries(gameState.bags.contents).filter(([itemId]) => MATERIALS.has(itemId));
-    if (kept.length > 0) {
-        const names = kept.map(([itemId, count]) => `${count} ${gameItems.find(item => item.id === itemId)?.name || itemId}`);
-        text += ` | Materials: ${names.join(', ')}`;
+    const home = [];
+    // What the bosses dropped
+    for (const drop of gameState.bossLoot) {
+        home.push({
+            image: drop.boss.image,
+            name: drop.item.name,
+            rarity: drop.item.rarity,
+            note: `Dropped by ${drop.boss.name}${drop.kept ? '' : ' · log in to keep boss loot'}`,
+            isNew: drop.kept && drop.timesFound === 1,
+        });
+    }
+    // The set pieces, weapons and jewellery caught: kept, and wearable
+    for (const item of gameItems.filter(candidate => candidate.collected > 0 && (candidate.type === 'set_piece' || isKeptGear(candidate.id)))) {
+        const set = item.type === 'set_piece' ? setById(gameConfig.sets, item.set) : null;
+        const pieces = set ? piecesOf(gameItems, set.id) : [];
+        home.push({
+            image: item.image,
+            name: item.name,
+            rarity: 'epic',
+            note: set ? `${set.name}: you have ${ownedCount(pieces, ownedPieces())} of ${pieces.length}` : (loggedIn ? 'Kept on your account' : 'Log in to keep what you find'),
+            isNew: false,
+        });
+    }
+    // The crafting materials
+    const contents = (gameState.bags && gameState.bags.contents) || {};
+    for (const [itemId, count] of Object.entries(contents).filter(([itemId]) => MATERIALS.has(itemId))) {
+        const item = gameItems.find(candidate => candidate.id === itemId);
+        home.push({
+            image: item ? item.image : '',
+            name: `${item ? item.name : itemId} ×${count}`,
+            rarity: 'rare',
+            note: loggedIn ? 'Crafting material, kept' : 'Log in to keep materials',
+            isNew: false,
+            material: itemId,
+        });
     }
     
-    if (banked && banked.balance !== null && banked.balance !== undefined) {
-        text += ` | Purse: ${formatCoins(banked.balance)}`;
-        if (siteBoot && siteBoot.user) {
-            siteBoot.user.coins = banked.balance;
-            renderAccountBar();
-        }
-    } else if (siteBoot && !siteBoot.user) {
-        text += ' | Log in to keep your coins and boss loot';
+    // What was sold: the junk in the bags, and what did not fit
+    const notes = [];
+    const junk = Object.entries(contents).filter(([itemId]) => !MATERIALS.has(itemId) && !isKeptGear(itemId) && gameItems.find(item => item.id === itemId)?.type !== 'set_piece')
+        .reduce((total, [, count]) => total + count, 0);
+    if (junk > 0) notes.push({ text: `${junk} ${junk === 1 ? 'thing' : 'things'} of no use sold for coins`, kind: '' });
+    const short = Object.values((gameState.bags && gameState.bags.overflow) || {}).reduce((total, count) => total + count, 0);
+    if (short > 0) {
+        const share = Math.round((1 - Math.max(0, gameConfig.bags.fullPenalty - gameState.setBonus.carrying)) * 100);
+        notes.push({ text: `${short} ${short === 1 ? 'thing' : 'things'} did not fit in your bags and sold for ${share}%`, kind: 'warning' });
     }
+    if (!loggedIn) notes.push({ text: 'Log in to keep your coins, boss loot, gear and materials.', kind: '' });
     
-    element.textContent = text;
+    const figures = [
+        { name: 'Level', value: String((gameState.currentLevel || 0) + 1) },
+        { name: 'Time', value: `${minutes}:${String(seconds % 60).padStart(2, '0')}` },
+        { name: 'Caught', value: String(gameState.perfectCollections || 0) },
+        { name: 'Bosses', value: String(gameState.bossLoot.length), kind: 'bosses' },
+        { name: 'Coins earned', value: formatCoins(gameState.coins || 0), kind: 'earned' },
+    ];
+    if (loggedIn) figures.push({ name: 'You have', value: formatCoins(siteBoot.user.coins || 0), kind: 'purse' });
+    
+    const title = gameState.bossFightWon ? 'Boss defeated!' : gameState.rushComplete ? 'Boss Rush complete!' : gameState.victory ? 'Victory!' : 'Game over';
+    const where = place ? ` in ${place}` : '';
+    
+    return {
+        title,
+        heading: fell ? `${name} fell${where}` : `${name}${where}`,
+        label: `${side} · ${modeLabel} · version ${GAME_VERSION}`,
+        line: `Level ${(gameState.currentLevel || 0) + 1} · ${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ${seconds % 60} ${seconds % 60 === 1 ? 'second' : 'seconds'}`,
+        score: gameState.score,
+        figures,
+        home,
+        homeLabel: loggedIn ? 'Kept on your account' : 'Kept with an account',
+        notes,
+        scene: currentBackgroundImage(),
+        figure: (playerCharacters[faction] || playerCharacters.alliance).image,
+        fell,
+    };
 }
 
-// End game function
+// The coins the site kept for this game, and what the player has now
+function showCoinsEarned(banked) {
+    if (banked.balance !== null && banked.balance !== undefined && siteBoot && siteBoot.user) {
+        siteBoot.user.coins = banked.balance;
+        renderAccountBar();
+    }
+    showGameOverResult({ earned: banked.earned, balance: banked.balance });
+}
+
 function endGame() {
     gameState.gameRunning = false;
     
-    const newHighScoreElement = document.getElementById('newHighScore');
-    if (newHighScoreElement) newHighScoreElement.style.display = 'none';
+    const summary = gameOverSummary();
+    showGameOverSummary({ ...summary, rank: '' });
     
+    // Where the score landed on the high scores
     const showRank = rank => {
-        // Show new high score message if it's in top 10
-        if (newHighScoreElement && rank > 0 && rank <= 10) {
-            newHighScoreElement.textContent = `New High Score! Rank #${rank}`;
-            newHighScoreElement.style.display = 'block';
-        }
+        if (rank > 0) showGameOverResult({ rank: `#${rank} on the high scores` });
     };
     
     try {
@@ -4098,23 +4294,21 @@ function endGame() {
             recorded.then(result => {
                 if (result.scores) cacheHighScores(result.scores);
                 if (result.coins) showCoinsEarned(result.coins);
-                // What is kept on the account now, for the inventory
+                // What is kept on the account now, for the inventory, and the totals beside
+                // the materials brought home
                 if (result.materials && result.materials.bank && siteBoot && siteBoot.user) {
                     siteBoot.user.materials = result.materials.bank;
+                    showGameOverResult({ home: summary.home.map(thing => thing.material && result.materials.bank[thing.material]
+                        ? { ...thing, note: `You have ${result.materials.bank[thing.material]} now` }
+                        : thing) });
                 }
                 
                 if (result.mode === 'boss_rush' || result.mode === 'boss_fight') {
-                    if (newHighScoreElement) {
-                        newHighScoreElement.textContent = result.mode === 'boss_fight'
-                            ? 'A boss fight is not played for the leaderboard'
-                            : 'Boss Rush is not played for the leaderboard';
-                        newHighScoreElement.style.display = 'block';
-                    }
+                    showGameOverResult({ rank: result.mode === 'boss_fight' ? 'A boss fight is not played for the leaderboard' : 'Boss Rush is not played for the leaderboard' });
                 } else if (result.legal) {
                     showRank(result.rank);
-                } else if (newHighScoreElement) {
-                    newHighScoreElement.textContent = 'Offline game - not on the leaderboard';
-                    newHighScoreElement.style.display = 'block';
+                } else {
+                    showGameOverResult({ rank: 'Offline game: not on the leaderboard' });
                 }
             }).catch(console.error);
         } else {
@@ -4137,22 +4331,8 @@ function endGame() {
         console.error('Error saving high score:', error);
     }
     
-    showCoinsEarned();
     // A boss fight won has had its cheer already, when the boss fell
     if (!gameState.bossFightWon) say(gameState.victory || gameState.rushComplete ? 'victory' : 'gameOver');
-    
-    const gameOverTitle = document.getElementById('gameOverTitle');
-    if (gameOverTitle) {
-        gameOverTitle.textContent = gameState.bossFightWon ? 'Boss defeated!'
-            : gameState.rushComplete ? 'Boss Rush complete!' : gameState.victory ? 'Victory!' : 'Game Over!';
-    }
-    
-    // Update final score display
-    const finalScoreElement = document.getElementById('finalScore');
-    if (finalScoreElement) {
-        finalScoreElement.textContent = 
-            `Final Score: ${gameState.score} | Items: ${gameState.perfectCollections} | Level: ${gameState.currentLevel}`;
-    }
     
     // Show pause menu container and hide pause content to display game over screen
     leaveFullscreen();

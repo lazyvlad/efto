@@ -387,6 +387,9 @@ export const gameConfig = {
 
     bosses: {
         health: { base: 240, perZone: 257 },                    // Hogger (zone 2): 497. The first bosses go down quickly; the last has about 2550
+        // The warriors' armor ("warrior" in data/bosses.js): Hogger (zone 2) 36, arrows do 19%
+        // less; Chief Ukorz (zone 10) 84, 36% less. Arcane Shot goes through it.
+        armor: { base: 30, perZone: 6 },
         // How big a boss is drawn: as tall as this share of the field's height, but never wider
         // than a share of its width. On a field taller than it is wide (a phone held upright) it
         // is as tall as the hunter times vsHunterOnNarrowField, so it has room to move about

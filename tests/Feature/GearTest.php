@@ -36,8 +36,8 @@ class GearTest extends TestCase
         }
         $this->assertCount(60 + count(config('gear.drops')), $catalog);
 
-        // The same kind of thing from the first boss and the last: a weapon each
-        $this->assertSame(['attackPower' => 6, 'crit' => 1], $catalog['hoggers-trophy-axe']['stats']);
+        // The same kind of thing from an early boss and the last: a one-handed weapon each
+        $this->assertSame(['attackPower' => 9, 'crit' => 1], $catalog['cruel-barb']['stats']);
         $this->assertSame(['attackPower' => 16, 'crit' => 1], $catalog['jangthraze-the-protector']['stats']);
 
         // Rare items help with carrying, more so from later bosses; and so do epic trinkets
@@ -160,5 +160,24 @@ class GearTest extends TestCase
         $user = User::factory()->unverified()->create();
         $this->drop($user, 'chief-ukorz-sandscalp', 'ripsaw');
         $this->actingAs($user)->postJson(route('vendor.sell'), ['item' => 'ripsaw', 'count' => 1])->assertStatus(422);
+    }
+
+    public function test_a_two_handed_weapon_leaves_the_off_hand_empty_and_gives_more(): void
+    {
+        $catalog = Gear::catalog();
+        $this->assertTrue($catalog['hoggers-trophy-axe']['twoHanded']);
+        $this->assertTrue($catalog['ashkandi2']['twoHanded']);
+        $this->assertFalse($catalog['cruel-barb']['twoHanded']);
+        // Hogger's axe is from zone 2, VanCleef's sword from zone 4, both epic: held in both
+        // hands the earlier one still gives more
+        $this->assertGreaterThan($catalog['cruel-barb']['stats']['attackPower'], $catalog['hoggers-trophy-axe']['stats']['attackPower']);
+
+        $user = User::factory()->create();
+        foreach (['hogger' => 'hoggers-trophy-axe', 'bazil-thredd' => 'stockade-shiv'] as $boss => $item) {
+            BossDrop::create(['user_id' => $user->id, 'boss_id' => $boss, 'item_id' => $item, 'rarity' => 'epic', 'dropped_at' => now()]);
+        }
+
+        $this->assertSame(['mainhand' => 'hoggers-trophy-axe'], Gear::valid($user, ['mainhand' => 'hoggers-trophy-axe', 'offhand' => 'stockade-shiv']));
+        $this->assertSame(['offhand' => 'stockade-shiv'], Gear::valid($user, ['offhand' => 'stockade-shiv']));
     }
 }

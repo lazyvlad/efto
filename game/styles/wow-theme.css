@@ -924,24 +924,7 @@
 
 /* ===== Game over ===== */
 
-#pauseMenu#pauseMenu #gameOver h2 {
-    color: var(--wow-red);
-    text-shadow: 0 2px 0 #000, 0 0 14px rgba(255, 30, 30, 0.5);
-}
-
-#pauseMenu #gameOver h2::after {
-    background: linear-gradient(90deg, rgba(200, 50, 40, 0), rgba(230, 70, 50, 0.95) 50%, rgba(200, 50, 40, 0));
-}
-
-#pauseMenu #finalScore {
-    color: #fff;
-}
-
-#pauseMenu #newHighScore {
-    color: var(--wow-gold) !important;
-    font-weight: 400 !important;
-    text-shadow: 0 0 10px rgba(255, 190, 0, 0.6);
-}
+/* Its own window now: styles/screens.css */
 
 /* ===== Loading screen ===== */
 

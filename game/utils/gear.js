@@ -69,7 +69,8 @@ export function itemsForSlot(slotId, items, owned) {
 
 /**
  * What is worn with everything taken out that cannot be: items not owned, items in a slot
- * they do not fit, slots that do not exist, and second copies of the same item.
+ * they do not fit, slots that do not exist, second copies of the same item, and anything in
+ * the off hand while a two-handed weapon is worn.
  * @param {Object} equipment - { slotId: itemId }
  * @param {Object[]} items - The game's items
  * @param {Set<string>} owned - Ids of the items the player owns
@@ -89,6 +90,8 @@ export function validEquipment(equipment, items, owned) {
             worn.add(itemId);
         }
     }
+    // A weapon held in both hands leaves nothing for the off hand
+    if (valid.mainhand && byId.get(valid.mainhand).twoHanded) delete valid.offhand;
     return valid;
 }
 
@@ -125,10 +128,12 @@ export function fitsCarried(carried, worn, limit) {
 
 /**
  * Put an item on in a slot (or take off what is there, with no item). The item leaves any
- * other slot it was in. Nothing changes if it does not fit.
+ * other slot it was in. Nothing changes if it does not fit. A two-handed weapon takes off
+ * what is in the off hand; something put in the off hand takes off a two-handed weapon.
+ * @param {Object[]} [items] - The game's items, to know whether what is held is two-handed
  * @returns {Object} A new { slotId: itemId }
  */
-export function equip(equipment, slotId, item) {
+export function equip(equipment, slotId, item, items = []) {
     const next = { ...equipment };
 
     if (!item) {
@@ -136,6 +141,12 @@ export function equip(equipment, slotId, item) {
         return next;
     }
     if (!fits(item, slotId)) return next;
+
+    if (slotId === 'mainhand' && item.twoHanded) delete next.offhand;
+    if (slotId === 'offhand') {
+        const held = items.find(candidate => candidate.id === next.mainhand);
+        if (held && held.twoHanded) delete next.mainhand;
+    }
 
     for (const [worn, itemId] of Object.entries(next)) {
         if (itemId === item.id) delete next[worn];

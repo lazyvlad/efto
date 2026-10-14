@@ -1,0 +1,764 @@
+/* The menu's screens in the look of the starting map (game-window.css): the pause menu, the
+   end of a game, and How to play, Loot & bonuses, High scores and Settings as the four tabs
+   of one window.
+
+   They live in the menu's layer (#pauseMenu), whose older stylesheets paint every button red
+   and size every screen for themselves, some of it forced; the rules here are written to win
+   over those (an id and a class), and to force back only where those force. */
+
+/* ----- Buttons in the menu's layer: dark, blue (.is-on) and red (.is-primary) ----- */
+
+#pauseMenu .game-btn {
+    font-family: var(--wow-font, Georgia, serif);
+    font-size: 15px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-shadow: none;
+    color: #f5e6b8;
+    background: linear-gradient(180deg, #2a2219, #100d0a);
+    border: 1px solid #8f7a45;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000, inset 0 1px 0 rgba(255, 230, 160, 0.12);
+    transform: none;
+}
+
+#pauseMenu .game-btn:hover:not(:disabled) {
+    color: #fff5d6;
+    background: linear-gradient(180deg, #2a2219, #100d0a);
+    border-color: #f1d98a;
+    box-shadow: 0 0 0 1px #000, inset 0 1px 0 rgba(255, 230, 160, 0.12);
+    transform: none;
+}
+
+#pauseMenu .game-btn.is-on,
+#pauseMenu .game-btn.is-on:hover {
+    color: #fff5c2;
+    background: linear-gradient(180deg, #1f5fa8, #123a6b);
+    border-color: #c9a94f;
+}
+
+#pauseMenu .game-btn.is-primary {
+    color: #ffe9a8;
+    background: linear-gradient(180deg, #b3231a 0%, #8e120c 46%, #6c0a06 54%, #4a0503 100%);
+    border-color: #e0b34c;
+}
+
+#pauseMenu .game-btn.is-primary:hover:not(:disabled) {
+    color: #fff5c2;
+    background: linear-gradient(180deg, #d32f22 0%, #a91a11 46%, #820e08 54%, #5c0704 100%);
+}
+
+#pauseMenu .joined-buttons .game-btn {
+    border-radius: 0;
+}
+
+#pauseMenu .joined-buttons .game-btn + .game-btn {
+    border-left: 0;
+}
+
+#pauseMenu .joined-buttons .game-btn:first-child {
+    border-radius: 4px 0 0 4px;
+}
+
+#pauseMenu .joined-buttons .game-btn:last-child {
+    border-radius: 0 4px 4px 0;
+}
+
+/* ----- The pause menu ----- */
+
+#pauseMenu #pauseGameContent.pause-window {
+    width: min(720px, 100%);
+    margin: 0 auto;
+    text-align: left;
+    font-family: 'Trebuchet MS', 'Lucida Grande', 'Segoe UI', Verdana, 'Input Math', sans-serif;
+}
+
+.pause-window-top {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+#pauseMenu#pauseMenu .pause-window-title {
+    margin: 0;
+    font-size: 28px;
+    text-align: left;
+}
+
+#pauseMenu .pause-window-title::after {
+    display: none;
+}
+
+.pause-status {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.pause-status-cell {
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid #3d3219;
+    border-radius: 4px;
+}
+
+.pause-status-cell .window-label,
+.pause-status-value {
+    display: block;
+}
+
+.pause-status-value {
+    font-size: 20px;
+    color: #f4ecd8;
+    font-variant-numeric: tabular-nums;
+}
+
+.pause-status-cell.is-score .pause-status-value { color: #ffd100; }
+.pause-status-cell.is-health .pause-status-value { color: #7dff8a; }
+
+#pauseMenu #pauseGameContent .pause-continue {
+    display: block;
+    width: 100%;
+    margin-top: 18px;
+    min-height: 58px;
+    font-size: 22px;
+}
+
+.pause-group {
+    margin-top: 18px;
+}
+
+.pause-group .window-label {
+    margin-bottom: 8px;
+}
+
+.pause-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+#pauseMenu .pause-grid .game-btn {
+    min-height: 48px;
+    font-size: 17px;
+}
+
+.pause-window-end {
+    margin-top: 20px;
+    padding-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid #3d3219;
+}
+
+#pauseMenu .pause-window-end .pause-hint {
+    flex: 1;
+    margin: 0;
+    font-size: 13px;
+    font-style: normal;
+    color: #a89a78;
+}
+
+/* The ways out of the game: apart, and in a warning colour, so they are not pressed by habit */
+#pauseMenu .game-btn.pause-leave {
+    min-height: 42px;
+    padding: 0 18px;
+    color: #ffb3a8;
+    border-color: #7a3a2a;
+}
+
+/* ----- How to play, Loot & bonuses, High scores, Settings, and the end of a game ----- */
+
+#pauseMenu #settingsScreen,
+#pauseMenu #howToPlay,
+#pauseMenu #highScoresScreen,
+#pauseMenu #itemBonusesScreen,
+#pauseMenu #gameOver {
+    width: min(1440px, 96vw);
+    max-width: 96vw;
+    height: min(900px, 94vh);
+    max-height: 94vh;
+}
+
+/* The bar along their top: the medallion, the four tabs, and the ways back */
+#pauseMenu .screen-navigation {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    margin: 0 0 18px;
+    padding: 0 0 14px;
+    background: none;
+    border: 0;
+    border-bottom: 1px solid #3d3219;
+    box-shadow: none;
+}
+
+#pauseMenu .screen-nav-tab {
+    padding: 9px 20px;
+    font-size: 16px;
+}
+
+#pauseMenu .screen-nav-side {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#pauseMenu .screen-nav-side .game-btn {
+    padding: 9px 18px;
+}
+
+/* ----- The end of a game ----- */
+
+#pauseMenu #gameOver.game-over {
+    padding: 20px 24px;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 16px;
+    text-align: left;
+    overflow: hidden;
+    font-family: 'Trebuchet MS', 'Lucida Grande', 'Segoe UI', Verdana, 'Input Math', sans-serif;
+}
+
+/* Shown with display: block by the menu: a column all the same */
+#pauseMenu #gameOver.game-over[style*="block"] {
+    display: flex !important;
+}
+
+.game-over-top {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.game-over-who {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+#pauseMenu#pauseMenu .game-over-who h2 {
+    margin: 0;
+    font-size: 26px;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#pauseMenu .game-over-who h2::after,
+#pauseMenu .game-over-title::after {
+    display: none;
+}
+
+.game-over-buttons {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+#pauseMenu .game-over-buttons .game-btn {
+    margin: 0;
+    min-width: 0;
+    padding: 9px 18px;
+}
+
+#pauseMenu .game-over-buttons .game-btn.is-primary {
+    padding: 10px 26px;
+    font-size: 17px;
+}
+
+.game-over-body {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    gap: 20px;
+}
+
+/* The place the game ended in, the hunter, and the score */
+.game-over-stage {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    background:
+        linear-gradient(180deg, rgba(8, 6, 4, 0.55) 0, rgba(8, 6, 4, 0.1) 30%, rgba(8, 6, 4, 0.1) 55%, rgba(8, 6, 4, 0.9) 100%),
+        #1a2a1a var(--game-over-scene, none) center / cover no-repeat;
+    border: 1px solid #8f7a45;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #000, 0 10px 40px rgba(0, 0, 0, 0.6);
+}
+
+.game-over-heading {
+    position: absolute;
+    top: 24px;
+    left: 0;
+    right: 0;
+    text-align: center;
+}
+
+#pauseMenu#pauseMenu .game-over-title {
+    margin: 0;
+    font-size: 64px;
+    letter-spacing: 0.04em;
+    color: #ffe7a8;
+    text-align: center;
+    text-shadow: 0 3px 0 #5a3a08, 0 0 24px rgba(255, 200, 80, 0.55), 0 4px 10px #000;
+}
+
+/* The hunter fell: the title in the colour of blood */
+#pauseMenu#pauseMenu .has-fallen .game-over-title {
+    color: #ffd9c8;
+    text-shadow: 0 3px 0 #4a0503, 0 0 24px rgba(200, 40, 20, 0.7), 0 4px 10px #000;
+}
+
+#pauseMenu .game-over-heading p {
+    margin: 2px 0 0;
+    font-size: 15px;
+    color: #f8e5b5;
+    text-shadow: 0 1px 3px #000;
+}
+
+.game-over-figure-art {
+    position: absolute;
+    left: 50%;
+    bottom: 22%;
+    height: 50%;
+    width: auto;
+    transform: translateX(-50%);
+    filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.6));
+}
+
+.has-fallen .game-over-figure-art {
+    filter: grayscale(0.3) drop-shadow(0 12px 14px rgba(0, 0, 0, 0.6));
+}
+
+.game-over-score {
+    position: absolute;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.game-over-plate {
+    padding: 8px 34px 10px;
+    text-align: center;
+    background: rgba(10, 8, 6, 0.88);
+    border: 2px solid #c9a94f;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #000, 0 8px 24px rgba(0, 0, 0, 0.7);
+}
+
+.game-over-plate .window-label {
+    display: block;
+    letter-spacing: 0.2em;
+}
+
+#pauseMenu #gameOver .game-over-plate strong {
+    display: block;
+    margin: 0;
+    font: 700 46px Arial, sans-serif;
+    line-height: 1.05;
+    color: #ffd100;
+}
+
+/* Where the score landed */
+#pauseMenu .game-over-rank {
+    margin: 0;
+    padding: 6px 16px;
+    font-family: var(--wow-font, Georgia, serif);
+    font-size: 16px;
+    font-weight: 400;
+    white-space: nowrap;
+    color: #fff5c2;
+    background: linear-gradient(180deg, #1f5fa8, #123a6b);
+    border: 1px solid #c9a94f;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000;
+}
+
+#pauseMenu .game-over-rank[hidden] {
+    display: none;
+}
+
+/* What the game was, and what it brought home */
+.game-over-side {
+    width: 400px;
+    flex: none;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+#pauseMenu .game-over-side h3 {
+    margin: 0;
+    font-size: 20px;
+    text-align: left;
+    border: 0;
+    padding: 0;
+}
+
+.game-over-figures {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.game-over-figure {
+    padding: 7px 10px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid #3d3219;
+    border-radius: 4px;
+}
+
+.game-over-figure .window-label {
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+}
+
+.game-over-figure-value {
+    display: block;
+    font-size: 19px;
+    color: #f4ecd8;
+}
+
+.game-over-figure.is-bosses .game-over-figure-value { color: #ffb3a8; }
+.game-over-figure.is-earned .game-over-figure-value,
+.game-over-figure.is-purse .game-over-figure-value { color: #ffd100; }
+
+.game-over-home {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.game-over-list {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.game-over-plain {
+    color: #f4ecd8 !important;
+}
+
+.game-over-new {
+    flex: none;
+    padding: 3px 8px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #2a1a00;
+    background: #ffd100;
+    border-radius: 3px;
+}
+
+#pauseMenu .game-over-empty,
+#pauseMenu .game-over-notes p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #f4ecd8;
+    text-align: left;
+}
+
+#pauseMenu .game-over-empty {
+    color: #a89a78;
+}
+
+.game-over-notes {
+    flex: none;
+    padding-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border-top: 1px solid #3d3219;
+}
+
+.game-over-notes[hidden] {
+    display: none;
+}
+
+#pauseMenu .game-over-notes p.window-warning {
+    color: #ffb3a8;
+}
+
+/* ----- Not much room ----- */
+
+@media (max-width: 1100px) {
+    .game-over-side {
+        width: 340px;
+    }
+
+    #pauseMenu .game-over-buttons .game-btn {
+        padding: 8px 12px;
+    }
+}
+
+/* A phone, or a short window: everything in one column, the whole screen */
+@media (max-width: 760px), (max-height: 520px) {
+    /* Where these windows sit on a phone (under the game's own panel) stays with mobile.css */
+    #pauseMenu #settingsScreen,
+    #pauseMenu #howToPlay,
+    #pauseMenu #highScoresScreen,
+    #pauseMenu #itemBonusesScreen,
+    #pauseMenu #gameOver {
+        width: 94vw;
+        height: auto;
+    }
+
+    #pauseMenu #pauseGameContent.pause-window {
+        width: 100% !important;
+    }
+
+    .pause-window-top .window-logo,
+    .game-over-top .window-logo,
+    #pauseMenu .screen-navigation .window-logo {
+        display: none;
+    }
+
+    #pauseMenu#pauseMenu .pause-window-title {
+        font-size: 20px;
+    }
+
+    .pause-status {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 12px;
+    }
+
+    .pause-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    #pauseMenu .pause-grid .game-btn {
+        min-height: 44px;
+        font-size: 15px;
+    }
+
+    .pause-window-end {
+        flex-wrap: wrap;
+    }
+
+    #pauseMenu .pause-window-end .pause-hint {
+        flex-basis: 100%;
+    }
+
+    #pauseMenu .pause-window-end .pause-leave {
+        flex: 1 1 0;
+        min-height: 44px;
+    }
+
+    #pauseMenu .screen-navigation {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    #pauseMenu .screen-nav-tabs {
+        order: 2;
+        width: 100%;
+    }
+
+    #pauseMenu .screen-nav-tab {
+        flex: 1 1 0;
+        min-height: 44px;
+        padding: 4px;
+        font-size: 13px;
+    }
+
+    #pauseMenu .screen-nav-side {
+        width: 100%;
+    }
+
+    #pauseMenu .screen-nav-side .game-btn {
+        flex: 1 1 0;
+        min-height: 44px;
+    }
+
+    #pauseMenu #gameOver.game-over {
+        padding: 10px 12px 12px;
+        gap: 10px;
+        overflow-y: auto;
+        /* The phone stylesheet centres the old end of a game, which would cut off its top */
+        justify-content: flex-start !important;
+    }
+
+    .game-over-top {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    #pauseMenu#pauseMenu .game-over-who h2 {
+        font-size: 18px;
+        white-space: normal;
+    }
+
+    .game-over-buttons {
+        order: 3;
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    #pauseMenu .game-over-buttons .game-btn {
+        min-height: 44px;
+    }
+
+    #pauseMenu .game-over-buttons .game-btn.is-primary {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        min-height: 50px;
+        font-size: 18px;
+    }
+
+    .game-over-body {
+        flex: none;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .game-over-stage {
+        flex: none;
+        height: 300px;
+    }
+
+    #pauseMenu#pauseMenu .game-over-title {
+        font-size: 40px;
+    }
+
+    .game-over-heading {
+        top: 12px;
+    }
+
+    .game-over-figure-art {
+        bottom: 26%;
+        height: 52%;
+    }
+
+    .game-over-plate {
+        padding: 4px 22px 6px;
+    }
+
+    #pauseMenu #gameOver .game-over-plate strong {
+        font-size: 30px;
+    }
+
+    #pauseMenu .game-over-rank {
+        font-size: 13px;
+        white-space: normal;
+        text-align: center;
+    }
+
+    .game-over-side {
+        width: auto;
+    }
+
+    .game-over-home,
+    .game-over-list {
+        flex: none;
+        overflow: visible;
+    }
+}
+
+/* ----- Inside the four screens: the dark cards and joined tabs used everywhere else ----- */
+
+/* The navy boxes of the help and the loot lists */
+#pauseMenu .spell-item,
+#pauseMenu .item-type,
+#pauseMenu .bonus-item {
+    background: rgba(0, 0, 0, 0.45);
+    border-color: #3d3219;
+    border-radius: 4px;
+}
+
+#pauseMenu .bonus-item.no-bonuses {
+    border-color: #3d3219;
+}
+
+/* The summary of crit and dodge, and the settings' groups: cards */
+#pauseMenu .settings-section,
+#pauseMenu .bonus-summary {
+    background: rgba(0, 0, 0, 0.42);
+    border-color: #5d4c25;
+    box-shadow: 0 0 0 1px #000;
+}
+
+/* The loot screen's own tabs: a small joined bar, the one shown in blue */
+#pauseMenu #itemBonusesScreen .bonuses-tabs {
+    gap: 0;
+    border-bottom: 0;
+    box-shadow: none;
+}
+
+#pauseMenu #itemBonusesScreen .bonus-tab {
+    margin: 0;
+    padding: 7px 16px;
+    font-size: 14px;
+    color: #f5e6b8;
+    text-shadow: none;
+    background: linear-gradient(180deg, #2a2219, #100d0a);
+    border: 1px solid #8f7a45;
+    border-radius: 0;
+    box-shadow: 0 0 0 1px #000;
+    filter: none;
+}
+
+#pauseMenu #itemBonusesScreen .bonus-tab + .bonus-tab {
+    border-left: 0;
+}
+
+#pauseMenu #itemBonusesScreen .bonus-tab:first-child {
+    border-radius: 4px 0 0 4px;
+}
+
+#pauseMenu #itemBonusesScreen .bonus-tab:last-child {
+    border-radius: 0 4px 4px 0;
+}
+
+#pauseMenu #itemBonusesScreen .bonus-tab:hover {
+    color: #fff5d6;
+    border-color: #f1d98a;
+}
+
+#pauseMenu #itemBonusesScreen .bonus-tab.active {
+    color: #fff5c2;
+    background: linear-gradient(180deg, #1f5fa8, #123a6b);
+    border-color: #c9a94f;
+    box-shadow: 0 0 0 1px #000;
+}
+
+/* On a phone the loot screen's own tabs go two by two (after the rules above, which they
+   change) */
+@media (max-width: 760px), (max-height: 520px) {
+    #pauseMenu #itemBonusesScreen .bonuses-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    #pauseMenu #itemBonusesScreen .bonus-tab,
+    #pauseMenu #itemBonusesScreen .bonus-tab + .bonus-tab,
+    #pauseMenu #itemBonusesScreen .bonus-tab:first-child,
+    #pauseMenu #itemBonusesScreen .bonus-tab:last-child {
+        width: auto;
+        min-height: 44px;
+        border-left: 1px solid #8f7a45;
+        border-radius: 4px;
+    }
+}

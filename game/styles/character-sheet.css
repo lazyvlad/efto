@@ -202,6 +202,17 @@
 .sheet-slot[data-rarity="rare"] .sheet-slot-icon { border-color: #3d9bff; }
 .sheet-slot[data-rarity="epic"] .sheet-slot-icon { border-color: #b048f8; }
 
+/* The off hand while a two-handed weapon is held: the weapon, greyed */
+.sheet-slot.is-blocked .sheet-slot-icon {
+    border-style: solid;
+    border-color: #5d4c25;
+}
+
+.sheet-slot.is-blocked .sheet-slot-icon img {
+    opacity: 0.4;
+    filter: grayscale(1);
+}
+
 /* Empty, but something owned could go here */
 .sheet-slot.has-choice .sheet-slot-icon {
     border-style: dashed;
@@ -326,6 +337,70 @@
     color: #d6e6ff;
 }
 
+/* The sets the player saved, under the three hunter sets */
+.sheet-outfits {
+    flex: none;
+}
+
+.sheet-outfits-label {
+    margin-bottom: 6px;
+}
+
+.sheet-outfit-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.sheet-outfit {
+    position: relative;
+    display: flex;
+}
+
+.sheet-outfit-wear {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 7px 26px 7px 8px;
+    font-size: 14px;
+    text-align: left;
+}
+
+.sheet-outfit-wear span {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Forgetting one: a small cross in its corner */
+.sheet-outfit-forget {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+    color: #a89a78;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
+.sheet-outfit-forget:hover {
+    color: #ffb3a8;
+}
+
+.sheet-outfit-save {
+    padding: 8px;
+    font-size: 14px;
+}
+
+.sheet-outfit-row .sheet-empty {
+    grid-column: 1 / -1;
+}
+
 .sheet-slot-panel {
     flex: 1 1 0;
     min-height: 0;
@@ -437,7 +512,8 @@
     .sheet-side > .window-card:first-child { order: 1; }
     .sheet-stage { order: 2; }
     .sheet-sets { order: 3; }
-    .sheet-slot-panel { order: 4; }
+    .sheet-outfits { order: 4; }
+    .sheet-slot-panel { order: 5; }
 
     .window-card {
         padding: 10px;
@@ -597,6 +673,7 @@
 
     .sheet-side > .window-card:first-child,
     .sheet-sets,
+    .sheet-outfits,
     .sheet-slot-panel {
         grid-column: 2;
     }

@@ -150,3 +150,20 @@ test('putting something on needs room for it', () => {
     assert.equal(fitsCarried(['a', 'b'], ['a', 'c'], 3), true);
     assert.equal(fitsCarried(['a', 'b'], ['c', 'd'], 3), false);
 });
+
+test('a weapon held in both hands leaves the off hand empty', () => {
+    const weapons = [
+        { id: 'axe', slot: 'mainhand', twoHanded: true },
+        { id: 'sword', slot: 'mainhand' },
+        { id: 'shiv', slot: 'offhand' },
+    ];
+    const all = new Set(['axe', 'sword', 'shiv']);
+
+    // The two-handed weapon takes the off hand's thing off
+    assert.deepEqual(equip({ mainhand: 'sword', offhand: 'shiv' }, 'mainhand', weapons[0], weapons), { mainhand: 'axe' });
+    // Something put in the off hand takes the two-handed weapon off; a one-handed one stays
+    assert.deepEqual(equip({ mainhand: 'axe' }, 'offhand', weapons[2], weapons), { offhand: 'shiv' });
+    assert.deepEqual(equip({ mainhand: 'sword' }, 'offhand', weapons[2], weapons), { mainhand: 'sword', offhand: 'shiv' });
+    // Saved or sent with both, the off hand goes
+    assert.deepEqual(validEquipment({ mainhand: 'axe', offhand: 'shiv' }, weapons, all), { mainhand: 'axe' });
+});

@@ -13,6 +13,7 @@ const { backgrounds } = await import(`data:text/javascript;base64,${backgroundSo
 // The "bosses" settings of config/gameConfig.js
 const rules = {
     health: { base: 240, perZone: 257 },
+    armor: { base: 30, perZone: 6 },
     damage: { base: 8, perZone: 0.8 },
     throwEvery: { base: 75, perZone: 5, fastest: 45 },
     volleyEvery: { base: 450, perZone: 15, fastest: 300 },
@@ -140,4 +141,18 @@ test('the settings in the game match the ones these tests describe', async () =>
     assert.match(section, /cooldown: \{ base: 100, perZone: 8, shortest: 28 \}/);
     assert.match(section, /sweep: \{ base: 15, perZone: 0\.8, fastest: 8 \}/);
     assert.match(config, /levelsPerBackground: 2,/);
+});
+
+test('the warriors wear armor, more of it the later they stand, and the others none', () => {
+    const warriors = bosses.filter(boss => boss.warrior).map(boss => boss.id);
+    assert.deepEqual(warriors, ['hogger', 'gath-ilzogg', 'chieftain-nekrosh', 'arnak-grimtotem', 'khan-dezhepah', 'chief-ukorz-sandscalp']);
+
+    assert.equal(bossStats(bossForZone('alliance', 2), rules).armor, 36);
+    assert.equal(bossStats(bossForZone('horde', 10), rules).armor, 84);
+    assert.equal(bossStats(bossForZone('alliance', 10), rules).armor, 0);
+});
+
+test('the armor rules here are the same as the game\'s', async () => {
+    const config = await readFile(new URL('../config/gameConfig.js', import.meta.url), 'utf8');
+    assert.match(config, /armor: \{ base: 30, perZone: 6 \}/);
 });

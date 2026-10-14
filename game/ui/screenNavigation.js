@@ -1,28 +1,23 @@
 const SCREEN_CONFIG = {
     settings: {
         containerId: 'settingsScreen',
-        title: 'Game Settings',
-        options: ['howToPlay', 'highScores', 'itemBonuses']
+        title: 'Game Settings'
     },
     howToPlay: {
         containerId: 'howToPlay',
-        title: 'How to Play',
-        options: ['settings', 'highScores', 'itemBonuses']
+        title: 'How to Play'
     },
     highScores: {
         containerId: 'highScoresScreen',
-        title: 'High Scores',
-        options: ['settings', 'howToPlay', 'itemBonuses']
+        title: 'High Scores'
     },
     gameOver: {
         containerId: 'gameOver',
-        title: 'Game Over',
-        options: ['highScores', 'settings', 'howToPlay']
+        title: 'Game Over'
     },
     itemBonuses: {
         containerId: 'itemBonusesScreen',
-        title: 'Loot and Bonuses',
-        options: ['settings', 'howToPlay', 'highScores']
+        title: 'Loot and Bonuses'
     }
 };
 
@@ -37,14 +32,6 @@ const SCREEN_LABELS = {
     game: 'Game'
 };
 
-const SCREEN_SHORT_LABELS = {
-    settings: 'Settings',
-    howToPlay: 'Guide',
-    highScores: 'Scores',
-    gameOver: 'Over',
-    itemBonuses: 'Loot'
-};
-
 let navigationCallbacks = {
     onBack: () => {},
     onNavigate: () => {},
@@ -55,56 +42,70 @@ function byId(id) {
     return document.getElementById(id);
 }
 
+// The four screens that are the tabs of one window, in the order the tabs are shown
+const TABS = ['howToPlay', 'itemBonuses', 'highScores', 'settings'];
+
+const TAB_LABELS = {
+    howToPlay: 'How to play',
+    itemBonuses: 'Loot & bonuses',
+    highScores: 'High scores',
+    settings: 'Settings'
+};
+
+// The bar along the top of these screens, like the top row of the inventory: the medallion,
+// the four screens as joined tabs (the one shown in blue), and the ways back. The end of a
+// game has a top row of its own and none of this.
 function createNavigationElement(screenKey) {
     const config = SCREEN_CONFIG[screenKey];
     const nav = document.createElement('div');
     nav.className = 'screen-navigation';
     nav.dataset.screenNavigation = screenKey;
 
+    const logo = document.createElement('img');
+    logo.className = 'window-logo';
+    logo.src = 'assets/ui/input-logo.webp';
+    logo.alt = '';
+    logo.width = 1200;
+    logo.height = 891;
+
+    const tabs = document.createElement('div');
+    tabs.className = 'joined-buttons screen-nav-tabs';
+    tabs.setAttribute('role', 'tablist');
+    tabs.setAttribute('aria-label', 'Screens');
+
+    TABS.forEach(option => {
+        const tab = document.createElement('button');
+        tab.type = 'button';
+        tab.className = option === screenKey ? 'game-btn is-on screen-nav-tab' : 'game-btn screen-nav-tab';
+        tab.dataset.screenNavTarget = option;
+        tab.setAttribute('role', 'tab');
+        tab.setAttribute('aria-selected', String(option === screenKey));
+        tab.textContent = TAB_LABELS[option];
+        if (option !== screenKey) tab.addEventListener('click', () => navigationCallbacks.onNavigate(option, screenKey));
+        tabs.append(tab);
+    });
+
+    const side = document.createElement('div');
+    side.className = 'screen-nav-side';
+
     const backButton = document.createElement('button');
     backButton.type = 'button';
-    backButton.className = 'screen-nav-back';
+    backButton.className = 'game-btn screen-nav-back';
     backButton.dataset.screenNavBack = screenKey;
     backButton.textContent = 'Back';
     backButton.addEventListener('click', () => navigationCallbacks.onBack(screenKey));
 
-    const menuWrapper = document.createElement('div');
-    menuWrapper.className = 'screen-nav-menu';
-    menuWrapper.setAttribute('aria-label', 'Screen navigation');
-
-    const menuLabel = document.createElement('span');
-    menuLabel.className = 'screen-nav-menu-label';
-    menuLabel.textContent = 'Go to';
-
-    const menuActions = document.createElement('div');
-    menuActions.className = 'screen-nav-menu-actions';
-
-    config.options.forEach(option => {
-        const screenButton = document.createElement('button');
-        const fullLabel = SCREEN_LABELS[option];
-        const shortLabel = SCREEN_SHORT_LABELS[option] || fullLabel;
-
-        screenButton.type = 'button';
-        screenButton.className = 'screen-nav-menu-button';
-        screenButton.dataset.screenNavTarget = option;
-        screenButton.title = fullLabel;
-        screenButton.innerHTML = `<span class="screen-nav-label-full">${fullLabel}</span><span class="screen-nav-label-short">${shortLabel}</span>`;
-        screenButton.addEventListener('click', () => navigationCallbacks.onNavigate(option, screenKey));
-        menuActions.appendChild(screenButton);
-    });
-
-    menuWrapper.append(menuLabel, menuActions);
-
     const closeButton = document.createElement('button');
     closeButton.type = 'button';
-    closeButton.className = 'screen-nav-close';
+    closeButton.className = 'game-btn screen-nav-close';
     closeButton.dataset.screenNavClose = screenKey;
-    closeButton.textContent = 'X';
+    closeButton.textContent = 'Close';
     closeButton.setAttribute('aria-label', `Close ${config.title}`);
     closeButton.title = 'Close and resume';
     closeButton.addEventListener('click', () => navigationCallbacks.onClose(screenKey));
 
-    nav.append(backButton, menuWrapper, closeButton);
+    side.append(backButton, closeButton);
+    nav.append(logo, tabs, side);
     return nav;
 }
 
@@ -118,6 +119,11 @@ function getNavigationHost(screenKey) {
 }
 
 function ensureNavigation(screenKey) {
+    // The end of a game has its own top row
+    if (!TABS.includes(screenKey)) {
+        return null;
+    }
+
     const host = getNavigationHost(screenKey);
     if (!host) {
         return null;

@@ -1,5 +1,68 @@
 # Changelog
 
+## 2.38.0 - 2026-10-14
+
+### What's new
+
+**The end of a game**
+- A screen of its own: the hunter in the place the game ended, under "Game over" (or
+  Victory!, Boss defeated!, Boss Rush complete!), the score on a gold-trimmed plate, and
+  where it landed on the high scores.
+- Beside it: the level, the time, what was caught, the bosses beaten, the coins earned and
+  what you have now; and what the game **brought home**: boss loot ("New" the first time),
+  set pieces with how many of the set you have, the weapons and jewellery caught, and the
+  crafting materials with your new totals. Under that: what was sold for coins, and what did
+  not fit in your bags.
+- "Play again" starts the same game again at once; "Back to the map" to pick another.
+
+**The pause menu**
+- Where the game is and how it stands (score, health, time, bags), one red Continue, and
+  the rest grouped: your hunter (Character, Inventory, Loot & bonuses) and the game (How to
+  play, Settings, and High scores, new here). Finishing the game and starting over sit
+  apart, in a warning colour.
+
+**How to play, Loot & bonuses, High scores and Settings: one window**
+- The four are the tabs of one window, with the logo, the tab shown in blue, and Back and
+  Close: no more rows of red "Go to" buttons. Inside, the boxes are the dark cards used
+  everywhere else, and the loot screen's own tabs a joined bar.
+
+**Your own sets**
+- What your hunter wears can be saved under a name on the character sheet ("Your sets",
+  under the three hunter sets) and put on again in one press. Up to four; each can be
+  forgotten. They are kept on your account (a guest's in the browser). A saved set puts on
+  what of it you own and, in a game, carry.
+
+**Two-handed weapons**
+- Hogger's Trophy Axe, Gath'Ilzogg's War Axe, Ashkandi and Crul'shorukh are held in both
+  hands: while one is worn nothing can be held in the off hand, which the character sheet
+  shows greyed. Putting something in the off hand takes the two-handed weapon off.
+- To be worth it they give more: a boss's two-handed weapon 1.7 times what a one-handed one
+  of its rarity and zone gives; Ashkandi now +17 attack power, Crul'shorukh +15 and 1% crit.
+
+**The warriors wear armor**
+- Hogger, Gath'Ilzogg, Chieftain Nek'rosh, Arnak Grimtotem, Khan Dez'hepah and Chief Ukorz
+  Sandscalp wear armor, more the later they stand: arrows do 19% less to Hogger and 36% less
+  to Ukorz. Arcane Shot goes through it. They say so when they appear.
+
+**The share card and the icons**
+- The card Discord and social posts show is the new medallion over the world map, and the
+  browser tab and phone icons are the medallion with an I.
+
+### For developers
+- New: `game/styles/game-window.css` parts used in the menu's layer by `screens.css`,
+  `game/ui/gameOverScreen.js`, `OutfitController` (`PUT /api/outfits`, migration
+  `2026_10_14_130000`, `users.outfits`), `config('gear.two_handed')` and
+  `two_handed_factor`, `warrior` on bosses with `gameConfig.bosses.armor`.
+
+## 2.37.1 - 2026-10-14
+
+### Changed
+- A boss that charges (Hogger, Gath'Ilzogg, Chieftain Nek'rosh, King Bangalash, Echeyakee,
+  Shadumbra, Big Samras) cannot be hurt by Arcane Shot from the moment it marks its lane
+  until it is back at the top: it stood still on its lane while it lined up, which made it
+  an easy target for the strongest shot. "Immune" shows where the shot lands. Ordinary
+  arrows and Multishot still hit it.
+
 ## 2.37.0 - 2026-10-14
 
 ### What's new

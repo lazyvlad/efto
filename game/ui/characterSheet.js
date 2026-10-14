@@ -61,6 +61,10 @@ export function isCharacterSheetOpen() {
  * @param {Function} options.onWearSet - (setId) put on every piece owned of a set. Returns
  *        the same.
  * @param {Function} options.onOpenInventory - () open the inventory in its place
+ * @param {Function} options.onWearOutfit - (index) put on a saved set; returns why not, or ''
+ * @param {Function} options.onSaveOutfit - (name) save what is worn as a set; the same
+ * @param {Function} options.onDeleteOutfit - (index) forget a saved set
+ *        For these the state has outfits: [{ name, pieces, isOn }] and mostOutfits.
  */
 export function initializeCharacterSheet(options) {
     game = options;
@@ -131,6 +135,7 @@ function render() {
     renderSlots(state);
     renderStats(state);
     renderSets(state);
+    renderOutfits(state);
     renderSlotItems(state);
 }
 
@@ -163,8 +168,13 @@ function renderSlots(state) {
         const holder = element(`sheetSlots-${column}`);
         holder.textContent = '';
 
+        // A weapon held in both hands: the off hand shows it greyed, and holds nothing else
+        const held = itemById(state.equipment.mainhand);
+        const twoHanded = Boolean(held && held.twoHanded);
+
         for (const slot of SLOTS.filter(candidate => candidate.column === column)) {
-            const item = itemById(state.equipment[slot.id]);
+            const blocked = slot.id === 'offhand' && twoHanded;
+            const item = blocked ? held : itemById(state.equipment[slot.id]);
             // Something that fits is owned and is not being worn anywhere
             const wornIds = Object.values(state.equipment);
             const choices = itemsForSlot(slot.id, wearables(), state.owned).filter(candidate => !wornIds.includes(candidate.id)).length;
@@ -174,11 +184,12 @@ function renderSlots(state) {
             button.dataset.slot = slot.id;
             button.classList.toggle('is-selected', slot.id === selectedSlot);
             button.classList.toggle('is-filled', Boolean(item));
+            button.classList.toggle('is-blocked', blocked);
             // The colour of how rare it is: a piece of a set is epic
             if (item) button.dataset.rarity = item.rarity || 'epic';
             // Something owned could go here and nothing is on
             button.classList.toggle('has-choice', !item && choices > 0);
-            button.title = item ? `${slot.label}: ${item.name}` : slot.label;
+            button.title = blocked ? `${slot.label}: ${held.name} is held in both hands` : item ? `${slot.label}: ${item.name}` : slot.label;
             button.setAttribute('aria-pressed', String(slot.id === selectedSlot));
 
             const icon = make('span', 'sheet-slot-icon');
@@ -264,6 +275,60 @@ function renderSets(state) {
     }
 }
 
+// The sets the player saved: each put on in one press, and what is worn now saved as one
+function renderOutfits(state) {
+    const holder = element('sheetOutfits');
+    holder.textContent = '';
+    if (!state.outfits) return;
+
+    holder.append(make('p', 'window-label sheet-outfits-label', 'Your sets'));
+    const row = make('div', 'sheet-outfit-row');
+    holder.append(row);
+
+    state.outfits.forEach((outfit, index) => {
+        const card = make('div', 'sheet-outfit');
+        const wear = make('button', outfit.isOn ? 'game-btn is-on sheet-outfit-wear' : 'game-btn sheet-outfit-wear');
+        wear.type = 'button';
+        wear.append(make('span', 'sheet-set-name', outfit.name), make('span', 'sheet-set-count', `${outfit.pieces} ${outfit.pieces === 1 ? 'piece' : 'pieces'}${outfit.isOn ? ' · on' : ''}`));
+        wear.title = `Put on ${outfit.name}`;
+        wear.addEventListener('click', () => {
+            notice = game.onWearOutfit(index) || '';
+            render();
+        });
+
+        const forget = make('button', 'sheet-outfit-forget', '×');
+        forget.type = 'button';
+        forget.setAttribute('aria-label', `Forget ${outfit.name}`);
+        forget.title = `Forget ${outfit.name}`;
+        forget.addEventListener('click', () => {
+            if (!window.confirm(`Forget the set "${outfit.name}"? What you own stays yours.`)) return;
+            game.onDeleteOutfit(index);
+            render();
+        });
+
+        card.append(wear, forget);
+        row.append(card);
+    });
+
+    // What is worn now is not one of them: it can be saved
+    const wearing = Object.keys(state.equipment).length;
+    if (wearing > 0 && !state.outfits.some(outfit => outfit.isOn)) {
+        const save = make('button', 'game-btn sheet-outfit-save', state.outfits.length >= state.mostOutfits ? `You keep ${state.mostOutfits} sets` : '+ Save what he wears');
+        save.type = 'button';
+        save.disabled = state.outfits.length >= state.mostOutfits;
+        save.title = save.disabled ? 'Forget one to save another' : 'Keep these pieces as a set of your own, to put on in one press';
+        save.addEventListener('click', () => {
+            const name = window.prompt('A name for this set', `Set ${state.outfits.length + 1}`);
+            if (name === null || !name.trim()) return;
+            notice = game.onSaveOutfit(name.trim().slice(0, 24)) || '';
+            render();
+        });
+        row.append(save);
+    } else if (state.outfits.length === 0) {
+        row.append(make('p', 'sheet-empty', 'Put on the pieces you like, and save them here as a set of your own.'));
+    }
+}
+
 function renderSlotItems(state) {
     const slot = SLOTS.find(candidate => candidate.id === selectedSlot) || SLOTS[0];
     const wornId = state.equipment[slot.id];
@@ -276,6 +341,11 @@ function renderSlotItems(state) {
 
     // Why the last thing pressed could not be put on
     if (notice) list.append(make('p', 'sheet-empty window-warning', notice));
+    // The off hand while a two-handed weapon is held
+    const held = itemById(state.equipment.mainhand);
+    if (slot.id === 'offhand' && held && held.twoHanded) {
+        list.append(make('p', 'sheet-empty', `${held.name} is held in both hands. Putting something in the off hand takes it off.`));
+    }
     // In a game only what the hunter took along can be put on
     if (state.playing && state.inBank > 0) {
         list.append(make('p', 'sheet-empty', `${state.inBank} more ${state.inBank === 1 ? 'thing is' : 'things are'} in the bank, out of reach until the game is over.`));
@@ -299,7 +369,7 @@ function renderSlotItems(state) {
         picture.alt = '';
         row.dataset.rarity = item.rarity || 'epic';
 
-        const about = [item.from, worn ? 'being worn' : '', banked ? 'in the bank' : ''].filter(Boolean).join(' \u00b7 ');
+        const about = [item.twoHanded ? 'Two-handed' : '', item.from, worn ? 'being worn' : '', banked ? 'in the bank' : ''].filter(Boolean).join(' \u00b7 ');
         const text = make('span', 'window-item-text');
         text.append(
             make('span', 'window-item-name', item.name),

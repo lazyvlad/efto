@@ -26,7 +26,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
     <link rel="manifest" href="site.webmanifest">
-    <meta name="theme-color" content="#0d211a">
+    <meta name="theme-color" content="#15110e">
     
     <!-- A side chosen on an earlier visit: fetch the picture it starts on before the game's
          code has loaded, so it is there when the menu comes up (systems/backgroundSystem.js) -->
@@ -52,21 +52,22 @@
     <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
-    <link rel="stylesheet" href="styles/base.css?v=2.37.0">
-    <link rel="stylesheet" href="styles/ui-components.css?v=2.37.0">
-    <link rel="stylesheet" href="styles/settings.css?v=2.37.0">
-    <link rel="stylesheet" href="styles/notifications.css?v=2.37.0">
-    <link rel="stylesheet" href="styles/game-panels.css?v=2.37.0">
-    <link rel="stylesheet" href="styles/spell-bar.css?v=2.37.0">
-    <link rel="stylesheet" href="styles/how-to-play.css?v=2.37.0">
-    <link rel="stylesheet" href="styles/mobile.css?v=2.37.0">
-    <link rel="stylesheet" href="styles/wow-theme.css?v=2.37.0">
-    <link rel="stylesheet" href="styles/game-window.css?v=2.37.0">
-    <link rel="stylesheet" href="styles/character-sheet.css?v=2.37.0">
-    <link rel="stylesheet" href="styles/inventory.css?v=2.37.0">
-    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.37.0"> -->
+    <link rel="stylesheet" href="styles/base.css?v=2.38.0">
+    <link rel="stylesheet" href="styles/ui-components.css?v=2.38.0">
+    <link rel="stylesheet" href="styles/settings.css?v=2.38.0">
+    <link rel="stylesheet" href="styles/notifications.css?v=2.38.0">
+    <link rel="stylesheet" href="styles/game-panels.css?v=2.38.0">
+    <link rel="stylesheet" href="styles/spell-bar.css?v=2.38.0">
+    <link rel="stylesheet" href="styles/how-to-play.css?v=2.38.0">
+    <link rel="stylesheet" href="styles/mobile.css?v=2.38.0">
+    <link rel="stylesheet" href="styles/wow-theme.css?v=2.38.0">
+    <link rel="stylesheet" href="styles/game-window.css?v=2.38.0">
+    <link rel="stylesheet" href="styles/character-sheet.css?v=2.38.0">
+    <link rel="stylesheet" href="styles/inventory.css?v=2.38.0">
+    <link rel="stylesheet" href="styles/screens.css?v=2.38.0">
+    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=2.38.0"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
-  <!-- Built: 2026-10-14T03:56:39.664Z | Version: 2.37.0 | Mode: Production -->
+  <!-- Built: 2026-10-14T04:51:04.817Z | Version: 2.38.0 | Mode: Production -->
 </head>
 <body>
     <!-- The background: two layers that fade from one picture to the next (backgroundSystem.js) -->
@@ -198,6 +199,8 @@
                         <p id="sheetFullBags" class="sheet-fullbags"></p>
                     </section>
                     <div id="sheetSets" class="sheet-sets" role="group" aria-label="Put on a whole set"></div>
+                    <!-- The sets the player saved: put on in one press -->
+                    <div id="sheetOutfits" class="sheet-outfits" role="group" aria-label="Your sets"></div>
                     <section class="window-card sheet-slot-panel">
                         <p class="window-label">The slot picked</p>
                         <h3 id="sheetSlotName">Head</h3>
@@ -297,31 +300,39 @@
                 <p class="travel-legend">Blue pins are the Alliance's zones, red the Horde's; the number is the zone. A faded pin cannot be started in yet: select it to see why.</p>
             </div>
 
-            <!-- Pause Game Content (shown when game is running and paused) -->
-            <div id="pauseGameContent" style="display: none;">
-                <h2>Game Menu</h2>
-                <p class="pause-subtitle">The game is paused</p>
-                <div class="pause-buttons">
-                    <button id="continuePauseBtn" class="pause-btn continue-btn">Continue
-                    </button>
-                    <button id="gameInfoPauseBtn" class="pause-btn info-btn">Game Info
-                    </button>
-                    <button id="characterPauseBtn" class="pause-btn info-btn">Character
-                    </button>
-                    <button id="inventoryPauseBtn" class="pause-btn info-btn">Inventory
-                    </button>
-                    <button id="itemBonusesPauseBtn" class="pause-btn bonuses-btn">
-                        <span class="menu-button-label-full">Loot &amp; Bonuses</span>
-                        <span class="menu-button-label-short">Loot</span>
-                    </button>
-                    <button id="settingsPauseBtn" class="pause-btn settings-btn">Settings
-                    </button>
-                    <button id="finishPauseBtn" class="pause-btn restart-btn">Finish Game
-                    </button>
-                    <button id="restartPauseBtn" class="pause-btn restart-btn">Restart
-                    </button>
-                </div>
-                <p class="pause-hint">Press ESC to continue or tap pause button</p>
+            <!-- The pause menu (shown while a game is paused): where the game stands, the way back
+                 into it, the hunter's windows, the game's screens, and, apart, the ways out -->
+            <div id="pauseGameContent" class="pause-window" style="display: none;">
+                <header class="pause-window-top">
+                    <img class="window-logo" src="assets/ui/input-logo.webp" alt="" width="1200" height="891">
+                    <div>
+                        <p id="pauseWhere" class="window-label">Paused</p>
+                        <h2 class="pause-window-title">The game waits for you</h2>
+                    </div>
+                </header>
+                <div id="pauseStatus" class="pause-status"></div>
+                <button id="continuePauseBtn" class="game-btn is-primary pause-continue">Continue</button>
+                <section class="pause-group">
+                    <p class="window-label">Your hunter</p>
+                    <div class="pause-grid">
+                        <button id="characterPauseBtn" class="game-btn">Character</button>
+                        <button id="inventoryPauseBtn" class="game-btn">Inventory</button>
+                        <button id="itemBonusesPauseBtn" class="game-btn">Loot &amp; bonuses</button>
+                    </div>
+                </section>
+                <section class="pause-group">
+                    <p class="window-label">The game</p>
+                    <div class="pause-grid">
+                        <button id="gameInfoPauseBtn" class="game-btn">How to play</button>
+                        <button id="settingsPauseBtn" class="game-btn">Settings</button>
+                        <button id="highScoresPauseBtn" class="game-btn">High scores</button>
+                    </div>
+                </section>
+                <footer class="pause-window-end">
+                    <span class="pause-hint">Esc carries on</span>
+                    <button id="finishPauseBtn" class="game-btn pause-leave">Finish the game</button>
+                    <button id="restartPauseBtn" class="game-btn pause-leave">Start over</button>
+                </footer>
             </div>
         </div>
 
@@ -608,14 +619,51 @@
             </div>
         </div>
 
-        <!-- Game Over Screen (moved inside pause menu) -->
-        <div id="gameOver" style="display: none;">
-            <h2 id="gameOverTitle">Game Over!</h2>
-            <p id="finalScore">Final Score: 0</p>
-            <p id="coinsEarned" style="color: #FFD700; margin: 6px 0;"></p>
-            <p id="newHighScore" style="display: none; color: #FFD700; font-weight: bold; margin: 10px 0;">New High Score!</p>
-            <button id="restartBtn">Play Again</button>
-            <button id="viewScoresBtn2">View High Scores</button>
+        <!-- The end of a game (ui/gameOverScreen.js): the hunter in the place it ended, the
+             score and where it landed, what the game was, and what it brought home -->
+        <div id="gameOver" class="game-over game-window" style="display: none;">
+            <header class="game-over-top">
+                <img class="window-logo" src="assets/ui/input-logo.webp" alt="" width="1200" height="891">
+                <div class="game-over-who">
+                    <p id="gameOverLabel" class="window-label"></p>
+                    <h2 id="gameOverWhere"></h2>
+                </div>
+                <div class="game-over-buttons">
+                    <button type="button" id="viewScoresBtn2" class="game-btn">High scores</button>
+                    <button type="button" id="gameOverMapBtn" class="game-btn">Back to the map</button>
+                    <button type="button" id="restartBtn" class="game-btn is-primary">Play again</button>
+                </div>
+            </header>
+            <div class="game-over-body">
+                <div id="gameOverStage" class="game-over-stage">
+                    <div class="game-over-heading">
+                        <h2 id="gameOverTitle" class="game-over-title">Game over</h2>
+                        <p id="gameOverLine"></p>
+                    </div>
+                    <img id="gameOverFigure" class="game-over-figure-art" alt="" hidden>
+                    <div class="game-over-score">
+                        <div class="game-over-plate">
+                            <span class="window-label">Score</span>
+                            <strong id="finalScore">0</strong>
+                        </div>
+                        <p id="newHighScore" class="game-over-rank" hidden></p>
+                    </div>
+                </div>
+                <aside class="game-over-side">
+                    <section class="window-card">
+                        <h3>This game</h3>
+                        <div id="gameOverFigures" class="game-over-figures"></div>
+                    </section>
+                    <section class="window-card game-over-home">
+                        <div class="window-card-title">
+                            <h3>Brought home</h3>
+                            <span id="gameOverHomeLabel" class="window-label"></span>
+                        </div>
+                        <div id="gameOverHome" class="game-over-list"></div>
+                        <div id="gameOverSold" class="game-over-notes" hidden></div>
+                    </section>
+                </aside>
+            </div>
         </div>
 
         <!-- Item Bonuses Screen (available during paused gameplay) -->
@@ -801,7 +849,7 @@
     </div>
 
     <!-- Game Script -->
-    <script type="module" src="game-modular.vr9u7per.js?v=2.37.0"></script>
+    <script type="module" src="game-modular.tqnbf6cf.js?v=2.38.0"></script>
     
 
 

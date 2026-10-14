@@ -24,7 +24,7 @@ import { FIGURE_HEIGHT_TO_WIDTH } from '../classes/Player.js';
 import { playTotalSound, playScreamSound, playFireballImpactSound } from './audioSystem.js';
 import { areMessagesAboveField } from './hudNotificationSystem.js';
 import { keyName } from '../utils/keybindings.js';
-import { arrowDamage, damageAfterArmor } from '../utils/stats.js';
+import { arrowDamage, damageAfterArmor, armorReduction } from '../utils/stats.js';
 import { getCurrentTotalCritRating } from './statEffectsSystem.js';
 
 const INTRO_STEPS = 120;
@@ -267,7 +267,9 @@ export function guardZone(gameState, canvas) {
     };
 
     picture(boss);
-    addNotification(gameState, `${boss.name} appears! Bring it down with your arrows`, 300, '#FF6B35');
+    addNotification(gameState, stats.armor
+        ? `${boss.name} appears in armor: arrows -${Math.round(armorReduction(stats.armor, gameConfig.stats) * 100)}%, Arcane Shot goes through`
+        : `${boss.name} appears! Bring it down with your arrows`, 300, '#FF6B35');
     playScreamSound();
     return true;
 }
@@ -467,13 +469,17 @@ export function updateCurse(context) {
 // ----- Arrows -----
 
 // Arrows that reach the boss are spent on it. A shield absorbs ordinary arrows; an Arcane Shot
-// goes through it and breaks it. A vanished boss cannot be hit.
+// goes through it and breaks it. A vanished boss cannot be hit. A boss charging, from the
+// moment it marks its lane until it is back at the top, cannot be hurt by an Arcane Shot: it
+// stands still on its lane while it lines up, and that was an easy target for the strongest
+// shot. Ordinary arrows still hit it.
 function takeArrowHits(context) {
     if (fight.hidden > 0.5) return;
 
     const { gameState, canvas, particles, combatTexts } = context;
     const box = hitBox(canvas);
     const weakened = weakenedMultiplier(fightSeconds(), gameConfig.bosses);
+    const charging = fight.attack === 'charge' && fight.doing !== 'moving';
 
     for (let index = window.arrows.length - 1; index >= 0; index--) {
         const arrow = window.arrows[index];
@@ -481,6 +487,15 @@ function takeArrowHits(context) {
 
         arrow.createImpactParticles(particles);
         window.arrows.splice(index, 1);
+
+        if (charging && arrow.arcane) {
+            // Said once a second at most
+            if (fight.steps - fight.absorbedTextAt >= 60) {
+                fight.absorbedTextAt = fight.steps;
+                combatTexts.push(new CombatText(arrow.x, box.y + box.height, 'Immune', '#D9A8FF', false));
+            }
+            continue;
+        }
 
         if (fight.shielded && !arrow.arcane) {
             // Said once a second at most, however many arrows bounce off
@@ -512,7 +527,8 @@ function takeArrowHits(context) {
             attackPower: gameState.attackPower || 0,
             worth: arrow.arcane ? gameConfig.bosses.arcaneDamage : 1,
             shotBonus: arrow.arcane ? set.arcane || 0 : arrow.multishot ? set.multishot || 0 : 0,
-            bossArmor: fight.boss.armor || 0,
+            // (what its armor takes off, as a share)
+            bossArmor: armorReduction(fight.stats.armor || 0, gameConfig.stats),
             ignoresArmor: Boolean(arrow.arcane),
             weakened,
             bossDamage: set.bossDamage || 0,

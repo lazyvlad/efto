@@ -62,6 +62,8 @@ class GameController extends Controller
                 'carried' => $user->carried === null || ! $user->canUseRewards()
                     ? null
                     : Gear::carried($user, $user->carried),
+                // The sets saved on the character sheet
+                'outfits' => $user->outfits ?? [],
                 // The gear owned besides the sets, and how many of each (App\Support\Gear)
                 'gear' => (object) ($user->canUseRewards() ? Gear::owned($user) : []),
                 // The bags bought (their sizes) and the crafting materials brought back so far
@@ -95,6 +97,7 @@ class GameController extends Controller
                 'games' => route('games.open'),
                 'collection' => route('collection'),
                 'equipment' => route('equipment.update'),
+                'outfits' => route('outfits.update'),
                 'bags' => route('bags.buy'),
                 'sell' => route('vendor.sell'),
                 'verify' => route('verification.notice'),

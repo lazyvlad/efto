@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin;
 use App\Http\Controllers\AvatarController;
 use App\Http\Controllers\BagController;
 use App\Http\Controllers\EquipmentController;
+use App\Http\Controllers\OutfitController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\GameHistoryController;
 use App\Http\Controllers\GameRecordController;
@@ -52,6 +53,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/api/collection', [GameHistoryController::class, 'collection'])->name('collection');
     // What the hunter is wearing, set on the game's character sheet
     Route::put('/api/equipment', [EquipmentController::class, 'update'])->middleware('throttle:60,1')->name('equipment.update');
+    // The sets saved on the character sheet
+    Route::put('/api/outfits', [OutfitController::class, 'update'])->middleware('throttle:60,1')->name('outfits.update');
     // Gear sold for coins
     Route::post('/api/sell', [VendorController::class, 'sell'])->middleware('throttle:60,1')->name('vendor.sell');
     // A bag bought with coins, added to the backpack

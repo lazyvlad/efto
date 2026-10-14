@@ -92,11 +92,19 @@ return [
 
     // The weapons and jewellery that fall in a game. They sell for what their rarity paid
     // when they were sold on the spot ("coins" in config/loot.php).
+    /*
+     * Weapons held in both hands: while one is worn nothing can be held in the off hand. To be
+     * worth that, a boss's two-handed weapon gives this many times what a one-handed weapon of
+     * its rarity and zone gives; the two that fall in a game say what they give below.
+     */
+    'two_handed' => ['hoggers-trophy-axe', 'gathilzoggs-war-axe', 'ashkandi2', 'crulshorukh'],
+    'two_handed_factor' => 1.7,
+
     'drops' => [
-        'ashkandi2' => ['slot' => 'mainhand', 'stats' => ['attackPower' => 12]],
+        'ashkandi2' => ['slot' => 'mainhand', 'stats' => ['attackPower' => 17]],
         'brutality_blade' => ['slot' => 'mainhand', 'stats' => ['attackPower' => 9, 'crit' => 1]],
         'maladath' => ['slot' => 'mainhand', 'stats' => ['attackPower' => 8, 'dodge' => 1]],
-        'crulshorukh' => ['slot' => 'mainhand', 'stats' => ['attackPower' => 11]],
+        'crulshorukh' => ['slot' => 'mainhand', 'stats' => ['attackPower' => 15, 'crit' => 1]],
         'dalrends' => ['slot' => 'offhand', 'stats' => ['attackPower' => 7, 'crit' => 1]],
         'ashjrethul' => ['slot' => 'ranged', 'stats' => ['attackPower' => 14, 'crit' => 1]],
         'quick-strike-ring' => ['slot' => 'ring', 'stats' => ['attackPower' => 5, 'crit' => 1]],

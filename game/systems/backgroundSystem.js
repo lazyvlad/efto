@@ -89,6 +89,11 @@ export function currentBackgroundImage() {
     return current ? current.image : null;
 }
 
+// The name of the place showing now ("Westfall"), or null
+export function currentBackgroundName() {
+    return current ? current.name : null;
+}
+
 // The backgrounds of the chosen side, in order
 export function factionBackgrounds() {
     return faction ? backgrounds[faction] : [];
