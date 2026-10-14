@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-14T04:51:04.817Z",
-  "buildTimestamp": 1791953464826,
+  "buildTime": "2026-10-14T05:08:14.363Z",
+  "buildTimestamp": 1791954494369,
   "mode": "production",
-  "gameVersion": "2.38.0",
-  "cacheHash": "tqnbf6cf",
+  "gameVersion": "2.39.0",
+  "cacheHash": "ft24very",
   "fileMap": {
-    "game-modular.js": "game-modular.tqnbf6cf.js"
+    "game-modular.js": "game-modular.ft24very.js"
   },
-  "buildSystemVersion": "2.38.0"
+  "buildSystemVersion": "2.39.0"
 }

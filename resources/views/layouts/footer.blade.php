@@ -4,7 +4,6 @@
         <span>
             &copy; {{ date('Y') }} {{ config('app.name') }}
             <a href="{{ route('about') }}" class="ms-3 text-gray-700 hover:text-gray-900 underline">{{ __('About') }}</a>
-            <a href="{{ route('items') }}" class="ms-3 text-gray-700 hover:text-gray-900 underline">{{ __('Items') }}</a>
         </span>
 
         <span>

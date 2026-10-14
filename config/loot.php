@@ -215,6 +215,10 @@ return [
             'tier' => 1,
             'from_level' => 3,
             'not_before_seconds' => 20,
+            // What each piece worn gives, and what the set gives at so many pieces worn (sets
+            // in game/config/gameConfig.js: the same numbers, for the items page)
+            'per_piece' => ['health' => 3, 'armor' => 4, 'attackPower' => 2],
+            'bonuses' => [3 => ['dodge' => 0.02], 5 => ['dodge' => 0.05], 8 => ['dodge' => 0.05, 'multishot' => 0.4]],
             'pieces' => [
                 'giantstalker-helmet', 'giantstalker-shoulders', 'giantstalker-chest', 'giantstalker-bracers',
                 'giantstalker-gloves', 'giantstalker-belt', 'giantstalker-leggings', 'giantstalker-boots',
@@ -225,6 +229,8 @@ return [
             'tier' => 2,
             'from_level' => 9,
             'not_before_seconds' => 150,
+            'per_piece' => ['health' => 4, 'armor' => 6, 'attackPower' => 4],
+            'bonuses' => [3 => ['crit' => 0.02], 5 => ['crit' => 0.05], 8 => ['crit' => 0.05, 'arcane' => 0.5]],
             'pieces' => [
                 'ds_helm', 'ds_shoulders', 'ds_chest', 'ds_bracers',
                 'ds_gloves', 'ds_belt', 'ds_legs', 'ds_boots',
@@ -235,6 +241,8 @@ return [
             'tier' => 3,
             'from_level' => 15,
             'not_before_seconds' => 400,
+            'per_piece' => ['health' => 5, 'armor' => 8, 'attackPower' => 6],
+            'bonuses' => [2 => ['bossDamage' => 0.05], 4 => ['bossDamage' => 0.1], 6 => ['bossDamage' => 0.15], 8 => ['bossDamage' => 0.2]],
             'pieces' => [
                 'cryptstalker-helmet', 'cryptstalker-shoulders', 'cryptstalker-chest', 'cryptstalker-bracers',
                 'cryptstalker-gloves', 'cryptstalker-belt', 'cryptstalker-leggings', 'cryptstalker-boots',

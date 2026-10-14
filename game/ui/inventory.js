@@ -53,6 +53,8 @@ export function isInventoryOpen() {
  *        For that the state has owned (ids), carried (ids), carryLimit and playing, and scene
  *        and figure: the pictures of the place and the hunter for the gear tab.
  * @param {Function} options.onOpenGear - () open the character sheet
+ * @param {Function} options.onCloseAll - () close the inventory and every menu, and go on with
+ *        the game if one is under way (Back goes to where it was opened from)
  */
 export function initializeInventory(options) {
     game = options;
@@ -62,6 +64,7 @@ export function initializeInventory(options) {
 
     element('inventoryClose').addEventListener('click', closeInventory);
     element('inventoryCharacter').addEventListener('click', () => game.onOpenGear());
+    element('inventoryCloseAll').addEventListener('click', () => game.onCloseAll());
     layer.addEventListener('click', event => {
         if (event.target === layer) closeInventory();
     });

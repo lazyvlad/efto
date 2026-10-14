@@ -18,6 +18,9 @@
                     <x-nav-link :href="route('highscores')" :active="request()->routeIs('highscores')">
                         {{ __('High Scores') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('items')" :active="request()->routeIs('items')">
+                        {{ __('Items') }}
+                    </x-nav-link>
                     <x-nav-link :href="route('about')" :active="request()->routeIs('about')">
                         {{ __('About') }}
                     </x-nav-link>
@@ -44,9 +47,6 @@
                     <x-slot name="content">
                         <x-dropdown-link :href="route('games.history')">
                             {{ __('My Games') }}
-                        </x-dropdown-link>
-                        <x-dropdown-link :href="route('items')">
-                            {{ __('Items') }}
                         </x-dropdown-link>
                         <x-dropdown-link :href="route('profile.edit')">
                             {{ __('Profile') }}
@@ -96,15 +96,12 @@
             <x-responsive-nav-link :href="route('highscores')" :active="request()->routeIs('highscores')">
                 {{ __('High Scores') }}
             </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('items')" :active="request()->routeIs('items')">
+                {{ __('Items') }}
+            </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('about')" :active="request()->routeIs('about')">
                 {{ __('About') }}
             </x-responsive-nav-link>
-            @guest
-                {{-- A logged-in player has it under their name below --}}
-                <x-responsive-nav-link :href="route('items')" :active="request()->routeIs('items')">
-                    {{ __('Items') }}
-                </x-responsive-nav-link>
-            @endguest
         </div>
 
         <!-- Responsive Settings Options -->
@@ -118,9 +115,6 @@
             <div class="mt-3 space-y-1">
                 <x-responsive-nav-link :href="route('games.history')" :active="request()->routeIs('games.history')">
                     {{ __('My Games') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('items')" :active="request()->routeIs('items')">
-                    {{ __('Items') }}
                 </x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('profile.edit')">
                     {{ __('Profile') }}

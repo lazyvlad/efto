@@ -23,7 +23,7 @@ const rules = {
     shield: { fromZone: 2, firstAfter: 12, every: 30, perZone: 1.5, shortest: 15 },
     enrage: { after: 100, perZone: 5, soonest: 50, atStart: 1.5, perSecond: 0.03, most: 4 },
     reward: { score: 100, scorePerZone: 50, health: 10 },
-    dodge: { reaction: { base: 20, perZone: 1.5, fastest: 6 }, cooldown: { base: 100, perZone: 8, shortest: 28 } },
+    dodge: { reaction: { base: 20, perZone: 1.5, fastest: 6 }, cooldown: { base: 100, perZone: 8, shortest: 28 }, chance: { base: 0.05, perZone: 0.01 } },
     windUp: { perZone: 0.05, least: 0.5, leastForHeavy: 0.7 },
     movement: { sweep: { base: 15, perZone: 0.8, fastest: 8 } },
     levelsPerZone: 2
@@ -155,4 +155,15 @@ test('the warriors wear armor, more of it the later they stand, and the others n
 test('the armor rules here are the same as the game\'s', async () => {
     const config = await readFile(new URL('../config/gameConfig.js', import.meta.url), 'utf8');
     assert.match(config, /armor: \{ base: 30, perZone: 6 \}/);
+});
+
+test('the nimble bosses dodge some arrows, more the later they stand, and the others none', () => {
+    const nimble = bosses.filter(boss => boss.nimble).map(boss => boss.id);
+    assert.deepEqual(nimble, ['garrick-padfoot', 'bazil-thredd', 'edwin-vancleef', 'king-bangalash', 'echeyakee', 'shadumbra']);
+
+    assert.equal(bossStats(bossForZone('alliance', 1), rules).dodgeChance, 0.05);
+    assert.equal(bossStats(bossForZone('alliance', 9), rules).dodgeChance, 0.13);
+    assert.equal(bossStats(bossForZone('alliance', 2), rules).dodgeChance, 0);
+    // A boss is nimble or in armor, not both
+    assert.ok(bosses.every(boss => !(boss.nimble && boss.warrior)));
 });

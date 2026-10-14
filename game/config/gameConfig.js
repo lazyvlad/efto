@@ -450,6 +450,9 @@ export const gameConfig = {
             seesAhead: 45,          // It notices arrows this many steps before they would land
             steps: 14,              // A sidestep lasts this long
             distance: 0.8,          // ...and carries it this far, in widths of its own body
+            // The nimble bosses ("nimble" in data/bosses.js) also have a chance that an arrow
+            // misses them: Garrick (zone 1) 5%, King Bangalash (zone 9) 13%. Not Arcane Shot.
+            chance: { base: 0.05, perZone: 0.01 },
         },
         
         // Later bosses wind up faster: each zone takes this share off the wind-up, down to the

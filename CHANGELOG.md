@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.39.0 - 2026-10-14
+
+### What's new
+
+**The nimble bosses dodge**
+- Garrick Padfoot, Bazil Thredd, Edwin VanCleef, King Bangalash, Echeyakee and Shadumbra are
+  quick on their feet: now and then an arrow misses them altogether, 5% of them for Garrick
+  up to 13% for King Bangalash. "Dodge" shows where it happens. It takes the edge off a
+  Multishot fired from close by, as every one of its arrows can miss. An Arcane Shot never
+  does. They say so when they appear.
+
+**The items page, new**
+- Items is in the menu along the top of the site now, beside High Scores, instead of the
+  bottom bar and the account menu.
+- The page is in the game's look and says what becomes of what you catch: gear is kept and
+  worn, materials go to the bank, the rest is sold for coins. Then the three hunter sets with
+  what each piece gives and their bonuses; every boss with each of its drops, where it is
+  worn, what it gives and what it sells for; the weapons and jewellery that fall; the
+  materials; and what is sold for coins, by rarity.
+
+### Changed
+- The character sheet and the inventory have Back and Close, as the game's other screens:
+  Back goes to where they were opened from (the pause menu, or the map), Close shuts every
+  menu and goes on with the game.
+- Back on How to play, Loot & bonuses, High scores and Settings now does the same: it leaves
+  their window for where it was opened from, however many of its tabs were gone through,
+  instead of stepping back one tab at a time.
+
 ## 2.38.0 - 2026-10-14
 
 ### What's new

@@ -262,6 +262,7 @@ export function guardZone(gameState, canvas) {
         dodgeSteps: 0,          // Steps left of the sidestep under way
 
         bombs: [],              // Things lobbed at the player that have yet to burst
+        dodgedTextAt: -Infinity, // When "Dodge" was last shown
         sinceArrows: 0,
         sincePotion: 0
     };
@@ -269,7 +270,9 @@ export function guardZone(gameState, canvas) {
     picture(boss);
     addNotification(gameState, stats.armor
         ? `${boss.name} appears in armor: arrows -${Math.round(armorReduction(stats.armor, gameConfig.stats) * 100)}%, Arcane Shot goes through`
-        : `${boss.name} appears! Bring it down with your arrows`, 300, '#FF6B35');
+        : stats.dodgeChance
+            ? `${boss.name} appears: dodges ${Math.round(stats.dodgeChance * 100)}% of arrows, never an Arcane Shot`
+            : `${boss.name} appears! Bring it down with your arrows`, 300, '#FF6B35');
     playScreamSound();
     return true;
 }
@@ -472,7 +475,8 @@ export function updateCurse(context) {
 // goes through it and breaks it. A vanished boss cannot be hit. A boss charging, from the
 // moment it marks its lane until it is back at the top, cannot be hurt by an Arcane Shot: it
 // stands still on its lane while it lines up, and that was an easy target for the strongest
-// shot. Ordinary arrows still hit it.
+// shot. Ordinary arrows still hit it. A nimble boss may dodge an arrow, any but an Arcane
+// Shot: the arrow is spent and does nothing.
 function takeArrowHits(context) {
     if (fight.hidden > 0.5) return;
 
@@ -493,6 +497,15 @@ function takeArrowHits(context) {
             if (fight.steps - fight.absorbedTextAt >= 60) {
                 fight.absorbedTextAt = fight.steps;
                 combatTexts.push(new CombatText(arrow.x, box.y + box.height, 'Immune', '#D9A8FF', false));
+            }
+            continue;
+        }
+
+        if (!arrow.arcane && fight.stats.dodgeChance && Math.random() < fight.stats.dodgeChance) {
+            // Said a few times a second at most, however many arrows of a Multishot miss
+            if (fight.steps - fight.dodgedTextAt >= 20) {
+                fight.dodgedTextAt = fight.steps;
+                combatTexts.push(new CombatText(arrow.x, box.y + box.height, 'Dodge', '#C8C8C8', false));
             }
             continue;
         }

@@ -37,30 +37,32 @@
 //             (assets/attacks/area/) and the colour the ground is marked in, as "r, g, b"
 //   warrior - a fighter in armor: arrows do less to it (bossStats below); Arcane Shot goes
 //             through armor
+//   nimble  - quick on its feet: now and then an arrow misses it altogether, which takes the
+//             edge off a Multishot from close by (bossStats below); an Arcane Shot never misses
 //   attack  - name and picture (assets/attacks/<side>/) of what it throws; "size" is how big
 //             it is (1 = the standard projectile); "spin" makes a thrown weapon tumble (turn
 //             per step) - leave it out for bolts and slashes, which keep pointing down
 
 const roster = {
     alliance: [
-        { id: 'garrick-padfoot', behaviour: 'thrower', name: 'Garrick Padfoot', image: '01-garrick-padfoot', attack: { name: 'Throwing Dagger', image: '01-garrick-dagger', size: 1.2, spin: 0.22 } },
+        { id: 'garrick-padfoot', behaviour: 'thrower', nimble: true, name: 'Garrick Padfoot', image: '01-garrick-padfoot', attack: { name: 'Throwing Dagger', image: '01-garrick-dagger', size: 1.2, spin: 0.22 } },
         { id: 'hogger', behaviour: 'brawler', warrior: true, name: 'Hogger', image: '02-hogger', attack: { name: 'Thrown Axe', image: '02-hogger-axe', size: 1.5, spin: 0.12 } },
-        { id: 'bazil-thredd', behaviour: 'cutthroat', name: 'Bazil Thredd', image: '03-bazil-thredd', attack: { name: 'Prison Shiv', image: '03-bazil-shiv', size: 1.2, spin: 0.22 } },
-        { id: 'edwin-vancleef', behaviour: 'assassin', name: 'Edwin VanCleef', image: '04-edwin-vancleef', attack: { name: 'Defias Throwing Knife', image: '04-vancleef-knife', size: 1.2, spin: 0.22 } },
+        { id: 'bazil-thredd', behaviour: 'cutthroat', nimble: true, name: 'Bazil Thredd', image: '03-bazil-thredd', attack: { name: 'Prison Shiv', image: '03-bazil-shiv', size: 1.2, spin: 0.22 } },
+        { id: 'edwin-vancleef', behaviour: 'assassin', nimble: true, name: 'Edwin VanCleef', image: '04-edwin-vancleef', attack: { name: 'Defias Throwing Knife', image: '04-vancleef-knife', size: 1.2, spin: 0.22 } },
         { id: 'gath-ilzogg', behaviour: 'warlord', warrior: true, name: "Gath'Ilzogg", image: '05-gath-ilzogg', attack: { name: 'Blackrock War Axe', image: '05-gath-war-axe', size: 1.6, spin: 0.12 } },
         { id: 'stitches', behaviour: 'thrower', name: 'Stitches', image: '06-stitches', attack: { name: 'Thrown Cleaver', image: '06-stitches-cleaver', size: 1.6, spin: 0.12 } },
         { id: 'chieftain-nekrosh', behaviour: 'brawler', warrior: true, name: "Chieftain Nek'rosh", image: '07-chieftain-nekrosh', attack: { name: 'Spiked Mace', image: '07-nekrosh-mace', size: 1.6, spin: 0.1 } },
         { id: 'fozruk', behaviour: 'bomber', name: 'Fozruk', image: '08-fozruk', attack: { name: 'Thrown Boulder', image: '08-fozruk-boulder', size: 1.9, spin: 0.05 } },
-        { id: 'king-bangalash', behaviour: 'charger', name: 'King Bangalash', image: '09-king-bangalash', attack: { name: 'Tiger Claw Slash', image: '09-bangalash-claws', size: 2.2 } },
+        { id: 'king-bangalash', behaviour: 'charger', nimble: true, name: 'King Bangalash', image: '09-king-bangalash', attack: { name: 'Tiger Claw Slash', image: '09-bangalash-claws', size: 2.2 } },
         { id: 'vile-priestess-hexx', behaviour: 'hexer', name: 'Vile Priestess Hexx', image: '10-vile-priestess-hexx', storm: { name: 'Rain of Fire', image: '09-rain-of-fire', color: '255, 70, 20' }, attack: { name: 'Violet Curse Bolt', image: '10-hexx-curse', size: 1.4 } }
     ],
     horde: [
         { id: 'sarkoth', behaviour: 'caster', name: 'Sarkoth', image: '01-sarkoth', attack: { name: 'Venom Sting', image: '01-sarkoth-venom', size: 1.3 } },
         { id: 'zalazane', behaviour: 'caster', name: 'Zalazane', image: '02-zalazane', attack: { name: 'Voodoo Spirit Bolt', image: '02-zalazane-voodoo', size: 1.4 } },
         { id: 'taragaman', behaviour: 'caster', name: 'Taragaman the Hungerer', image: '03-taragaman', attack: { name: 'Demon Flame Bolt', image: '03-taragaman-flame', size: 1.4 } },
-        { id: 'echeyakee', behaviour: 'charger', name: 'Echeyakee', image: '04-echeyakee', attack: { name: 'Lion Claw Rake', image: '04-echeyakee-claws', size: 1.5 } },
+        { id: 'echeyakee', behaviour: 'charger', nimble: true, name: 'Echeyakee', image: '04-echeyakee', attack: { name: 'Lion Claw Rake', image: '04-echeyakee-claws', size: 1.5 } },
         { id: 'gerenzo-wrenchwhistle', behaviour: 'bomber', name: 'Gerenzo Wrenchwhistle', image: '05-gerenzo-wrenchwhistle', attack: { name: 'Clockwork Bomb', image: '05-gerenzo-bomb', size: 1.5, spin: 0.06 } },
-        { id: 'shadumbra', behaviour: 'charger', name: 'Shadumbra', image: '06-shadumbra', attack: { name: 'Shadow Claw Slash', image: '06-shadumbra-claws', size: 1.5 } },
+        { id: 'shadumbra', behaviour: 'charger', nimble: true, name: 'Shadumbra', image: '06-shadumbra', attack: { name: 'Shadow Claw Slash', image: '06-shadumbra-claws', size: 1.5 } },
         { id: 'arnak-grimtotem', behaviour: 'pounder', warrior: true, name: 'Arnak Grimtotem', image: '07-arnak-grimtotem', attack: { name: 'War Stomp Shockwave', image: '07-arnak-shockwave', size: 1.7 } },
         { id: 'big-samras', behaviour: 'charger', name: 'Big Samras', image: '08-big-samras', attack: { name: 'Heavy Bear Swipe', image: '08-samras-swipe', size: 1.6 } },
         { id: 'khan-dezhepah', behaviour: 'pounder', warrior: true, name: "Khan Dez'hepah", image: '09-khan-dezhepah', attack: { name: 'Thrown Centaur Spear', image: '09-khan-spear', size: 1.5 } },
@@ -152,6 +154,8 @@ export function bossStats(boss, rules) {
         heavyWindUp: Math.max(rules.windUp.leastForHeavy, 1 - rules.windUp.perZone * steps),
         // Seconds it takes to sweep across the field and back
         sweepSeconds: Math.max(rules.movement.sweep.fastest, rules.movement.sweep.base - rules.movement.sweep.perZone * steps),
+        // For a nimble boss, the chance that an arrow misses it (0.05 = one in twenty)
+        dodgeChance: boss.nimble ? Math.round((rules.dodge.chance.base + rules.dodge.chance.perZone * steps) * 1000) / 1000 : 0,
         // Armor, for a warrior: each point takes a little off what an arrow does (utils/stats.js)
         armor: boss.warrior ? rules.armor.base + rules.armor.perZone * steps : 0,
         // In the player's eyes a boss is three levels above them, as in World of Warcraft

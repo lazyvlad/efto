@@ -1132,6 +1132,22 @@ function deleteOutfit(index) {
     keepOutfits(outfits().filter((outfit, at) => at !== index));
 }
 
+// The Close of the character sheet and the inventory, as on the game's other screens: shut
+// them and every menu, and go on with the game if one is under way (their Back goes to where
+// they were opened from: the pause menu, or the map)
+function closeWindowsAndResume() {
+    if (isCharacterSheetOpen()) closeCharacterSheet();
+    if (isInventoryOpen()) closeInventory();
+    
+    if (gameState.showingPauseMenu && gameState.health > 0) {
+        hidePauseMenu();
+        menuScreenManager.hideAll();
+        gameState.currentScreen = 'game';
+        updateMobilePauseButtonVisibility();
+        updateCanvasOverlay();
+    }
+}
+
 // Open the inventory. In a game the game is paused while it is open, and goes on when it is
 // closed, unless it was opened from the pause menu, which it then goes back to.
 function showInventory() {
@@ -2078,18 +2094,22 @@ function restoreScreenNavigationState(state) {
     }
 }
 
+// Back on How to play, Loot & bonuses, High scores and Settings: out of their window of tabs,
+// to where it was opened from (the pause menu, the map, the end of a game), however many tabs
+// were gone through on the way, as the character sheet's and the inventory's Back do
 function navigateBackFromScreen() {
-    const fallbackSource = gameState.currentScreen === 'settings'
-        ? gameState.settingsSource
-        : gameState.currentScreen === 'howToPlay'
-            ? gameState.howToPlaySource
-            : gameState.currentScreen === 'highScores'
-                ? gameState.highScoresSource
-                : gameState.currentScreen === 'itemBonuses'
-                    ? gameState.itemBonusesSource
-                    : 'menu';
-
-    restoreScreenNavigationState(screenNavigationHistory.pop() || fallbackSource || 'menu');
+    const sourceOf = state => state[`${state.screen}Source`];
+    const first = screenNavigationHistory[0];
+    const current = getCurrentScreenNavigationState();
+    // The first tab opened remembers where it was opened from
+    const opened = first
+        ? (NAVIGABLE_SCREENS.has(first.screen) ? sourceOf(first) : first.screen)
+        : sourceOf(current);
+    
+    screenNavigationHistory.length = 0;
+    // Opened from the game's own button in play ("desktop"): back to the game
+    const back = opened === 'desktop' ? 'game' : opened;
+    restoreScreenNavigationState(back && !NAVIGABLE_SCREENS.has(back) ? back : (gameState.showingPauseMenu ? 'pause' : 'menu'));
     updateCanvasOverlay();
 }
 
@@ -2467,6 +2487,7 @@ function setupUIEventHandlers() {
         },
         onWearSet: setId => wearSet(setId, false),
         onOpenInventory: () => showInventory(),
+        onCloseAll: closeWindowsAndResume,
         onWearOutfit: wearOutfit,
         onSaveOutfit: saveOutfit,
         onDeleteOutfit: deleteOutfit,
@@ -2506,6 +2527,7 @@ function setupUIEventHandlers() {
         onBuyBag: buyBag,
         onSell: sellGear,
         onCarry: carryGear,
+        onCloseAll: closeWindowsAndResume,
         // The sheet closes the inventory itself once it is open, so the game stays paused
         onOpenGear: () => showCharacterSheet(),
     });

@@ -172,7 +172,9 @@
                         <button type="button" class="game-btn sheet-side-btn" data-side="horde">Horde</button>
                     </div>
                     <button type="button" id="sheetInventory" class="game-btn">Inventory</button>
-                    <button type="button" id="characterSheetClose" class="game-btn" aria-label="Close the character sheet">Close</button>
+                    <!-- Back: to where it was opened from. Close: everything, and on with the game -->
+                    <button type="button" id="characterSheetClose" class="game-btn" title="Back to where you were">Back</button>
+                    <button type="button" id="characterSheetCloseAll" class="game-btn" title="Close and carry on">Close</button>
                 </div>
             </header>
 
@@ -224,7 +226,8 @@
                 <div class="inventory-top-side">
                     <span id="inventoryPurse" class="inventory-purse" hidden></span>
                     <button type="button" id="inventoryCharacter" class="game-btn">Character</button>
-                    <button type="button" id="inventoryClose" class="game-btn" aria-label="Close the inventory">Close</button>
+                    <button type="button" id="inventoryClose" class="game-btn" title="Back to where you were">Back</button>
+                    <button type="button" id="inventoryCloseAll" class="game-btn" title="Close and carry on">Close</button>
                 </div>
             </header>
             <div class="inventory-body" id="inventoryBody"></div>

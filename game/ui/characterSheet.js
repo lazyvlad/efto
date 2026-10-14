@@ -61,6 +61,8 @@ export function isCharacterSheetOpen() {
  * @param {Function} options.onWearSet - (setId) put on every piece owned of a set. Returns
  *        the same.
  * @param {Function} options.onOpenInventory - () open the inventory in its place
+ * @param {Function} options.onCloseAll - () close the sheet and every menu, and go on with the
+ *        game if one is under way (Back, the sheet's other way out, goes to where it was opened)
  * @param {Function} options.onWearOutfit - (index) put on a saved set; returns why not, or ''
  * @param {Function} options.onSaveOutfit - (name) save what is worn as a set; the same
  * @param {Function} options.onDeleteOutfit - (index) forget a saved set
@@ -74,6 +76,7 @@ export function initializeCharacterSheet(options) {
 
     element('characterSheetClose').addEventListener('click', closeCharacterSheet);
     element('sheetInventory').addEventListener('click', () => game.onOpenInventory());
+    element('characterSheetCloseAll').addEventListener('click', () => game.onCloseAll());
     sheet.querySelectorAll('.sheet-side-btn').forEach(button => {
         button.addEventListener('click', () => {
             shownSide = button.dataset.side;

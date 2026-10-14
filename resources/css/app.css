@@ -79,6 +79,81 @@
         cursor: not-allowed;
     }
 
+    /* The game's windows on the site's pages (game/styles/game-window.css in the game): dark
+       inset cards, small labels in spaced capitals, things listed with their rarity's colour */
+    .game-card {
+        background: rgba(0, 0, 0, 0.42);
+        border: 1px solid #5d4c25;
+        border-radius: 6px;
+        box-shadow: 0 0 0 1px #000;
+    }
+
+    .game-heading {
+        font-family: theme('fontFamily.display');
+        color: #ffd100;
+        text-shadow: 0 1px 2px #000;
+    }
+
+    .game-label {
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #a89a78;
+    }
+
+    .game-item {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.45rem 0.55rem;
+        background: rgba(0, 0, 0, 0.45);
+        border: 1px solid #3d3219;
+        border-radius: 4px;
+    }
+
+    .game-item[data-rarity="uncommon"] { border-color: #1eff00; }
+    .game-item[data-rarity="rare"] { border-color: #3d9bff; }
+    .game-item[data-rarity="epic"] { border-color: #b048f8; }
+    .game-item[data-rarity="legendary"] { border-color: #ff8000; }
+
+    .rarity-uncommon { color: #8dff7a; }
+    .rarity-rare { color: #8fc4ff; }
+    .rarity-epic { color: #d9a8ff; }
+    .rarity-legendary { color: #ffb84d; }
+
+    /* Buttons joined into one bar, the one shown in blue */
+    .game-tabs {
+        display: flex;
+        flex-wrap: wrap;
+    }
+
+    .game-tabs a {
+        padding: 0.45rem 1rem;
+        font-family: theme('fontFamily.display');
+        font-size: 0.9rem;
+        color: #f5e6b8;
+        background: linear-gradient(180deg, #2a2219, #100d0a);
+        border: 1px solid #8f7a45;
+        box-shadow: 0 0 0 1px #000;
+    }
+
+    .game-tabs a + a {
+        border-left: 0;
+    }
+
+    .game-tabs a:first-child {
+        border-radius: 4px 0 0 4px;
+    }
+
+    .game-tabs a:last-child {
+        border-radius: 0 4px 4px 0;
+    }
+
+    .game-tabs a:hover {
+        color: #fff5d6;
+        border-color: #f1d98a;
+    }
+
     /* Quieter button for secondary actions */
     .btn-secondary {
         background:
