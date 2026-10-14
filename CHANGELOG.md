@@ -1,5 +1,31 @@
 # Changelog
 
+## 2.41.1 - 2026-10-14
+
+### Changed
+- **The first bosses are a fight now.** Played for the most damage (Dragon Cry, right under
+  the boss, Multishot on cooldown), a fresh hunter brought a first boss down in 6 seconds;
+  now it takes about 20. A boss of the first zone has 1300 health instead of 240, and less is
+  added with each zone (140, was 257), so the last boss has about the same as before.
+- Boss attacks hit a little harder early on: 10 at first instead of 8, about 15 at the end as
+  before.
+- **What hurts the hunter hits him where he is drawn.** Thrown things, a boss's charge and
+  a burst used to hit a square over his head and chest: his legs were never hit, and the air
+  beside his head was. Now they go by his shape, gear and all. Catching things still uses a
+  box, which now reaches down to his feet, so loot is caught as easily as before, and more
+  easily low down.
+- **Standing right under a boss costs more.** Its swipe comes after a third of a second
+  there (was three quarters) and does three times its damage (was twice).
+
+### For developers
+- `npm run boss-lab` (in `game/`, `tools/boss-lab.mjs`) plays every boss fight in the real
+  game in a headless Chrome, the way a player out for the most damage would, and reports how
+  long each took, the arrows spent and caught and the damage taken. `playwright-core` is a
+  dev dependency for it.
+- `utils/hitMask.js`: the hunter's shape as a grid, made once for each picture he wears;
+  `Player.isHitBy()` tests a rectangle or circle against it, `getCollisionBounds()` (catching)
+  is his box to his feet, `getBodyBounds()` his body for storms, stomps and a boss's reach.
+
 ## 2.41.0 - 2026-10-14
 
 ### What's new
