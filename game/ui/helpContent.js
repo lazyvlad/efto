@@ -122,6 +122,7 @@ function generateArrowSystemContent(gameState) {
         <p>• <strong>Autoshot (${keyName('autoshot')}):</strong> Fires 1 arrow straight up (0.5s cooldown, uses 1 arrow)</p>
         <p>• <strong>Multishot (${keyName('multishot')}):</strong> Fires 5 arrows in wide spread (0.5s cooldown, uses 5 arrows)</p>
         <p>• Arrows destroy harmful projectiles (Fireball, Frostbolt, Shadowbolt)</p>
+        <p>• <strong>Creatures:</strong> each zone's own wildlife stalks you from the top of the field and closes in as its time runs (the thin bar under its health); every arrow that strikes it pushes it back, and reverse gravity throws it about. Once on you it stays, and pounces every couple of seconds: step aside as it gathers itself. Its bite never kills. It leaves only when killed, by arrows or your weapon up close, and drops loot that hops out of it: catch it as it falls</p>
         <p>• Arrows pass through items, power-ups and beneficial spells - those you have to catch yourself</p>
         <p>• Arrow power-ups display the amount they add below the icon</p>
     `;

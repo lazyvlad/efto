@@ -125,3 +125,68 @@ export function hunterPicture(side, equipment) {
 export function hasLooks(itemId) {
     return Object.prototype.hasOwnProperty.call(hunterArt.items, hunterArt.aliases[itemId] || itemId);
 }
+
+/**
+ * The hunter as he is drawn while he fights hand to hand (systems/meleeSystem.js): everything
+ * of his outfit that does not move with his arms. Three pictures on the usual canvas: "rear"
+ * (his cloak, quiver and bow, behind him, but not the weapon he holds, nor his offhand),
+ * "body" (his plain melee body, the torso parts of what he wears on his arms, and everything
+ * else he wears, each in its order, his face as ever), and "front" (his shoulder pieces, over
+ * the roots of his arms).
+ * @param {string} side
+ * @param {Object} equipment   { slotId: itemId }
+ * @param {object} art         { body: path, torso: [{ path, order }], front: [{ path, order }],
+ *                             moving: itemId => true for what is drawn in moving parts instead }
+ * @returns {Promise<{rear: HTMLCanvasElement, body: HTMLCanvasElement, front: HTMLCanvasElement}>}
+ */
+export async function meleePlates(side, equipment, art) {
+    const character = hunterArt.characters[side];
+    const size = hunterArt.canvas;
+    const held = slot => slot === 'mainhand' || slot === 'offhand';
+    const worn = Object.fromEntries(Object.entries(equipment || {}).filter(([slot, itemId]) => itemId && !held(slot)));
+    const rearLayers = layersFor(side, worn).filter(part => part.order < 0);
+    const still = Object.fromEntries(Object.entries(worn).filter(([, itemId]) => !art.moving(hunterArt.aliases[itemId] || itemId)));
+    // What he wears that does not move, and the torso parts of what does, in their order
+    const bodyLayers = [
+        ...layersFor(side, still).filter(part => part.order >= 0).map(part => ({ path: part.layer, order: part.order })),
+        ...art.torso,
+    ].sort((a, b) => a.order - b.order);
+    const frontLayers = [...art.front].sort((a, b) => a.order - b.order);
+
+    const paths = [...rearLayers.map(part => part.layer), ...bodyLayers.map(part => part.path), ...frontLayers.map(part => part.path)];
+    const [body, base, face, ...pictures] = await Promise.all([
+        load(art.body),
+        load(character.base),
+        load(character.faceSource),
+        ...paths.map(path => load(path).catch(() => null)),
+    ]);
+    const pictureOf = path => pictures[paths.indexOf(path)];
+    const plate = draw => {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        draw(canvas.getContext('2d'));
+        return canvas;
+    };
+    const stack = (context, list) => list.forEach(path => pictureOf(path) && context.drawImage(pictureOf(path), 0, 0, size, size));
+
+    return {
+        rear: plate(context => stack(context, rearLayers.map(part => part.layer))),
+        body: plate(context => {
+            context.drawImage(body, 0, 0, size, size);
+            stack(context, bodyLayers.map(part => part.path));
+            if (character.headClear) {
+                restore(context, base, character.headClear);
+            } else {
+                restore(context, base, character.earProtection);
+                restore(context, face, [character.faceLock], character.earProtection || []);
+            }
+        }),
+        front: plate(context => stack(context, frontLayers.map(part => part.path))),
+    };
+}
+
+// A picture, loaded once (with the game's version, as every picture of his)
+export function loadLook(path) {
+    return load(path);
+}

@@ -83,11 +83,59 @@ export class FallingItem extends FallingObject {
         this.images = images;
     }
 
+    /**
+     * Loot a creature dropped: it hops up out of the creature, then falls like anything else.
+     * It cannot be caught on the way up, and costs nothing if it is missed.
+     * @param {number} x, y   Where it comes out (the creature's middle)
+     * @param {object} hop    gameConfig.creatures.pop: { up, sideways, gravity } in field heights
+     */
+    popFrom(x, y, canvas, hop) {
+        const height = canvas.logicalHeight;
+        this.x = x - this.width / 2;
+        this.y = y - this.height / 2;
+        this.fromCreature = true;
+        this.pop = {
+            vx: (Math.random() - 0.5) * 2 * hop.sideways * height / 60,
+            vy: -hop.up * height / 60 * (0.85 + Math.random() * 0.3),
+            gravity: hop.gravity * height / 3600,
+        };
+        this.rotationSpeed = (Math.random() - 0.5) * 0.12;
+    }
+
+    // Still on its way up out of a creature: not to be caught yet
+    rising() {
+        return Boolean(this.pop) && this.pop.vy < 0;
+    }
+
+    checkCollision(player) {
+        return !this.rising() && super.checkCollision(player);
+    }
+
     update(deltaTimeMultiplier, canvas, gameState) {
         // Apply time slow multiplier (but not freeze effects - those are for projectiles only)
         const timeSlowMultiplier = gameState.timeSlowMultiplier || 1.0;
         const effectiveDelta = timeSlowMultiplier * deltaTimeMultiplier;
         const canvasWidth = getLogicalCanvasWidth(canvas);
+        
+        // Hopping out of a creature: thrown up, slowing, then falling, until it falls as fast
+        // as it would have, and goes on as any other item
+        if (this.pop) {
+            const pop = this.pop;
+            pop.vy += pop.gravity * effectiveDelta;
+            this.x += pop.vx * effectiveDelta;
+            this.y += pop.vy * effectiveDelta;
+            if (this.x < 0 || this.x + this.width > canvasWidth) {
+                this.x = Math.max(0, Math.min(canvasWidth - this.width, this.x));
+                pop.vx = -pop.vx * WALL_RESTITUTION;
+            }
+            if (pop.vy >= this.speed) {
+                this.horizontalSpeed = pop.vx * 0.5;
+                this.pop = null;
+            }
+            this.rotation += this.rotationSpeed * deltaTimeMultiplier;
+            this.glowAnimation += 0.15 * deltaTimeMultiplier;
+            return true;
+        }
         
         this.applyDriftPhysics(effectiveDelta, canvasWidth, WALL_RESTITUTION);
         

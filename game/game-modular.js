@@ -49,6 +49,8 @@ import { actionFor, keyName, resetKeys } from './utils/keybindings.js';
 import { say, preloadVoiceLines, resetVoiceLines, updateBanter, watchHealth, forgetHealth } from './systems/voiceSystem.js';
 import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies, fightInProgress, strikeBoss, bossFightState } from './systems/bossSystem.js';
 import { BossProjectile } from './classes/BossProjectile.js';
+import { resetCreatures, updateCreatures, creaturesAbout, strikeCreatures } from './systems/creatureSystem.js';
+import { dressForMelee, updateMelee, drawMelee, resetMelee, meleeFramesSince } from './systems/meleeSystem.js';
 import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground, currentBackgroundImage, currentBackgroundName } from './systems/backgroundSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState, updateMouseLock } from './systems/inputSystem.js';
 // drawSettings removed - now using HTML+CSS guide
@@ -298,6 +300,7 @@ async function init() {
     const canvasHeight = getLogicalCanvasHeight(canvas);
     
     player = new Player(canvasWidth, canvasHeight);
+    player.drawMelee = drawMelee;
     gameState.player = player;
     updateLoadingProgress(0.8);
     
@@ -681,6 +684,15 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     }
     updatePowerUps(bulletTimeAdjustedDelta);
     updateArrows(bulletTimeAdjustedDelta);
+    // The zone's creatures come at him (after the arrows have moved, so they can strike them)
+    updateCreatures({
+        gameState, player, canvas, delta: bulletTimeAdjustedDelta, bossFight: isBossFightActive(), spellSystem, fireballs,
+        combatTexts, particles, shouldDodge, showDodgeText, trackDodge,
+        pickLoot: () => selectRandomItem(gameState),
+        popLoot: popCreatureLoot
+    });
+    // Up close, his weapon (after the creatures have moved, so it strikes where they are)
+    updateMelee({ gameState, player, canvas, delta: bulletTimeAdjustedDelta, creatures: creaturesAbout(), combatTexts, particles, onBlow: thunderfuryStrike });
     updateParticles(bulletTimeAdjustedDelta);
     updateCombatTexts(bulletTimeAdjustedDelta);
     updateBuffTracker(deltaTimeMultiplier); // Buff timers not affected by bullet time
@@ -1212,6 +1224,8 @@ function dressHunter() {
     const hidden = hiddenGear(side);
     const seen = Object.fromEntries(Object.entries(gameState.equipment).filter(([, itemId]) => !hidden.has(itemId)));
     const wanted = `${side}|${Object.values(seen).sort().join(',')}`;
+    // And as he fights hand to hand, if he can in this (systems/meleeSystem.js)
+    dressForMelee(side, seen);
     if (wanted === lookFor) return;
     lookFor = wanted;
     
@@ -1782,6 +1796,8 @@ function startGame() {
     clearAllBuffs();
     clearHudNotifications();
     fallingItems = [];
+    resetCreatures();
+    resetMelee();
     fireballs = [];
     powerUps = [];
     arrows = [];
@@ -2035,6 +2051,8 @@ function restartGame() {
     clearAllBuffs();
     clearHudNotifications();
     fallingItems = [];
+    resetCreatures();
+    resetMelee();
     fireballs = [];
     powerUps = [];
     arrows = [];
@@ -2208,7 +2226,8 @@ function updateFallingItems(deltaTimeMultiplier) {
         
         const stillActive = item.update(adjustedDeltaTime, canvas, gameState);
         
-        if (!stillActive && item.missed) {
+        // What a creature left that was not caught is no loss: it was never his
+        if (!stillActive && item.missed && !item.fromCreature) {
             gameState.missedItems++;
             
             // Track activity for hybrid progression
@@ -2235,6 +2254,13 @@ function updateFallingItems(deltaTimeMultiplier) {
         
         return stillActive && !item.missed;
     });
+}
+
+// Loot a creature dropped hops out of it, to be caught like anything that falls
+function popCreatureLoot(itemData, x, y) {
+    const item = new FallingItem(() => itemData, isValidYPosition, [], gameState, images, canvas);
+    item.popFrom(x, y, canvas, gameConfig.creatures.pop);
+    fallingItems.push(item);
 }
 
 function updateProjectiles(deltaTimeMultiplier) {
@@ -2814,7 +2840,14 @@ startPerfProbe({
             side: gameState.faction || null,
             boss: fight ? fight.name : null,
             upheaval: Boolean(fight && fight.upheaval),
+            // How the fight is going: its health left, how long, and where the damage came from
+            bossHealth: fight ? Math.round(fight.health) : null,
+            bossMaxHealth: fight ? fight.maxHealth : null,
+            fightSeconds: fight ? fight.seconds : null,
+            dealt: fight && fight.dealt ? Object.entries(fight.dealt).map(([kind, amount]) => `${kind} ${Math.round(amount)}`).join(', ') : null,
             thunderfury: wearsThunderfury(),
+            meleeFrames: meleeFramesSince(),
+            creatures: creaturesAbout().length,
             falling: fallingItems.length,
             projectiles: fireballs.length,
             arrows: window.arrows ? window.arrows.length : 0,
@@ -4835,9 +4868,10 @@ function updateDragonstalkerProgressPanel(gameState) {
 const BOSS_LOOT_COLORS = { uncommon: '#1EFF00', rare: '#4D9BFF', epic: '#C77DFF' };
 
 // ----- Thunderfury (config/gear.php "crafted" on the site; thunderfury in gameConfig.js) -----
-// Worn in the main hand, each loosing of arrows may call down its lightning: it strikes the
-// harmful things falling nearest the hunter, destroying them, and a boss being fought, which
-// it hurts and dazes (it attacks slower for a while).
+// Worn in the main hand, each loosing of arrows, and each blow struck with it, may call down
+// its lightning: it strikes the harmful things falling nearest the hunter, destroying them,
+// the creatures nearest him, and a boss being fought, which it hurts and dazes (it attacks
+// slower for a while).
 let thunderfuryReadyAt = 0;
 
 function wearsThunderfury() {
@@ -4866,6 +4900,12 @@ function thunderfuryStrike() {
     const boss = strikeBoss({ damage: rules.bossDamage, slow: rules.slow, slowSeconds: rules.slowSeconds, combatTexts, canvas });
     if (boss) {
         lightningBolt(fromX, fromY, boss.x, boss.y);
+        struck++;
+    }
+
+    // The creatures nearest him
+    for (const at of strikeCreatures({ x: fromX, y: fromY, count: rules.targets, damage: rules.bossDamage, combatTexts })) {
+        lightningBolt(fromX, fromY, at.x, at.y);
         struck++;
     }
 

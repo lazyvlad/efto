@@ -125,7 +125,10 @@ export class Player {
         if (bubble) drawShieldBack(ctx, bubble);
         
         // He stands in the middle of the player's box, his feet just above the health bar
-        if (this.animator) {
+        // Fighting hand to hand he is drawn in parts, his arms swinging (systems/meleeSystem.js)
+        if (this.drawMelee && this.animator && this.drawMelee(ctx, this.pictureBounds())) {
+            // Drawn
+        } else if (this.animator) {
             const startedAt = perfProbeOn() ? performance.now() : 0;
             this.animator.draw(ctx, this.x + this.width / 2, this.y + figureHeight, figureHeight / this.character.heightInPicture);
             if (startedAt) noteHunterDraw(performance.now() - startedAt);

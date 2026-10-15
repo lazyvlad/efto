@@ -192,7 +192,7 @@ export function bossesDefeated() {
 export function bossFightState() {
     if (!fight) return null;
 
-    return { name: fight.boss.name, behaviour: fight.boss.behaviour, phase: fight.phase, doing: fight.doing, x: fight.x, health: fight.health, maxHealth: fight.stats.health, shielded: fight.shielded, enraged: fight.enraged, dazed: (fight.dazedSteps || 0) > 0, upheaval: Boolean(fight.upheaval) };
+    return { name: fight.boss.name, behaviour: fight.boss.behaviour, phase: fight.phase, doing: fight.doing, x: fight.x, health: fight.health, maxHealth: fight.stats.health, shielded: fight.shielded, enraged: fight.enraged, dazed: (fight.dazedSteps || 0) > 0, upheaval: Boolean(fight.upheaval), seconds: Math.round(fightSeconds() * 10) / 10, dealt: fight.dealt ? { ...fight.dealt } : null };
 }
 
 /**
@@ -209,10 +209,40 @@ export function strikeBoss({ damage, slow, slowSeconds, combatTexts, canvas }) {
     fight.daze = slow;
     if (!fight.shielded) {
         fight.health -= damage;
+        fight.dealt.thunderfury += damage;
         fight.hitFlash = HIT_FLASH_STEPS;
         if (combatTexts) combatTexts.push(new CombatText(at.x, at.y - 20, `⚡ ${damage}`, '#9fd8ff', false));
     }
     return at;
+}
+
+/**
+ * Where a boss can be struck hand to hand: its body, while it fights and is not vanished.
+ * Null when there is none.
+ */
+export function bossMeleeBox(canvas) {
+    if (!fight || fight.phase !== 'fight' || fight.hidden > 0.5) return null;
+    return hitBox(canvas);
+}
+
+/**
+ * The hunter's weapon lands on the boss: its armor takes its share, as of any arrow; its
+ * shield takes all of it.
+ */
+export function meleeStrikeBoss({ damage, isCrit, combatTexts, canvas }) {
+    if (!fight || fight.phase !== 'fight') return;
+    const box = hitBox(canvas);
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height * 0.7;
+    if (fight.shielded) {
+        combatTexts.push(new CombatText(x, y, 'Absorbed', '#9CC0FF', false));
+        return;
+    }
+    const taken = Math.max(1, Math.round(damage * (1 - armorReduction(fight.stats.armor || 0, gameConfig.stats))));
+    fight.health = Math.max(0, fight.health - taken);
+    fight.dealt.melee = (fight.dealt.melee || 0) + taken;
+    fight.hitFlash = HIT_FLASH_STEPS;
+    combatTexts.push(new CombatText(x, y, isCrit ? `${taken} CRIT!` : `${taken}`, isCrit ? '#FF6B00' : '#FFE4B5', isCrit));
 }
 
 /**
@@ -306,6 +336,9 @@ export function guardZone(gameState, canvas) {
         upheaval: null,         // An Upheaval under way: { waves, steps } (utils/upheaval.js)
         // How the player did in the fight proper, for its record (My Games on the site)
         tally: { arrows: 0, damage: 0, hits: 0, lastArrows: null, lastHealth: null },
+        // Where the damage it took came from, for debug mode (utils/perfProbe.js): by kind of
+        // shot, and what landed while it charged; arrows that missed it or bounced off
+        dealt: { arrow: 0, multishot: 0, arcane: 0, crit: 0, thunderfury: 0, charging: 0, hits: 0, dodged: 0, absorbed: 0 },
         dodgedTextAt: -Infinity, // When "Dodge" was last shown
         sinceArrows: 0,
         sincePotion: 0
@@ -680,10 +713,12 @@ function takeArrowHits(context) {
                 fight.dodgedTextAt = fight.steps;
                 combatTexts.push(new CombatText(arrow.x, box.y + box.height, 'Dodge', '#C8C8C8', false));
             }
+            fight.dealt.dodged++;
             continue;
         }
 
         if (fight.shielded && !arrow.arcane) {
+            fight.dealt.absorbed++;
             // Said once a second at most, however many arrows bounce off
             if (fight.steps - fight.absorbedTextAt >= 60) {
                 fight.absorbedTextAt = fight.steps;
@@ -722,6 +757,11 @@ function takeArrowHits(context) {
         });
 
         fight.health = Math.max(0, fight.health - damage);
+        const dealt = fight.dealt;
+        dealt[arrow.arcane ? 'arcane' : arrow.multishot ? 'multishot' : 'arrow'] += damage;
+        if (isCrit) dealt.crit += damage;
+        if (charging) dealt.charging += damage;
+        dealt.hits++;
         fight.hitFlash = HIT_FLASH_STEPS;
         combatTexts.push(new CombatText(arrow.x, box.y + box.height, isCrit ? `${damage} CRIT!` : `${damage}`, isCrit ? '#FF6B00' : arrow.arcane ? '#D9A8FF' : '#FFFFFF', isCrit));
     }

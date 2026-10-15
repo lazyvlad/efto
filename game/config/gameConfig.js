@@ -574,6 +574,51 @@ export const gameConfig = {
         bossAttackChance: 0.006,
     },
     
+    // === MELEE ===
+    // Up close the hunter takes his main-hand weapon in hand and swings it, on his own
+    // (systems/meleeSystem.js): at a creature closing in on him, or a boss come down at him.
+    // Then he must wait before the next swing: in, a blow, and out again, not standing under
+    // a boss hacking away. Only with a weapon and clothes his melee art is painted for
+    // (data/melee.js); else he keeps to his bow.
+    melee: {
+        enabled: true,
+        reach: 0.45,                // He swings at what comes this near his chest: a share of his height
+        ready: 1,                   // He takes his weapon in hand when something comes this near
+        follow: 1,                  // A blow still lands on what he swung at if it is this near when it lands
+        cooldown: { one: 2, two: 3 },           // Seconds from one swing to the next: one-handed, two-handed
+        damage: { one: 14, two: 22 },           // A blow, before his attack power (+1% each), crits and armor
+        pushback: 0,                // How much of its approach a creature struck loses (none: it stays on him; a pounce is broken off)
+    },
+    
+    // === CREATURES ===
+    // The zone's own creatures (data/creatures.js, systems/creatureSystem.js): each a small
+    // fight, hand to hand. It stalks at the top of the field and closes in on the hunter as
+    // its time runs (each zone's own); arrows push it back. Once on him it stays, and bites him
+    // now and then, until it is killed, by arrows or his weapon; then it leaves loot that hops
+    // out of it and falls to be caught. Its bites never kill. None during a boss fight.
+    creatures: {
+        enabled: true,
+        firstAfter: 5,              // Seconds into a zone before its first creature
+        healthPerZone: 0.15,        // Each zone further in, so much more health (0.15 = +15%)
+        moveSpeed: 0.09,            // How fast it moves about at the top: a share of the field's width a second (times its pace)
+        biteEvery: [1.6, 2.4],      // Seconds between its pounces, once it is on him
+        // An arrow that strikes it takes this much of its approach away (an Arcane Shot more),
+        // and it stops closing in for so many steps; one on him is driven off him
+        pushback: { arrow: 0.05, arcane: 0.15, stagger: 30 },
+        // Arrows strike it a little outside its body: its painted body is narrow, and arrows
+        // that seemed to strike it went by on the sides (times its body's width and height)
+        arrowBox: { width: 1.6, height: 1.2 },
+        // A bite: one on him bites again and again, so less than a projectile; a bruiser's more
+        bite: { common: 8, bruiser: 12, perZone: 0.8 },
+        neverBelow: 1,              // Health a bite leaves him at the least: it can hurt, not kill
+        shieldCost: { common: 1, bruiser: 2 },  // Shield charges a bite uses
+        loot: { common: 1, bruiser: 2 },        // Items in it
+        score: { base: 30, perZone: 10 },       // Points for bringing one down with arrows
+        // The loot's hop: up at this share of the field's height a second, then falling under
+        // this much gravity (field heights a second, each second)
+        pop: { up: 0.75, sideways: 0.18, gravity: 1.6 },
+    },
+    
     // === BACKGROUNDS ===
     // The pictures themselves are listed per side in data/backgrounds.js
     backgrounds: {

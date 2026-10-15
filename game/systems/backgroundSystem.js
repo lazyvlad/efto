@@ -94,6 +94,14 @@ export function currentBackgroundName() {
     return current ? current.name : null;
 }
 
+// Where the game is now: the background's id ("westfall") and which zone of the side's it
+// is (1 for the first), or null
+export function currentZone() {
+    if (!current) return null;
+    const index = factionBackgrounds().indexOf(current);
+    return { id: current.id, number: index + 1 };
+}
+
 // The backgrounds of the chosen side, in order
 export function factionBackgrounds() {
     return faction ? backgrounds[faction] : [];

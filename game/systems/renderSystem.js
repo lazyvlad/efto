@@ -1,6 +1,7 @@
 import { gameConfig } from '../config/gameConfig.js';
 import { renderCanvasHud, hideMessagesAboveField } from './hudNotificationSystem.js';
 import { drawBoss } from './bossSystem.js';
+import { drawCreatures } from './creatureSystem.js';
 import { planHud, applyHud } from '../ui/hudLayout.js';
 
 // The drawSettings function has been removed as it's replaced by HTML+CSS guide.
@@ -154,6 +155,7 @@ function renderGame({
     };
     
     drawBoss(ctx, canvas, alpha);
+    drawCreatures(ctx, alpha);
     particles.forEach(particle => drawEntity(particle));
     fallingItems.forEach(item => drawEntity(item, gameConfig));
     fireballs.forEach(projectile => drawEntity(projectile));
