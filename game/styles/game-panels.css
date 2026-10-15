@@ -15,7 +15,10 @@
     z-index: 100;
     overflow: hidden;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
+    /* No blur behind it: over a field drawn 60+ times a second the browser would blur it anew
+       every frame. Its own layer, so its changing text repaints it alone, not the whole page */
+    will-change: transform;
+    contain: layout paint;
     pointer-events: none;
     user-select: none;
     transition: 0.3s;
@@ -261,7 +264,9 @@
     z-index: 100;
     overflow: visible; /* Changed from hidden to visible to prevent cutting off */
     box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-    backdrop-filter: blur(8px);
+    /* No blur behind it, and a layer of its own (as the panel above); not contained, since
+       what it shows may reach past its edges */
+    will-change: transform;
     pointer-events: none;
     user-select: none;
     transition: 0.3s;

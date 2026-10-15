@@ -3701,7 +3701,7 @@ function updateDOMItemsPanel(gameState, gameItems) {
     const collectionCount = document.getElementById('collectionCount');
     const uniqueItemTypes = sortedItems.length;
     const totalItemsCollected = sortedItems.reduce((sum, item) => sum + item.collected, 0);
-    collectionCount.textContent = `${uniqueItemTypes} types, ${totalItemsCollected} total`;
+    setTextIfChanged(collectionCount, `${uniqueItemTypes} types, ${totalItemsCollected} total`);
     
     // Update player stats
     updatePlayerStats(gameState);
@@ -3714,6 +3714,13 @@ function updateDOMItemsPanel(gameState, gameItems) {
     
     // Update dedicated dragonstalker progress panel
     updateDragonstalkerProgressPanel(gameState, gameItems);
+}
+
+// Text put on the page only when it changes: setting it, even to what it was, makes the browser
+// lay the page out and paint it again (every tenth frame, for the panels below)
+function setTextIfChanged(element, text) {
+    const value = String(text);
+    if (element.textContent !== value) element.textContent = value;
 }
 
 // Create integrated mobile layout
@@ -3856,7 +3863,7 @@ function updateMobileIntegratedValues(gameState, gameItems) {
     }
     
     if (gameState.player && healthText) {
-        healthText.textContent = `${Math.round(gameState.player.health)}/${gameState.player.maxHealth}`;
+        setTextIfChanged(healthText, `${Math.round(gameState.player.health)}/${gameState.player.maxHealth}`);
     }
     
     // Update dragonstalker progress
@@ -3896,17 +3903,17 @@ function updatePlayerStats(gameState) {
     
     // Update player name
     if (playerNameDisplay) {
-        playerNameDisplay.textContent = gameState.playerName || 'Unknown';
+        setTextIfChanged(playerNameDisplay, gameState.playerName || 'Unknown');
     }
     
     // Update score with formatting (large and prominent)
     if (playerScoreDisplay) {
-        playerScoreDisplay.textContent = gameState.score.toLocaleString();
+        setTextIfChanged(playerScoreDisplay, gameState.score.toLocaleString());
     }
     
     // Update level (add 1 to 0-based internal level for 1-based UI display)
     if (playerLevelDisplay) {
-        playerLevelDisplay.textContent = levelLabel();
+        setTextIfChanged(playerLevelDisplay, levelLabel());
     }
     
     // Update health bar in player section
@@ -3918,14 +3925,16 @@ function updatePlayerStats(gameState) {
         const healthPercent = Math.ceil(healthPercentage * 100);
         
         // Update health fill width and color
-        playerHealthFill.style.width = `${healthPercentage * 100}%`;
+        const healthWidth = `${healthPercentage * 100}%`;
+        if (playerHealthFill.style.width !== healthWidth) playerHealthFill.style.width = healthWidth;
         
         // Colour comes from the stylesheet: green, then amber, then red as health drops
         const healthLevel = healthPercentage <= 0.25 ? 'low' : healthPercentage <= 0.6 ? 'medium' : 'high';
-        playerHealthFill.className = `player-health-fill ${healthLevel}`;
+        const healthClass = `player-health-fill ${healthLevel}`;
+        if (playerHealthFill.className !== healthClass) playerHealthFill.className = healthClass;
         
         // Update health text
-        playerHealthText.textContent = `${Math.round(gameState.health)}/${gameState.maxHealth}`;
+        setTextIfChanged(playerHealthText, `${Math.round(gameState.health)}/${gameState.maxHealth}`);
     }
     
     // Calculate and update effective game speed (in stats section)
@@ -3949,7 +3958,7 @@ function updatePlayerStats(gameState) {
             speedText += ` (-${gameState.permanentSpeedReduction.toFixed(1)}x CT)`;
         }
         
-        gameSpeed.textContent = speedText;
+        setTextIfChanged(gameSpeed, speedText);
         
         // Add level progress info for hybrid progression
         // if (gameConfig.levels.progressionType === "hybrid" || gameConfig.levels.progressionType === "time") {
@@ -3980,7 +3989,7 @@ function updatePlayerStats(gameState) {
     if (speedBoostRow && speedBoostValue) {
         if (gameState.speedIncreaseActive && gameState.currentSpeedIncreasePercent > 0) {
             speedBoostRow.style.display = 'flex';
-            speedBoostValue.textContent = `+${gameState.currentSpeedIncreasePercent}%`;
+            setTextIfChanged(speedBoostValue, `+${gameState.currentSpeedIncreasePercent}%`);
             speedBoostValue.style.color = '#FF0000'; // Red color for speed boost
         } else {
             speedBoostRow.style.display = 'none';
@@ -4029,7 +4038,7 @@ function updatePlayerStats(gameState) {
                 bonuses.push(`+${spellCritBonusPercent}%🐲`); // Dragon emoji for spell bonuses
             }
             
-            critRating.textContent = `${totalCritPercent}% (${bonuses.join(' ')})`;
+            setTextIfChanged(critRating, `${totalCritPercent}% (${bonuses.join(' ')})`);
             critRating.style.color = hasTempItemBonus ? '#FFD700' : '#FF4500'; // Gold for temp items, orange for spells
             critRating.style.fontWeight = 'bold';
             critRating.style.textShadow = hasTempItemBonus ? '0 0 6px #FFD700' : '0 0 6px #FF4500';
@@ -4037,25 +4046,25 @@ function updatePlayerStats(gameState) {
             // Add special glow if at max
             if (totalCritRating >= gameState.critRatingCap) {
                 critRating.style.textShadow = '0 0 10px #FFD700';
-                critRating.textContent = critRating.textContent.replace(')', ' MAX!)');
+                setTextIfChanged(critRating, critRating.textContent.replace(')', ' MAX!)'));
             }
         } else if (hasPermanentBonus) {
             // Show permanent bonus only
             const bonusPercent = permanentCritPercent - baseCritPercent;
-            critRating.textContent = `${permanentCritPercent}% (+${bonusPercent}%)`;
+            setTextIfChanged(critRating, `${permanentCritPercent}% (+${bonusPercent}%)`);
             critRating.style.color = '#FF6B00'; // Orange for enhanced
             critRating.style.fontWeight = 'bold';
             
             // Add glow effect if at max
             if (gameState.critRating >= gameState.critRatingCap) {
                 critRating.style.textShadow = '0 0 8px #FF6B00';
-                critRating.textContent = `${permanentCritPercent}% (MAX!)`;
+                setTextIfChanged(critRating, `${permanentCritPercent}% (MAX!)`);
             } else {
                 critRating.style.textShadow = 'none';
             }
         } else {
             // Base crit rating
-            critRating.textContent = `${baseCritPercent}%`;
+            setTextIfChanged(critRating, `${baseCritPercent}%`);
             critRating.style.color = '#FFD700'; // Gold for base
             critRating.style.fontWeight = 'normal';
             critRating.style.textShadow = 'none';
@@ -4157,7 +4166,7 @@ function updatePlayerStats(gameState) {
             displayColor = '#CCCCCC'; // Gray for base (since it's 0%)
         }
         
-        dodgeRating.textContent = displayText;
+        setTextIfChanged(dodgeRating, displayText);
         dodgeRating.style.color = displayColor;
         dodgeRating.style.fontWeight = fontWeight;
         dodgeRating.style.textShadow = textShadow;
@@ -4167,7 +4176,7 @@ function updatePlayerStats(gameState) {
     const healthSavedElement = document.getElementById('healthSavedFromDodges');
     
     if (healthSavedElement) {
-        healthSavedElement.textContent = `${Math.round(gameState.healthSavedFromDodges)} HP`;
+        setTextIfChanged(healthSavedElement, `${Math.round(gameState.healthSavedFromDodges)} HP`);
         // Color code based on health saved
         if (gameState.healthSavedFromDodges === 0) {
             healthSavedElement.style.color = '#CCCCCC'; // Gray for no health saved
@@ -4182,7 +4191,7 @@ function updatePlayerStats(gameState) {
     const dodgeAreaElement = document.getElementById('dodgeAreaExpansion');
     if (dodgeAreaElement) {
         const expansion = gameState.dodgeAreaExpansion || 0;
-        dodgeAreaElement.textContent = `+${Math.round(expansion)}px`;
+        setTextIfChanged(dodgeAreaElement, `+${Math.round(expansion)}px`);
         // Color code based on area expansion
         if (expansion === 0) {
             dodgeAreaElement.style.color = '#CCCCCC'; // Gray for no expansion
@@ -4197,13 +4206,13 @@ function updatePlayerStats(gameState) {
     // Attack power and armor, from the pieces owned of the set being worn (utils/stats.js)
     const attackPowerElement = document.getElementById('attackPowerValue');
     if (attackPowerElement) {
-        attackPowerElement.textContent = String(gameState.attackPower || 0);
+        setTextIfChanged(attackPowerElement, String(gameState.attackPower || 0));
         attackPowerElement.title = `Arrows do ${gameState.attackPower || 0}% more damage`;
     }
     const armorElement = document.getElementById('armorValue');
     if (armorElement) {
         const blocked = Math.round(armorReduction(gameState.armor || 0, gameConfig.stats) * 100);
-        armorElement.textContent = blocked > 0 ? `${gameState.armor} (-${blocked}%)` : String(gameState.armor || 0);
+        setTextIfChanged(armorElement, blocked > 0 ? `${gameState.armor} (-${blocked}%)` : String(gameState.armor || 0));
         armorElement.title = `Hits do ${blocked}% less damage`;
     }
     
@@ -4211,13 +4220,13 @@ function updatePlayerStats(gameState) {
     const bagsElement = document.getElementById('bagsValue');
     if (bagsElement) {
         const room = bagRoom();
-        bagsElement.textContent = `${room.used}/${room.capacity}`;
+        setTextIfChanged(bagsElement, `${room.used}/${room.capacity}`);
         bagsElement.style.color = room.used >= room.capacity ? '#FF6B6B' : '';
     }
     
     const arrowCountElement = document.getElementById('arrowCount');
     if (arrowCountElement) {
-        arrowCountElement.textContent = `${gameState.arrowCount || 0}/${gameState.quiverCapacity}`;
+        setTextIfChanged(arrowCountElement, `${gameState.arrowCount || 0}/${gameState.quiverCapacity}`);
         // Grey when empty, green when the quiver is full, gold in between
         if ((gameState.arrowCount || 0) === 0) {
             arrowCountElement.style.color = '#CCCCCC';
@@ -4231,7 +4240,7 @@ function updatePlayerStats(gameState) {
     // Coins earned so far in this game
     const coinCountElement = document.getElementById('coinCount');
     if (coinCountElement) {
-        coinCountElement.textContent = formatCoins(gameState.coins);
+        setTextIfChanged(coinCountElement, formatCoins(gameState.coins));
         coinCountElement.style.color = '#FFD700';
     }
 }
@@ -4801,7 +4810,7 @@ function updateDragonstalkerProgressPanel(gameState) {
     // A line for each hunter set he wears pieces of: how many, what that gives, what is next
     const setLines = document.getElementById('setPanelSets');
     if (setLines) {
-        setLines.textContent = '';
+        setTextIfChanged(setLines, '');
         for (const set of gameConfig.sets) {
             const on = counts[set.id] || 0;
             if (!on) continue;
@@ -4811,7 +4820,7 @@ function updateDragonstalkerProgressPanel(gameState) {
             const line = document.createElement('p');
             line.className = 'set-panel-set';
             const name = document.createElement('strong');
-            name.textContent = `${set.name.split(' ')[0]} ${on}/${all}`;
+            setTextIfChanged(name, `${set.name.split(' ')[0]} ${on}/${all}`);
             line.append(name, ` ${gives || 'no bonus yet'}${next ? ` \u00b7 ${next} for more` : ''}`);
             setLines.append(line);
         }
@@ -4823,7 +4832,7 @@ function updateDragonstalkerProgressPanel(gameState) {
     if (bonusLine) {
         const gives = bonusText(gameState.setBonus, { stats: false });
         bonusLine.hidden = !gives || responsiveScaler.deviceType === 'mobile';
-        bonusLine.textContent = gives ? `In all: ${gives}` : '';
+        setTextIfChanged(bonusLine, gives ? `In all: ${gives}` : '');
     }
     
     // Everything on him: set pieces first, by set, then the rest by slot
@@ -4837,7 +4846,7 @@ function updateDragonstalkerProgressPanel(gameState) {
         if (shown.length === 0) {
             const none = document.createElement('p');
             none.className = 'set-panel-none';
-            none.textContent = 'Nothing on: dress him on the character sheet (C).';
+            setTextIfChanged(none, 'Nothing on: dress him on the character sheet (C).');
             itemsList.append(none);
         }
         shown.forEach(item => {
@@ -4855,7 +4864,7 @@ function updateDragonstalkerProgressPanel(gameState) {
             const label = document.createElement('div');
             label.className = 'dragonstalker-item-name';
             const slot = SLOTS.find(candidate => equipment[candidate.id] === item.id);
-            label.textContent = slot ? slot.label : '';
+            setTextIfChanged(label, slot ? slot.label : '');
             itemDiv.append(icon, label);
             itemsList.append(itemDiv);
         });

@@ -177,7 +177,6 @@
         padding: 0 !important;
         box-sizing: border-box !important;
         background: rgba(0, 0, 0, 0.95);
-        backdrop-filter: blur(4px);
         display: flex !important;
         align-items: stretch !important;
         z-index: 1000;
@@ -317,7 +316,6 @@
         padding: 0 !important;
         box-sizing: border-box !important;
         background: rgba(0, 0, 0, 0.95);
-        backdrop-filter: blur(4px);
         z-index: 999;
         overflow: hidden !important;
     }
@@ -847,7 +845,6 @@
         border: none !important;
         border-bottom: 1px solid rgba(78, 205, 196, 0.3) !important;
         background: rgba(0, 0, 0, 0.95) !important;
-        backdrop-filter: blur(4px) !important;
         z-index: 1000 !important;
     }
     
@@ -962,7 +959,6 @@
         border: none !important;
         border-bottom: 1px solid rgba(78, 205, 196, 0.3) !important;
         background: rgba(0, 0, 0, 0.95) !important;
-        backdrop-filter: blur(4px) !important;
         z-index: 1000 !important;
         padding: 4px 8px !important;
         font-size: 12px !important;

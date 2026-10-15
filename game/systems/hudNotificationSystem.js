@@ -297,13 +297,23 @@ function truncateText(ctx, text, maxWidth) {
     return `${truncated}...`;
 }
 
+// The canvas's size on the page, asked for twice a second at most: asking makes the browser lay
+// out the page first, if anything on it has changed, and this is drawn every frame
+const shownSize = { width: 0, height: 0, at: -Infinity };
+
 function getUiScale(canvas) {
-    if (!canvas.clientWidth || !canvas.clientHeight) {
+    const now = performance.now();
+    if (now - shownSize.at > 500) {
+        shownSize.width = canvas.clientWidth;
+        shownSize.height = canvas.clientHeight;
+        shownSize.at = now;
+    }
+    if (!shownSize.width || !shownSize.height) {
         return 1;
     }
 
-    const xScale = canvas.logicalWidth / canvas.clientWidth;
-    const yScale = canvas.logicalHeight / canvas.clientHeight;
+    const xScale = canvas.logicalWidth / shownSize.width;
+    const yScale = canvas.logicalHeight / shownSize.height;
 
     return Math.max(1, Math.min(xScale, yScale));
 }
