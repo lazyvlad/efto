@@ -47,7 +47,7 @@ export const meleeWeapons = {
     'walking-stick': { grip: [0.3935, 0.6684], support: [0.3935, 0.8001], height: 430, twoHanded: true },
     // The weapons the hunters start with
     'starter-alliance-shortsword': { grip: [0.4831, 0.8123], support: null, height: 245, twoHanded: false },
-    'starter-horde-cleaver': { grip: [0.5595, 0.7779], support: null, height: 230, twoHanded: false },
+    'starter-horde-handaxe': { grip: [0.7061, 0.7718], support: null, height: 235, twoHanded: false },
 };
 
 // The plain body each hunter fights in (his arms off, nothing worn), and his bare arms and

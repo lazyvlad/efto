@@ -208,7 +208,7 @@ return [
             'feet' => ['id' => 'starter-horde-hoofguards', 'name' => 'Horde Hunter Hoof Guards', 'slot' => 'boots', 'stats' => ['armor' => 1]],
             'tabard' => ['id' => 'starter-horde-warcloth', 'name' => 'Horde Hunter Warcloth', 'slot' => 'tabard', 'stats' => ['health' => 1]],
             'ranged' => ['id' => 'starter-horde-totem', 'name' => 'Horde Hunter Totem', 'slot' => 'ranged', 'stats' => ['attackPower' => 1]],
-            'mainhand' => ['id' => 'starter-horde-cleaver', 'name' => 'Horde Hunter Cleaver', 'slot' => 'mainhand', 'stats' => ['attackPower' => 1]],
+            'mainhand' => ['id' => 'starter-horde-handaxe', 'name' => 'Horde Hunter Handaxe', 'slot' => 'mainhand', 'stats' => ['attackPower' => 1]],
         ],
     ],
 
