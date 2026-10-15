@@ -18,6 +18,9 @@
                     <x-nav-link :href="route('highscores')" :active="request()->routeIs('highscores')">
                         {{ __('High Scores') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('live')" :active="request()->routeIs('live')">
+                        {{ __('Live') }}
+                    </x-nav-link>
                     <x-nav-link :href="route('items')" :active="request()->routeIs('items')">
                         {{ __('Items') }}
                     </x-nav-link>
@@ -98,6 +101,9 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('highscores')" :active="request()->routeIs('highscores')">
                 {{ __('High Scores') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('live')" :active="request()->routeIs('live')">
+                {{ __('Live') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('items')" :active="request()->routeIs('items')">
                 {{ __('Items') }}

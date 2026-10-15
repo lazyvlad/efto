@@ -129,8 +129,9 @@
                             @foreach ($games as $game)
                                 @php $kills = $game->bossDrops; @endphp
                                 <li>
-                                    <details class="game-row group" @if ($loop->first && $kills->isNotEmpty() && $games->onFirstPage()) open @endif>
-                                        <summary class="game-row-summary px-4 sm:px-6 py-3 grid grid-cols-[1fr_auto] sm:grid-cols-[minmax(0,1fr)_5rem_3.5rem_4rem_5.5rem] gap-x-3 gap-y-1 items-baseline {{ $kills->isEmpty() ? 'cursor-default' : 'cursor-pointer' }}">
+                                    @php $fought = $kills->isNotEmpty() || $game->last_fight; @endphp
+                                    <details class="game-row group" @if ($loop->first && $fought && $games->onFirstPage()) open @endif>
+                                        <summary class="game-row-summary px-4 sm:px-6 py-3 grid grid-cols-[1fr_auto] sm:grid-cols-[minmax(0,1fr)_5rem_3.5rem_4rem_5.5rem] gap-x-3 gap-y-1 items-baseline {{ $fought ? 'cursor-pointer' : 'cursor-default' }}">
                                             <span class="min-w-0">
                                                 <span class="text-gray-800">{{ $game->started_at->format('M j, Y') }}</span>
                                                 <span class="text-gray-500">{{ $game->started_at->format('H:i') }}</span>
@@ -138,6 +139,7 @@
                                                     @if ($game->isBossFight()){{ __('Boss fight') }} · @elseif ($game->isBossRush()){{ __('Boss Rush') }} · @endif
                                                     @if ($game->start_zone > 1){{ __('from zone :zone', ['zone' => $game->start_zone]) }} · @endif
                                                     {{ trans_choice('{0} no boss down|{1} :count boss down|[2,*] :count bosses down', $kills->count()) }}
+                                                    @if ($game->last_fight) · <span class="text-red-400">{{ __($game->status === \App\Models\Game::ABANDONED ? 'left fighting :boss' : 'fell to :boss', ['boss' => $bossById[$game->last_fight['boss']]['name'] ?? $game->last_fight['boss']]) }}</span>@endif
                                                     @unless ($game->isLegal()) · {{ $game->status === \App\Models\Game::ABANDONED ? __('not finished') : __('offline') }}@endunless
                                                     · {{ $game->game_version ? 'v'.$game->game_version : '' }}
                                                 </span>
@@ -152,8 +154,8 @@
                                         </summary>
 
                                         <div class="px-4 sm:px-6 pb-4 space-y-3">
-                                            @if ($kills->isNotEmpty())
-                                                @include('games.fights', ['kills' => $kills])
+                                            @if ($fought)
+                                                @include('games.fights', ['kills' => $kills, 'game' => $game])
                                             @endif
 
                                             @if ($game->scoreEntry)

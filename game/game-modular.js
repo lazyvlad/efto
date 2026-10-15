@@ -44,7 +44,7 @@ import { initializeMusicButton } from './ui/musicButton.js';
 import { enterFullscreen, leaveFullscreen } from './ui/fullscreen.js';
 import { actionFor, keyName, resetKeys } from './utils/keybindings.js';
 import { say, preloadVoiceLines, resetVoiceLines, updateBanter, watchHealth, forgetHealth } from './systems/voiceSystem.js';
-import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies } from './systems/bossSystem.js';
+import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies, fightInProgress } from './systems/bossSystem.js';
 import { BossProjectile } from './classes/BossProjectile.js';
 import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground, currentBackgroundImage, currentBackgroundName } from './systems/backgroundSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState, updateMouseLock } from './systems/inputSystem.js';
@@ -4639,7 +4639,9 @@ function getGameSummary() {
         ...bagChanges(),
         // Ratings as percentages with one decimal
         finalCritRating: Math.round(getCurrentTotalCritRating() * 1000) / 10,
-        finalDodgeRating: Math.round(getCurrentTotalDodgeRating() * 1000) / 10
+        finalDodgeRating: Math.round(getCurrentTotalDodgeRating() * 1000) / 10,
+        // A boss fight it ended in, lost or left (null: none)
+        bossFight: fightInProgress()
     };
 }
 

@@ -46,6 +46,7 @@ class Game extends Model
         'final_dodge_rating',
         'items',
         'gear',
+        'last_fight',
         'materials',
         'coins',
         'game_version',
@@ -90,6 +91,9 @@ class Game extends Model
             'final_dodge_rating' => 'float',
             'items' => 'array',
             'gear' => 'array',
+            'last_fight' => 'array',
+            'live' => 'array',
+            'last_seen_at' => 'datetime',
             'materials' => 'array',
             'coins' => 'integer',
             'started_at' => 'datetime',
@@ -159,6 +163,15 @@ class Game extends Model
         }
 
         return strtok($set['name'], ' ').' '.$this->gear['pieces'].'/'.count($set['pieces']);
+    }
+
+    /** How long a game may go unheard from and still count as being played (Live games) */
+    public const LIVE_SECONDS = 90;
+
+    /** Games being played now: open, and heard from lately */
+    public function scopeLive(Builder $query): Builder
+    {
+        return $query->where('status', self::OPEN)->where('last_seen_at', '>=', now()->subSeconds(self::LIVE_SECONDS));
     }
 
     public function isBossRush(): bool

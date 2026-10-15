@@ -12,6 +12,7 @@ use App\Http\Controllers\ItemController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScoreController;
+use App\Http\Controllers\LiveGamesController;
 use App\Http\Controllers\PublicGameController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\WhatsNewController;
@@ -32,6 +33,9 @@ Route::get('/whats-new', [WhatsNewController::class, 'index'])->name('whats-new'
 
 // A game on the high scores, and how its boss fights went: for anyone to see
 Route::get('/game/{game:id}', [PublicGameController::class, 'show'])->whereNumber('game')->name('games.show');
+
+// The games being played right now
+Route::get('/live', [LiveGamesController::class, 'index'])->name('live');
 
 // Every item in the game and what it pays in coins
 Route::get('/items', [ItemController::class, 'index'])->name('items');

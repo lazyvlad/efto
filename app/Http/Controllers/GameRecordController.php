@@ -100,6 +100,8 @@ class GameRecordController extends Controller
             'game_version' => $data['version'] ?? null,
             'started_at' => now(),
         ]);
+        // Being played from now on (Live games)
+        $game->forceFill(['last_seen_at' => now()])->save();
 
         return response()->json([
             'game' => $game->token,
@@ -119,11 +121,18 @@ class GameRecordController extends Controller
             'chunk' => ['required', 'integer', 'min:0', 'max:5000'],
             'pickups' => ['nullable', 'array', 'max:500'],
             'pickups.*' => ['integer'],
+            // How the game is going, for Live games (shown, never relied on)
+            'progress' => ['nullable', 'array'],
+            'progress.score' => ['nullable', 'integer', 'min:0', 'max:100000000'],
+            'progress.level' => ['nullable', 'integer', 'min:0', 'max:10000'],
+            'progress.boss' => ['nullable', 'string', 'max:40'],
+            'progress.bossHealth' => ['nullable', 'numeric', 'min:0', 'max:1'],
         ]);
 
         abort_unless($game->isOpen(), 409, 'This game is over.');
 
         $game->claim($data['pickups'] ?? []);
+        $this->seen($game, $data['progress'] ?? null);
 
         $chunk = (int) $data['chunk'];
         abort_if($chunk > $game->chunks_issued, 422, 'Chunks are handed out in order.');
@@ -157,6 +166,11 @@ class GameRecordController extends Controller
         abort_unless($game->isOpen(), 409, 'This game is over.');
 
         $boss = BossLoot::boss($data['boss']);
+        // Heard from, and no longer fighting it (Live games)
+        $game->forceFill([
+            'last_seen_at' => now(),
+            'live' => $game->live ? ['boss' => null, 'bossHealth' => null] + $game->live : null,
+        ])->save();
         abort_if($boss === null, 422, 'No such boss.');
         abort_if($game->faction !== null && $game->faction !== $boss['faction'], 422, 'That boss is on the other side.');
 
@@ -210,9 +224,6 @@ class GameRecordController extends Controller
     }
 
     /**
-     * The game is over (or was left mid-game and is being handed in afterwards).
-     */
-    /**
      * The columns of a boss kill's fight record, from what the game reported (or none).
      *
      * @return array<string, int|float>
@@ -234,6 +245,9 @@ class GameRecordController extends Controller
         ];
     }
 
+    /**
+     * The game is over (or was left mid-game and is being handed in afterwards).
+     */
     public function finish(Request $request, Game $game): JsonResponse
     {
         $data = $request->validate([
@@ -266,6 +280,14 @@ class GameRecordController extends Controller
             'gear.health' => ['nullable', 'integer', 'min:0', 'max:10000'],
             'gear.armor' => ['nullable', 'integer', 'min:0', 'max:10000'],
             'gear.attackPower' => ['nullable', 'integer', 'min:0', 'max:10000'],
+            // A boss fight the game ended in, lost or left (shown, never relied on)
+            'bossFight' => ['nullable', 'array'],
+            'bossFight.boss' => ['required_with:bossFight', 'string', 'max:40'],
+            'bossFight.seconds' => ['required_with:bossFight', 'numeric', 'min:0', 'max:3600'],
+            'bossFight.bossHealth' => ['required_with:bossFight', 'numeric', 'min:0', 'max:1'],
+            'bossFight.arrows' => ['required_with:bossFight', 'integer', 'min:0', 'max:100000'],
+            'bossFight.damage' => ['required_with:bossFight', 'integer', 'min:0', 'max:1000000'],
+            'bossFight.hits' => ['required_with:bossFight', 'integer', 'min:0', 'max:60000'],
         ]);
 
         // Handing the same game in twice changes nothing
@@ -291,6 +313,46 @@ class GameRecordController extends Controller
             'bags' => $owner ? (object) Bags::contents($owner, $game->faction ?: 'alliance') : null,
             'scores' => Score::leaderboard(),
         ]);
+    }
+
+    /**
+     * The boss fight a game ended in, if it is one of its side's bosses and not one that went
+     * down in it.
+     */
+    private function lastFight(Game $game, ?array $fight): ?array
+    {
+        $boss = $fight ? BossLoot::boss($fight['boss']) : null;
+        if ($boss === null || ($game->faction !== null && $boss['faction'] !== $game->faction)
+            || $game->bossDrops()->where('boss_id', $boss['id'])->exists()) {
+            return null;
+        }
+
+        return [
+            'boss' => $boss['id'],
+            'seconds' => round((float) $fight['seconds'], 1),
+            'bossHealth' => round((float) $fight['bossHealth'], 3),
+            'arrows' => (int) $fight['arrows'],
+            'damage' => (int) $fight['damage'],
+            'hits' => (int) $fight['hits'],
+        ];
+    }
+
+    /**
+     * The game was heard from: it is being played, and this is how it is going.
+     */
+    private function seen(Game $game, ?array $progress): void
+    {
+        $boss = isset($progress['boss']) ? BossLoot::boss($progress['boss']) : null;
+
+        $game->forceFill([
+            'last_seen_at' => now(),
+            'live' => $progress === null ? $game->live : [
+                'score' => (int) ($progress['score'] ?? 0),
+                'level' => (int) ($progress['level'] ?? 0),
+                'boss' => $boss['id'] ?? null,
+                'bossHealth' => $boss ? round((float) ($progress['bossHealth'] ?? 1), 3) : null,
+            ],
+        ])->save();
     }
 
     private function close(Game $game, array $data): void
@@ -322,6 +384,7 @@ class GameRecordController extends Controller
             'final_dodge_rating' => round($data['finalDodgeRating'] ?? 0, 1),
             'items' => $items,
             'gear' => $this->gear($data['gear'] ?? null),
+            'last_fight' => $this->lastFight($game, $data['bossFight'] ?? null),
             'ended_at' => now(),
         ]);
 

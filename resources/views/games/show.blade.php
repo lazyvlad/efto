@@ -70,11 +70,11 @@
 
             <div class="bg-white shadow sm:rounded-lg p-4 sm:p-6 space-y-3">
                 <h3 class="text-lg text-gray-800">{{ __('Boss fights') }}</h3>
-                @if ($kills->isEmpty())
-                    <p class="text-sm text-gray-600">{{ __('No boss went down in this game.') }}</p>
+                @if ($kills->isEmpty() && ! $game->last_fight)
+                    <p class="text-sm text-gray-600">{{ __('No boss was fought in this game.') }}</p>
                 @else
-                    <p class="text-sm text-gray-500">{{ __('Each boss in the order it went down: how long the fight took against its par time, the points it paid (with the bonus for speed), the arrows spent and the damage taken.') }}</p>
-                    @include('games.fights', ['kills' => $kills])
+                    <p class="text-sm text-gray-500">{{ __('Each boss in the order it went down: how long the fight took against its par time, the points it paid (with the bonus for speed), the arrows spent and the damage taken. Last, the fight the game ended in, and how much the boss had left.') }}</p>
+                    @include('games.fights', ['kills' => $kills, 'game' => $game])
                 @endif
             </div>
 

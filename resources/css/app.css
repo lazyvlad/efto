@@ -210,6 +210,26 @@
         border: 1px solid #6b4f16;
     }
 
+    /* Live games: a pulsing dot, as for something on air */
+    .live-dot {
+        display: inline-block;
+        width: 0.55em;
+        height: 0.55em;
+        margin-right: 0.5em;
+        border-radius: 9999px;
+        background: #e5483a;
+        box-shadow: 0 0 0 0 rgba(229, 72, 58, 0.6);
+        animation: live-pulse 1.8s ease-out infinite;
+    }
+
+    @keyframes live-pulse {
+        to { box-shadow: 0 0 0 0.5em rgba(229, 72, 58, 0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .live-dot { animation: none; }
+    }
+
     /* High scores: the heading of a version's group */
     .score-version-row th {
         background: theme('colors.gray.50');

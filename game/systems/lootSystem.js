@@ -202,6 +202,23 @@ async function openGame(current, playerName, faction, startZone, mode) {
     }
 }
 
+// The game so far, as Live games shows it: the score, the level, and the boss being fought
+// with what it has left
+function progressOf(current) {
+    try {
+        const summary = current.getSummary();
+        const fight = summary.bossFight;
+        return {
+            score: Math.max(0, Math.round(summary.score || 0)),
+            level: Math.max(0, Math.round(summary.level || 0)),
+            boss: fight ? fight.boss : null,
+            bossHealth: fight ? fight.bossHealth : null,
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
 async function requestChunk(current, chunk) {
     current.requesting = true;
     current.lastRequestAt = performance.now();
@@ -210,7 +227,9 @@ async function requestChunk(current, chunk) {
     try {
         const response = await post(gamesUrl(current.token, 'drops'), {
             chunk,
-            pickups: current.pickups.slice(current.pickupsReported)
+            pickups: current.pickups.slice(current.pickupsReported),
+            // How the game is going, for the site's Live games
+            progress: progressOf(current)
         });
 
         if (response.ok) {

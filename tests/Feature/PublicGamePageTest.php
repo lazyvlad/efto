@@ -52,6 +52,41 @@ class PublicGamePageTest extends TestCase
             ->assertSee('#1');
     }
 
+    public function test_the_fight_a_game_ended_in_is_recorded_and_shown(): void
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        $token = $this->postJson(route('games.open'), ['faction' => 'alliance'])->json('game');
+        $game = Game::where('token', $token)->firstOrFail();
+        $this->travel(5)->minutes();
+
+        // Garrick went down; the hunter fell to Hogger, who had 40% left
+        $this->postJson(route('games.boss', $game), ['boss' => 'garrick-padfoot'])->assertOk();
+        $this->postJson(route('games.finish', $game), ['score' => 900, 'level' => 3, 'gameTime' => 0,
+            'bossFight' => ['boss' => 'hogger', 'seconds' => 41.2, 'bossHealth' => 0.404, 'arrows' => 133, 'damage' => 96, 'hits' => 11]])->assertOk();
+        $this->assertSame(['boss' => 'hogger', 'seconds' => 41.2, 'bossHealth' => 0.404, 'arrows' => 133, 'damage' => 96, 'hits' => 11], $game->fresh()->last_fight);
+
+        $this->get(route('games.show', $game->id))->assertOk()->assertSee('Fell to Hogger')->assertSee('Hogger at 40%')->assertSee('41.2s');
+        $this->get(route('games.history', ['hunter' => 'alliance']))->assertSee('fell to Hogger')->assertSee('Fell to Hogger');
+    }
+
+    public function test_a_fight_with_a_boss_that_went_down_or_of_the_other_side_is_not_a_lost_one(): void
+    {
+        $token = $this->postJson(route('games.open'), ['faction' => 'alliance'])->json('game');
+        $game = Game::where('token', $token)->firstOrFail();
+        $this->travel(5)->minutes();
+        $this->postJson(route('games.boss', $game), ['boss' => 'garrick-padfoot'])->assertOk();
+
+        $fight = ['seconds' => 3, 'bossHealth' => 0, 'arrows' => 1, 'damage' => 0, 'hits' => 0];
+        $this->postJson(route('games.finish', $game), ['score' => 10, 'bossFight' => ['boss' => 'garrick-padfoot'] + $fight])->assertOk();
+        $this->assertNull($game->fresh()->last_fight);
+
+        $token = $this->postJson(route('games.open'), ['faction' => 'alliance'])->json('game');
+        $other = Game::where('token', $token)->firstOrFail();
+        $this->postJson(route('games.finish', $other), ['score' => 10, 'bossFight' => ['boss' => 'sarkoth'] + $fight])->assertOk();
+        $this->assertNull($other->fresh()->last_fight);
+    }
+
     public function test_a_game_that_is_not_on_the_high_scores_stays_private(): void
     {
         $game = $this->game();

@@ -194,6 +194,25 @@ export function bossFightState() {
     return { name: fight.boss.name, behaviour: fight.boss.behaviour, phase: fight.phase, doing: fight.doing, x: fight.x, health: fight.health, maxHealth: fight.stats.health, shielded: fight.shielded, enraged: fight.enraged };
 }
 
+/**
+ * A boss fight still going on (not won): how it stands, for the game's record when the game
+ * ends in it, the hunter fallen or the game left. Null when there is none.
+ * @returns {{ boss: string, seconds: number, bossHealth: number, arrows: number, damage: number, hits: number } | null}
+ */
+export function fightInProgress() {
+    if (!fight || fight.phase === 'dying' || fight.health <= 0) return null;
+
+    return {
+        boss: fight.boss.id,
+        seconds: Math.round(fightSeconds() * 10) / 10,
+        // What it had left, as a share of its health (1 = untouched)
+        bossHealth: Math.round(Math.max(0, fight.health) / fight.stats.health * 1000) / 1000,
+        arrows: fight.tally.arrows,
+        damage: Math.round(fight.tally.damage),
+        hits: fight.tally.hits,
+    };
+}
+
 // The attacks of all the bosses, of both sides, also fall as hazards all through the game,
 // whether or not their boss has been met. This picks one at random. It hits as hard as the
 // boss of the zone the player is in, so a late boss's attack is no worse than the rest on the
