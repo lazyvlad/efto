@@ -590,7 +590,7 @@ export const gameConfig = {
         follow: 1,                  // A blow still lands on what he swung at if it is this near when it lands
         cooldown: { one: 2, two: 3 },           // Seconds from one swing to the next: one-handed, two-handed
         damage: { one: 14, two: 22 },           // A blow, before his attack power (+1% each), crits and armor
-        pushback: 0,                // How much of its approach a creature struck loses (none: it stays on him; a pounce is broken off)
+        pushback: 0.15,             // How much of its approach a creature struck loses: knocked back as by three arrows (a pounce is broken off)
     },
     
     // === CREATURES ===
