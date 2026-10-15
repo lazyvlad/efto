@@ -102,8 +102,9 @@ export class Player {
      * Draw the player.
      * @param {number}  shield  Steps (1/60 s) left of a Power Word: Shield around him, 0 for none
      * @param {number}  health  How much health he has left, 0 to 1, shown under his feet
+     * @param {object}  [arrows]  { count, capacity }: what is in his quiver, beside the bar
      */
-    draw(ctx, shield = 0, health = 1) {
+    draw(ctx, shield = 0, health = 1, arrows = null) {
         // The box holds him and, under his feet, his health bar
         const barRoom = this.width * HEALTH_BAR_ROOM;
         const figureHeight = this.height - barRoom;
@@ -130,6 +131,65 @@ export class Player {
         ctx.restore();
         
         this.drawHealthBar(ctx, this.y + figureHeight, barRoom, health);
+        if (arrows) this.drawArrowCount(ctx, this.y + figureHeight, barRoom, arrows);
+    }
+
+    // Beside the health bar, what is in his quiver: an arrow and "11/23". Amber when a quarter
+    // or less is left, red when it is empty. On the side of the bar with room for it.
+    drawArrowCount(ctx, top, room, { count, capacity }) {
+        const fontSize = Math.max(11, Math.round(this.width * 0.15));
+        const text = `${Math.max(0, Math.floor(count))}/${capacity}`;
+        ctx.save();
+        ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+        const iconWidth = fontSize * 1.1;
+        const width = iconWidth + 3 + ctx.measureText(text).width;
+        const barWidth = this.width * 0.9;
+        const barLeft = this.x + (this.width - barWidth) / 2;
+        const middle = top + room / 2;
+        const canvasWidth = ctx.canvas.logicalWidth || ctx.canvas.width;
+        const left = barLeft + barWidth + 6 + width <= canvasWidth ? barLeft + barWidth + 6 : barLeft - 6 - width;
+        const color = count <= 0 ? '#ff7a6a' : count <= capacity / 4 ? '#ffc85a' : '#f4ecd8';
+
+        // The arrow: a shaft rising to the right, its head, and its fletching
+        const size = fontSize * 0.95;
+        const x0 = left + 1;
+        const y0 = middle + size * 0.4;
+        const x1 = left + size;
+        const y1 = middle - size * 0.4;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+        ctx.strokeStyle = '#d9b46a';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+        ctx.fillStyle = '#e8e2d0';
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x1 + size * 0.12, y1 - size * 0.12);
+        ctx.lineTo(x1 - size * 0.32, y1 + size * 0.02);
+        ctx.lineTo(x1 - size * 0.02, y1 + size * 0.32);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = '#c0392b';
+        ctx.lineWidth = 2;
+        for (const back of [0.05, 0.22]) {
+            const fx = x0 + (x1 - x0) * back;
+            const fy = y0 + (y1 - y0) * back;
+            ctx.beginPath(); ctx.moveTo(fx - size * 0.16, fy - size * 0.02); ctx.lineTo(fx, fy); ctx.lineTo(fx + size * 0.02, fy + size * 0.16); ctx.stroke();
+        }
+
+        // The count, outlined to read on any ground
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+        ctx.strokeText(text, left + iconWidth + 3, middle + 1);
+        ctx.fillStyle = color;
+        ctx.fillText(text, left + iconWidth + 3, middle + 1);
+        ctx.restore();
     }
     
     // How tall the figure is, and where the ground under his feet is (his pet stands on it)
