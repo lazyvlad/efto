@@ -13,6 +13,7 @@ use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ScoreController;
 use App\Http\Controllers\LiveGamesController;
+use App\Http\Controllers\PerfController;
 use App\Http\Controllers\PublicGameController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\WhatsNewController;
@@ -73,7 +74,9 @@ Route::middleware('auth')->group(function () {
     // A bag bought with coins, added to the backpack
     Route::post('/api/bags', [BagController::class, 'buy'])->middleware('throttle:30,1')->name('bags.buy');
     Route::post('/api/bags/move', [BagController::class, 'move'])->middleware('throttle:120,1')->name('bags.move');
-    Route::post('/api/bags/send', [BagController::class, 'send'])->middleware('throttle:60,1')->name('bags.send');
+    // Debug mode's measurements from the game (game/utils/perfProbe.js)
+    Route::post('/api/perf', [PerfController::class, 'store'])->middleware('throttle:60,1')->name('perf.store');
+Route::post('/api/bags/send', [BagController::class, 'send'])->middleware('throttle:60,1')->name('bags.send');
     Route::post('/api/craft', [BagController::class, 'craft'])->middleware('throttle:60,1')->name('craft');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -111,6 +114,9 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::post('/announcements', [Admin\AnnouncementController::class, 'send'])->name('announcements.send');
 
     Route::resource('news', Admin\NewsPostController::class)->except('show');
+
+    Route::get('/perf', [Admin\PerfController::class, 'index'])->name('perf.index');
+    Route::get('/perf/{session}', [Admin\PerfController::class, 'show'])->where('session', '[a-z0-9-]+')->name('perf.show');
 
     Route::get('/settings', [Admin\SettingsController::class, 'edit'])->name('settings.edit');
     Route::post('/settings', [Admin\SettingsController::class, 'update'])->name('settings.update');

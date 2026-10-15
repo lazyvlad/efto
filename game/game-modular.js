@@ -5,6 +5,7 @@ import { CombatText } from './classes/CombatText.js';
 import { measureAhead } from './utils/spriteFit.js';
 import { Particle } from './classes/Particle.js';
 import { LightningBolt } from './classes/LightningBolt.js';
+import { startPerfProbe, perfProbeOn, noteFrame } from './utils/perfProbe.js';
 import { gameItems } from './data/gameItems.js';
 import { damageProjectiles, isHarmfulProjectile } from './data/damageProjectiles.js';
 import { powerUpItems } from './data/powerUpItems.js';
@@ -45,7 +46,7 @@ import { initializeMusicButton } from './ui/musicButton.js';
 import { enterFullscreen, leaveFullscreen } from './ui/fullscreen.js';
 import { actionFor, keyName, resetKeys } from './utils/keybindings.js';
 import { say, preloadVoiceLines, resetVoiceLines, updateBanter, watchHealth, forgetHealth } from './systems/voiceSystem.js';
-import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies, fightInProgress, strikeBoss } from './systems/bossSystem.js';
+import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies, fightInProgress, strikeBoss, bossFightState } from './systems/bossSystem.js';
 import { BossProjectile } from './classes/BossProjectile.js';
 import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground, currentBackgroundImage, currentBackgroundName } from './systems/backgroundSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState, updateMouseLock } from './systems/inputSystem.js';
@@ -508,6 +509,8 @@ let renderAlpha = 1;
 // Main game loop
 function gameLoop(now = performance.now()) {
     const frameMs = gameClock.beginFrame(now);
+    const probing = perfProbeOn();
+    const startedAt = probing ? performance.now() : 0;
     // Real elapsed time expressed in 60fps frames, for things that follow input rather than the simulation
     const frameDelta = frameMs / (1000 / 60);
     
@@ -537,7 +540,18 @@ function gameLoop(now = performance.now()) {
     updateMouseLock(canvas, gameState);
     
     // Render
+    const updatedAt = probing ? performance.now() : 0;
     render();
+    
+    // Debug mode (utils/perfProbe.js): how long this frame took, and where
+    if (probing) {
+        noteFrame({
+            ms: frameMs,
+            update: updatedAt - startedAt,
+            render: performance.now() - updatedAt,
+            playing: gameState.gameRunning && !gameState.showingPauseMenu && !gameState.gamePaused,
+        });
+    }
     
     requestAnimationFrame(gameLoop);
 }
@@ -2778,6 +2792,40 @@ for (const item of gameItems) {
         assetManager.getImage(item.image);
     }
 }
+
+// Debug mode: measurements of how the game runs, sent to the site (utils/perfProbe.js)
+startPerfProbe({
+    canvas,
+    send: body => {
+        if (!(siteBoot && siteBoot.urls && siteBoot.urls.perf)) return;
+        fetch(siteBoot.urls.perf, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': siteBoot.csrfToken || '' },
+            credentials: 'same-origin',
+            keepalive: true,
+            body: JSON.stringify({ ...body, version: GAME_VERSION }),
+        }).catch(() => { /* Lost: the next sample may get through */ });
+    },
+    // What was on screen and happening, with each sample
+    describe: () => {
+        const fight = bossFightState();
+        return {
+            mode: gameState.mode || 'normal',
+            level: (gameState.currentLevel || 0) + 1,
+            side: gameState.faction || null,
+            boss: fight ? fight.name : null,
+            upheaval: Boolean(fight && fight.upheaval),
+            thunderfury: wearsThunderfury(),
+            falling: fallingItems.length,
+            projectiles: fireballs.length,
+            arrows: window.arrows ? window.arrows.length : 0,
+            particles: particles.length,
+            texts: combatTexts.length,
+            powerUps: powerUps.length,
+            canvas: `${canvas.width}x${canvas.height}`,
+        };
+    },
+});
 
 // ===== UI EVENT HANDLERS =====
 

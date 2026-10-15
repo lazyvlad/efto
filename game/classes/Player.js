@@ -5,6 +5,7 @@ import { responsiveScaler } from '../utils/gameUtils.js';
 import { CharacterAnimator } from './CharacterAnimator.js';
 import { characterFor } from '../data/playerCharacters.js';
 import { maskOfPicture, maskHitsRect, maskHitsCircle } from '../utils/hitMask.js';
+import { perfProbeOn, noteHunterDraw } from '../utils/perfProbe.js';
 
 // The player is a whole figure (data/playerCharacters.js has one for each side), so the
 // player's box is this many times taller than it is wide. The figure stands as tall as the
@@ -125,7 +126,9 @@ export class Player {
         
         // He stands in the middle of the player's box, his feet just above the health bar
         if (this.animator) {
+            const startedAt = perfProbeOn() ? performance.now() : 0;
             this.animator.draw(ctx, this.x + this.width / 2, this.y + figureHeight, figureHeight / this.character.heightInPicture);
+            if (startedAt) noteHunterDraw(performance.now() - startedAt);
         }
         
         if (bubble) drawShieldFront(ctx, bubble);

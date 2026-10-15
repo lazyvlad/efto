@@ -191,7 +191,7 @@ export function bossesDefeated() {
 export function bossFightState() {
     if (!fight) return null;
 
-    return { name: fight.boss.name, behaviour: fight.boss.behaviour, phase: fight.phase, doing: fight.doing, x: fight.x, health: fight.health, maxHealth: fight.stats.health, shielded: fight.shielded, enraged: fight.enraged, dazed: (fight.dazedSteps || 0) > 0 };
+    return { name: fight.boss.name, behaviour: fight.boss.behaviour, phase: fight.phase, doing: fight.doing, x: fight.x, health: fight.health, maxHealth: fight.stats.health, shielded: fight.shielded, enraged: fight.enraged, dazed: (fight.dazedSteps || 0) > 0, upheaval: Boolean(fight.upheaval) };
 }
 
 /**

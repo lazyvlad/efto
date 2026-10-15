@@ -114,6 +114,8 @@ class GameController extends Controller
                 'games' => route('games.open'),
                 'collection' => route('collection'),
                 'equipment' => route('equipment.update'),
+                // Debug mode's measurements (only sent with ?debug=perf)
+                'perf' => route('perf.store'),
                 'outfits' => route('outfits.update'),
                 'bags' => route('bags.buy'),
                 'bagsMove' => route('bags.move'),
