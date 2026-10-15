@@ -101,7 +101,8 @@ class BossLoot
     public static function rollBindings(?User $user, array $boss): array
     {
         $rules = config('boss_loot.bindings');
-        if ($user === null || ! $rules || $boss['zone'] < (int) $rules['from_zone']) {
+        // None at all while their chance is nothing (they are to drop in zones still to come)
+        if ($user === null || ! $rules || (float) $rules['chance'] <= 0 || $boss['zone'] < (int) $rules['from_zone']) {
             return [];
         }
 

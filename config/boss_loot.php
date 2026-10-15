@@ -42,9 +42,10 @@ return [
     // (config/crafting.php): besides its item, a boss of this zone or later may drop each, for
     // a logged-in player, into the bank of the hunter whose boss it was. One of each to a
     // hunter: none drops for one who has it already, or has made the blade.
+    // For now none drops anywhere (chance 0): they are to drop in the zones still to come.
     'bindings' => [
         'from_zone' => 8,
-        'chance' => 0.05,
+        'chance' => 0,
         'left' => 'left-binding-of-the-windseeker',
         'right' => 'right-binding-of-the-windseeker',
         'makes' => 'thunderfury',

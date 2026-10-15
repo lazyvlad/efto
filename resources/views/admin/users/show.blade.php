@@ -225,6 +225,28 @@
                                             @endif
                                         </span>
                                     </li>
+                                    {{-- Crafted gear, given on its own to try it out --}}
+                                    @foreach ($side['crafted'] as $itemId => $made)
+                                        <li class="py-2 flex flex-wrap items-center justify-between gap-3">
+                                            <span>
+                                                <span class="text-orange-400">{{ $made['name'] }}</span>
+                                                <span class="text-gray-600">· {{ $made['has'] ? ($made['given'] ? __('given') : __('made')) : __('does not have it') }}</span>
+                                            </span>
+                                            @if (! $made['has'] || $made['given'])
+                                                <form method="POST" action="{{ route('admin.users.gear', $user) }}">
+                                                    @csrf
+                                                    <input type="hidden" name="side" value="{{ $faction }}">
+                                                    <input type="hidden" name="item" value="{{ $itemId }}">
+                                                    @if ($made['given'])
+                                                        <input type="hidden" name="take" value="1">
+                                                        <x-secondary-button type="submit" class="!py-1">{{ __('Take back') }}</x-secondary-button>
+                                                    @else
+                                                        <x-primary-button class="!py-1">{{ __('Give') }}</x-primary-button>
+                                                    @endif
+                                                </form>
+                                            @endif
+                                        </li>
+                                    @endforeach
                                     <li class="py-2 flex flex-wrap items-center justify-between gap-3">
                                         <span>
                                             <span class="text-gray-900">{{ config('boss_loot.quiver.name') }}</span>

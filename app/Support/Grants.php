@@ -153,6 +153,21 @@ class Grants
     }
 
     /**
+     * Give a hunter one piece of gear, or take back the one given (as Thunderfury, to try it).
+     * One he found or made stays his.
+     */
+    public static function giveItem(User $user, string $side, string $itemId, bool $give = true): void
+    {
+        $gear = self::grantedGear($user, $side);
+        if ($give) {
+            $gear[$itemId] = 1;
+        } else {
+            unset($gear[$itemId]);
+        }
+        self::keepGear($user, $side, $gear);
+    }
+
+    /**
      * Take back the gear given to a hunter (the large quiver too). What he found stays.
      */
     public static function takeBackGear(User $user, string $side): void

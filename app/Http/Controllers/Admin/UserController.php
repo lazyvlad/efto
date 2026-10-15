@@ -57,6 +57,12 @@ class UserController extends Controller
                 'grantedPieces' => $user->grantedPieces($faction),
                 'gear' => array_sum(Gear::owned($user, $faction)),
                 'grantedGear' => count(array_diff_key(Grants::grantedGear($user, $faction), [Gear::LARGE_QUIVER => 1])),
+                // Crafted gear (Thunderfury): whether he has it, and whether it was given
+                'crafted' => collect(config('gear.crafted', []))->map(fn (array $made, string $itemId) => [
+                    'name' => $made['name'],
+                    'has' => (Gear::owned($user, $faction)[$itemId] ?? 0) > 0,
+                    'given' => (Grants::grantedGear($user, $faction)[$itemId] ?? 0) > 0,
+                ])->all(),
                 'quiver' => in_array($faction, Gear::quiverSides($user), true),
                 'quiverGiven' => (Grants::grantedGear($user, $faction)[Gear::LARGE_QUIVER] ?? 0) > 0
                     || ($faction === 'alliance' && $user->quiver && $user->bossDrops()->where('quiver', true)->doesntExist()),
@@ -168,8 +174,23 @@ class UserController extends Controller
      */
     public function gear(Request $request, User $user): RedirectResponse
     {
-        $data = $request->validate(['side' => ['required', 'in:alliance,horde'], 'take' => ['nullable', 'boolean']]);
+        $data = $request->validate([
+            'side' => ['required', 'in:alliance,horde'],
+            'take' => ['nullable', 'boolean'],
+            // One piece only (crafted gear, to try it), instead of one of everything
+            'item' => ['nullable', 'string', 'in:'.implode(',', array_keys(config('gear.crafted', [])))],
+        ]);
         $side = ucfirst($data['side']);
+
+        if (isset($data['item'])) {
+            $take = (bool) ($data['take'] ?? false);
+            Grants::giveItem($user, $data['side'], $data['item'], ! $take);
+            $name = Gear::catalog()[$data['item']]['name'];
+
+            return back()->with('status', $take
+                ? __(':item given to :name\'s :side hunter was taken back.', ['item' => $name, 'name' => $user->name, 'side' => $side])
+                : __(':name\'s :side hunter has :item: put it on from the character sheet.', ['item' => $name, 'name' => $user->name, 'side' => $side]));
+        }
 
         if ($data['take'] ?? false) {
             Grants::takeBackGear($user, $data['side']);

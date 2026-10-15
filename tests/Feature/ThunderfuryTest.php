@@ -64,6 +64,28 @@ class ThunderfuryTest extends TestCase
         $this->assertSame(1, Gear::owned($user->fresh(), 'horde')['thunderfury']);
     }
 
+    public function test_an_admin_gives_it_to_one_hunter_to_try_it_and_takes_it_back(): void
+    {
+        $admin = User::factory()->create();
+        $admin->forceFill(['is_admin' => true])->save();
+        $player = User::factory()->create();
+
+        $this->actingAs($admin)->get(route('admin.users.show', $player))->assertOk()->assertSee('Thunderfury, Blessed Blade of the Windseeker');
+        $this->post(route('admin.users.gear', $player), ['side' => 'alliance', 'item' => 'thunderfury'])->assertSessionHas('status');
+        $this->assertSame(1, Gear::owned($player->fresh(), 'alliance')['thunderfury']);
+        $this->assertArrayNotHasKey('thunderfury', Gear::owned($player->fresh(), 'horde'));
+
+        // He puts it on
+        $this->actingAs($player->fresh())->putJson(route('equipment.update'), ['side' => 'alliance', 'equipment' => ['mainhand' => 'thunderfury']])
+            ->assertOk()->assertJsonPath('equipment.mainhand', 'thunderfury');
+
+        // Only crafted gear is given on its own
+        $this->actingAs($admin)->post(route('admin.users.gear', $player), ['side' => 'alliance', 'item' => 'ds_legs'])->assertSessionHasErrors('item');
+
+        $this->post(route('admin.users.gear', $player), ['side' => 'alliance', 'item' => 'thunderfury', 'take' => 1]);
+        $this->assertArrayNotHasKey('thunderfury', Gear::owned($player->fresh(), 'alliance'));
+    }
+
     public function test_it_takes_everything_and_is_made_one_at_a_time(): void
     {
         $user = $this->hunterWithEverything('alliance');
@@ -75,6 +97,15 @@ class ThunderfuryTest extends TestCase
         $this->assertArrayNotHasKey('thunderfury', Gear::owned($user->fresh(), 'alliance'));
     }
 
+    public function test_for_now_no_boss_drops_a_binding(): void
+    {
+        $user = User::factory()->create();
+        foreach (['khan-dezhepah', 'chief-ukorz-sandscalp', 'vile-priestess-hexx'] as $bossId) {
+            $this->assertSame([], BossLoot::rollBindings($user, BossLoot::boss($bossId)));
+        }
+    }
+
+    // When they drop (in the zones to come, with a chance above nothing)
     public function test_the_last_bosses_drop_the_bindings_into_the_hunter_s_bank(): void
     {
         config(['boss_loot.bindings.chance' => 1]);
