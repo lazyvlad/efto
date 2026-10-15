@@ -155,8 +155,7 @@ return [
             'quiver' => ['id' => 'starter-alliance-quiver', 'name' => 'Pajama Hunter Quiver and Harness', 'slot' => 'quiver', 'stats' => ['health' => 1]],
             'tabard' => ['id' => 'starter-alliance-tabard', 'name' => 'Pajama Hunter Tabard', 'slot' => 'tabard', 'stats' => ['health' => 1]],
             'ranged' => ['id' => 'starter-alliance-bow', 'name' => 'Pajama Hunter Bow', 'slot' => 'ranged', 'stats' => ['attackPower' => 1]],
-            // Something to fight with up close (melee needs a main-hand weapon); drawn for now as
-            // the Cruel Barb (game/data/hunterArt.js, aliases), until it has art of its own
+            // Something to fight with up close (melee needs a main-hand weapon)
             'mainhand' => ['id' => 'starter-alliance-knife', 'name' => 'Pajama Hunter Skinning Knife', 'slot' => 'mainhand', 'stats' => ['attackPower' => 1]],
         ],
         'horde' => [
@@ -170,7 +169,6 @@ return [
             'feet' => ['id' => 'starter-horde-hoofguards', 'name' => 'Horde Hunter Hoof Guards', 'slot' => 'boots', 'stats' => ['armor' => 1]],
             'tabard' => ['id' => 'starter-horde-warcloth', 'name' => 'Horde Hunter Warcloth', 'slot' => 'tabard', 'stats' => ['health' => 1]],
             'ranged' => ['id' => 'starter-horde-totem', 'name' => 'Horde Hunter Totem', 'slot' => 'ranged', 'stats' => ['attackPower' => 1]],
-            // Drawn for now as the Embalmer's Cleaver, until it has art of its own
             'mainhand' => ['id' => 'starter-horde-cleaver', 'name' => 'Horde Hunter Cleaver', 'slot' => 'mainhand', 'stats' => ['attackPower' => 1]],
         ],
     ],
