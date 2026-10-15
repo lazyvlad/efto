@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.0.12 - 2026-10-15
+
+### Changed
+- **The arrows in the quiver show beside the hunter's health bar**, on the field: an arrow and
+  what is in the quiver out of what it holds ("11/200"), amber when a quarter or less is left
+  and red when it is empty.
+
+### Fixed
+- **The large quiver says what it gives**: in the inventory and on the character sheet the
+  Ancient Sinew Wrapped Lamina read "No stats"; it says "Quiver: holds 400 arrows (+200)" now,
+  for either hunter.
+- **No square frame round the helpful spells that fall**: Frost Nova, Power Word: Shield and
+  the speed boost fell inside a light blue, gold or red square; they fall as they are now,
+  with the glow every helpful thing has (3.0.8 took the frame off their icons in the list of
+  effects, not off the falling spells).
+
 ## 3.0.11 - 2026-10-15
 
 ### Changed
