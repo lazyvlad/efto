@@ -50,6 +50,8 @@ export function checkCollisions(context) {
         
         // Auto-collect all remaining falling items (but not power-ups or projectiles)
         const remainingItems = fallingItems.filter(otherItem => {
+            // A boss's loot is already his: left to be caught
+            if (otherItem.shownOnly) return true;
             if (otherItem.itemData) {
                 // Create lightning bolt effect from Thunderfury to each item
                 createLightningEffect(thunderfuryX, thunderfuryY, otherItem.x + otherItem.width/2, otherItem.y + otherItem.height/2);
@@ -127,6 +129,14 @@ export function checkCollisions(context) {
         // Caught by the hunter, or fetched by his pet: either way it counts the same
         const fetched = Boolean(player.pet) && player.pet.catches(item, player, gameConfig.pet);
         if (fetched || (item.checkCollision && item.checkCollision(player))) {
+            // A boss's loot, already his: caught, it is only seen to be (game-modular.js, popBossLoot)
+            if (item.shownOnly) {
+                combatTexts.push(new CombatText(item.x + item.width / 2, item.y, item.itemData.name, '#FF8000', true));
+                createCollectionParticles(item.x + item.width / 2, item.y + item.height / 2, particles, '#FF8000');
+                playDragonstalkerSound();
+                fallingItems.splice(itemIndex, 1);
+                return;
+            }
             // Update item data and score
             if (item.itemData) {
                 item.itemData.collected++;

@@ -2331,6 +2331,19 @@ function popCreatureLoot(itemData, x, y, dropId = null) {
     fallingItems.push(item);
 }
 
+// A boss's loot, popping out of it where it fell. It is shown, not caught for keeps: the site
+// gave it to the hunter as the boss fell (see onBossDefeated)
+function popBossLoot(item, at) {
+    const gear = gearCatalog()[item.id];
+    const image = (gear && gear.image) || item.image;
+    if (!image) return;
+    const itemData = { id: item.id, name: item.name, image, type: item.rarity === 'epic' ? 'epic' : item.rarity === 'rare' ? 'special' : 'green', value: 0, collected: 0 };
+    const falling = new FallingItem(() => itemData, isValidYPosition, [], gameState, images, canvas);
+    falling.popFrom(at.x, at.y, canvas, gameConfig.creatures.pop);
+    falling.shownOnly = true;
+    fallingItems.push(falling);
+}
+
 // A piece of the zone's gear as it falls: from the site's catalogue (INPUT_BOOT.gear), sized and
 // shown by its rarity like the other things that fall. It is kept, like any gear caught.
 const zoneItems = new Map();
@@ -5024,7 +5037,7 @@ function thunderfuryStrike() {
 // A boss went down: it pays coins, and the site decides what it dropped. A logged-in player
 // keeps the item on their account; a guest is only shown it. How the fight went goes with it,
 // for the player's record of the game.
-function onBossDefeated(boss, fight = null) {
+function onBossDefeated(boss, fight = null, at = null) {
     say('bossDefeated');
     gameState.coins += coinsForBoss(boss.zone, gameConfig.coins);
     if (gameState.mode === 'boss_rush') gameState.rushPause = gameConfig.bossRush.breather;
@@ -5069,6 +5082,10 @@ function onBossDefeated(boss, fight = null) {
         gameState.bossLoot.push({ boss, item: drop.item, kept: drop.kept, timesFound: drop.timesFound });
         itemsListCache.needsUpdate = true;
         if (!gameState.gameRunning) return;
+        
+        // It pops out of the boss, as a creature's loot does: already his (the site has it), so
+        // catching it is only the moment it is his to see; missed, it is his all the same
+        if (at) popBossLoot(drop.item, at);
         
         const color = BOSS_LOOT_COLORS[drop.item.rarity] || '#FFD700';
         // Kept short: the message bar cuts long lines off

@@ -1213,7 +1213,7 @@ function defeat(context) {
             arrows: fight.tally.arrows,
             damage: Math.round(fight.tally.damage),
             hits: fight.tally.hits,
-        });
+        }, { x: fight.x, y: top + height * 0.5 });
     }
 }
 
