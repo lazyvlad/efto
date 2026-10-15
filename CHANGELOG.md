@@ -1,5 +1,63 @@
 # Changelog
 
+## 3.0.8 - 2026-10-14
+
+### What's new
+- **Thunderfury, Blessed Blade of the Windseeker: a legendary to make.** The last three bosses
+  of each side (zones 8 to 10) may now drop a **Left** or a **Right Binding of the
+  Windseeker**, besides their item: into the bank of the hunter whose boss it was, bound to
+  him. With both, 10 Fiery Core, 10 Lava Core and 4 Essence of Water in his bags, he makes the
+  blade on the Crafting tab: a one-handed sword for the main hand, +22 attack power and +2%
+  crit, his for good, one to a hunter. Worn, his arrows may call down its **lightning** (12%
+  each time he shoots, at most every 2 seconds): it destroys up to 3 harmful things falling
+  near him, and in a boss fight strikes the boss for 60 and dazes it, so it attacks slower for
+  4 seconds. A boss's shield takes the damage, not the daze. Its own picture is being painted;
+  for now it borrows the Thunder Fury's.
+
+### Fixed
+- **Effect icons without a box.** Cut-out pictures on the screen's effect list and notices,
+  such as the Frost Nova crystals for frozen time and the Power Word: Shield, are no longer
+  drawn on a dark square with a coloured frame round them; they stand on their own. Square
+  painted icons keep their frame.
+- **Upheaval can be dodged.** The attacks from the sides flew along the hunter's band, which
+  his figure fills top to bottom: there was no getting out of their way. Now everything in an
+  Upheaval comes through the ground in columns. Those from the sides are hurled in high up,
+  stop over their column and drop straight down through it, as the others rise up through
+  theirs. Every wave marks its columns on the ground first, purple, and leaves one **green**
+  column clear, near enough to reach in time even on a keyboard; stand in it. One wave comes
+  at a time: the next is marked only once the last has gone through (it was possible for two
+  to come at once, each with its own clear column). Frost Nova and slowed time hold it too.
+
+### What's new
+- **Live games**: a new page (Live, in the site's menu) with every game being played right
+  now: who, which side, the mode, the level and zone, the score so far, how long they have
+  been playing, the bosses down, and the boss being fought with the health it has left. It
+  keeps itself up to date while it is open. A game tells the site how it is going every half
+  a minute of play, and when a boss goes down.
+- **The Gear tab sorts gear by kind.** Both lists, with your hunter and in the bank, are
+  grouped under headings in the character sheet's order: Head, Neck, Shoulders and on down,
+  Rings and Trinkets together, then two-handed and one-handed weapons, the off hand, ranged and
+  quivers, each with how many there are. Picking a run with Shift follows the order shown.
+- **A game that ends in a boss fight says so.** Fell to Hogger, or left the fight, with how
+  long it lasted, the arrows spent, the damage taken and how much the boss had left ("Hogger
+  at 40%"): the last row of the game's boss fights, on My Games and on its page from the high
+  scores.
+
+### For developers
+- Thunderfury: `crafting.items` may be `gear` (made once, into the gear ledger's `crafted`,
+  `Gear::addCrafted`) or `bound` (never sent); `gear.crafted` in config/gear.php;
+  `boss_loot.bindings`, `BossLoot::rollBindings`, `Bags::deposit`; the boss report answers
+  `bindings`. In the game `bosses.thunderfury`, `strikeBoss()` in bossSystem.js,
+  `spellSystem.onArrowsFired`, `classes/LightningBolt.js`; legendary is orange.
+- `planUpheaval()` (`utils/upheaval.js`) times the waves (`markAt`, `sendAt`, `clearAt`) and
+  keeps each clear column within the hunter's reach; `flyStep()` moves what it sends (also in
+  `BossProjectile`). Boss lab `--casual` stands in each clear column, walking at the hunter's
+  speed, and reports "upheaval hits" (none in 26 Upheavals with Hogger and Taragaman).
+- `games.last_fight` (from `bossFight` in the finished game: boss, seconds, bossHealth,
+  arrows, damage, hits; `fightInProgress()` in `bossSystem.js`); `games.last_seen_at` and
+  `games.live` (from `progress` with each chunk request), `Game::live()`, `/live`
+  (`?list=1` for the list alone).
+
 ## 3.0.7 - 2026-10-14
 
 ### Changed

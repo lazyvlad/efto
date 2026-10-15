@@ -16,7 +16,7 @@
     "src": "game/assets/fonts/noto-sans-math.woff2"
   },
   "game/game-modular.js": {
-    "file": "assets/game-modular-hMGwVWOE.js",
+    "file": "assets/game-modular-8mYojUzK.js",
     "name": "game-modular",
     "src": "game/game-modular.js",
     "isEntry": true,
@@ -25,7 +25,7 @@
     ]
   },
   "game/styles/game.css": {
-    "file": "assets/game-vVMQy7Z8.css",
+    "file": "assets/game-7dxPUI_Z.css",
     "src": "game/styles/game.css",
     "isEntry": true,
     "name": "game",
@@ -62,7 +62,7 @@
     "isDynamicEntry": true
   },
   "resources/css/app.css": {
-    "file": "assets/app-D6pL1Lrl.css",
+    "file": "assets/app-eslwIR-x.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",
