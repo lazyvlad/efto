@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.0.16 - 2026-10-15
+
+### Changed
+- **Necklaces sit on the neck**: Hogger's Chewed Collar, Bangalash's Fang, Darkspear Voodoo
+  Charm, White Lion Fang and Shadow Panther Fang were drawn as whole loops across the chest;
+  now only the front cord shows, fitted to each hunter's neckline (the Horde hunter's moved
+  over onto his neck). The Horde bone amulet was already right.
+- **The Bindings of the Windseeker have their own icons**: a matching left and right cuff,
+  in place of Thunderfury's picture.
+
 ## 3.0.15 - 2026-10-15
 
 ### Changed
