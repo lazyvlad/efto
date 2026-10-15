@@ -1,5 +1,33 @@
 # Changelog
 
+## 3.0.13 - 2026-10-15
+
+### What's new
+- **Debug mode for measuring how the game runs**, for the admins: open the game with
+  `?debug=perf` while logged in (it stays on in that browser; `?debug=off` turns it off). A
+  badge in the corner shows the frame rate, and every five seconds of play a summary goes to
+  the site: frames a second, frame times (median, 95th and 99th percentile, worst, how many
+  were slow), how much went to the game's logic, to drawing and to drawing the hunter, what
+  was on screen and happening, and the browser and graphics card. Admin → Performance lists
+  the recordings and each one's samples.
+
+### Changed
+- **Health and arrows under the hunter's feet, in two rows**: a heart, his health bar and his
+  health as a number; then the arrows, his quiver in segments, one for each 50 arrows it
+  holds (8 with the large quiver), and the count. Both fill and empty at a glance, and turn
+  amber, then red, as they run low; the quiver glows when a quarter or less is left.
+
+### Fixed
+- **No more hitches from the mouse**: the game measured where its canvas was on the page on
+  every report from the mouse, which a gaming mouse sends up to a thousand times a second, and
+  each measurement after the page had changed made the browser lay the whole page out again.
+  It is measured once now, and again only when the window is resized or scrolled. Debug mode
+  records the mouse too: reports a second, the most in one frame, and the slow frames with and
+  without one.
+- **Smoother play**: Thunderfury's lightning, the low-quiver glow and the effect icons no
+  longer use canvas blur shadows, which are slow enough in the browser to drop frames, and
+  the gear icons of what falls are fetched before the first one falls.
+
 ## 3.0.12 - 2026-10-15
 
 ### Changed

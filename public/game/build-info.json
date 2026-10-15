@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-15T01:47:47.187Z",
-  "buildTimestamp": 1792028867191,
+  "buildTime": "2026-10-15T02:38:09.856Z",
+  "buildTimestamp": 1792031889873,
   "mode": "production",
-  "gameVersion": "3.0.12",
-  "cacheHash": "pvguu40l",
+  "gameVersion": "3.0.13",
+  "cacheHash": "intbi7t5",
   "fileMap": {
-    "game-modular.js": "game-modular.pvguu40l.js"
+    "game-modular.js": "game-modular.intbi7t5.js"
   },
-  "buildSystemVersion": "3.0.12"
+  "buildSystemVersion": "3.0.13"
 }
