@@ -16,7 +16,7 @@
     "src": "game/assets/fonts/noto-sans-math.woff2"
   },
   "game/game-modular.js": {
-    "file": "assets/game-modular-D6ofHT-C.js",
+    "file": "assets/game-modular-Brsz19kg.js",
     "name": "game-modular",
     "src": "game/game-modular.js",
     "isEntry": true,
@@ -62,7 +62,7 @@
     "isDynamicEntry": true
   },
   "resources/css/app.css": {
-    "file": "assets/app-D-Zc5SaT.css",
+    "file": "assets/app-Bmx9-nql.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",

@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.0.15 - 2026-10-15
+
+### Changed
+- **The admin section is in categories**: Overview, then Players (Accounts, Games), News
+  (What's new, Announcements), Game (Settings) and Tools (Performance), as tabs, with the open
+  category's pages under them; each page's title says where it is ("Players › Accounts"), and
+  the Overview has a guide to every page.
+- **The site's menu is in categories too**: Play, Scores (High Scores, Live, My Games) and
+  Guide (What's new, Items, About). A category opens its first page, and its other pages are
+  tabs under the page's heading; a game's own page counts as High Scores. On phones the menu
+  lists each category with its pages.
+
+### For developers
+- `App\Support\AdminMenu`: the admin's pages by category, for the menu and the Overview; a
+  new page goes in there.
+- `App\Support\SiteMenu`: the same for the players' pages (top bar, tabs, phone menu).
+
 ## 3.0.14 - 2026-10-15
 
 ### Fixed
