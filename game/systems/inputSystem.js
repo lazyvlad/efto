@@ -4,6 +4,35 @@ import { responsiveScaler } from '../utils/gameUtils.js';
 import { gameClock } from '../utils/gameClock.js';
 import { isMouseLockEnabled } from './settingsSystem.js';
 import { actionFor } from '../utils/keybindings.js';
+import { perfProbeOn, noteMouseMove } from '../utils/perfProbe.js';
+
+// Where the canvas is on the page, measured once and kept until the window is resized or
+// scrolled. Asking the page for it is cheap only while nothing on it has changed: otherwise
+// the browser lays the whole page out again there and then. A mouse can report a thousand
+// times a second, several times a frame, and the HUD changes the page every frame: measuring
+// on every report made the game hitch now and then.
+let canvasBox = null;
+function canvasRect(canvas) {
+    if (!canvasBox) canvasBox = canvas.getBoundingClientRect();
+    return canvasBox;
+}
+function forgetCanvasRect() {
+    canvasBox = null;
+}
+if (typeof window !== 'undefined') {
+    window.addEventListener('resize', forgetCanvasRect);
+    window.addEventListener('scroll', forgetCanvasRect, true);
+    window.addEventListener('orientationchange', forgetCanvasRect);
+    // The page may move the canvas without resizing the window (the HUD, a panel opened)
+    if (typeof ResizeObserver !== 'undefined') {
+        const watchCanvas = () => {
+            const canvas = document.getElementById('gameCanvas');
+            if (canvas) new ResizeObserver(forgetCanvasRect).observe(canvas);
+        };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watchCanvas);
+        else watchCanvas();
+    }
+}
 
 // The actions that cast a spell: each is named as its spell (data/playerSpells.js)
 const SPELL_ACTIONS = new Set(['autoshot', 'multishot', 'arcane_shot', 'dragon_cry', 'zandalari']);
@@ -97,7 +126,7 @@ function initializeMouseLock(canvas, gameState, player, showPauseMenu) {
 
 // Convert a mouse/touch position on the page to logical canvas coordinates
 function toCanvasCoords(canvas, clientX, clientY) {
-    const rect = canvas.getBoundingClientRect();
+    const rect = canvasRect(canvas);
     const rawX = clientX - rect.left;
     const rawY = clientY - rect.top;
     
@@ -160,9 +189,10 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
     }
     // Track mouse movement
     canvas.addEventListener('mousemove', (e) => {
+        const startedAt = perfProbeOn() ? performance.now() : 0;
         if (isMouseLocked(canvas)) {
             // A locked mouse has no position, only movement: keep our own, inside the field
-            const rect = canvas.getBoundingClientRect();
+            const rect = canvasRect(canvas);
             // One report of half the field or more is a glitch, not a hand: leave it out
             if (Math.abs(e.movementX) > rect.width / 2 || Math.abs(e.movementY) > rect.height / 2) return;
             const width = canvas.logicalWidth || canvas.width;
@@ -175,6 +205,7 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
             inputState.mouseY = position.y;
         }
         inputState.hasMouseMoved = true;
+        if (startedAt) noteMouseMove(performance.now() - startedAt);
     });
     
     initializeMouseLock(canvas, gameState, player, showPauseMenu);
@@ -184,7 +215,7 @@ export function initializeInputSystem(canvas, gameState, player, restartGame, st
         inputState.isMouseDown = true;
         fallbackAudioInit(); // Try to initialize audio on user interaction
         
-        const rect = canvas.getBoundingClientRect();
+        const rect = canvasRect(canvas);
         const mouseX = e.clientX - rect.left;
         const mouseY = e.clientY - rect.top;
         
