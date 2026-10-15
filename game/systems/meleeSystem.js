@@ -242,6 +242,15 @@ export function updateMelee(context) {
     }
 }
 
+/**
+ * For the swing timer under his feet: the weapon he would swing, how ready the next swing is
+ * (1 ready), and the seconds until it is. Null when he has nothing he can swing.
+ */
+export function meleeTimer() {
+    if (!look) return null;
+    return { weaponId: look.weaponId, ready: melee.readiness(), seconds: melee.cooldown / 1000 };
+}
+
 // Whether he is fighting hand to hand now (and is drawn as such)
 export function meleeShowing() {
     return Boolean(look) && melee.state !== 'ranged';

@@ -48,6 +48,19 @@ test('after a swing he must wait: one-handed 2 seconds, two-handed 3', () => {
     }
 });
 
+test('the swing timer: empty as he swings, full when the next swing is ready', () => {
+    const melee = new MeleeState();
+    assert.equal(melee.readiness(), 1, 'ready before any swing');
+    melee.engage('one');
+    run(melee, 12);
+    melee.attack(2000);
+    assert.ok(melee.readiness() < 0.05);
+    run(melee, 60);
+    assert.ok(Math.abs(melee.readiness() - 0.5) < 0.02, 'half way after a second of two');
+    run(melee, 61);
+    assert.equal(melee.readiness(), 1);
+});
+
 test('with nothing in reach he puts it away', () => {
     const melee = new MeleeState();
     melee.engage('two');

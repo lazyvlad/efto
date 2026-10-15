@@ -13,7 +13,7 @@ import { perfProbeOn, noteHunterDraw } from '../utils/perfProbe.js';
 export const FIGURE_HEIGHT_TO_WIDTH = 1.88;
 // Under the feet, inside the player's box, is room for his health and his quiver, a row each:
 // this much of the box's width, top to bottom.
-const HEALTH_BAR_ROOM = 0.36;
+const HEALTH_BAR_ROOM = 0.48;     // Under his feet: health, arrows, and the swing timer
 
 // Player Class - Encapsulates all player functionality
 export class Player {
@@ -155,12 +155,14 @@ export class Player {
     // red when empty. Without status (a hunter drawn outside a game): the health bar alone.
     drawStatus(ctx, top, room, health, status) {
         const fill = Math.max(0, Math.min(1, health));
-        const rowHeight = Math.max(5, room * 0.2);
-        const gap = Math.max(4, room * 0.24);
+        // Three rows: health, the quiver, and the swing timer
+        const rowHeight = Math.max(5, this.width * 0.072);
+        const gap = Math.max(4, this.width * 0.086);
         const width = this.width * 0.72;
         const x = this.x + (this.width - width) / 2;
-        const firstY = top + (room - rowHeight * 2 - gap) / 2;
+        const firstY = top + (room - rowHeight * 3 - gap * 2) / 2;
         const secondY = firstY + rowHeight + gap;
+        const thirdY = secondY + rowHeight + gap;
         const fontSize = Math.max(11, Math.round(this.width * 0.15));
         const icon = Math.round(fontSize * 1.25);
         const colors = fill <= 0.25 ? ['#ff8a7a', '#8e0c0c', '#ff8a7a'] : fill <= 0.6 ? ['#ffe680', '#b97800', '#ffd56a'] : ['#7dfa7d', '#0c7a0c', '#a8f5a8'];
@@ -236,10 +238,38 @@ export class Player {
             }
             number(String(count), secondY + rowHeight / 2, count <= 0 ? '#ff7a6a' : low ? '#ffc85a' : '#f4ecd8');
         }
+
+        // The swing timer: his weapon, and a bar that fills as his next swing comes ready; full,
+        // it glows. Step in to strike when it is, and away while it fills again.
+        const melee = status && status.melee;
+        if (melee) {
+            const ready = melee.ready >= 1;
+            const weaponPicture = melee.icon ? assetManager.getImage(melee.icon) : null;
+            if (weaponPicture && weaponPicture.complete && weaponPicture.naturalWidth) {
+                ctx.drawImage(weaponPicture, x - icon - 2, thirdY + rowHeight / 2 - icon / 2, icon, icon);
+            }
+            ctx.fillStyle = 'rgba(12, 9, 6, 0.9)';
+            ctx.fillRect(x - 1, thirdY - 1, width + 2, rowHeight + 2);
+            if (ready) {
+                const glow = 0.45 + 0.35 * Math.sin(performance.now() / 180);
+                ctx.strokeStyle = `rgba(150, 215, 255, ${glow})`;
+                ctx.lineWidth = 4;
+                ctx.strokeRect(x - 3, thirdY - 3, width + 6, rowHeight + 6);
+            }
+            ctx.strokeStyle = ready ? '#9fd8ff' : '#5d6b7a';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x - 1.5, thirdY - 1.5, width + 3, rowHeight + 3);
+            const swingGradient = ctx.createLinearGradient(0, thirdY, 0, thirdY + rowHeight);
+            swingGradient.addColorStop(0, ready ? '#e8f6ff' : '#b8c6d4');
+            swingGradient.addColorStop(1, ready ? '#5aa9e6' : '#55606c');
+            ctx.fillStyle = swingGradient;
+            ctx.fillRect(x, thirdY, width * Math.max(0, Math.min(1, melee.ready)), rowHeight);
+            number(ready ? 'READY' : `${melee.seconds.toFixed(1)}s`, thirdY + rowHeight / 2, ready ? '#9fd8ff' : '#c9d3dc');
+        }
         ctx.restore();
 
         // What is eating at his health is named under the rows (drawn as before)
-        this.drawDebuffs(ctx, x, width, (status ? secondY : firstY) + rowHeight);
+        this.drawDebuffs(ctx, x, width, (melee ? thirdY : status ? secondY : firstY) + rowHeight);
     }
 
     // What is eating at his health without anything hitting him (a curse, a shadowbolt's burn),

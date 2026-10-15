@@ -2,6 +2,16 @@ import { gameConfig } from '../config/gameConfig.js';
 import { renderCanvasHud, hideMessagesAboveField } from './hudNotificationSystem.js';
 import { drawBoss } from './bossSystem.js';
 import { drawCreatures } from './creatureSystem.js';
+import { meleeTimer } from './meleeSystem.js';
+import { gearCatalog } from '../data/wearables.js';
+
+// The swing timer under his feet: how ready his next swing is, with his weapon's picture
+function meleeStatus() {
+    const timer = meleeTimer();
+    if (!timer) return null;
+    const weapon = gearCatalog()[timer.weaponId];
+    return { ...timer, icon: weapon ? weapon.image : null };
+}
 import { planHud, applyHud } from '../ui/hudLayout.js';
 
 // The drawSettings function has been removed as it's replaced by HTML+CSS guide.
@@ -163,7 +173,7 @@ function renderGame({
     window.arrows.forEach(arrow => drawEntity(arrow));
     combatTexts.forEach(text => drawEntity(text));
     player.draw(ctx, gameState.shieldActive ? Math.max(1, gameState.shieldTimer) : 0, gameState.health / gameState.maxHealth,
-        { health: gameState.health, arrows: gameState.arrowCount, capacity: gameState.quiverCapacity, slotSize: gameConfig.quiver.slotSize });
+        { health: gameState.health, arrows: gameState.arrowCount, capacity: gameState.quiverCapacity, slotSize: gameConfig.quiver.slotSize, melee: meleeStatus() });
     
     // Update DOM-based items panel (throttled for performance)
     // Only update every 10 frames to reduce DOM manipulation overhead

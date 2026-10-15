@@ -123,6 +123,12 @@ export class MeleeState {
         this.landed = false;
         this.swings = 0;
         this.queued = 0;            // A swing asked for while he was taking the weapon in hand
+        this.cooldownTotal = 0;
+    }
+
+    // How far the next swing is from ready: 1 ready, 0 just swung
+    readiness() {
+        return this.cooldownTotal > 0 ? 1 - this.cooldown / this.cooldownTotal : 1;
     }
 
     // Something is in reach: take the weapon in hand (one-handed or two)
@@ -142,6 +148,7 @@ export class MeleeState {
         }
         if (this.state !== 'guard' || this.cooldown > 0) return false;
         this.cooldown = cooldownMs;
+        this.cooldownTotal = cooldownMs;
         this.set('attack');
         this.landed = false;
         this.swings++;
