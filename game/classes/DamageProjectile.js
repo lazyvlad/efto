@@ -271,26 +271,9 @@ export class DamageProjectile extends FallingObject {
             glowBlur = 0; // Bordered projectiles don't get an image glow
         }
         
-        // Draw colored border for projectiles with variable values
-        // Calculate correct offset to match image positioning
-        const offsetX = (drawWidth - this.width) / 2;
-        const offsetY = (drawHeight - this.height) / 2;
-        
-        const effectBorderColor =
-            (this.data.effects === "speed_increase" && this.speedIncreasePercent) ? '#FF0000' :
-            (this.data.effects === "freeze_time" && this.freezeDuration) ? '#87CEEB' :
-            (this.data.effects === "shield" && this.shieldDuration) ? '#FFD700' : null;
-        
-        if (effectBorderColor) {
-            ctx.strokeStyle = effectBorderColor;
-            ctx.lineWidth = 3;
-            ctx.shadowColor = effectBorderColor;
-            ctx.shadowBlur = 8;
-            ctx.strokeRect(this.x - offsetX - borderPadding, this.y - offsetY - borderPadding, drawWidth + (borderPadding * 2), drawHeight + (borderPadding * 2));
-            ctx.shadowBlur = 0; // Reset shadow
-            glowBlur = 0; // Bordered projectiles don't get an image glow
-        }
-        
+        // The helpful spells that fall (Frost Nova, Power Word: Shield, the speed boost) are
+        // drawn as they are, with the glow every helpful thing has: no square frame round them
+
         // Use the specific projectile image from AssetManager
         if (this.projectileImage && this.projectileImage.complete && this.projectileImage.naturalWidth > 0) {
             // Center the pulsating image and apply smooth rendering
