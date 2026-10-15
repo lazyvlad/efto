@@ -1140,7 +1140,8 @@ function saveEquipment() {
         setSideOf('bound', side, bound);
     }
     try {
-        localStorage.setItem(`${EQUIPMENT_KEY}_${side}`, JSON.stringify(gameState.equipment));
+        // A guest's outfit is kept in this browser; an account's on the site only
+        if (!(siteBoot && siteBoot.user)) localStorage.setItem(`${EQUIPMENT_KEY}_${side}`, JSON.stringify(gameState.equipment));
         localStorage.setItem(WORN_SET_KEY, gameState.wornSet);
     } catch (e) {
         // Storage unavailable: worn for this game
@@ -1176,6 +1177,23 @@ function saveEquipment() {
 // hidden when it is put on again.
 const HIDDEN_KEY = 'input_hidden_gear';
 
+// What a guest wears and hides is kept in this browser. Older versions kept an account's
+// there too, and a guest playing in the same browser afterwards was dressed and hidden as the
+// account was: logged in, those copies are forgotten.
+function forgetGuestLooks() {
+    if (!(siteBoot && siteBoot.user)) return;
+    try {
+        for (const side of ['alliance', 'horde']) {
+            localStorage.removeItem(`${EQUIPMENT_KEY}_${side}`);
+            localStorage.removeItem(`${HIDDEN_KEY}_${side}`);
+        }
+        localStorage.removeItem(EQUIPMENT_KEY);
+    } catch (e) {
+        // Storage unavailable: nothing kept to forget
+    }
+}
+forgetGuestLooks();
+
 function hiddenGear(side = currentSide()) {
     const account = siteBoot && siteBoot.user && siteBoot.user.hidden;
     if (account) return new Set(account[side] || []);
@@ -1193,10 +1211,13 @@ function setHidden(itemId, hide) {
     if (siteBoot && siteBoot.user) {
         siteBoot.user.hidden = { alliance: [], horde: [], ...(siteBoot.user.hidden || {}), [side]: [...hidden] };
     }
-    try {
-        localStorage.setItem(`${HIDDEN_KEY}_${side}`, JSON.stringify([...hidden]));
-    } catch (e) {
-        // Storage unavailable: hidden for now
+    // A guest's is kept in this browser; an account's on the site only (see forgetGuestLooks)
+    if (!(siteBoot && siteBoot.user)) {
+        try {
+            localStorage.setItem(`${HIDDEN_KEY}_${side}`, JSON.stringify([...hidden]));
+        } catch (e) {
+            // Storage unavailable: hidden for now
+        }
     }
     dressHunter();
     saveEquipment();
