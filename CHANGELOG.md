@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.0.14 - 2026-10-15
+
+### Fixed
+- **Debug mode can be turned on from the home page**: `?debug=perf` (and `?debug=off`) on the
+  site's home page is passed on to the game in its frame; it only worked on /play before.
+
 ## 3.0.13 - 2026-10-15
 
 ### What's new
