@@ -150,7 +150,9 @@ export async function meleePlates(side, equipment, art) {
     const still = Object.fromEntries(Object.entries(worn).filter(([, itemId]) => !art.moving(hunterArt.aliases[itemId] || itemId)));
     // What he wears that does not move, and the torso parts of what does, in their order
     const bodyLayers = [
-        ...layersFor(side, still).filter(part => part.order >= 0).map(part => ({ path: part.layer, order: part.order })),
+        // A piece may have a picture of its own for melee, whole under the moving arms (the
+        // standing one leaves room for the open hand)
+        ...layersFor(side, still).filter(part => part.order >= 0).map(part => ({ path: part.meleeLayer || part.layer, order: part.order })),
         ...art.torso,
     ].sort((a, b) => a.order - b.order);
     const frontLayers = [...art.front].sort((a, b) => a.order - b.order);
