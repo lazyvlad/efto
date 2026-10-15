@@ -544,10 +544,11 @@ export const gameConfig = {
         // dazed, attacks slower for a while (as the blade's Thunderclap slows in World of
         // Warcraft). A shield takes the lightning's damage, not the daze.
         thunderfury: {
-            chance: 0.12,           // Each time arrows are loosed
-            cooldown: 2,            // Seconds before it can strike again
-            targets: 3,             // Harmful things it strikes at most
-            bossDamage: 60,         // What it does to a boss, past its armor
+            // A legendary: it strikes often, about every second and a half while firing
+            chance: 0.35,           // Each time arrows are loosed
+            cooldown: 0.8,          // Seconds before it can strike again
+            targets: 4,             // Harmful things it strikes at most
+            bossDamage: 20,         // What it does to a boss, past its armor
             slow: 0.6,              // How fast a dazed boss attacks (1 = as ever)
             slowSeconds: 4,
         },
