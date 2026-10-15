@@ -262,6 +262,25 @@
     .side-dot[data-side="alliance"] { background: #4a86e8; }
     .side-dot[data-side="horde"] { background: #d8392b; }
 
+    /* The admin section's categories, at the top of every admin page */
+    .admin-category {
+        padding: 0.35rem 0.85rem;
+        color: theme('colors.gray.600');
+        border: 1px solid theme('colors.gray.200');
+        border-radius: 0.375rem;
+    }
+
+    .admin-category:hover {
+        color: theme('colors.gray.800');
+        border-color: theme('colors.gray.300');
+    }
+
+    .admin-category.is-on {
+        color: theme('colors.gray.900');
+        border-color: theme('colors.indigo.500');
+        box-shadow: 0 0 0 1px theme('colors.indigo.500');
+    }
+
     /* My Games: whose games are shown, the Alliance or the Horde hunter's */
     .hunter-switch {
         display: flex;

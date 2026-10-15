@@ -47,6 +47,23 @@
                 @endforeach
             </div>
 
+            {{-- The sections of the admin, by category (App\Support\AdminMenu) --}}
+            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                @foreach (\App\Support\AdminMenu::categories() as $category)
+                    <div class="bg-white shadow sm:rounded-lg p-4 sm:p-5">
+                        <h3 class="text-lg text-gray-900 mb-2">{{ $category['label'] }}</h3>
+                        <ul class="space-y-2 text-sm">
+                            @foreach ($category['pages'] as $page)
+                                <li>
+                                    <a href="{{ route($page['route']) }}" class="underline text-indigo-600 hover:text-indigo-700">{{ $page['label'] }}</a>
+                                    <span class="block text-gray-500">{{ $page['about'] }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endforeach
+            </div>
+
             <div class="bg-white shadow sm:rounded-lg overflow-hidden">
                 <div class="flex items-baseline justify-between px-4 sm:px-6 pt-4 sm:pt-6">
                     <h3 class="text-lg text-gray-900">{{ __('Latest games') }}</h3>

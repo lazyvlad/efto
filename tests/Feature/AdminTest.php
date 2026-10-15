@@ -239,6 +239,25 @@ class AdminTest extends TestCase
             ->assertSee('Unlock everything for both');
     }
 
+    public function test_the_admin_menu_is_in_categories_and_every_page_in_it_opens(): void
+    {
+        $admin = $this->admin();
+        $this->actingAs($admin);
+
+        foreach (\App\Support\AdminMenu::categories() as $category) {
+            foreach ($category['pages'] as $page) {
+                // Each opens, showing which category it is in
+                $this->get(route($page['route']))->assertOk()->assertSee($category['label'].' ›', false);
+            }
+        }
+
+        // The Overview: the categories as tabs, and a guide to every page
+        $response = $this->get(route('admin.dashboard'))->assertOk()->assertSeeInOrder(['Overview', 'Players', 'News', 'Game', 'Tools']);
+        $response->assertSee('recordings: how the game ran')->assertSee(route('admin.perf.index'), false);
+        // A category with more than one page lists them under the tabs
+        $this->get(route('admin.users.index'))->assertSee(route('admin.games.index'), false);
+    }
+
     public function test_unlocking_is_for_admins_only(): void
     {
         $player = User::factory()->create();
