@@ -21,7 +21,7 @@ import { stacksOf, slotsUsed, roomFor as roomInBags } from '../utils/bags.js';
 import { craftedById, canMake } from '../data/crafting.js';
 import { formatCoins } from '../utils/coins.js';
 import { wearableById } from '../data/wearables.js';
-import { itemStats } from '../utils/gear.js';
+import { itemStats, groupByKind } from '../utils/gear.js';
 
 let game = null;        // What the game gave when it set the inventory up
 let tab = 'bags';
@@ -597,10 +597,14 @@ function renderGear(main, side, state) {
 
     // Between games gear is picked (pressed, or Shift for a run of it) and moved to the other
     // list in one go, from the bar over the lists or by dragging it across with a mouse
+    // Each list grouped by kind (head, chest, rings, weapons...), in the character sheet's order;
+    // its entries in that order too, so a run picked with Shift is the run that is seen
+    const grouped = entries => groupByKind(entries);
     const lists = [
-        { key: 'carried', title: 'With your hunter', label: `${carried.size} of ${state.carryLimit}`, entries: owned.filter(entry => carried.has(entry.item.id)) },
-        { key: 'bank', title: 'In the bank', label: '', entries: owned.filter(entry => !carried.has(entry.item.id)) },
+        { key: 'carried', title: 'With your hunter', label: `${carried.size} of ${state.carryLimit}`, groups: grouped(owned.filter(entry => carried.has(entry.item.id))) },
+        { key: 'bank', title: 'In the bank', label: '', groups: grouped(owned.filter(entry => !carried.has(entry.item.id))) },
     ];
+    for (const list of lists) list.entries = list.groups.flatMap(group => group.entries);
     if (!state.playing) main.append(pickBar(lists, state));
 
     const columns = make('div', 'inventory-gear-columns');
@@ -623,7 +627,12 @@ function renderGear(main, side, state) {
 
         const rows = make('div', 'inventory-list');
         if (list.entries.length === 0) rows.append(make('p', 'inventory-text', list.key === 'bank' ? 'Nothing: your hunter carries all you own.' : 'Nothing yet.'));
-        for (const entry of list.entries) rows.append(gearRow(entry, state, carried, full, list));
+        for (const group of list.groups) {
+            const heading = make('div', 'inventory-group-heading');
+            heading.append(make('span', '', group.label), make('span', 'inventory-group-count', String(group.entries.length)));
+            rows.append(heading);
+            for (const entry of group.entries) rows.append(gearRow(entry, state, carried, full, list));
+        }
         box.append(rows);
         columns.append(box);
     }

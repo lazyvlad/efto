@@ -227,9 +227,45 @@ function drawCard(ctx, { x, y, width, height, borderColor, fillAlpha = 0.9 }) {
     ctx.restore();
 }
 
+// Whether a picture is cut out (its corners see-through), as a shield or a frost crystal is,
+// rather than a square painting; worked out once for each picture
+const cutOut = new Map();
+function isCutOut(image) {
+    if (!cutOut.has(image)) {
+        let answer = false;
+        try {
+            const probe = document.createElement('canvas');
+            probe.width = probe.height = 8;
+            const context = probe.getContext('2d', { willReadFrequently: true });
+            context.drawImage(image, 0, 0, 8, 8);
+            const corners = [[0, 0], [7, 0], [0, 7], [7, 7]].map(([cx, cy]) => context.getImageData(cx, cy, 1, 1).data[3]);
+            answer = Math.max(...corners) < 24;
+        } catch (e) {
+            // Unreadable: drawn in its frame
+        }
+        cutOut.set(image, answer);
+    }
+    return cutOut.get(image);
+}
+
 function drawIcon(ctx, src, x, y, size, borderColor) {
     const image = getIconImage(src);
     if (!image) return false;
+
+    // A cut-out picture stands on its own, with a soft shadow to lift it off the card; only a
+    // square painting gets the dark tile and the coloured frame
+    if (isCutOut(image)) {
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetY = 1;
+        const scale = Math.min(size / image.naturalWidth, size / image.naturalHeight) || 1;
+        const width = image.naturalWidth * scale;
+        const height = image.naturalHeight * scale;
+        ctx.drawImage(image, x + (size - width) / 2, y + (size - height) / 2, width, height);
+        ctx.restore();
+        return true;
+    }
 
     ctx.save();
 

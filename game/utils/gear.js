@@ -59,6 +59,57 @@ export function slotsFor(item) {
     return (item && WORN_IN[item.slot]) || [];
 }
 
+// The kinds of gear, in the order the character sheet has them, for lists grouped by what a
+// thing is: what it is worn on, rings and trinkets together, and weapons by how they are held
+const GROUPS = [
+    { key: 'head', label: 'Head', slots: ['head'] },
+    { key: 'neck', label: 'Neck', slots: ['neck'] },
+    { key: 'shoulders', label: 'Shoulders', slots: ['shoulders'] },
+    { key: 'back', label: 'Back', slots: ['back'] },
+    { key: 'chest', label: 'Chest', slots: ['chest'] },
+    { key: 'shirt', label: 'Shirt', slots: ['shirt'] },
+    { key: 'tabard', label: 'Tabard', slots: ['tabard'] },
+    { key: 'wrist', label: 'Wrist', slots: ['bracers'] },
+    { key: 'hands', label: 'Hands', slots: ['hands'] },
+    { key: 'waist', label: 'Waist', slots: ['belt'] },
+    { key: 'legs', label: 'Legs', slots: ['legs'] },
+    { key: 'feet', label: 'Feet', slots: ['boots'] },
+    { key: 'rings', label: 'Rings', slots: ['ring'] },
+    { key: 'trinkets', label: 'Trinkets', slots: ['trinket'] },
+    { key: 'two-handed', label: 'Two-handed weapons', slots: [] },
+    { key: 'mainhand', label: 'One-handed weapons', slots: ['mainhand'] },
+    { key: 'offhand', label: 'Off hand', slots: ['offhand'] },
+    { key: 'ranged', label: 'Ranged', slots: ['ranged'] },
+    { key: 'quiver', label: 'Quivers', slots: ['quiver'] },
+];
+const OTHER = { key: 'other', label: 'Other', slots: [] };
+
+/**
+ * The kind of gear an item is, for grouping a list: { key, label, order }.
+ */
+export function gearGroup(item) {
+    const index = item && item.twoHanded
+        ? GROUPS.findIndex(group => group.key === 'two-handed')
+        : GROUPS.findIndex(group => item && group.slots.includes(item.slot));
+    return index === -1 ? { ...OTHER, order: GROUPS.length } : { ...GROUPS[index], order: index };
+}
+
+/**
+ * Items (or anything holding one as .item) in groups by kind, in the sheet's order, each
+ * group by name: [{ key, label, entries }].
+ */
+export function groupByKind(entries, itemOf = entry => entry.item) {
+    const groups = new Map();
+    const sorted = [...entries].sort((a, b) => gearGroup(itemOf(a)).order - gearGroup(itemOf(b)).order
+        || (itemOf(a).name || '').localeCompare(itemOf(b).name || ''));
+    for (const entry of sorted) {
+        const group = gearGroup(itemOf(entry));
+        if (!groups.has(group.key)) groups.set(group.key, { key: group.key, label: group.label, entries: [] });
+        groups.get(group.key).entries.push(entry);
+    }
+    return [...groups.values()];
+}
+
 // Whether the item fits the slot
 export function fits(item, slotId) {
     return slotsFor(item).includes(slotId);

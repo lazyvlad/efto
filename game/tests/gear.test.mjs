@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 
 // Loaded through a data: URL, as in gameClock.test.mjs
 const source = await readFile(new URL('../utils/gear.js', import.meta.url));
-const { SLOTS, slotsFor, fits, itemsForSlot, validEquipment, equip, equipSet, setsWorn, mainSet, gearTotals, itemStats, carriedOf, fitsCarried } =
+const { SLOTS, slotsFor, fits, itemsForSlot, validEquipment, equip, equipSet, setsWorn, mainSet, gearTotals, itemStats, carriedOf, fitsCarried, gearGroup, groupByKind } =
     await import(`data:text/javascript;base64,${source.toString('base64')}`);
 
 const sets = [
@@ -167,4 +167,22 @@ test('a weapon held in both hands leaves the off hand empty', () => {
     assert.deepEqual(equip({ mainhand: 'sword' }, 'offhand', weapons[2], weapons), { mainhand: 'sword', offhand: 'shiv' });
     // Saved or sent with both, the off hand goes
     assert.deepEqual(validEquipment({ mainhand: 'axe', offhand: 'shiv' }, weapons, all), { mainhand: 'axe' });
+});
+
+test('gear is grouped by kind, in the character sheet\'s order, each kind by name', () => {
+    const items = [
+        { id: 'axe', name: 'Axe', slot: 'mainhand', twoHanded: true },
+        { id: 'ring-b', name: 'Band B', slot: 'ring' },
+        { id: 'helm', name: 'Helm', slot: 'head' },
+        { id: 'dagger', name: 'Dagger', slot: 'mainhand' },
+        { id: 'ring-a', name: 'Band A', slot: 'ring' },
+        { id: 'quiver', name: 'Quiver', slot: 'quiver' },
+        { id: 'odd', name: 'Odd', slot: 'nose' },
+    ].map(item => ({ item }));
+
+    const groups = groupByKind(items);
+    assert.deepEqual(groups.map(group => group.label), ['Head', 'Rings', 'Two-handed weapons', 'One-handed weapons', 'Quivers', 'Other']);
+    assert.deepEqual(groups[1].entries.map(entry => entry.item.id), ['ring-a', 'ring-b']);
+    assert.equal(gearGroup({ slot: 'belt' }).label, 'Waist');
+    assert.equal(gearGroup({ slot: 'mainhand', twoHanded: true }).key, 'two-handed');
 });
