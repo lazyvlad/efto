@@ -61,30 +61,33 @@ return [
         'big-bad-pauldrons' => 'shoulders', 'ripsaw' => 'mainhand', 'jangthraze-the-protector' => 'mainhand',
     ],
 
-    // What a boss's item gives, before its zone is counted. Each number grows by "per_zone"
-    // of itself for every zone past the first (the tenth boss: 3.25 times these).
-    'budget' => [
-        'per_zone' => 0.25,
-        // By what kind of slot it is worn in, then by rarity
-        'weapon' => [
-            'uncommon' => ['attackPower' => 2],
-            'rare' => ['attackPower' => 3],
-            'epic' => ['attackPower' => 5, 'crit' => 1],
+    /*
+     * Item levels, as World of Warcraft has them: what a piece of gear gives comes from its
+     * item level and the kind of slot it is worn in, never from its rarity, so two items of
+     * the same level and kind are as strong as each other. A boss's item is of its zone's
+     * level, one step up for each step of rarity: a zone's green, the zone before's blue and
+     * the one before that's purple are all of a level. What falls in a game, and what is
+     * made, says its level ("item_level" below and under "crafted").
+     */
+    'item_levels' => [
+        'first_zone' => 10,         // The first zone's green
+        'per_zone' => 5,            // Each zone further in, and each step of rarity
+        'rarity_steps' => ['common' => -1, 'uncommon' => 0, 'rare' => 1, 'epic' => 2],
+        // The clothes the hunters start in (their stats are their own)
+        'starter' => 5,
+        // Stat points an item has for each item level, by the kind of slot it is worn in
+        'points_per_level' => ['weapon' => 0.2, 'armor' => 0.25, 'jewelry' => 0.2],
+        // What a point of each stat costs
+        'cost' => ['attackPower' => 1, 'armor' => 0.5, 'health' => 0.5, 'crit' => 3, 'dodge' => 3, 'carrying' => 0.5],
+        // How each kind spends its points, as shares, unless the item says otherwise ("mix")
+        'mix' => [
+            'weapon' => ['attackPower' => 1],
+            'armor' => ['armor' => 0.6, 'health' => 0.4],
+            'jewelry' => ['health' => 0.5, 'attackPower' => 0.5],
+            'trinket' => ['health' => 0.4, 'attackPower' => 0.4, 'carrying' => 0.2],
         ],
-        'armor' => [
-            'uncommon' => ['armor' => 3, 'health' => 2],
-            'rare' => ['armor' => 4, 'health' => 3],
-            'epic' => ['armor' => 6, 'health' => 5],
-        ],
-        'jewelry' => [
-            'uncommon' => ['health' => 3],
-            'rare' => ['health' => 3, 'attackPower' => 1],
-            'epic' => ['health' => 4, 'attackPower' => 3],
-        ],
-        // Never scaled by zone: a point of crit is a point of crit
-        'flat' => ['crit', 'dodge', 'carrying'],
-        // Carrying, on rare items and on epic trinkets: by how far in the boss stands
-        'carrying' => ['until_zone_3' => 1, 'until_zone_7' => 2, 'after' => 3],
+        // A weapon of this level or more spends 3 of its points on +1% crit
+        'weapon_crit_from' => 40,
     ],
 
     // What a boss's item sells for, in copper, for each zone its boss guards
@@ -107,31 +110,32 @@ return [
             'name' => 'Thunderfury, Blessed Blade of the Windseeker',
             'slot' => 'mainhand',
             'rarity' => 'legendary',
-            'stats' => ['attackPower' => 22, 'crit' => 2],
+            'item_level' => 80,
             'effect' => 'chain-lightning',
         ],
     ],
 
     'drops' => [
-        'ashkandi2' => ['slot' => 'mainhand', 'stats' => ['attackPower' => 17]],
-        'brutality_blade' => ['slot' => 'mainhand', 'stats' => ['attackPower' => 9, 'crit' => 1]],
-        'maladath' => ['slot' => 'mainhand', 'stats' => ['attackPower' => 8, 'dodge' => 1]],
-        'crulshorukh' => ['slot' => 'mainhand', 'stats' => ['attackPower' => 15, 'crit' => 1]],
-        'dalrends' => ['slot' => 'offhand', 'stats' => ['attackPower' => 7, 'crit' => 1]],
-        'ashjrethul' => ['slot' => 'ranged', 'stats' => ['attackPower' => 14, 'crit' => 1]],
-        'quick-strike-ring' => ['slot' => 'ring', 'stats' => ['attackPower' => 5, 'crit' => 1]],
-        'circle-of-applied-force' => ['slot' => 'ring', 'stats' => ['attackPower' => 5, 'health' => 4]],
-        'drakefangtalisman' => ['slot' => 'trinket', 'stats' => ['attackPower' => 6, 'dodge' => 1, 'carrying' => 2]],
-        'onslaught' => ['slot' => 'belt', 'stats' => ['attackPower' => 6, 'health' => 5]],
+        // Their item level, and how they spend it where they differ from their kind ("mix")
+        'ashkandi2' => ['slot' => 'mainhand', 'item_level' => 55],
+        'crulshorukh' => ['slot' => 'mainhand', 'item_level' => 50],
+        'brutality_blade' => ['slot' => 'mainhand', 'item_level' => 45],
+        'maladath' => ['slot' => 'mainhand', 'item_level' => 45, 'mix' => ['attackPower' => 0.7, 'dodge' => 0.3]],
+        'dalrends' => ['slot' => 'offhand', 'item_level' => 45],
+        'ashjrethul' => ['slot' => 'ranged', 'item_level' => 55],
+        'quick-strike-ring' => ['slot' => 'ring', 'item_level' => 40, 'mix' => ['attackPower' => 0.6, 'crit' => 0.4]],
+        'circle-of-applied-force' => ['slot' => 'ring', 'item_level' => 40],
+        'drakefangtalisman' => ['slot' => 'trinket', 'item_level' => 50, 'mix' => ['attackPower' => 0.5, 'dodge' => 0.3, 'carrying' => 0.2]],
+        'onslaught' => ['slot' => 'belt', 'item_level' => 45, 'mix' => ['attackPower' => 0.5, 'health' => 0.5]],
         // The plain things that fall often, kept and worn since the hunters are drawn wearing
         // them: a few capes, a walking stick held in both hands, two simple rings
-        'miners-cape' => ['slot' => 'back', 'rarity' => 'common', 'stats' => ['armor' => 2]],
-        'wolf-master' => ['slot' => 'back', 'rarity' => 'common', 'stats' => ['armor' => 3, 'health' => 1]],
-        'cape21' => ['slot' => 'back', 'rarity' => 'common', 'stats' => ['armor' => 3]],
-        'cape05' => ['slot' => 'back', 'rarity' => 'common', 'stats' => ['armor' => 2, 'health' => 2]],
-        'walking-stick' => ['slot' => 'mainhand', 'rarity' => 'common', 'stats' => ['attackPower' => 3]],
-        'ring1' => ['slot' => 'ring', 'rarity' => 'common', 'stats' => ['health' => 2]],
-        'ring2' => ['slot' => 'ring', 'rarity' => 'common', 'stats' => ['armor' => 2]],
+        'miners-cape' => ['slot' => 'back', 'rarity' => 'common', 'item_level' => 6, 'mix' => ['armor' => 1]],
+        'wolf-master' => ['slot' => 'back', 'rarity' => 'common', 'item_level' => 8],
+        'cape21' => ['slot' => 'back', 'rarity' => 'common', 'item_level' => 8, 'mix' => ['armor' => 1]],
+        'cape05' => ['slot' => 'back', 'rarity' => 'common', 'item_level' => 8],
+        'walking-stick' => ['slot' => 'mainhand', 'rarity' => 'common', 'item_level' => 8],
+        'ring1' => ['slot' => 'ring', 'rarity' => 'common', 'item_level' => 8, 'mix' => ['health' => 1]],
+        'ring2' => ['slot' => 'ring', 'rarity' => 'common', 'item_level' => 8, 'mix' => ['armor' => 1]],
     ],
 
     /*

@@ -105,13 +105,15 @@ class Gear
                         continue;
                     }
 
+                    $level = self::bossItemLevel($zone, $rarity);
                     $catalog[$item['id']] = [
                         'name' => $item['name'],
                         // Its own picture, or else its boss's stands for it
                         'image' => self::iconOf($item['id']) ?? $boss['image'],
                         'slot' => $slot,
                         'rarity' => $rarity,
-                        'stats' => self::bossItemStats($slot, $rarity, $zone, self::isTwoHanded($item['id'])),
+                        'itemLevel' => $level,
+                        'stats' => self::statsFor($slot, $level, self::isTwoHanded($item['id'])),
                         'twoHanded' => self::isTwoHanded($item['id']),
                         'value' => (int) config("gear.boss_value_per_zone.$rarity") * $zone,
                         'from' => $boss['name'],
@@ -130,7 +132,8 @@ class Gear
                 'image' => $items[$itemId]['image'],
                 'slot' => $drop['slot'],
                 'rarity' => $drop['rarity'] ?? 'epic',
-                'stats' => $drop['stats'],
+                'itemLevel' => $drop['item_level'],
+                'stats' => self::statsFor($drop['slot'], $drop['item_level'], self::isTwoHanded($itemId), $drop['mix'] ?? null),
                 'twoHanded' => self::isTwoHanded($itemId),
                 'value' => (int) config("loot.coins.$type"),
                 'from' => 'Falls in a game',
@@ -145,7 +148,8 @@ class Gear
                 'image' => self::iconOf($itemId) ?? config("crafting.items.$itemId.image"),
                 'slot' => $made['slot'],
                 'rarity' => $made['rarity'],
-                'stats' => $made['stats'],
+                'itemLevel' => $made['item_level'],
+                'stats' => self::statsFor($made['slot'], $made['item_level'], self::isTwoHanded($itemId), $made['mix'] ?? null),
                 'twoHanded' => self::isTwoHanded($itemId),
                 'value' => 0,
                 'from' => 'Crafted',
@@ -161,6 +165,7 @@ class Gear
             'image' => self::iconOf(self::LARGE_QUIVER) ?? 'assets/powerups/thorium-arrows.webp',
             'slot' => 'quiver',
             'rarity' => 'epic',
+            'itemLevel' => null,
             'stats' => [],
             'twoHanded' => false,
             'value' => 0,
@@ -177,6 +182,7 @@ class Gear
                     'image' => self::iconOf($piece['id']) ?? 'assets/items/gear/'.$piece['id'].'.webp',
                     'slot' => $piece['slot'],
                     'rarity' => 'common',
+                    'itemLevel' => (int) config('gear.item_levels.starter'),
                     'stats' => $piece['stats'],
                     'twoHanded' => false,
                     'value' => 0,
@@ -343,29 +349,54 @@ class Gear
     }
 
     /**
-     * What a boss's item gives: the budget of its kind and rarity, grown by its boss's zone.
+     * The item level of a boss's item: its zone's, one step up for each step of rarity
+     * (config/gear.php, item_levels).
+     */
+    public static function bossItemLevel(int $zone, string $rarity): int
+    {
+        $levels = config('gear.item_levels');
+
+        return $levels['first_zone'] + $levels['per_zone'] * ($zone - 1 + ($levels['rarity_steps'][$rarity] ?? 0));
+    }
+
+    /**
+     * What an item gives, from its item level and the kind of slot it is worn in: so many
+     * stat points for each level, spent on its stats by its mix (its own, or its kind's). Held
+     * in both hands it has more, for the off hand it keeps empty. A weapon of a high enough
+     * level spends some on crit. Rarity plays no part: two items of a level and kind are as
+     * strong as each other.
      *
+     * @param  array<string, float>|null  $mix  Shares of the points, by stat
      * @return array<string, int>
      */
-    private static function bossItemStats(string $slot, string $rarity, int $zone, bool $twoHanded = false): array
+    public static function statsFor(string $slot, int $level, bool $twoHanded = false, ?array $mix = null): array
     {
-        $budget = config('gear.budget');
+        $rules = config('gear.item_levels');
         $kind = self::KIND[$slot] ?? 'armor';
-        // Held in both hands it gives more, for the off hand it keeps empty
-        $growth = (1 + ($zone - 1) * $budget['per_zone']) * ($twoHanded ? (float) config('gear.two_handed_factor') : 1);
+        $points = $level * $rules['points_per_level'][$kind] * ($twoHanded ? (float) config('gear.two_handed_factor') : 1);
 
         $stats = [];
-        foreach ($budget[$kind][$rarity] as $stat => $amount) {
-            $stats[$stat] = in_array($stat, $budget['flat'], true) ? $amount : (int) round($amount * $growth);
+        if ($mix === null && $kind === 'weapon' && $level >= $rules['weapon_crit_from']) {
+            $stats['crit'] = 1;
+            $points -= $rules['cost']['crit'];
         }
-
-        // Rare items, and epic trinkets, help with carrying
-        if ($rarity === 'rare' || ($rarity === 'epic' && $slot === 'trinket')) {
-            $stats['carrying'] = $zone <= 3 ? $budget['carrying']['until_zone_3']
-                : ($zone <= 7 ? $budget['carrying']['until_zone_7'] : $budget['carrying']['after']);
+        $mix ??= $rules['mix'][$slot === 'trinket' ? 'trinket' : $kind];
+        foreach ($mix as $stat => $share) {
+            $amount = (int) round($points * $share / $rules['cost'][$stat]);
+            if ($amount > 0) {
+                $stats[$stat] = $amount;
+            }
         }
 
         return $stats;
+    }
+
+    /** What a set of stats is worth, in the stat points item levels give (config/gear.php) */
+    public static function statPoints(array $stats): float
+    {
+        $cost = config('gear.item_levels.cost');
+
+        return array_sum(array_map(fn ($stat, $amount) => ($cost[$stat] ?? 0) * $amount, array_keys($stats), $stats));
     }
 
     /**

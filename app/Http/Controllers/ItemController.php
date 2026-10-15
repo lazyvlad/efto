@@ -64,7 +64,7 @@ class ItemController extends Controller
         // The weapons and jewellery that fall in a game
         $falling = [];
         foreach (array_keys(config('gear.drops')) as $itemId) {
-            $falling[] = self::gearRow($itemId, $gear[$itemId]) + ['name' => $items[$itemId]['name'], 'image' => $items[$itemId]['image'], 'rarity' => 'epic'];
+            $falling[] = self::gearRow($itemId, $gear[$itemId]) + ['name' => $items[$itemId]['name'], 'image' => $items[$itemId]['image'], 'rarity' => $gear[$itemId]['rarity'] ?? 'epic'];
         }
 
         // What is neither worn nor kept: sold for coins as a game ends, rarest first
@@ -106,6 +106,7 @@ class ItemController extends Controller
             'id' => $itemId,
             'worn' => $item ? (self::WORN[$item['slot']] ?? ucfirst($item['slot'])) : '',
             'twoHanded' => (bool) ($item['twoHanded'] ?? false),
+            'itemLevel' => $item['itemLevel'] ?? null,
             'stats' => $item ? self::statsText($item['stats']) : '',
             'value' => $item ? Coins::format((int) $item['value']) : '',
         ];

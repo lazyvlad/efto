@@ -212,7 +212,7 @@ function renderSlots(state) {
             if (item) button.dataset.rarity = item.rarity || 'epic';
             // Something owned could go here and nothing is on
             button.classList.toggle('has-choice', !item && choices > 0);
-            button.title = blocked ? `${slot.label}: ${held.name} is held in both hands` : item ? `${slot.label}: ${item.name}${unseen ? ' (hidden)' : ''}` : slot.label;
+            button.title = blocked ? `${slot.label}: ${held.name} is held in both hands` : item ? `${slot.label}: ${item.name}${item.itemLevel ? `, item level ${item.itemLevel}` : ''}${unseen ? ' (hidden)' : ''}` : slot.label;
             button.setAttribute('aria-pressed', String(slot.id === selectedSlot));
 
             const icon = make('span', 'sheet-slot-icon');
@@ -414,7 +414,7 @@ function renderSlotItems(state) {
         picture.alt = '';
         row.dataset.rarity = item.rarity || 'epic';
 
-        const about = [item.twoHanded ? 'Two-handed' : '', item.from, worn ? 'being worn' : '', worn && state.hidden.has(item.id) ? 'hidden' : '', banked ? 'in the bank' : ''].filter(Boolean).join(' \u00b7 ');
+        const about = [item.itemLevel ? `Item level ${item.itemLevel}` : '', item.twoHanded ? 'Two-handed' : '', item.from, worn ? 'being worn' : '', worn && state.hidden.has(item.id) ? 'hidden' : '', banked ? 'in the bank' : ''].filter(Boolean).join(' \u00b7 ');
         const text = make('span', 'window-item-text');
         text.append(
             make('span', 'window-item-name', item.name),

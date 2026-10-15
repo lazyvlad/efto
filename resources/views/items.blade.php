@@ -101,7 +101,7 @@
                     <p class="game-label">{{ __('Kept on your account, and worn') }}</p>
                     <h3 class="game-heading text-2xl">{{ __('Boss loot') }}</h3>
                     <p class="mt-1 text-sm text-gray-600">
-                        {{ __('Every zone ends with a boss. Defeating it pays coins, more in the later zones, and it drops one of its three items: the first :uncommon% of the time, the second :rare%, the third :epic%. Blue items, and purple trinkets, help with carrying: each point takes 1% off what full bags lose.', [
+                        {{ __('Every zone ends with a boss. Defeating it pays coins, more in the later zones, and it drops one of its three items: the first :uncommon% of the time, the second :rare%, the third :epic%. What an item gives comes from its item level: the green of a zone is of its level, the blue a step up and the purple two, so the green of a later zone matches the purple of an earlier one. Trinkets also help with carrying: each point takes 1% off what full bags lose.', [
                             'uncommon' => round($chances['uncommon'] * 100),
                             'rare' => round($chances['rare'] * 100),
                             'epic' => round($chances['epic'] * 100),
@@ -129,7 +129,7 @@
                                         @foreach ($boss['loot'] as $item)
                                             <li class="text-sm leading-snug">
                                                 <span class="rarity-{{ $item['rarity'] }}">{{ $item['name'] }}</span>
-                                                <span class="text-xs text-gray-500">· {{ $item['worn'] }}@if ($item['twoHanded']), {{ __('two-handed') }}@endif</span>
+                                                <span class="text-xs text-gray-500">· {{ __('item level :level', ['level' => $item['itemLevel']]) }} · {{ $item['worn'] }}@if ($item['twoHanded']), {{ __('two-handed') }}@endif</span>
                                                 <span class="block text-xs text-gray-900">{{ $item['stats'] }} <span class="text-amber-500">· {{ __('sells for :value', ['value' => $item['value']]) }}</span></span>
                                             </li>
                                         @endforeach
@@ -149,11 +149,11 @@
                 </div>
                 <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ($falling as $item)
-                        <li class="game-item min-w-0" data-rarity="epic">
+                        <li class="game-item min-w-0" data-rarity="{{ $item['rarity'] }}">
                             <img src="{{ $item['image'] }}" alt="" loading="lazy" class="h-11 w-11 shrink-0 object-contain">
                             <span class="min-w-0">
-                                <span class="block truncate rarity-epic" title="{{ $item['name'] }}">{{ $item['name'] }}</span>
-                                <span class="block text-xs text-gray-500">{{ $item['worn'] }}@if ($item['twoHanded']), {{ __('two-handed') }}@endif</span>
+                                <span class="block truncate rarity-{{ $item['rarity'] }}" title="{{ $item['name'] }}">{{ $item['name'] }}</span>
+                                <span class="block text-xs text-gray-500">{{ __('item level :level', ['level' => $item['itemLevel']]) }} · {{ $item['worn'] }}@if ($item['twoHanded']), {{ __('two-handed') }}@endif</span>
                                 <span class="block text-xs text-gray-900">{{ $item['stats'] }}</span>
                             </span>
                         </li>

@@ -19,7 +19,7 @@ class GearTest extends TestCase
         BossDrop::create(['user_id' => $user->id, 'boss_id' => $bossId, 'item_id' => $itemId, 'rarity' => $rarity, 'dropped_at' => now()]);
     }
 
-    public function test_every_boss_item_can_be_worn_and_is_better_the_later_its_boss(): void
+    public function test_every_boss_item_can_be_worn_and_has_an_item_level(): void
     {
         $catalog = Gear::catalog();
         $slots = Gear::slots();
@@ -39,16 +39,56 @@ class GearTest extends TestCase
         // Boss loot, what falls in a game, the starting clothes, the large quiver, and what is made
         $this->assertCount(60 + count(config('gear.drops')) + $starter + 1 + count(config('gear.crafted')), $catalog);
 
-        // The same kind of thing from an early boss and the last: a one-handed weapon each
-        $this->assertSame(['attackPower' => 9, 'crit' => 1], $catalog['cruel-barb']['stats']);
-        $this->assertSame(['attackPower' => 16, 'crit' => 1], $catalog['jangthraze-the-protector']['stats']);
+        // Item levels: a boss's item is of its zone's level, a step up for each step of rarity
+        $this->assertSame(10, $catalog['garricks-red-bandana']['itemLevel']);
+        $this->assertSame(15, $catalog['padfoots-throwing-dagger']['itemLevel']);
+        $this->assertSame(20, $catalog['garricks-head']['itemLevel']);
+        $this->assertSame(65, $catalog['jangthraze-the-protector']['itemLevel']);
+        // So a later zone's green is a match for an earlier zone's purple of the same level
+        $this->assertSame($catalog['hide-of-big-samras']['itemLevel'], $catalog['big-bad-pauldrons']['itemLevel']);
+        $this->assertSame($catalog['hide-of-big-samras']['stats'], $catalog['big-bad-pauldrons']['stats']);
+        // Weapons from level 40 spend some of it on crit; trinkets some on carrying
+        $this->assertSame(['crit' => 1, 'attackPower' => 10], $catalog['jangthraze-the-protector']['stats']);
+        $this->assertSame(['attackPower' => 3], $catalog['padfoots-throwing-dagger']['stats']);
+        $this->assertArrayHasKey('carrying', $catalog['nekroshs-head']['stats']);
+        $this->assertSame(80, $catalog['thunderfury']['itemLevel']);
+    }
 
-        // Rare items help with carrying, more so from later bosses; and so do epic trinkets
-        $this->assertSame(1, $catalog['padfoots-throwing-dagger']['stats']['carrying']);
-        $this->assertSame(2, $catalog['cape-of-the-brotherhood']['stats']['carrying']);
-        $this->assertSame(3, $catalog['ripsaw']['stats']['carrying']);
-        $this->assertSame(2, $catalog['nekroshs-head']['stats']['carrying']);
-        $this->assertArrayNotHasKey('carrying', $catalog['hoggers-trophy-axe']['stats']);
+    public function test_items_of_the_same_level_and_kind_are_as_strong_whatever_their_rarity(): void
+    {
+        $catalog = Gear::catalog();
+        $kind = fn (array $item) => $item['twoHanded'] ? 'two-handed' : ([
+            'mainhand' => 'weapon', 'offhand' => 'weapon', 'ranged' => 'weapon', 'neck' => 'jewelry', 'ring' => 'jewelry', 'trinket' => 'trinket',
+        ][$item['slot']] ?? 'armor');
+
+        // Every boss item of a level and kind gives exactly the same
+        $byLevel = [];
+        foreach (config('gear.boss_slots') as $itemId => $slot) {
+            $item = $catalog[$itemId];
+            $byLevel[$kind($item).'@'.$item['itemLevel']][$itemId] = $item['stats'];
+        }
+        foreach ($byLevel as $key => $items) {
+            $this->assertCount(1, array_unique(array_map('json_encode', $items)), "$key: ".json_encode($items));
+        }
+
+        // Within a boss, the rarer the item, the higher its level
+        foreach (config('boss_loot.bosses') as $bosses) {
+            foreach ($bosses as $boss) {
+                $level = fn (string $rarity) => $catalog[$boss['loot'][$rarity]['id']]['itemLevel'];
+                $this->assertLessThan($level('rare'), $level('uncommon'), $boss['name']);
+                $this->assertLessThan($level('epic'), $level('rare'), $boss['name']);
+            }
+        }
+
+        // Anything with an item level is worth about what its level gives, mixed as it may be
+        foreach ($catalog as $itemId => $item) {
+            if (empty($item['itemLevel']) || ! empty($item['starter'])) {
+                continue;
+            }
+            $perLevel = config('gear.item_levels.points_per_level')[in_array($item['slot'], ['mainhand', 'offhand', 'ranged'], true) ? 'weapon' : (in_array($item['slot'], ['neck', 'ring', 'trinket'], true) ? 'jewelry' : 'armor')];
+            $budget = $item['itemLevel'] * $perLevel * ($item['twoHanded'] ? config('gear.two_handed_factor') : 1);
+            $this->assertEqualsWithDelta($budget, Gear::statPoints($item['stats']), 2.0, "$itemId at level {$item['itemLevel']}");
+        }
     }
 
     public function test_the_weapons_and_jewellery_that_fall_are_items_of_the_game(): void
@@ -87,23 +127,26 @@ class GearTest extends TestCase
         $this->assertSame(500, Bags::soldShort(500, 0.5));
 
         $user = User::factory()->create();
-        $this->drop($user, 'edwin-vancleef', 'cape-of-the-brotherhood');
-        $this->drop($user, 'chief-ukorz-sandscalp', 'ripsaw');
+        // Trinkets help with carrying: Garrick's Head (Alliance) and Khan Dez'hepah's (Horde)
+        $this->drop($user, 'garrick-padfoot', 'garricks-head', 'epic');
+        $this->drop($user, 'khan-dezhepah', 'khan-dezhepahs-head', 'epic');
         $this->assertSame(0.0, Gear::carrying($user));
+        $alliance = Gear::catalog()['garricks-head']['stats']['carrying'];
+        $horde = Gear::catalog()['khan-dezhepahs-head']['stats']['carrying'];
 
-        // Each hunter's by his own side's loot: the cape is the Alliance's, Ripsaw the Horde's
+        // Each hunter's by his own side's loot
         $user->forceFill(['equipment' => [
-            'alliance' => ['back' => 'cape-of-the-brotherhood', 'mainhand' => 'ripsaw'],
-            'horde' => ['back' => 'cape-of-the-brotherhood', 'mainhand' => 'ripsaw'],
+            'alliance' => ['trinket1' => 'garricks-head', 'trinket2' => 'khan-dezhepahs-head'],
+            'horde' => ['trinket1' => 'garricks-head', 'trinket2' => 'khan-dezhepahs-head'],
         ]])->save();
-        $this->assertEqualsWithDelta(0.02, Gear::carrying($user->fresh(), 'alliance'), 1e-9);
-        $this->assertEqualsWithDelta(0.03, Gear::carrying($user->fresh(), 'horde'), 1e-9);
+        $this->assertEqualsWithDelta($alliance / 100, Gear::carrying($user->fresh(), 'alliance'), 1e-9);
+        $this->assertEqualsWithDelta($horde / 100, Gear::carrying($user->fresh(), 'horde'), 1e-9);
 
-        // A game with things sold short, with three hundredths of the loss taken off
+        // A game with things sold short, with what the Horde hunter's trinket takes off the loss
         $token = $this->actingAs($user)->postJson(route('games.open'), ['faction' => 'horde'])->json('game');
         $this->travel(600)->seconds();
         $this->postJson(route('games.finish', $token), ['score' => 5, 'gameTime' => 590, 'items' => ['gold-coin' => 4], 'overflow' => ['gold-coin' => 4]])
-            ->assertJsonPath('coins.earned', 4 * Bags::soldShort(25, 0.03));
+            ->assertJsonPath('coins.earned', 4 * Bags::soldShort(25, $horde / 100));
     }
 
     public function test_gear_is_sold_for_coins_and_the_last_one_is_no_longer_worn(): void

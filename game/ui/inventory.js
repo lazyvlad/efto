@@ -849,7 +849,7 @@ function gearRow({ item, count, sells }, state, carried, full, list) {
     const binding = item.binding === 'equip'
         ? (sendable === 0 ? 'Bound (worn)' : bound > 0 ? `Binds when equipped · ${sendable} not yet bound` : 'Binds when equipped')
         : 'Soulbound';
-    const about = [binding, item.twoHanded ? 'Two-handed' : '', item.from, worn ? 'being worn' : '', sells ? `sells for ${formatCoins(item.value)}${count > 1 ? ' each' : ''}` : ''].filter(Boolean).join(' · ');
+    const about = [item.itemLevel ? `Item level ${item.itemLevel}` : '', binding, item.twoHanded ? 'Two-handed' : '', item.from, worn ? 'being worn' : '', sells ? `sells for ${formatCoins(item.value)}${count > 1 ? ' each' : ''}` : ''].filter(Boolean).join(' · ');
     const text = make('span', 'window-item-text');
     text.append(
         make('span', 'window-item-name', count > 1 ? `${item.name} ×${count}` : item.name),
