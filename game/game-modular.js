@@ -995,6 +995,21 @@ function withStarterWeapon(outfit, side) {
     return outfit.mainhand || !weapon ? outfit : { ...outfit, mainhand: weapon };
 }
 
+// An outfit with pieces that are not this player's (an account's, kept in this browser and
+// played as a guest; something sold): each such slot gets the clothes the hunter starts in,
+// rather than leaving him bare. A slot left empty on purpose stays empty, for a player with an
+// account.
+function withStarterFor(outfit, owned, side) {
+    const starter = starterLoadout(side);
+    // A guest has nothing but these to wear: every slot of his left empty gets them too (an
+    // outfit kept by this browser may have been left bare by an older version)
+    const fixed = hasBank() ? { ...outfit } : { ...starter, ...Object.fromEntries(Object.entries(outfit).filter(([, itemId]) => itemId)) };
+    for (const [slotId, itemId] of Object.entries(outfit)) {
+        if (itemId && !owned.has(itemId) && starter[slotId]) fixed[slotId] = starter[slotId];
+    }
+    return fixed;
+}
+
 // As a game starts, and when the side changes: what the player chose for that side's hunter to
 // wear, as far as they still own it. A hunter never dressed starts in his own clothes and the
 // pieces owned of the set last worn.
@@ -1004,7 +1019,7 @@ function restoreEquipment() {
     const chosen = withStarterWeapon(chosenEquipment(side), side);
     
     gameState.equipment = chosen
-        ? validEquipment(chosen, wearables(), owned)
+        ? validEquipment(withStarterFor(chosen, owned, side), wearables(), owned)
         : equipSet(starterLoadout(side), rememberedSet(), wearables(), owned);
     // Only what the hunter carries can be worn
     if (hasBank()) {
