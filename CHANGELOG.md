@@ -1,6 +1,37 @@
 # Changelog
 
-## 3.0.17 - 2026-10-15
+## 3.0.18 - 2026-10-15
+
+### Added
+- **The creatures carry their zone's own gear**: ten new items, five for each starting zone.
+  Northshire Abbey: Abbey Copper Band, Vinekeeper's Prayer Charm, Vintner's Field Compass,
+  Abbey Road Mantle and Northshire Vineyard Bow. Valley of Trials: Durotar Copper Loop,
+  Trialkeeper's Bone Charm, Boarhide Water Flask, Scorpidhide Trail Cape and Trialhunter's
+  Shortbow. The site decides which creatures carry one: in the first zone, three of its five
+  for every game that passes through, all different; brought down, the creature drops it with
+  the rest of its loot. It never falls from the sky. What is caught belongs to the hunter who
+  caught it, as any gear found in his games; either hunter's body can wear it. A creature sent
+  away by a boss hands what it carried on to the next.
+- New cloaks go behind the quiver, as they should.
+
+### Fixed
+- **A guest is never left bare**: an outfit kept in the browser with pieces the player does not
+  own (an account's, played as a guest in the same browser) put nothing in their place, and the
+  hunter stood in his underclothes; the outfit was then kept so. A guest's empty slots, and any
+  holding what he does not own, now get the clothes he starts in. An account's outfit and what
+  it hides are no longer copied into the browser (a guest playing there afterwards was dressed,
+  and hidden, as the account was); logging in clears what older versions left.
+- **An account is never left bare either**: a piece chosen that it no longer owns (or never
+  did) leaves the clothes the hunter starts in in its slot.
+- **The Alliance starter boots fit**: the left one sat off the foot, showing a grey sock.
+- **Redrawn clothes and creatures show at once**: their pictures were fetched by the game's
+  version alone, and a browser kept an old one (the server says nothing of how long to keep
+  them) until the next version. They are fetched by the build now.
+- **The starter weapons have their own art**: a plain skinning knife and a compact cleaver,
+  carried on the back and swung in the fist, in place of the borrowed Cruel Barb and Embalmer's
+  Cleaver (the Horde one stood upright beside the hunter).
+
+
 
 ### Added
 - **Creatures**: each zone's own wildlife, a small fight of its own, hand to hand. A creature
