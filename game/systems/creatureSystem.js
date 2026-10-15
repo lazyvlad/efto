@@ -6,6 +6,7 @@
 // about slink away, leaving nothing. A zone with none painted yet has none.
 
 import { gameConfig } from '../config/gameConfig.js';
+import { GAME_VERSION, BUILD_TIMESTAMP } from '../config/gameVersion.js';
 import { Creature } from '../classes/Creature.js';
 import { CombatText } from '../classes/CombatText.js';
 import { Particle } from '../classes/Particle.js';
@@ -29,7 +30,8 @@ function sheetOf(id) {
     if (!sheets.has(id)) {
         const image = new Image();
         image.decoding = 'async';
-        image.src = creatureImage(id);
+        // With the game's build, so a sheet painted again is fetched anew (as the hunter's clothes)
+        image.src = `${creatureImage(id)}?v=${GAME_VERSION}.${BUILD_TIMESTAMP}`;
         sheets.set(id, image);
     }
     return sheets.get(id);

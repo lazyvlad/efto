@@ -12,7 +12,7 @@
 // older one that finishes late never replaces it.
 
 import { hunterArt } from '../data/hunterArt.js';
-import { GAME_VERSION } from '../config/gameVersion.js';
+import { GAME_VERSION, BUILD_TIMESTAMP } from '../config/gameVersion.js';
 
 const images = new Map();       // path -> Promise of a loaded image
 const made = new Map();         // "side|item,item" -> Promise of a canvas
@@ -28,9 +28,11 @@ function load(path) {
                 images.delete(path);
                 reject(new Error(`No picture at ${path}`));
             };
-            // With the game's version: a picture redrawn under the same name is fetched anew
-            // with the next release, not taken from the browser's cache
-            image.src = `${path}?v=${GAME_VERSION}`;
+            // With the game's build: a picture redrawn under the same name is fetched anew with
+            // the next build, not taken from the browser's cache (the version alone stays the
+            // same through the builds of a release, and the server says nothing of how long
+            // to keep these pictures)
+            image.src = `${path}?v=${GAME_VERSION}.${BUILD_TIMESTAMP}`;
         }));
     }
     return images.get(path);
