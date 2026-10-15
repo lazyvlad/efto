@@ -30,7 +30,7 @@ return [
         'right-binding-of-the-windseeker' => ['name' => 'Right Binding of the Windseeker', 'image' => 'assets/items/tunder.png', 'rarity' => 'legendary', 'bound' => true],
         // Made, but not into the bags: a piece of gear ("gear" => true), the hunter's for good
         // (config/gear.php, "crafted"). One to a hunter.
-        'thunderfury' => ['name' => 'Thunderfury, Blessed Blade of the Windseeker', 'image' => 'assets/items/tunder.png', 'rarity' => 'legendary', 'gear' => true],
+        'thunderfury' => ['name' => 'Thunderfury, Blessed Blade of the Windseeker', 'image' => 'assets/items/gear/thunderfury.webp', 'rarity' => 'legendary', 'gear' => true],
     ],
 
     /*
