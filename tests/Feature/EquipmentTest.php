@@ -309,27 +309,28 @@ class EquipmentTest extends TestCase
         Grants::giveSet($user, 'giantstalker');   // 8 pieces
         Grants::giveSet($user, 'cryptstalker');   // 9 pieces
 
-        // Never chosen: nothing is kept, and the game is told so
+        // Never chosen: what he wears (taking no room), and 10 more; nothing is kept, and the
+        // game is told so
         $this->actingAs($user)->putJson(route('equipment.update'), ['equipment' => ['head' => 'cryptstalker-helmet']])
-            ->assertOk()->assertJsonCount(10, 'carried')->assertJsonPath('carried.0', 'cryptstalker-helmet');
+            ->assertOk()->assertJsonCount(11, 'carried')->assertJsonPath('carried.0', 'cryptstalker-helmet');
         $this->assertNull($user->fresh()->carried);
         $this->get(route('play'))->assertSee('"carried":null', false);
 
-        // Chosen: what is theirs, once each, and no more than the limit
+        // Chosen: what he wears, then what is his, once each, no more than 10 besides
         $pieces = config('loot.sets.giantstalker.pieces');
         $this->putJson(route('equipment.update'), [
             'equipment' => ['head' => 'cryptstalker-helmet'],
-            'carried' => ['cryptstalker-helmet', 'cryptstalker-chest', 'cryptstalker-chest', 'ds_legs', ...array_values($pieces), 'cryptstalker-boots'],
-        ])->assertOk()->assertJsonPath('carried', ['cryptstalker-helmet', 'cryptstalker-chest', ...array_values($pieces)]);
-        $this->assertCount(10, $user->fresh()->carried['alliance']);
+            'carried' => ['cryptstalker-helmet', 'cryptstalker-chest', 'cryptstalker-chest', 'ds_legs', ...array_values($pieces), 'cryptstalker-boots', 'cryptstalker-belt'],
+        ])->assertOk()->assertJsonPath('carried', ['cryptstalker-helmet', 'cryptstalker-chest', ...array_values($pieces), 'cryptstalker-boots']);
+        $this->assertCount(11, $user->fresh()->carried['alliance']);
 
-        // What is put on goes with him first: with no room, the last thing chosen stays behind
-        $this->putJson(route('equipment.update'), ['equipment' => ['head' => 'cryptstalker-helmet', 'feet' => 'cryptstalker-boots']])
-            ->assertOk()->assertJsonPath('equipment', ['head' => 'cryptstalker-helmet', 'feet' => 'cryptstalker-boots'])
-            ->assertJsonPath('carried.0', 'cryptstalker-helmet')->assertJsonPath('carried.1', 'cryptstalker-boots')
-            ->assertJsonCount(10, 'carried');
+        // Put on, a piece frees its place: what was in his 36 and is now worn leaves room
+        $this->putJson(route('equipment.update'), [
+            'equipment' => ['head' => 'cryptstalker-helmet', 'chest' => 'cryptstalker-chest'],
+            'carried' => ['cryptstalker-chest', ...array_values($pieces), 'cryptstalker-boots', 'cryptstalker-belt'],
+        ])->assertOk()->assertJsonPath('carried', ['cryptstalker-helmet', 'cryptstalker-chest', ...array_values($pieces), 'cryptstalker-boots', 'cryptstalker-belt']);
 
-        // With room, what is put on is carried
+        // What is worn is always with him; nothing else is carried that was not chosen
         $this->putJson(route('equipment.update'), [
             'equipment' => ['feet' => 'cryptstalker-boots'],
             'carried' => ['cryptstalker-helmet'],

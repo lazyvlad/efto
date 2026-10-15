@@ -29,9 +29,10 @@
 return [
 
     /*
-     * How many pieces of gear a hunter takes into a game. Everything else a player owns
-     * stays in the bank, and cannot be put on until the game is over. What is being worn
-     * counts. gameConfig.bags.carry in the game is the same number.
+     * His 36: how many pieces of gear a hunter carries into a game besides what he wears
+     * (worn, a piece takes no room). Everything else a player owns stays in the bank, and
+     * cannot be put on until the game is over. gameConfig.bags.carry in the game is the same
+     * number.
      */
     'carry' => 36,
 
@@ -180,8 +181,8 @@ return [
     /*
      * The clothes each hunter starts in: gear like any other, worn slot by slot, taken off and
      * replaced by better things. Every account (and every guest) has both sets, once; they
-     * are never sold. Like all his gear they take up room in his 36 (taken off, they stay there,
-     * or go to the bank like anything else). Each side's hunter starts
+     * are never sold. Like all his gear: worn, they take no room; taken off, they go into his
+     * 36, or the bank like anything else. Each side's hunter starts
      * in its own (game/data/hunterArt.js draws them). By the sheet's slot.
      */
     'starter' => [

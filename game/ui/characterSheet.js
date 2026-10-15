@@ -257,7 +257,7 @@ function renderStats(state) {
     }
 
     // How much gear the hunter takes into a game (a guest has no bank, so no count)
-    element('sheetCarrying').textContent = state.carried ? `Carrying ${state.carried.size} of ${state.carryLimit}` : '';
+    element('sheetCarrying').textContent = state.carried ? `${state.inHis36} of ${state.carryLimit} carried, besides what he wears` : '';
 
     // What the sets being worn add of their own, beyond the stats
     const extras = bonusText(state.totals, { stats: false });
@@ -400,12 +400,12 @@ function renderSlotItems(state) {
 
     for (const item of choices) {
         const worn = item.id === wornId;
-        // Not among what the hunter takes into a game: putting it on takes it along, or, with
-        // no room, swaps it for what the slot holds (which goes to the bank)
-        const banked = Boolean(state.carried) && !item.starter && !state.carried.has(item.id);
-        const full = Boolean(state.carried) && state.carried.size >= state.carryLimit;
-        const swaps = banked && full && Boolean(wornId) && state.carried.has(wornId);
-        const action = worn ? 'Take off' : banked && full ? (swaps ? 'Swap in' : 'No room') : 'Put on';
+        // Not with the hunter: putting it on brings it along (worn, it takes no room in his 36);
+        // what the slot holds comes off into his 36, or with his 36 full goes to the bank
+        const banked = Boolean(state.carried) && !state.carried.has(item.id);
+        const full = Boolean(state.carried) && state.inHis36 >= state.carryLimit;
+        const swaps = banked && full && Boolean(wornId);
+        const action = worn ? 'Take off' : swaps ? 'Swap in' : 'Put on';
         const row = make('button', 'window-item sheet-item');
         row.type = 'button';
         row.classList.toggle('is-worn', worn);

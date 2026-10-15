@@ -36,7 +36,7 @@ class EquipmentController extends Controller
         $worn = Gear::valid($user, $data['equipment'], $side);
         $carried = Gear::carried($user, $data['carried'] ?? Gear::carriedFor($user, $side), $worn, $side);
         // Only what is carried can be worn (the clothes a hunter starts in always are)
-        // Only what he carries can be worn (what he wears goes into his 36 first)
+        // Only what he has with him can be worn (worn, it takes no room in his 36)
         $worn = array_filter($worn, fn ($itemId) => in_array($itemId, $carried, true));
 
         // Kept even when empty: a player who took everything off chose to. The other hunter's

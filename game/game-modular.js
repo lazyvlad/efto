@@ -27,7 +27,7 @@ import { quiverCapacity, startingArrows } from './utils/quiver.js';
 import { dropShield, shieldBlocks } from './utils/shield.js';
 import { setById, piecesOf, ownedCount, setBonus, nextStep, bonusText } from './utils/sets.js';
 import { healthAtNewMax, armorReduction } from './utils/stats.js';
-import { SLOTS, validEquipment, equip, equipSet, mainSet, setsWorn, gearTotals, slotsFor, carriedOf, fitsCarried } from './utils/gear.js';
+import { SLOTS, validEquipment, equip, equipSet, mainSet, setsWorn, gearTotals, slotsFor, carriedOf, fitsCarried, inHis36 } from './utils/gear.js';
 import { bagCapacity, slotsUsed, addToBags, soldShort, setItemStacks, stowInBags } from './utils/bags.js';
 import { MATERIALS, categoryOf } from './data/materials.js';
 import { wearables, wearableById, isKeptGear, gearCatalog } from './data/wearables.js';
@@ -1124,8 +1124,9 @@ function carryMany(itemIds, take) {
     
     if (take) {
         const owned = forSide(ownedPieces());
+        const worn = Object.values(gameState.equipment);
         for (const itemId of itemIds) {
-            if (carried.length >= limit) break;
+            if (inHis36(carried, worn) >= limit) break;
             if (owned.has(itemId) && !carried.includes(itemId)) {
                 carried.push(itemId);
                 moved++;
@@ -1359,12 +1360,15 @@ function noteGearUsed() {
 
 // A piece was just caught: it goes on at once if it belongs to the set being worn, or if
 // nothing is in its slot
-// Gear caught goes with the hunter, into his 36, while there is room (the site does the same
-// as the game ends). True if he has it with him now; else it waits in the bank (a guest, who
-// has none, leaves it behind), and is not put on, since only what he carries can be worn.
+// Gear caught goes with the hunter (the site does the same as the game ends): put on at once
+// if a slot of his is free (worn, it takes no room), else into his 36 while there is room.
+// True if he has it with him now; else it waits in the bank (a guest, who has none, leaves it
+// behind), and is not put on, since only what he carries can be worn.
 function carryCaught(itemId) {
     if (gameState.carried.includes(itemId)) return true;
-    if (gameState.carried.length >= gameConfig.bags.carry) {
+    const item = wearableById(itemId);
+    const goesOn = Boolean(item) && slotsFor(item).some(slotId => !gameState.equipment[slotId]);
+    if (!goesOn && inHis36(gameState.carried, Object.values(gameState.equipment)) >= gameConfig.bags.carry) {
         const name = (wearableById(itemId) || {}).name || 'It';
         addNotification(gameState, hasBank()
             ? `${name} is in your bank: your hunter carries ${gameConfig.bags.carry} things already`
@@ -3031,6 +3035,8 @@ function setupUIEventHandlers() {
             inBank: forSide(ownedPieces()).size - availablePieces().size,
             // What a player with an account takes into a game (a guest has no bank)
             carried: new Set(gameState.carried),
+            // How much of his 36 is taken: what he carries and does not wear
+            inHis36: inHis36(gameState.carried, Object.values(gameState.equipment)),
             carryLimit: gameConfig.bags.carry,
             outfits: outfitsForSheet(),
             mostOutfits: MOST_OUTFITS,
@@ -3123,6 +3129,7 @@ function setupUIEventHandlers() {
                 name: getAccountName() || gameState.playerName || document.getElementById('playerNameInput')?.value || 'Hunter',
                 level: (gameState.currentLevel || 0) + 1,
                 carried: gameState.carried,
+                inHis36: inHis36(gameState.carried, Object.values(gameState.equipment)),
                 carryLimit: gameConfig.bags.carry,
                 // The pictures of the place and the hunter, for the gear tab
                 scene: currentBackgroundImage(),

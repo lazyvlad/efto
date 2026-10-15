@@ -482,6 +482,13 @@
     gap: 6px;
 }
 
+/* What he wears, above his 36: smaller, ten to a row (it takes no room in his 36) */
+.inventory-carry-grid.inventory-worn-row {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 4px;
+    margin-bottom: 6px;
+}
+
 .inventory-carry-slot {
     position: relative;
     aspect-ratio: 1;

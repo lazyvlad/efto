@@ -149,10 +149,10 @@ export function validEquipment(equipment, items, owned) {
 }
 
 /**
- * What the hunter takes into a game, out of everything owned (Gear::carried on the site):
- * what was chosen, as far as it is still owned, no more than the limit; what is worn is
- * added while there is room. With nothing chosen yet (null) it is what is worn and then
- * whatever else is owned, in the order given, up to the limit.
+ * What the hunter has with him, out of everything owned (Gear::carried on the site): all he
+ * wears, which takes no room, and in his 36 ("limit") what he carries but does not wear: what
+ * was chosen, as far as it is still owned. With nothing chosen yet (null), whatever else is
+ * owned, in the order given, while there is room.
  * @param {string[]|null} chosen - Item ids, or null when the player never chose
  * @param {string[]} worn - Ids of the items being worn
  * @param {Iterable<string>} owned - Ids of everything owned, in the order to fill up from
@@ -164,20 +164,35 @@ export function carriedOf(chosen, worn, owned, limit) {
     const list = chosen ? chosen : [...has];
     const carried = [];
 
-    // What he wears first: it is always with him
-    for (const itemId of [...worn, ...list]) {
-        if (carried.length >= limit) break;
+    const wearing = new Set(worn);
+    // What he wears is with him, and takes no room in his 36
+    for (const itemId of worn) {
         if (has.has(itemId) && !carried.includes(itemId)) carried.push(itemId);
+    }
+    let room = limit;
+    for (const itemId of list) {
+        if (room <= 0) break;
+        if (has.has(itemId) && !carried.includes(itemId) && !wearing.has(itemId)) {
+            carried.push(itemId);
+            room--;
+        }
     }
     return carried;
 }
 
+/** How many places in his 36 are taken: what he carries and does not wear */
+export function inHis36(carried, worn) {
+    const wearing = new Set(worn);
+    return [...new Set(carried)].filter(itemId => !wearing.has(itemId)).length;
+}
+
 /**
- * Whether the hunter could carry all of this: what is carried now and what would be worn.
+ * Whether the hunter could carry all of this: what he would not wear of what he carries,
+ * and of what he wears now, must fit in his 36.
  * @returns {boolean}
  */
 export function fitsCarried(carried, worn, limit) {
-    return new Set([...carried, ...worn]).size <= limit;
+    return inHis36([...carried, ...worn], worn) <= limit;
 }
 
 /**

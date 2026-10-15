@@ -305,41 +305,54 @@ async function move(itemId, count, to) {
     render();
 }
 
-// His 36: the gear he takes into fights, a slot each, the pieces on him marked
+// What he wears, then his 36: the gear he carries besides it, a slot each. What he wears takes
+// no place in his 36; taken off, a piece goes into it.
 function renderCarry(column, state) {
     const box = make('section', 'window-card inventory-left-card');
-    const carried = state.carried ? [...state.carried] : [...new Set(state.worn)];
     const worn = new Set(state.worn);
-    const on = carried.filter(itemId => worn.has(itemId)).length;
-
-    box.append(make('p', 'window-label', 'With your hunter, into every fight'));
-    const heading = make('div', 'window-card-title');
-    heading.append(make('h3', '', `His ${state.carryLimit}`), make('span', 'inventory-carry-count', `${carried.length} of ${state.carryLimit} · ${on} on`));
-    box.append(heading);
-
-    const grid = make('div', 'inventory-carry-grid');
-    for (let index = 0; index < state.carryLimit; index++) {
-        const item = carried[index] ? wearableById(carried[index]) : null;
-        const slot = make('div', item ? 'inventory-carry-slot' : 'inventory-carry-slot is-empty');
+    const carried = state.carried ? [...state.carried] : [...worn];
+    const onHim = carried.filter(itemId => worn.has(itemId));
+    const inHis36 = carried.filter(itemId => !worn.has(itemId));
+    const slotOf = (itemId, className) => {
+        const item = itemId ? wearableById(itemId) : null;
+        const slot = make('div', item ? className : `${className} is-empty`);
         if (item) {
             slot.dataset.rarity = item.set ? 'epic' : item.rarity || 'epic';
-            slot.title = `${item.name}${worn.has(item.id) ? ' · on' : ''}`;
+            slot.title = item.name;
             const picture = make('img');
             picture.src = item.image;
             picture.alt = '';
             slot.append(picture);
-            if (worn.has(item.id)) slot.append(make('span', 'inventory-carry-on'));
         }
-        grid.append(slot);
+        return slot;
+    };
+
+    box.append(make('p', 'window-label', 'With your hunter, into every fight'));
+    const wornHeading = make('div', 'window-card-title');
+    wornHeading.append(make('h3', '', 'On him'), make('span', 'inventory-carry-count', `${onHim.length} worn · no room taken`));
+    box.append(wornHeading);
+    const wornRow = make('div', 'inventory-carry-grid inventory-worn-row');
+    for (const itemId of onHim) {
+        const slot = slotOf(itemId, 'inventory-carry-slot');
+        slot.append(make('span', 'inventory-carry-on'));
+        wornRow.append(slot);
     }
+    box.append(wornRow);
+
+    const heading = make('div', 'window-card-title');
+    heading.append(make('h3', '', `His ${state.carryLimit}`), make('span', 'inventory-carry-count', `${inHis36.length} of ${state.carryLimit}`));
+    box.append(heading);
+
+    const grid = make('div', 'inventory-carry-grid');
+    for (let index = 0; index < state.carryLimit; index++) grid.append(slotOf(inHis36[index], 'inventory-carry-slot'));
     box.append(grid);
 
     const legend = make('div', 'inventory-carry-legend');
-    legend.append(make('span', 'is-on', 'Worn'), make('span', 'is-room', 'Room for more'));
+    legend.append(make('span', 'is-room', 'Room for gear he carries but does not wear'));
     box.append(legend);
 
     const text = make('p', 'inventory-text inventory-fine', state.carried
-        ? 'Only these can be put on while playing. Choose them under Gear.'
+        ? 'In a game he can put on only what he wears and what is in his 36. Choose them under Gear.'
         : 'What he wears. With an account he takes 36 things into a game, chosen under Gear.');
     box.append(text);
     const toGear = make('button', 'game-btn inventory-carry-btn', 'Choose under Gear');
@@ -584,7 +597,7 @@ function renderGear(main, side, state) {
     const owned = state.loggedIn ? state.owned.map(itemId => wearableById(itemId)).filter(Boolean)
         .map(item => ({ item, count: state.gear[item.id] || 1, sells: Boolean(state.gear[item.id]) && item.value > 0 })) : [];
     const carried = new Set(state.carried);
-    const full = carried.size >= state.carryLimit;
+    const full = state.inHis36 >= state.carryLimit;
 
     renderCarrySide(side, state, owned, carried, full);
 
@@ -607,7 +620,7 @@ function renderGear(main, side, state) {
     // its entries in that order too, so a run picked with Shift is the run that is seen
     const grouped = entries => groupByKind(entries);
     const lists = [
-        { key: 'carried', title: 'With your hunter', label: `${carried.size} of ${state.carryLimit}`, groups: grouped(owned.filter(entry => carried.has(entry.item.id))) },
+        { key: 'carried', title: 'With your hunter', label: `${state.inHis36} of ${state.carryLimit} carried, besides what he wears`, groups: grouped(owned.filter(entry => carried.has(entry.item.id))) },
         { key: 'bank', title: 'In the bank', label: '', groups: grouped(owned.filter(entry => !carried.has(entry.item.id))) },
     ];
     for (const list of lists) list.entries = list.groups.flatMap(group => group.entries);
@@ -661,7 +674,7 @@ function pickBar(lists, state) {
     bar.classList.add('has-picked');
     bar.append(make('span', 'inventory-pick-count', `${count} picked ${from.key === 'carried' ? 'with your hunter' : 'in the bank'}`));
 
-    const room = state.carryLimit - state.carried.length;
+    const room = state.carryLimit - state.inHis36;
     const move = make('button', 'game-btn is-on inventory-pick-move', from.key === 'carried'
         ? `Leave ${count} in the bank`
         : `Take ${count} along${count > room ? ` (room for ${Math.max(0, room)})` : ''}`);
@@ -754,11 +767,11 @@ function renderCarrySide(side, state, owned, carried, full) {
     // Each hunter carries his own: his side's loot, and the gear either can wear
     const hunter = state.faction === 'horde' ? 'The Horde hunter' : 'The Alliance hunter';
     text.append(make('p', 'window-label', state.playing ? `What ${hunter.toLowerCase()} took into this game` : `What ${hunter.toLowerCase()} takes into a game`));
-    text.append(make('h3', 'inventory-side-title', `Carrying ${carried.size} of ${state.carryLimit}`));
+    text.append(make('h3', 'inventory-side-title', `${state.inHis36} of ${state.carryLimit} carried, besides what he wears`));
 
     const bar = make('div', 'inventory-bar');
     const fill = make('div', 'inventory-bar-fill');
-    fill.style.width = `${Math.min(100, Math.round(carried.size / state.carryLimit * 100))}%`;
+    fill.style.width = `${Math.min(100, Math.round(state.inHis36 / state.carryLimit * 100))}%`;
     bar.append(fill);
     text.append(bar);
 

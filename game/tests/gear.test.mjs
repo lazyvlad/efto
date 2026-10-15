@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 
 // Loaded through a data: URL, as in gameClock.test.mjs
 const source = await readFile(new URL('../utils/gear.js', import.meta.url));
-const { SLOTS, slotsFor, fits, itemsForSlot, validEquipment, equip, equipSet, setsWorn, mainSet, gearTotals, itemStats, carriedOf, fitsCarried, gearGroup, groupByKind } =
+const { SLOTS, slotsFor, fits, itemsForSlot, validEquipment, equip, equipSet, setsWorn, mainSet, gearTotals, itemStats, carriedOf, fitsCarried, inHis36, gearGroup, groupByKind } =
     await import(`data:text/javascript;base64,${source.toString('base64')}`);
 
 const sets = [
@@ -133,8 +133,8 @@ test('every set piece in the game is worn somewhere on the sheet', async () => {
 test('the hunter carries what was chosen, as far as it is owned and there is room', () => {
     const owned = ['a', 'b', 'c', 'd', 'e'];
 
-    // Never chosen: what is worn, then the rest in order, up to the limit
-    assert.deepEqual(carriedOf(null, ['d'], owned, 3), ['d', 'a', 'b']);
+    // Never chosen: what is worn (taking no room), then the rest in order, as room allows
+    assert.deepEqual(carriedOf(null, ['d'], owned, 3), ['d', 'a', 'b', 'c']);
     assert.deepEqual(carriedOf(null, [], owned, 36), owned);
 
     // Chosen: not what is no longer owned, nothing twice, no more than the limit
@@ -142,14 +142,18 @@ test('the hunter carries what was chosen, as far as it is owned and there is roo
     assert.deepEqual(carriedOf(['c', 'a', 'b'], [], owned, 2), ['c', 'a']);
     assert.deepEqual(carriedOf([], [], owned, 36), []);
 
-    // What is worn is always carried, first: it is with him, whatever else is chosen
+    // What is worn is always with him and takes no room in his 36
     assert.deepEqual(carriedOf(['c'], ['e'], owned, 36), ['e', 'c']);
-    assert.deepEqual(carriedOf(['c', 'a'], ['e'], owned, 2), ['e', 'c']);
+    assert.deepEqual(carriedOf(['c', 'a'], ['e'], owned, 2), ['e', 'c', 'a']);
+    assert.equal(inHis36(['e', 'c', 'a'], ['e']), 2);
 });
 
-test('putting something on needs room for it', () => {
-    assert.equal(fitsCarried(['a', 'b'], ['a', 'c'], 3), true);
-    assert.equal(fitsCarried(['a', 'b'], ['c', 'd'], 3), false);
+test('putting something on needs room only for what comes off', () => {
+    // Worn 'a' and 'c'; carried 'a', 'b': only 'b' is in his 36
+    assert.equal(fitsCarried(['a', 'b'], ['a', 'c'], 1), true);
+    // 'a' comes off and 'c', 'd' go on: 'a' and 'b' are in his 36
+    assert.equal(fitsCarried(['a', 'b'], ['c', 'd'], 2), true);
+    assert.equal(fitsCarried(['a', 'b'], ['c', 'd'], 1), false);
 });
 
 test('a weapon held in both hands leaves the off hand empty', () => {

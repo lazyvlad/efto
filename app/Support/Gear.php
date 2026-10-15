@@ -751,8 +751,8 @@ class Gear
     }
 
     /**
-     * Gear a hunter caught in a game goes with him (into his 36) while there is room, as it
-     * does in the game: else it is in his bank. Only for a list the player chose; one never
+     * Gear a hunter caught in a game goes with him (into his 36, besides what he wears) while
+     * there is room, as it does in the game: else it is in his bank. Only for a list the player chose; one never
      * chosen takes what he owns anyway (carried).
      *
      * @param  array<int, string>  $itemIds
@@ -767,10 +767,12 @@ class Gear
 
         $limit = (int) config('gear.carry');
         $catalog = self::catalog();
+        $worn = array_values(self::worn($user, $side));
         $changed = false;
         foreach (array_unique($itemIds) as $itemId) {
             $isGear = isset($catalog[$itemId]) || in_array($itemId, $user->setPieces($side), true);
-            if (! $isGear || self::isStarter($itemId) || in_array($itemId, $list, true) || count($list) >= $limit) {
+            $inHis36 = count(array_diff($list, $worn));
+            if (! $isGear || self::isStarter($itemId) || in_array($itemId, $list, true) || $inHis36 >= $limit) {
                 continue;
             }
             if (($catalog[$itemId]['side'] ?? $side) !== $side) {
@@ -821,13 +823,21 @@ class Gear
 
         $list = $chosen === null ? $owned : $chosen;
         $carried = [];
-        // What he wears first: it is always with him
-        foreach (array_merge($worn, $list) as $itemId) {
-            if (count($carried) >= $limit) {
+        // What he wears is with him, and takes no room in his 36
+        foreach ($worn as $itemId) {
+            if (in_array($itemId, $owned, true) && ! in_array($itemId, $carried, true)) {
+                $carried[] = $itemId;
+            }
+        }
+        // His 36: what else he carries, not worn
+        $room = $limit;
+        foreach ($list as $itemId) {
+            if ($room <= 0) {
                 break;
             }
             if (is_string($itemId) && in_array($itemId, $owned, true) && ! in_array($itemId, $carried, true)) {
                 $carried[] = $itemId;
+                $room--;
             }
         }
 
