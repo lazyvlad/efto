@@ -1,5 +1,49 @@
 # Changelog
 
+## 3.0.11 - 2026-10-15
+
+### Changed
+- **Thunderfury's lightning strikes far more often**, as a legendary's should: 35% each time
+  arrows are loosed (was 12%), as soon as 0.8 seconds after the last (was 2), and at up to 4
+  harmful things (was 3). Against a boss it does 20 (was 60) but strikes about every two
+  seconds, so the boss stays dazed, attacking slower, for most of the fight.
+
+### Fixed
+- **The weapons and jewellery that fall in a game show their new icons**, falling and in the
+  inventory and on the character sheet: Ashkandi, Brutality Blade, Maladath, Crul'shorukh,
+  Dal'Rend's and Ashjre'thul had kept their old falling-loot pictures (Ashkandi's with its
+  border) though they were given icons of their own in 3.0.3, and the rings, capes, the
+  Walking Stick, Onslaught and the Drake Fang Talisman now fall as their gear icons too.
+
+### Changed
+- **Five more weapons are slung across the hunter's back** instead of standing up beside
+  him: Hogger's Trophy Axe, Gath'Ilzogg's War Axe and Crul'shorukh with their heads down
+  behind him, Abomination's Hook grip up and hook down, and the Walking Stick diagonally
+  with its glowing head over his shoulder.
+
+## 3.0.10 - 2026-10-15
+
+### Changed
+- **Gear has item levels**, as in World of Warcraft. What a piece gives comes from its item
+  level and the kind of slot it is worn in, not from its rarity, so two pieces of the same
+  level and kind are as strong as each other. A boss's green is its zone's level (10 for the
+  first zone, 5 more for each zone after), its blue one step up and its purple two: a zone's
+  green, the zone before's blue and the one before that's purple are all of a level. The
+  weapons and rings that fall in a game have levels of their own (Ashkandi 55, Dal'Rend's 45),
+  Thunderfury 80. The level shows on the character sheet, in the Gear tab and on the Items
+  page. Weapons from item level 40 put some of it into crit; trinkets into carrying (blue
+  items no longer help with carrying on their own). Gear you own keeps its place but gives
+  what its level gives now: early blues and purples a little less, late greens more.
+  Thunderfury is +13 attack power and +1% crit now, still the strongest weapon.
+- **Thunderfury has its looks**: its split blue blade carried across the hunter's back, grip
+  over the shoulder, on both hunters, and an icon of its own.
+
+### For developers
+- `item_levels` in config/gear.php (first_zone, per_zone, rarity_steps, points_per_level,
+  cost, mix, weapon_crit_from) replaces `budget`; `item_level` (and `mix`) on `drops` and
+  `crafted`; `Gear::bossItemLevel`, `Gear::statsFor`, `Gear::statPoints`; the catalog's
+  `itemLevel`.
+
 ## 3.0.9 - 2026-10-15
 
 ### Changed
