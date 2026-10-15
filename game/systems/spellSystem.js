@@ -11,6 +11,9 @@ class SpellSystem {
         this.cooldowns = new Map();
         this.notificationCallback = null;
         this.gameStateCallback = null;
+        // Called after arrows are loosed: (spell) — what the hunter wears may answer it
+        // (Thunderfury's lightning, in game-modular.js)
+        this.onArrowsFired = null;
         
         // Initialize spells
         playerSpells.forEach(spell => {
@@ -599,6 +602,7 @@ class SpellSystem {
                 
                 window.arrows.push(arrow);
             }
+            if (this.onArrowsFired) this.onArrowsFired(spell);
 
             // Add notification for arrow firing only when arrows are low (≤50)
             if (gameState.arrowCount <= 50) {

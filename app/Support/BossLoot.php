@@ -91,6 +91,40 @@ class BossLoot
     }
 
     /**
+     * The Bindings of the Windseeker a boss drops besides its item (boss_loot.bindings), for a
+     * logged-in player's hunter: none from a boss before the zone they start in, none he has
+     * already (in his bank or bags), and none once he has made Thunderfury. Ids of those that
+     * dropped.
+     *
+     * @return array<int, string>
+     */
+    public static function rollBindings(?User $user, array $boss): array
+    {
+        $rules = config('boss_loot.bindings');
+        if ($user === null || ! $rules || $boss['zone'] < (int) $rules['from_zone']) {
+            return [];
+        }
+
+        $side = $boss['faction'];
+        if ((Gear::owned($user, $side)[$rules['makes']] ?? 0) > 0) {
+            return [];
+        }
+        $has = Bags::contents($user, $side);
+        foreach (Bags::bank($user, $side) as $itemId => $count) {
+            $has[$itemId] = ($has[$itemId] ?? 0) + $count;
+        }
+
+        $dropped = [];
+        foreach ([$rules['left'], $rules['right']] as $binding) {
+            if (($has[$binding] ?? 0) < 1 && random_int(0, PHP_INT_MAX - 1) / PHP_INT_MAX < (float) $rules['chance']) {
+                $dropped[] = $binding;
+            }
+        }
+
+        return $dropped;
+    }
+
+    /**
      * One of a boss's items by its id.
      *
      * @return array{id: string, name: string, rarity: string}|null

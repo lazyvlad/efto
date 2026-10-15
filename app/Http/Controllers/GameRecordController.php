@@ -185,6 +185,7 @@ class GameRecordController extends Controller
         abort_if($game->secondsSinceStart() < $earliest, 425, 'Too early for this boss.');
 
         $drop = $game->bossDrops()->where('boss_id', $boss['id'])->first();
+        $bindings = [];
 
         if (! $drop) {
             $item = BossLoot::roll($boss);
@@ -203,6 +204,12 @@ class GameRecordController extends Controller
                 if ($quiver) {
                     $game->user->forceFill(['quiver' => true])->save();
                 }
+
+                // A Binding of the Windseeker, now and then, into his bank
+                $bindings = BossLoot::rollBindings($game->user, $boss);
+                if ($bindings) {
+                    Bags::deposit($game->user->fresh(), $boss['faction'], array_fill_keys($bindings, 1));
+                }
             } catch (UniqueConstraintViolationException) {
                 // The same report arrived twice at once
                 $drop = $game->bossDrops()->where('boss_id', $boss['id'])->firstOrFail();
@@ -215,6 +222,8 @@ class GameRecordController extends Controller
             'kept' => $drop->user_id !== null,
             // The large quiver came with it (once in an account's life)
             'quiver' => $drop->quiver ? config('boss_loot.quiver.name') : null,
+            // A Binding of the Windseeker came with it, into his bank (the first report only)
+            'bindings' => array_map(fn ($id) => ['id' => $id, 'name' => config("crafting.items.$id.name")], $bindings),
             'timesFound' => $drop->user_id !== null
                 ? BossDrop::where('user_id', $drop->user_id)->where('item_id', $drop->item_id)->count()
                 : null,

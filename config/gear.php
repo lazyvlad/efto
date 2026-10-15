@@ -100,6 +100,18 @@ return [
     'two_handed' => ['hoggers-trophy-axe', 'gathilzoggs-war-axe', 'ashkandi2', 'crulshorukh', 'walking-stick'],
     'two_handed_factor' => 1.7,
 
+    // Gear that is made (config/crafting.php), not found: the hunter's for good once made, one
+    // of each. "effect" is what it does besides its stats, in the game (gameConfig.js).
+    'crafted' => [
+        'thunderfury' => [
+            'name' => 'Thunderfury, Blessed Blade of the Windseeker',
+            'slot' => 'mainhand',
+            'rarity' => 'legendary',
+            'stats' => ['attackPower' => 22, 'crit' => 2],
+            'effect' => 'chain-lightning',
+        ],
+    ],
+
     'drops' => [
         'ashkandi2' => ['slot' => 'mainhand', 'stats' => ['attackPower' => 17]],
         'brutality_blade' => ['slot' => 'mainhand', 'stats' => ['attackPower' => 9, 'crit' => 1]],

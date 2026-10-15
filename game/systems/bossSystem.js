@@ -191,7 +191,27 @@ export function bossesDefeated() {
 export function bossFightState() {
     if (!fight) return null;
 
-    return { name: fight.boss.name, behaviour: fight.boss.behaviour, phase: fight.phase, doing: fight.doing, x: fight.x, health: fight.health, maxHealth: fight.stats.health, shielded: fight.shielded, enraged: fight.enraged };
+    return { name: fight.boss.name, behaviour: fight.boss.behaviour, phase: fight.phase, doing: fight.doing, x: fight.x, health: fight.health, maxHealth: fight.stats.health, shielded: fight.shielded, enraged: fight.enraged, dazed: (fight.dazedSteps || 0) > 0 };
+}
+
+/**
+ * Thunderfury's lightning strikes the boss: damage, unless its shield takes it, and a daze that
+ * slows its attacks for a while. Where it was struck ({ x, y }), for the lightning to be
+ * drawn to, or null when there is no boss to strike.
+ */
+export function strikeBoss({ damage, slow, slowSeconds, combatTexts, canvas }) {
+    if (!fight || fight.phase !== 'fight' || fight.hidden > 0.5) return null;
+
+    const box = hitBox(canvas);
+    const at = { x: box.x + box.width / 2, y: box.y + box.height * 0.45 };
+    fight.dazedSteps = Math.round(slowSeconds * 60);
+    fight.daze = slow;
+    if (!fight.shielded) {
+        fight.health -= damage;
+        fight.hitFlash = HIT_FLASH_STEPS;
+        if (combatTexts) combatTexts.push(new CombatText(at.x, at.y - 20, `⚡ ${damage}`, '#9fd8ff', false));
+    }
+    return at;
 }
 
 /**
@@ -1160,6 +1180,7 @@ export function updateBoss(context) {
     const settings = gameConfig.bosses;
 
     fight.steps++;
+    if (fight.dazedSteps > 0) fight.dazedSteps--;
     fight.prevX = fight.x;
     fight.prevDrop = fight.drop;
     if (fight.hitFlash > 0) fight.hitFlash--;
@@ -1204,8 +1225,9 @@ export function updateBoss(context) {
         move(context);
         // Too close for too long, and it swipes; stepping back cools it down again
         fight.closeFor = withinReach(context) ? fight.closeFor + 1 : Math.max(0, fight.closeFor - 2);
-        // Enraged it attacks faster, and so it does the weaker it gets
-        const tempo = rage * frenzy();
+        // Enraged it attacks faster, and so it does the weaker it gets; dazed by Thunderfury's
+        // lightning, slower
+        const tempo = rage * frenzy() * (fight.dazedSteps > 0 ? fight.daze : 1);
         fight.sinceVolley++;
         fight.sinceAttack++;
         if (fight.dodgeSteps > 0) {

@@ -138,6 +138,22 @@ class Gear
             ];
         }
 
+        // What is made, not found (config/crafting.php): the maker's for good, bound to him
+        foreach (config('gear.crafted', []) as $itemId => $made) {
+            $catalog[$itemId] = [
+                'name' => $made['name'],
+                'image' => self::iconOf($itemId) ?? config("crafting.items.$itemId.image"),
+                'slot' => $made['slot'],
+                'rarity' => $made['rarity'],
+                'stats' => $made['stats'],
+                'twoHanded' => self::isTwoHanded($itemId),
+                'value' => 0,
+                'from' => 'Crafted',
+                'binding' => 'pickup',
+                'effect' => $made['effect'] ?? null,
+            ];
+        }
+
         // The large quiver a boss may drop (boss_loot.quiver): worn in the quiver slot, it adds
         // slots to the quiver while it is on (quiverSlots; quiver in game/config/gameConfig.js)
         $catalog[self::LARGE_QUIVER] = [
@@ -179,19 +195,30 @@ class Gear
      * The gear that binds when worn, between the hunters: what each sent the other, and what
      * each has bound by wearing it (users.gear_ledger).
      *
-     * @return array{sent: array<string, array<string, int>>, bound: array<string, array<string, int>>}
+     * @return array{sent: array<string, array<string, int>>, bound: array<string, array<string, int>>, crafted: array<string, array<string, int>>}
      */
     public static function ledger(User $user): array
     {
         $saved = $user->gear_ledger ?? [];
         $ledger = [];
-        foreach (['sent', 'bound'] as $kind) {
+        foreach (['sent', 'bound', 'crafted'] as $kind) {
             foreach (self::SIDES as $side) {
                 $ledger[$kind][$side] = array_map('intval', (array) ($saved[$kind][$side] ?? []));
             }
         }
 
         return $ledger;
+    }
+
+    /**
+     * A hunter made a piece of gear (Bags::craft): it is his, and bound to him.
+     */
+    public static function addCrafted(User $user, string $side, string $itemId): void
+    {
+        $ledger = self::ledger($user);
+        $ledger['crafted'][$side][$itemId] = ($ledger['crafted'][$side][$itemId] ?? 0) + 1;
+        $ledger['bound'][$side][$itemId] = ($ledger['bound'][$side][$itemId] ?? 0) + 1;
+        $user->forceFill(['gear_ledger' => self::ledgerForSaving($ledger)])->save();
     }
 
     /** How a thing binds: 'pickup' (to the hunter who got it), 'equip' (when worn), or 'account' */
@@ -418,12 +445,14 @@ class Gear
             ->pluck('found', 'item_id')
             ->all();
 
-        // And what an admin gave him (Grants), the large quiver aside (quiverSides)
+        // And what an admin gave him (Grants), the large quiver aside (quiverSides), and what
+        // he made (crafted, in the ledger)
         $granted = Grants::grantedGear($user, $side);
         unset($granted[self::LARGE_QUIVER]);
+        $crafted = self::ledger($user)['crafted'][$side];
 
         $all = [];
-        foreach ([$found, $caught, $granted] as $counts) {
+        foreach ([$found, $caught, $granted, $crafted] as $counts) {
             foreach ($counts as $itemId => $count) {
                 $all[$itemId] = ($all[$itemId] ?? 0) + (int) $count;
             }

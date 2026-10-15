@@ -4,6 +4,7 @@ import { GAME_VERSION } from './config/gameVersion.js';
 import { CombatText } from './classes/CombatText.js';
 import { measureAhead } from './utils/spriteFit.js';
 import { Particle } from './classes/Particle.js';
+import { LightningBolt } from './classes/LightningBolt.js';
 import { gameItems } from './data/gameItems.js';
 import { damageProjectiles, isHarmfulProjectile } from './data/damageProjectiles.js';
 import { powerUpItems } from './data/powerUpItems.js';
@@ -44,7 +45,7 @@ import { initializeMusicButton } from './ui/musicButton.js';
 import { enterFullscreen, leaveFullscreen } from './ui/fullscreen.js';
 import { actionFor, keyName, resetKeys } from './utils/keybindings.js';
 import { say, preloadVoiceLines, resetVoiceLines, updateBanter, watchHealth, forgetHealth } from './systems/voiceSystem.js';
-import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies, fightInProgress } from './systems/bossSystem.js';
+import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies, fightInProgress, strikeBoss } from './systems/bossSystem.js';
 import { BossProjectile } from './classes/BossProjectile.js';
 import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground, currentBackgroundImage, currentBackgroundName } from './systems/backgroundSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState, updateMouseLock } from './systems/inputSystem.js';
@@ -387,6 +388,8 @@ async function init() {
     
     // Set up spell system game state callback
     spellSystem.setGameStateCallback(() => gameState);
+    // What he wears may answer his arrows: Thunderfury's lightning
+    spellSystem.onArrowsFired = thunderfuryStrike;
     
     // Expose gameItems to window for spell system access
     window.gameItems = gameItems;
@@ -4490,6 +4493,12 @@ async function postKept(url, body, failed) {
             siteBoot.user.bagContents = result.all.bags;
             siteBoot.user.materials = result.all.bank;
         }
+        // A piece of gear made: this hunter's gear, and what is bound to him, as they are now
+        if (result.gear && result.side) {
+            setSideOf('gear', result.side, result.gear);
+            if (result.bound) setSideOf('bound', result.side, result.bound);
+            refreshCharacterSheet();
+        }
         return '';
     } catch (e) {
         return `${failed} No answer from the site.`;
@@ -4766,6 +4775,58 @@ function updateDragonstalkerProgressPanel(gameState) {
 // Boss loot, by rarity: the colour its name is written in
 const BOSS_LOOT_COLORS = { uncommon: '#1EFF00', rare: '#4D9BFF', epic: '#C77DFF' };
 
+// ----- Thunderfury (config/gear.php "crafted" on the site; thunderfury in gameConfig.js) -----
+// Worn in the main hand, each loosing of arrows may call down its lightning: it strikes the
+// harmful things falling nearest the hunter, destroying them, and a boss being fought, which
+// it hurts and dazes (it attacks slower for a while).
+let thunderfuryReadyAt = 0;
+
+function wearsThunderfury() {
+    const held = gameState.equipment && gameState.equipment.mainhand ? wearableById(gameState.equipment.mainhand) : null;
+    return Boolean(held && held.effect === 'chain-lightning');
+}
+
+// A bolt of lightning from one point to another, with a few sparks where it lands
+function lightningBolt(fromX, fromY, toX, toY) {
+    particles.push(new LightningBolt(fromX, fromY, toX, toY));
+    for (let spark = 0; spark < 6; spark++) particles.push(new Particle(toX, toY, spark % 2 ? '#e6f6ff' : '#7fc8ff'));
+}
+
+function thunderfuryStrike() {
+    if (!gameState.gameRunning || !wearsThunderfury()) return;
+    const rules = gameConfig.bosses.thunderfury;
+    const now = gameClock.now();
+    if (now < thunderfuryReadyAt || Math.random() >= rules.chance) return;
+    thunderfuryReadyAt = now + rules.cooldown * 1000;
+
+    const fromX = player.x + player.width / 2;
+    const fromY = player.y;
+    let struck = 0;
+
+    // The boss first, if there is one to strike
+    const boss = strikeBoss({ damage: rules.bossDamage, slow: rules.slow, slowSeconds: rules.slowSeconds, combatTexts, canvas });
+    if (boss) {
+        lightningBolt(fromX, fromY, boss.x, boss.y);
+        struck++;
+    }
+
+    // Then the harmful things falling nearest him, gone in a flash
+    const harmful = fireballs
+        .filter(projectile => isHarmfulProjectile(projectile.data))
+        .map(projectile => ({ projectile, distance: Math.hypot(projectile.x + projectile.width / 2 - fromX, projectile.y + projectile.height / 2 - fromY) }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, rules.targets);
+    for (const { projectile } of harmful) {
+        const x = projectile.x + projectile.width / 2;
+        const y = projectile.y + projectile.height / 2;
+        lightningBolt(fromX, fromY, x, y);
+        fireballs.splice(fireballs.indexOf(projectile), 1);
+        struck++;
+    }
+
+    if (struck > 0) combatTexts.push(new CombatText(fromX, player.y - 30, 'Thunderfury!', '#7fc8ff', false));
+}
+
 // A boss went down: it pays coins, and the site decides what it dropped. A logged-in player
 // keeps the item on their account; a guest is only shown it. How the fight went goes with it,
 // for the player's record of the game.
@@ -4792,6 +4853,16 @@ function onBossDefeated(boss, fight = null) {
                 ? `${drop.quiver}! Your quiver now holds ${gameState.quiverCapacity} arrows`
                 : `${drop.quiver}! Put it on in the quiver slot for ${quiverCapacity(gameConfig.quiver, true)} arrows`, 480, '#FF8000');
             combatTexts.push(new CombatText((canvas.logicalWidth || canvas.width) / 2, player.y - 90, 'Large quiver!', '#FF8000', true));
+        }
+        // A Binding of the Windseeker, into this hunter's bank: half of what Thunderfury is made of
+        for (const binding of drop.bindings || []) {
+            if (siteBoot && siteBoot.user) {
+                const bank = { ...sideOf(siteBoot.user.materials, boss.faction) };
+                bank[binding.id] = (bank[binding.id] || 0) + 1;
+                setSideOf('materials', boss.faction, bank);
+            }
+            addNotification(gameState, `${binding.name}! It is in your bank: Thunderfury is made from both`, 600, '#FF8000');
+            combatTexts.push(new CombatText((canvas.logicalWidth || canvas.width) / 2, player.y - 120, binding.name, '#FF8000', true));
         }
         if (!drop.item) return;
         // Kept: its side's hunter owns it from now on

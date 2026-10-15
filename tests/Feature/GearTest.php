@@ -36,7 +36,8 @@ class GearTest extends TestCase
         }
         $starter = count(config('gear.starter.alliance')) + count(config('gear.starter.horde'));
         // ...and the large quiver
-        $this->assertCount(60 + count(config('gear.drops')) + $starter + 1, $catalog);
+        // Boss loot, what falls in a game, the starting clothes, the large quiver, and what is made
+        $this->assertCount(60 + count(config('gear.drops')) + $starter + 1 + count(config('gear.crafted')), $catalog);
 
         // The same kind of thing from an early boss and the last: a one-handed weapon each
         $this->assertSame(['attackPower' => 9, 'crit' => 1], $catalog['cruel-barb']['stats']);

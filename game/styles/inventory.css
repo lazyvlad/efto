@@ -583,6 +583,7 @@ button.inventory-slot:hover {
 }
 
 .inventory-slot.is-crafted { border-color: #1eff00; }
+.inventory-slot.is-legendary { border-color: #ff8000; }
 
 .inventory-picked {
     margin-top: 12px;
@@ -964,4 +965,19 @@ button.inventory-slot:hover {
     .inventory-pick-all {
         min-height: 32px;
     }
+}
+
+/* What a legendary does beyond its stats, in the recipe */
+.inventory-legendary-effect {
+    color: #ffc98a;
+}
+
+/* A legendary recipe: its picture and name in the colour of legendaries */
+.inventory-recipe-head[data-rarity="legendary"] .inventory-recipe-picture {
+    border-color: #ff8000;
+    box-shadow: 0 0 0 1px #000, 0 0 16px rgba(255, 128, 0, 0.35);
+}
+
+.inventory-main .inventory-recipe-head[data-rarity="legendary"] h3.inventory-recipe-name {
+    color: #ffa64d;
 }

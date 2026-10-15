@@ -299,6 +299,9 @@ class Bags
     public static function send(User $user, string $from, string $itemId, int $count): ?string
     {
         $to = $from === 'alliance' ? 'horde' : 'alliance';
+        if (config("crafting.items.{$itemId}.bound")) {
+            return 'That is bound to him: it cannot be sent.';
+        }
         $bank = self::bank($user, $from);
         if ($count < 1 || $count > ($bank[$itemId] ?? 0)) {
             return 'There is not that much of it in the bank.';
@@ -323,6 +326,15 @@ class Bags
             return 'There is no such recipe.';
         }
 
+        // A piece of gear is made one at a time, one to a hunter, and is his, not the bags'
+        $gear = (bool) config("crafting.items.{$recipeId}.gear");
+        if ($gear && $count !== 1) {
+            return 'That is made one at a time.';
+        }
+        if ($gear && (Gear::owned($user, $side)[$recipeId] ?? 0) > 0) {
+            return 'He already has it.';
+        }
+
         $contents = self::contents($user, $side);
         foreach ($needs as $itemId => $each) {
             if (($contents[$itemId] ?? 0) < $each * $count) {
@@ -330,6 +342,14 @@ class Bags
             }
             $contents[$itemId] -= $each * $count;
         }
+
+        if ($gear) {
+            self::keep($user, $side, array_filter($contents));
+            Gear::addCrafted($user->fresh(), $side, $recipeId);
+
+            return null;
+        }
+
         $contents = self::plus(array_filter($contents), [$recipeId => $count]);
         if (self::slotsUsed($contents) > self::capacity($user)) {
             return 'There is no room in your bags for what it makes.';
@@ -338,6 +358,15 @@ class Bags
         self::keep($user, $side, $contents);
 
         return null;
+    }
+
+    /**
+     * Put things into a hunter's bank (something found outside a game, as a Binding of the
+     * Windseeker a boss dropped).
+     */
+    public static function deposit(User $user, string $side, array $things): void
+    {
+        self::keep($user, $side, null, self::plus(self::bank($user, $side), $things));
     }
 
     /** Two lots of things together: [itemId => count] */

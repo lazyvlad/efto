@@ -264,6 +264,8 @@ function slotOf(stack, state) {
     const kind = kindOf(stack.itemId);
     const pickable = Boolean(state) && state.loggedIn && !state.playing && isKept(stack.itemId);
     const slot = make(pickable ? 'button' : 'div', `inventory-slot is-${kind}`);
+    // A legendary thing (a Binding of the Windseeker) in its colour
+    if (craftedById(stack.itemId) && craftedById(stack.itemId).rarity === 'legendary') slot.classList.add('is-legendary');
     if (pickable) {
         slot.type = 'button';
         slot.classList.toggle('is-picked', pickedStack === stack.itemId);
@@ -461,7 +463,7 @@ function renderBank(side, state) {
         const count = state.bank[itemId];
         const fits = Math.min(count, roomFor(itemId, state.contents, state.capacity));
         const row = make('div', 'window-item inventory-bank-row');
-        row.dataset.rarity = craftedById(itemId) ? 'uncommon' : 'rare';
+        row.dataset.rarity = craftedById(itemId) ? craftedById(itemId).rarity || 'uncommon' : 'rare';
         const picture = make('img');
         picture.src = item ? item.image : '';
         picture.alt = '';
@@ -489,7 +491,10 @@ function renderBank(side, state) {
             if (!notice) notice = `Sent ${Math.min(many, count)} ${name} to the ${other} hunter.`;
             render();
         });
-        row.append(picture, text, make('span', 'inventory-row-count', String(count)), button, send);
+        // Something bound to him (a Binding of the Windseeker) stays his
+        const bound = craftedById(itemId) && craftedById(itemId).bound;
+        if (bound) text.append(make('span', 'window-item-note', 'Soulbound'));
+        row.append(picture, text, make('span', 'inventory-row-count', String(count)), button, ...(bound ? [] : [send]));
         list.append(row);
     }
     box.append(list);
@@ -930,7 +935,7 @@ function renderCrafting(column, main, side, state) {
 
     // The recipes, each with how many can be made from what is in the bags
     const recipesBox = make('section', 'window-card inventory-left-card');
-    recipesBox.append(make('p', 'window-label', 'Alchemy'), make('h3', 'inventory-side-title', 'Recipes'));
+    recipesBox.append(make('p', 'window-label', 'Crafting'), make('h3', 'inventory-side-title', 'Recipes'));
     for (const recipe of list) {
         const button = make('button', recipe.id === recipeId ? 'window-item inventory-recipe is-on' : 'window-item inventory-recipe');
         button.type = 'button';
@@ -940,7 +945,9 @@ function renderCrafting(column, main, side, state) {
         picture.alt = '';
         const text = make('span', 'window-item-text');
         const can = canMake(recipe.needs, state.contents);
-        text.append(make('span', 'window-item-name', recipe.item ? recipe.item.name : recipe.id), make('span', 'window-item-note', can > 0 ? `You can make ${can}` : 'Not enough in your bags'));
+        const made = recipe.item && recipe.item.gear && state.owned.includes(recipe.id);
+        text.append(make('span', 'window-item-name', recipe.item ? recipe.item.name : recipe.id),
+            make('span', 'window-item-note', made ? 'Made: it is his' : can > 0 ? (recipe.item && recipe.item.gear ? 'You can make it' : `You can make ${can}`) : 'Not enough in your bags'));
         button.append(picture, text);
         button.addEventListener('click', () => {
             recipeId = recipe.id;
@@ -967,6 +974,7 @@ function renderRecipe(main, state, recipe) {
     const item = recipe.item || { name: recipe.id, image: '' };
     const potion = state.potion && state.potion.id === recipe.id ? state.potion : null;
     const head = make('div', 'inventory-recipe-head');
+    head.dataset.rarity = item.rarity || 'uncommon';
     const picture = make('div', 'inventory-recipe-picture');
     const image = make('img');
     image.src = item.image;
@@ -979,7 +987,18 @@ function renderRecipe(main, state, recipe) {
         does.append('Drink in a fight: ', make('strong', 'inventory-heal', `+${potion.heal} health`), '. Press ', make('span', 'inventory-key', potion.key), `, one every ${potion.cooldown} seconds.`);
         words.append(does);
     }
-    words.append(make('p', 'inventory-text inventory-fine', `Goes into your bags; ${gameConfig.bags.stack} to a slot.`));
+    // A piece of gear: what it gives and does; it is his once made, not the bags'
+    const gear = item.gear ? wearableById(recipe.id) : null;
+    if (gear) {
+        words.append(make('p', 'inventory-text', `${gear.twoHanded ? 'Two-handed' : 'One-handed'}, main hand: ${statsText(itemStats(gear, gameConfig.sets)) || 'no stats'}.`));
+        if (gear.effect === 'chain-lightning') {
+            const lightning = gameConfig.bosses.thunderfury;
+            words.append(make('p', 'inventory-text inventory-legendary-effect', `Worn, his arrows may call down its lightning (${Math.round(lightning.chance * 100)}% each time he shoots, at most every ${lightning.cooldown} seconds): it destroys up to ${lightning.targets} harmful things falling near him, and strikes a boss for ${lightning.bossDamage}, dazing it so it attacks slower for ${lightning.slowSeconds} seconds.`));
+        }
+        words.append(make('p', 'inventory-text inventory-fine', 'His for good once made, bound to him. One to a hunter.'));
+    } else {
+        words.append(make('p', 'inventory-text inventory-fine', `Goes into your bags; ${gameConfig.bags.stack} to a slot.`));
+    }
     head.append(picture, words);
     box.append(head);
 
@@ -1009,6 +1028,30 @@ function renderRecipe(main, state, recipe) {
             row.append(fetch);
         }
         box.append(row);
+    }
+
+    // A piece of gear is made once: Make it, or what became of it
+    if (gear) {
+        const made = state.owned.includes(recipe.id);
+        const can = canMake(recipe.needs, state.contents) > 0;
+        const bar = make('div', 'inventory-make');
+        const makeIt = make('button', 'game-btn is-primary inventory-make-btn', made ? 'Made' : 'Make it');
+        makeIt.type = 'button';
+        makeIt.disabled = made || !state.loggedIn || state.playing || busy || !can;
+        makeIt.title = made ? 'He has it' : !state.loggedIn ? 'Log in to craft' : state.playing ? 'Crafting is done between games' : !can ? 'Not everything it takes is in your bags' : `Make ${item.name}`;
+        makeIt.addEventListener('click', async () => {
+            if (busy) return;
+            busy = true;
+            notice = (await game.onCraft(recipe.id, 1)) || '';
+            busy = false;
+            if (!notice) notice = `Made ${item.name}: it is his. Put it on in the main hand on the character sheet.`;
+            render();
+        });
+        bar.append(makeIt);
+        box.append(bar);
+        if (state.playing) box.append(make('p', 'inventory-text window-warning', 'Crafting is done between games.'));
+        if (notice) box.append(make('p', notice.startsWith('Made ') ? 'inventory-text inventory-made' : 'inventory-text window-warning', notice));
+        return;
     }
 
     // How many, and make them

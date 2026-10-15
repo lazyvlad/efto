@@ -538,6 +538,20 @@ export const gameConfig = {
             damage: 0.7,            // Each does this many times the boss's damage
         },
 
+        // Thunderfury's lightning (its "chain-lightning" effect, config/gear.php on the site):
+        // worn, each loosing of arrows may call it down. It strikes the nearest harmful things
+        // falling and destroys them; in a boss fight it strikes the boss too, and the boss,
+        // dazed, attacks slower for a while (as the blade's Thunderclap slows in World of
+        // Warcraft). A shield takes the lightning's damage, not the daze.
+        thunderfury: {
+            chance: 0.12,           // Each time arrows are loosed
+            cooldown: 2,            // Seconds before it can strike again
+            targets: 3,             // Harmful things it strikes at most
+            bossDamage: 60,         // What it does to a boss, past its armor
+            slow: 0.6,              // How fast a dazed boss attacks (1 = as ever)
+            slowSeconds: 4,
+        },
+
         // Attacks that are more than a thrown thing hit harder: a charge, a blast, a stomp
         heavyDamage: 1.5,
         // A curse takes this share of the boss's damage every second, for this many seconds

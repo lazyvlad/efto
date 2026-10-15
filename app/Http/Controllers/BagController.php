@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Support\Bags;
+use App\Support\Gear;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -110,7 +111,14 @@ class BagController extends Controller
         $refused = Bags::craft($user, $side, $data['recipe'], (int) $data['count']);
         abort_if($refused !== null, 422, (string) $refused);
 
-        return response()->json(self::kept($user, $side));
+        $answer = self::kept($user, $side);
+        // A piece of gear made: his gear now, and what is bound to him
+        if (config("crafting.items.{$data['recipe']}.gear")) {
+            $answer['gear'] = (object) Gear::owned($user, $side);
+            $answer['bound'] = (object) Gear::bound($user, $side);
+        }
+
+        return response()->json($answer);
     }
 
     /** What is in a hunter's bags and bank now, and both hunters' (for a send) */

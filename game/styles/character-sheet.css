@@ -202,6 +202,7 @@
 .sheet-slot[data-rarity="uncommon"] .sheet-slot-icon { border-color: #1eff00; }
 .sheet-slot[data-rarity="rare"] .sheet-slot-icon { border-color: #3d9bff; }
 .sheet-slot[data-rarity="epic"] .sheet-slot-icon { border-color: #b048f8; }
+.sheet-slot[data-rarity="legendary"] .sheet-slot-icon { border-color: #ff8000; }
 
 /* The off hand while a two-handed weapon is held: the weapon, greyed */
 .sheet-slot.is-blocked .sheet-slot-icon {

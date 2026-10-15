@@ -23,6 +23,14 @@ return [
         // arrows that did not fit in the quiver, go into the bags (App\Support\Bags::afterGame)
         'mana-potion' => ['name' => 'Mana Potion', 'image' => 'assets/powerups/mana-potion.webp', 'rarity' => 'uncommon'],
         'arrows' => ['name' => 'Arrows', 'image' => 'assets/powerups/bronze-arrows.webp', 'rarity' => 'common'],
+        // Not made, only found: the two halves of what binds Thunderfury, a rare extra drop of
+        // the last bosses of each side (boss_loot.bindings). Kept in the bank of the hunter
+        // whose boss it was, and bound to him ("bound": never sent to the other hunter).
+        'left-binding-of-the-windseeker' => ['name' => 'Left Binding of the Windseeker', 'image' => 'assets/items/tunder.png', 'rarity' => 'legendary', 'bound' => true],
+        'right-binding-of-the-windseeker' => ['name' => 'Right Binding of the Windseeker', 'image' => 'assets/items/tunder.png', 'rarity' => 'legendary', 'bound' => true],
+        // Made, but not into the bags: a piece of gear ("gear" => true), the hunter's for good
+        // (config/gear.php, "crafted"). One to a hunter.
+        'thunderfury' => ['name' => 'Thunderfury, Blessed Blade of the Windseeker', 'image' => 'assets/items/tunder.png', 'rarity' => 'legendary', 'gear' => true],
     ],
 
     /*
@@ -33,5 +41,13 @@ return [
 
     'recipes' => [
         'health-potion' => ['kingsblood' => 1, 'essence-of-water' => 1],
+        // The legendary blade: both Bindings, and the fire and water of the Firelord's lands
+        'thunderfury' => [
+            'left-binding-of-the-windseeker' => 1,
+            'right-binding-of-the-windseeker' => 1,
+            'fiery-core' => 10,
+            'lava-core' => 10,
+            'essence-of-water' => 4,
+        ],
     ],
 ];

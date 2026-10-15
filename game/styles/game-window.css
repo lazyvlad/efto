@@ -168,6 +168,7 @@
 .window-item[data-rarity="uncommon"] { border-color: #1eff00; }
 .window-item[data-rarity="rare"] { border-color: #3d9bff; }
 .window-item[data-rarity="epic"] { border-color: #b048f8; }
+.window-item[data-rarity="legendary"] { border-color: #ff8000; }
 
 .window-item img {
     flex: none;
@@ -195,6 +196,7 @@
 .window-item[data-rarity="uncommon"] .window-item-name { color: #8dff7a; }
 .window-item[data-rarity="rare"] .window-item-name { color: #8fc4ff; }
 .window-item[data-rarity="epic"] .window-item-name { color: #d9a8ff; }
+.window-item[data-rarity="legendary"] .window-item-name { color: #ffa64d; }
 
 .window-item-stats {
     font-size: 12px;
