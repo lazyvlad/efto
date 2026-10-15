@@ -25,33 +25,54 @@ const WOUND = { x: 440, y: 385, angle: 144 };
 const FOLLOW = { x: 460, y: 340, angle: 20 };
 const ON_BACK = { x: 520, y: 285, angle: -25 };
 
+// A short blade (a dagger, a shortsword; "style: 'short'" in data/melee.js) is held out at his
+// side and thrust up at what comes down at him, not swung across his chest as a long weapon
+// is. Its places are from his weapon-hand shoulder ("anchor"), so the thrust fits either body.
+const SHORT = {
+    ready: { x: 60, y: 100, angle: 30 },
+    wound: { x: 45, y: 118, angle: 58 },
+    thrust: { x: 100, y: 38, angle: 8 },
+};
+
+function fromShoulder(place, anchor) {
+    return { x: anchor[0] + place.x, y: anchor[1] + place.y, angle: place.angle };
+}
+
 /**
  * The swing at a time into it: the weapon hand's place and the weapon's angle. A cut upwards,
  * towards something coming down at him, that ends clear of his face (and the tauren's horns).
  */
-export function swingPose(ms, family = 'two') {
+export function swingPose(ms, family = 'two', style = null, anchor = null) {
     const p = SWING[family];
     const at = clamp(ms, 0, p.total);
+    const short = style === 'short' && anchor;
+    const [ready, wound, follow] = short
+        ? [fromShoulder(SHORT.ready, anchor), fromShoulder(SHORT.wound, anchor), fromShoulder(SHORT.thrust, anchor)]
+        : [READY, WOUND, FOLLOW];
     let a, b, t;
-    if (at < p.windup) { a = READY; b = WOUND; t = smooth(at / p.windup); }
-    else if (at < p.windup + p.active) { a = WOUND; b = FOLLOW; t = smooth((at - p.windup) / p.active); }
-    else { a = FOLLOW; b = READY; t = smooth((at - p.windup - p.active) / p.recovery); }
+    if (at < p.windup) { a = ready; b = wound; t = smooth(at / p.windup); }
+    else if (at < p.windup + p.active) { a = wound; b = follow; t = smooth((at - p.windup) / p.active); }
+    else { a = follow; b = ready; t = smooth((at - p.windup - p.active) / p.recovery); }
     const pose = { x: mix(a.x, b.x, t), y: mix(a.y, b.y, t), angle: mix(a.angle, b.angle, t) };
-    // A broad weapon's head needs more room than its handle: the follow-through stops short
-    if (pose.angle < 72) pose.angle = 65 + (pose.angle - 20) * (7 / 52);
+    // A broad weapon's head needs more room than its handle: the follow-through stops short (a
+    // short blade thrusts up at his side, clear of his head)
+    if (!short && pose.angle < 72) pose.angle = 65 + (pose.angle - 20) * (7 / 52);
     return pose;
 }
 
 // Taking the weapon off his back (share 0 -> 1; backwards to put it away): behind him at first
-export function drawPose(share) {
+export function drawPose(share, style = null, anchor = null) {
     const t = smooth(share);
-    const angle = mix(ON_BACK.angle, READY.angle, t);
+    const ready = readyPose(style, anchor);
+    const angle = mix(ON_BACK.angle, ready.angle, t);
     // Behind him until it has turned clear of his face (and the tauren's horns), however broad
-    return { x: mix(ON_BACK.x, READY.x, t), y: mix(ON_BACK.y, READY.y, t), angle, behind: share < 0.45 || angle < 65, helping: share };
+    // (a short blade comes out to his side, at a lower angle: behind him until half way)
+    const clear = style === 'short' && anchor ? share >= 0.5 : angle >= 65;
+    return { x: mix(ON_BACK.x, ready.x, t), y: mix(ON_BACK.y, ready.y, t), angle, behind: share < 0.45 || !clear, helping: share };
 }
 
-export function readyPose() {
-    return { ...READY };
+export function readyPose(style = null, anchor = null) {
+    return style === 'short' && anchor ? fromShoulder(SHORT.ready, anchor) : { ...READY };
 }
 
 /**
@@ -132,9 +153,10 @@ export class MeleeState {
     }
 
     // Something is in reach: take the weapon in hand (one-handed or two)
-    engage(family) {
+    engage(family, style = null) {
         if (this.state !== 'ranged') return false;
         this.family = family;
+        this.style = style;
         this.set('draw');
         return true;
     }
@@ -202,12 +224,13 @@ export class MeleeState {
     }
 
     // What he looks like now (null: as ever, his bow and all)
-    pose() {
+    // anchor: his weapon-hand shoulder, for a short blade (see SHORT)
+    pose(anchor = null) {
         switch (this.state) {
-            case 'draw': return drawPose(this.ms / DRAW_MS);
-            case 'sheathe': return drawPose(1 - this.ms / SHEATHE_MS);
-            case 'guard': return readyPose();
-            case 'attack': return swingPose(this.ms, this.family === 'two' ? 'two' : 'one');
+            case 'draw': return drawPose(this.ms / DRAW_MS, this.style, anchor);
+            case 'sheathe': return drawPose(1 - this.ms / SHEATHE_MS, this.style, anchor);
+            case 'guard': return readyPose(this.style, anchor);
+            case 'attack': return swingPose(this.ms, this.family === 'two' ? 'two' : 'one', this.style, anchor);
             default: return null;
         }
     }

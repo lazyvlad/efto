@@ -72,6 +72,23 @@ test('with nothing in reach he puts it away', () => {
     assert.equal(melee.pose(), null, 'drawn as ever then');
 });
 
+test('a short blade is thrust up at his side: reachable all the way, and clear of his head', () => {
+    for (const side of Object.keys(meleeRigs)) {
+        const rig = meleeRigs[side];
+        const anchor = rig.right.shoulder;
+        for (const [id, weapon] of Object.entries(meleeWeapons).filter(([, w]) => w.style === 'short')) {
+            const poses = [readyPose('short', anchor), drawPose(0.5, 'short', anchor), drawPose(1, 'short', anchor)];
+            for (let ms = 0; ms <= SWING.one.total; ms += 10) poses.push(swingPose(ms, 'one', 'short', anchor));
+            for (const pose of poses) {
+                const at = armsFor(rig, weapon, pose);
+                assert.ok(at.arms.right.short < 2, `${side} ${id}: hand ${at.arms.right.short.toFixed(1)}px short`);
+                // The hand stays out at his weapon side, never across his chest
+                assert.ok(at.main[0] > anchor[0], `${side} ${id}: hand across his chest at ${at.main[0].toFixed(0)}`);
+            }
+        }
+    }
+});
+
 test('both hunters reach their grips all through every swing, without stretching an arm', () => {
     for (const side of Object.keys(meleeRigs)) {
         for (const [id, weapon] of Object.entries(meleeWeapons)) {

@@ -11,7 +11,8 @@
 // and "right" are the sides of the screen: the right hand holds the weapon, the left helps
 // with a two-handed one.
 //
-// weapons: a whole picture of each weapon he can swing, assets/player/combat/weapons/<id>.webp,
+// weapons: a whole picture of each weapon he can swing ("style: 'short'" for a short blade,
+// thrust rather than swung: utils/meleeMotion.js), assets/player/combat/weapons/<id>.webp,
 // upright; where on it the right fist closes ("grip", as shares of its width and height), the
 // left one for a two-hander ("support"), and how tall it is drawn in picture pixels.
 
@@ -31,11 +32,11 @@ export const meleeRigs = {
 export const meleeWeapons = {
     'hoggers-trophy-axe': { grip: [0.47, 0.76], support: [0.47, 0.87], height: 420, twoHanded: true },
     'thunderfury': { grip: [0.49, 0.79], support: null, height: 440, twoHanded: false },
-    'cruel-barb': { grip: [0.5791, 0.8201], support: null, height: 300, twoHanded: false },
+    'cruel-barb': { grip: [0.5791, 0.8201], support: null, height: 300, twoHanded: false, style: 'short' },
     'abominations-hook': { grip: [0.622, 0.7158], support: null, height: 290, twoHanded: false },
     'embalmers-cleaver': { grip: [0.4985, 0.7457], support: null, height: 280, twoHanded: false },
     'nekroshs-spiked-mace': { grip: [0.504, 0.7112], support: null, height: 300, twoHanded: false },
-    'vilebranch-soul-dagger': { grip: [0.4977, 0.7621], support: null, height: 210, twoHanded: false },
+    'vilebranch-soul-dagger': { grip: [0.4977, 0.7621], support: null, height: 210, twoHanded: false, style: 'short' },
     'cursed-felblade': { grip: [0.5183, 0.8124], support: null, height: 300, twoHanded: false },
     'ripsaw': { grip: [0.4254, 0.7801], support: null, height: 315, twoHanded: false },
     'jangthraze-the-protector': { grip: [0.4203, 0.7876], support: null, height: 330, twoHanded: false },
@@ -46,7 +47,7 @@ export const meleeWeapons = {
     'crulshorukh': { grip: [0.4803, 0.662], support: [0.4803, 0.8092], height: 425, twoHanded: true },
     'walking-stick': { grip: [0.3935, 0.6684], support: [0.3935, 0.8001], height: 430, twoHanded: true },
     // The weapons the hunters start with
-    'starter-alliance-shortsword': { grip: [0.4831, 0.8123], support: null, height: 245, twoHanded: false },
+    'starter-alliance-shortsword': { grip: [0.4831, 0.8123], support: null, height: 245, twoHanded: false, style: 'short' },
     'starter-horde-handaxe': { grip: [0.7061, 0.7718], support: null, height: 235, twoHanded: false },
 };
 

@@ -229,7 +229,7 @@ export function updateMelee(context) {
     const near = target(context, melee.state === 'ranged' ? ready : ready * 1.2);
     const family = meleeWeapons[look.weaponId].twoHanded ? 'two' : 'one';
 
-    if (near && melee.state === 'ranged') melee.engage(family);
+    if (near && melee.state === 'ranged') melee.engage(family, meleeWeapons[look.weaponId].style || null);
     const strike = near && target(context, reach);
     if (strike) {
         melee.attack(rules.cooldown[family] * 1000);
@@ -309,7 +309,7 @@ function segment(ctx, part, fromA, fromB, toA, toB) {
 export function drawMelee(ctx, bounds, posed = null) {
     // A pose may be asked for (to look at one), else he is drawn as he is now
     if (!look || (!posed && melee.state === 'ranged')) return false;
-    const pose = posed || melee.pose();
+    const pose = posed || melee.pose(meleeRigs[look.side].right.shoulder);
     const rig = meleeRigs[look.side];
     const weapon = meleeWeapons[look.weaponId];
     const { plates, limbs, hands, cuffs } = look;
