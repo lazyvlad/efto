@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 
 // Loaded through a data: URL, as in gameClock.test.mjs
 const source = await readFile(new URL('../utils/quiver.js', import.meta.url));
-const { quiverCapacity, startingArrows, addArrows } = await import(`data:text/javascript;base64,${source.toString('base64')}`);
+const { quiverCapacity, startingArrows, addArrows, quiverText } = await import(`data:text/javascript;base64,${source.toString('base64')}`);
 
 // The "quiver" settings of config/gameConfig.js
 const rules = { slotSize: 50, slots: 4, startFilled: 1, bossFightFilled: 2, bonusSlots: 4 };
@@ -29,4 +29,12 @@ test('arrows that do not fit are lost', () => {
 test('the settings in the game match the ones these tests describe', async () => {
     const config = await readFile(new URL('../config/gameConfig.js', import.meta.url), 'utf8');
     assert.match(config.replace(/\s+/g, ' '), /quiver: \{ slotSize: 50, .*?slots: 4, .*?startFilled: 1, .*?bossFightFilled: 2, .*?bonusSlots: 4,/);
+});
+
+test('the large quiver says what it gives: how many arrows the quiver holds, and how many more', () => {
+    const rules = { slotSize: 50, slots: 4, bonusSlots: 4 };
+    assert.equal(quiverText({ id: 'ancient-sinew-wrapped-lamina', quiverSlots: 4 }, rules), 'Quiver: holds 400 arrows (+200)');
+    // A plain quiver (the clothes a hunter starts in) changes nothing, and says nothing of it
+    assert.equal(quiverText({ id: 'starter-alliance-quiver', stats: { health: 1 } }, rules), null);
+    assert.equal(quiverText(null, rules), null);
 });

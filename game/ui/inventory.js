@@ -16,6 +16,7 @@
 import { askConfirm, askText } from './gameDialog.js';
 import { gameItems } from '../data/gameItems.js';
 import { gameConfig } from '../config/gameConfig.js';
+import { quiverText } from '../utils/quiver.js';
 import { MATERIALS, categoryOf } from '../data/materials.js';
 import { stacksOf, slotsUsed, roomFor as roomInBags } from '../utils/bags.js';
 import { craftedById, canMake } from '../data/crafting.js';
@@ -853,7 +854,7 @@ function gearRow({ item, count, sells }, state, carried, full, list) {
     const text = make('span', 'window-item-text');
     text.append(
         make('span', 'window-item-name', count > 1 ? `${item.name} ×${count}` : item.name),
-        make('span', 'window-item-stats', statsText(itemStats(item, gameConfig.sets)) || 'No stats'),
+        make('span', 'window-item-stats', [statsText(itemStats(item, gameConfig.sets)), quiverText(item, gameConfig.quiver)].filter(Boolean).join(' · ') || 'No stats'),
         ...(about ? [make('span', 'window-item-note', about)] : [])
     );
 

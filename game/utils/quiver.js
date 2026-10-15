@@ -21,3 +21,12 @@ export function addArrows(current, amount, capacity) {
     const added = Math.max(0, arrows - current);
     return { arrows, added, lost: amount - added };
 }
+
+// What a quiver worn in the quiver slot gives, in words, for the inventory and the sheet:
+// "Quiver: holds 400 arrows (+200)". Only the large quiver changes how many it holds (its
+// quiverSlots, from the site's catalogue); null for anything else.
+export function quiverText(item, rules) {
+    if (!item || !item.quiverSlots) return null;
+    const holds = quiverCapacity(rules, true);
+    return `Quiver: holds ${holds} arrows (+${holds - quiverCapacity(rules, false)})`;
+}

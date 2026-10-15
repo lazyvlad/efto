@@ -10,6 +10,7 @@
 
 import { wearables, wearableById } from '../data/wearables.js';
 import { gameConfig } from '../config/gameConfig.js';
+import { quiverText } from '../utils/quiver.js';
 import { playerCharacters } from '../data/playerCharacters.js';
 import { SLOTS, itemsForSlot, itemStats } from '../utils/gear.js';
 import { bonusText } from '../utils/sets.js';
@@ -418,7 +419,7 @@ function renderSlotItems(state) {
         const text = make('span', 'window-item-text');
         text.append(
             make('span', 'window-item-name', item.name),
-            make('span', 'window-item-stats', statsText(itemStats(item, gameConfig.sets)) || 'No stats'),
+            make('span', 'window-item-stats', [statsText(itemStats(item, gameConfig.sets)), quiverText(item, gameConfig.quiver)].filter(Boolean).join(' · ') || 'No stats'),
             ...(about ? [make('span', 'window-item-note', about)] : [])
         );
 
