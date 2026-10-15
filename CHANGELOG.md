@@ -27,7 +27,7 @@
 - **Redrawn clothes and creatures show at once**: their pictures were fetched by the game's
   version alone, and a browser kept an old one (the server says nothing of how long to keep
   them) until the next version. They are fetched by the build now.
-- **The starter weapons have their own art**: a plain shortsword and a compact cleaver,
+- **The starter weapons have their own art**: a plain shortsword and a plain handaxe,
   carried on the back and swung in the fist, in place of the borrowed Cruel Barb and Embalmer's
   Cleaver (the Horde one stood upright beside the hunter).
 
@@ -46,7 +46,7 @@
   (Prowler), Westfall (Harvest Golem), Valley of Trials (Scorpid Worker, Mottled Boar) and
   Razor Hill (Bloodtalon Raptor).
 - **Both hunters start with a weapon**: the Alliance hunter a Pajama Hunter Shortsword, the
-  Horde hunter a Horde Hunter Cleaver (one-handed, so an offhand stays), since melee needs
+  Horde hunter a Horde Hunter Handaxe (one-handed, so an offhand stays), since melee needs
   something in the main hand. Outfits saved before had an empty hand: the weapon was put in
   it, once; put down after that, it stays down. Drawn for now as the Cruel Barb and the
   Embalmer's Cleaver, until they have art of their own.

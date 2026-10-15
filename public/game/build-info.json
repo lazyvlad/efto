@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-15T17:02:35.770Z",
-  "buildTimestamp": 1792083755775,
+  "buildTime": "2026-10-15T17:23:26.123Z",
+  "buildTimestamp": 1792085006130,
   "mode": "production",
   "gameVersion": "3.0.18",
-  "cacheHash": "ebs79bbn",
+  "cacheHash": "54k25obj",
   "fileMap": {
-    "game-modular.js": "game-modular.ebs79bbn.js"
+    "game-modular.js": "game-modular.54k25obj.js"
   },
   "buildSystemVersion": "3.0.18"
 }
