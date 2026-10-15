@@ -1,5 +1,60 @@
 # Changelog
 
+## 3.0.17 - 2026-10-15
+
+### Added
+- **Creatures**: each zone's own wildlife, a small fight of its own, hand to hand. A creature
+  comes in at the top of the field, stalks there, and closes in on the hunter as its time
+  runs (a thin bar under its health shows how close); every arrow that strikes it pushes it
+  back, and reverse gravity throws it about. Once on him it stays: it follows him about and
+  every couple of seconds pounces where he stands (it gathers itself first: step aside), for a
+  bite that never kills. It leaves only when it is killed, by arrows or his weapon, and then
+  leaves loot that hops out of it to be caught. Arrows strike it a little outside its painted
+  body. Points for each one killed. Two at a time (Westfall three), and they leave when a boss
+  comes. In the zones painted so far: Northshire Abbey (Timber Wolf, Kobold Worker), Eastvale
+  (Prowler), Westfall (Harvest Golem), Valley of Trials (Scorpid Worker, Mottled Boar) and
+  Razor Hill (Bloodtalon Raptor).
+- **Both hunters start with a weapon**: the Alliance hunter a Pajama Hunter Skinning Knife, the
+  Horde hunter a Horde Hunter Cleaver (one-handed, so an offhand stays), since melee needs
+  something in the main hand. Outfits saved before had an empty hand: the weapon was put in
+  it, once; put down after that, it stays down. Drawn for now as the Cruel Barb and the
+  Embalmer's Cleaver, until they have art of their own.
+- **Thunderfury's lightning** goes off with a blow of the weapon as well as with arrows, and
+  strikes the creatures nearest him too.
+- **Melee**: up close the hunter fights with his main-hand weapon. When a creature closes in
+  on him, or a boss charges or rushes down at him, he takes the weapon off his back and swings
+  on his own; arrows go on as ever. A blow does 14 (a two-hander 22), plus his attack power,
+  and can crit; it breaks off a creature's pounce. After a
+  swing he must wait, 2 seconds with a one-handed weapon and 3 with a two-handed one: in, a
+  blow, and out again. A blow lands on what he swung at even if it has moved on a little,
+  so a boss charging past him (dodged, he stays close) still takes it. A boss's shield takes a
+  blow as it does an arrow. Whatever he wears:
+  every chest, shoulders, bracers and gloves (the three sets, the boss drops and the clothes he
+  starts in) moves with his arms. Every main-hand weapon can be swung, one-handed or two as it
+  is worn; as he takes it off his back it stays behind him until it has turned clear of his
+  face.
+
+### Fixed
+- **Smoother play**: the panels around the field (stats, set progress, spell bar) are no longer
+  laid out and repainted, along with the whole page, every few frames: their text is set only
+  when it changes, each has a layer of its own, and they no longer blur what is behind them
+  (barely visible behind their dark backgrounds, and redone every frame over a moving field).
+  A Chrome recording showed these repaints as the 30 ms stalls behind dropped frames. The
+  hunter fighting hand to hand is also drawn from pictures kept on the graphics card.
+
+### Changed
+- **Multishot has diminishing returns on a boss**: of one Multishot's arrows, the first three
+  that land do full damage, the fourth a quarter, the fifth a twentieth, and any after that
+  nothing. From right under a boss, or as it charges down at the hunter, all five used to land
+  in full. Going in close is still the strongest play.
+- **The two big cats are no easier to hit than the other bosses**: King Bangalash and
+  Shadumbra are drawn wider than the rest, and arrows landed on far more of them; their bodies
+  now take up a narrower share of their pictures.
+- **Debug mode records where a boss's damage comes from**: by kind of shot, crits,
+  Thunderfury, what landed while it charged, and the arrows it dodged or its shield took.
+- **Power Word: Shield has charges**: it blocks 3 hits or lasts its time, whichever runs out
+  first. A creature's bite uses 1, a bruiser's (Kobold Worker, Harvest Golem, Mottled Boar) 2.
+
 ## 3.0.16 - 2026-10-15
 
 ### Changed

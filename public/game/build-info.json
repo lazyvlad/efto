@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-15T03:20:05.820Z",
-  "buildTimestamp": 1792034405826,
+  "buildTime": "2026-10-15T09:08:19.859Z",
+  "buildTimestamp": 1792055299865,
   "mode": "production",
-  "gameVersion": "3.0.16",
-  "cacheHash": "0l44scpc",
+  "gameVersion": "3.0.17",
+  "cacheHash": "gf28kna3",
   "fileMap": {
-    "game-modular.js": "game-modular.0l44scpc.js"
+    "game-modular.js": "game-modular.gf28kna3.js"
   },
-  "buildSystemVersion": "3.0.15"
+  "buildSystemVersion": "3.0.17"
 }
