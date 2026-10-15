@@ -574,6 +574,8 @@ class SpellSystem {
             
             // Determine size multiplier - multishot arrows are double the size, an Arcane Shot in between
             const sizeMultiplier = spell.id === 'multishot' ? 2.0 : arrowData.arcane ? 1.6 : 1.0;
+            // The arrows of one Multishot know each other: on a boss, each after the third does less
+            const volley = spell.id === 'multishot' ? { bossHits: 0 } : null;
             
             for (let i = 0; i < count; i++) {
                 const angle = angles[i] || -90; // Default to straight up
@@ -593,7 +595,10 @@ class SpellSystem {
                 }
                 
                 // Which shot it came from: a set may add to what that shot does (utils/stats.js)
-                if (spell.id === 'multishot') arrow.multishot = true;
+                if (spell.id === 'multishot') {
+                    arrow.multishot = true;
+                    arrow.volley = volley;
+                }
                 
                 // An Arcane Shot breaks boss shields and is not stopped by projectiles
                 if (arrowData.arcane) {

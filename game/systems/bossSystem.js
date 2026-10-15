@@ -143,10 +143,12 @@ function layout(canvas, boss) {
 function hitBox(canvas) {
     const { width, height, top } = layout(canvas, fight.boss);
 
+    // A boss drawn wider than most has a narrower share of it to hit ("body" in data/bosses.js)
+    const body = fight.boss.body || 0.6;
     return {
-        x: fight.x - width * 0.3,
+        x: fight.x - width * body / 2,
         y: top + fight.drop + height * 0.1,
-        width: width * 0.6,
+        width: width * body,
         height: height * 0.8
     };
 }
@@ -743,10 +745,18 @@ function takeArrowHits(context) {
         // shot and against bosses, the boss's armor (which an Arcane Shot goes through), how
         // weakened the boss is, and the crit (utils/stats.js)
         const set = gameState.setBonus || {};
+        // The arrows of one Multishot that land on it: the first three in full, then less and
+        // less (bosses.multishotFalloff), so from right under it all five are not five times one
+        let worth = arrow.arcane ? gameConfig.bosses.arcaneDamage : 1;
+        if (arrow.volley) {
+            const falloff = gameConfig.bosses.multishotFalloff;
+            worth *= falloff[arrow.volley.bossHits] ?? 0;
+            arrow.volley.bossHits++;
+        }
         const damage = arrowDamage({
             base: gameConfig.bosses.arrowDamage,
             attackPower: gameState.attackPower || 0,
-            worth: arrow.arcane ? gameConfig.bosses.arcaneDamage : 1,
+            worth,
             shotBonus: arrow.arcane ? set.arcane || 0 : arrow.multishot ? set.multishot || 0 : 0,
             // (what its armor takes off, as a share)
             bossArmor: armorReduction(fight.stats.armor || 0, gameConfig.stats),

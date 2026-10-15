@@ -41,6 +41,8 @@
 //             through armor
 //   upheaval - what it does as it sends an Upheaval, for its notice ("calls on his gnolls");
 //             without it, it "turns gravity over"
+//   body    - how much of its picture's width arrows can hit (0.6 if not given): less for a
+//             boss drawn wide, a big cat stretched out, so it is no easier to hit than the rest
 //   nimble  - quick on its feet: now and then an arrow misses it altogether, which takes the
 //             edge off a Multishot from close by (bossStats below); an Arcane Shot never misses
 //   attack  - name and picture (assets/attacks/<side>/) of what it throws; "size" is how big
@@ -57,7 +59,7 @@ const roster = {
         { id: 'stitches', behaviour: 'thrower', name: 'Stitches', image: '06-stitches', attack: { name: 'Thrown Cleaver', image: '06-stitches-cleaver', size: 1.6, spin: 0.12 } },
         { id: 'chieftain-nekrosh', behaviour: 'brawler', warrior: true, name: "Chieftain Nek'rosh", image: '07-chieftain-nekrosh', attack: { name: 'Spiked Mace', image: '07-nekrosh-mace', size: 1.6, spin: 0.1 } },
         { id: 'fozruk', behaviour: 'bomber', name: 'Fozruk', image: '08-fozruk', attack: { name: 'Thrown Boulder', image: '08-fozruk-boulder', size: 1.9, spin: 0.05 } },
-        { id: 'king-bangalash', behaviour: 'charger', nimble: true, name: 'King Bangalash', image: '09-king-bangalash', attack: { name: 'Tiger Claw Slash', image: '09-bangalash-claws', size: 2.2 } },
+        { id: 'king-bangalash', behaviour: 'charger', nimble: true, body: 0.54, name: 'King Bangalash', image: '09-king-bangalash', attack: { name: 'Tiger Claw Slash', image: '09-bangalash-claws', size: 2.2 } },
         { id: 'vile-priestess-hexx', behaviour: 'hexer', name: 'Vile Priestess Hexx', image: '10-vile-priestess-hexx', storm: { name: 'Rain of Fire', image: '09-rain-of-fire', color: '255, 70, 20' }, attack: { name: 'Violet Curse Bolt', image: '10-hexx-curse', size: 1.4 } }
     ],
     horde: [
@@ -66,7 +68,7 @@ const roster = {
         { id: 'taragaman', behaviour: 'warper', name: 'Taragaman the Hungerer', image: '03-taragaman', attack: { name: 'Demon Flame Bolt', image: '03-taragaman-flame', size: 1.4 } },
         { id: 'echeyakee', behaviour: 'charger', nimble: true, name: 'Echeyakee', image: '04-echeyakee', attack: { name: 'Lion Claw Rake', image: '04-echeyakee-claws', size: 1.5 } },
         { id: 'gerenzo-wrenchwhistle', behaviour: 'bomber', name: 'Gerenzo Wrenchwhistle', image: '05-gerenzo-wrenchwhistle', attack: { name: 'Clockwork Bomb', image: '05-gerenzo-bomb', size: 1.5, spin: 0.06 } },
-        { id: 'shadumbra', behaviour: 'charger', nimble: true, name: 'Shadumbra', image: '06-shadumbra', attack: { name: 'Shadow Claw Slash', image: '06-shadumbra-claws', size: 1.5 } },
+        { id: 'shadumbra', behaviour: 'charger', nimble: true, body: 0.5, name: 'Shadumbra', image: '06-shadumbra', attack: { name: 'Shadow Claw Slash', image: '06-shadumbra-claws', size: 1.5 } },
         { id: 'arnak-grimtotem', behaviour: 'pounder', warrior: true, name: 'Arnak Grimtotem', image: '07-arnak-grimtotem', attack: { name: 'War Stomp Shockwave', image: '07-arnak-shockwave', size: 1.7 } },
         { id: 'big-samras', behaviour: 'charger', name: 'Big Samras', image: '08-big-samras', attack: { name: 'Heavy Bear Swipe', image: '08-samras-swipe', size: 1.6 } },
         { id: 'khan-dezhepah', behaviour: 'pounder', warrior: true, name: "Khan Dez'hepah", image: '09-khan-dezhepah', attack: { name: 'Thrown Centaur Spear', image: '09-khan-spear', size: 1.5 } },

@@ -433,6 +433,9 @@ export const gameConfig = {
         // Arrows
         arrowDamage: 10,            // Damage of one arrow, before crits and weakening
         arcaneDamage: 3,            // An Arcane Shot does this many arrows' worth (it costs 5)
+        // What each arrow of one Multishot does to a boss, in the order they land: the first three
+        // in full, the fourth a quarter, the fifth a twentieth, any after that nothing
+        multishotFalloff: [1, 1, 1, 0.25, 0.05],
         
         // The longer a fight lasts the weaker the boss gets, up to a limit
         weakenPerSecond: 0.02,      // Each second, arrows do this much more damage (0.02 = +2%)
