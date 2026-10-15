@@ -2,6 +2,7 @@ import { gameConfig } from '../config/gameConfig.js';
 import { DamageProjectile } from './DamageProjectile.js';
 import { drawAura } from '../utils/glow.js';
 import { playFireballImpactSound } from '../systems/audioSystem.js';
+import { flyStep } from '../utils/upheaval.js';
 
 const pictures = new Map();
 
@@ -48,17 +49,23 @@ export class BossProjectile extends DamageProjectile {
         this.follows = Boolean(attack.follows);
         // Called if it hurts the player (not if it is dodged or blocked)
         this.onPlayerHit = attack.onPlayerHit || null;
-        // One sent in an Upheaval (utils/upheaval.js) does not fall: it flies straight on, up
-        // out of the ground or across from a side, { vx, vy } a step, until it is off the field
-        this.flight = attack.flight || null;
+        // One sent in an Upheaval (utils/upheaval.js) does not fall as the rest do: it rises out
+        // of the ground, or flies in from a side, stops over its column and drops through it
+        // ({ vx, vy, gravity, stopX }), until it is off the field
+        this.flight = attack.flight ? { ...attack.flight } : null;
     }
 
     update(deltaTimeMultiplier, canvas, gameState) {
         this.rotation += this.spin * deltaTimeMultiplier;
 
         if (this.flight) {
-            this.x += this.flight.vx * deltaTimeMultiplier;
-            this.y += this.flight.vy * deltaTimeMultiplier;
+            // Moved by its middle, as it was planned
+            const middle = { ...this.flight, x: this.x + this.width / 2, y: this.y + this.height / 2 };
+            flyStep(middle, deltaTimeMultiplier);
+            this.x = middle.x - this.width / 2;
+            this.y = middle.y - this.height / 2;
+            this.flight.vx = middle.vx;
+            this.flight.vy = middle.vy;
             // Pointing the way it goes (a picture points down)
             if (!this.spin) this.rotation = Math.atan2(-this.flight.vx, this.flight.vy);
             this.glowAnimation += 0.2 * deltaTimeMultiplier;

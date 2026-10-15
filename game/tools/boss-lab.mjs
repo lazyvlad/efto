@@ -6,7 +6,9 @@
 //   npm run boss-lab -- --boss horde-3 --shots shots/   a picture of the fight every half second
 //   npm run boss-lab -- --casual   no Dragon Cry, and he keeps to the bottom of his band, out
 //                                  of the boss's reach: more like most players, and a longer
-//                                  fight in which the boss gets through its whole round
+//                                  fight in which the boss gets through its whole round. In an
+//                                  Upheaval he stands in each wave's clear column; "upheaval
+//                                  hits" counts what reached him then (it should be none)
 //
 // The hunter is a fresh one, with nothing on: the game is served without the site, which is
 // what hands over the gear catalog, so not even the clothes he starts in (+1 attack power, a
@@ -75,6 +77,7 @@ const MODULAR_HOOK = `
     gameState, canvas,
     get player() { return player; },
     get powerUps() { return powerUps; },
+    get fireballs() { return fireballs; },
     start(faction, zone) {
         gameState.faction = faction; gameState.mode = 'boss_fight'; gameState.startZone = zone;
         gameState.playerName = 'Lab';
@@ -96,7 +99,7 @@ async function playFight({ faction, zone, limitSeconds, autoshot, casual }) {
     const gs = lab.gameState;
     const H = lab.canvas.logicalHeight;
     const cast = id => spellSystem.castSpell(id, gameClock.now());
-    let taken = 0, hits = 0, lastHealth = null, start = null, end = null;
+    let taken = 0, hits = 0, lastHealth = null, start = null, end = null, upheavalHits = 0, upheavals = 0, inUpheaval = false;
     let arrowsSpent = 0, caught = 0, lastArrows = null, dcFrames = 0, frames = 0, shieldFrames = 0;
     let name = '', maxHealth = 0;
 
@@ -109,6 +112,15 @@ async function playFight({ faction, zone, limitSeconds, autoshot, casual }) {
             // Kept alive: what he loses is counted, then given back
             if (lastHealth === null) gs.maxHealth = 100000;
             if (lastHealth !== null && gs.health < lastHealth) { taken += lastHealth - gs.health; hits++; }
+            // What an Upheaval sent (it flies, it does not fall) that touched him, once each
+            for (const thing of lab.fireballs || []) {
+                if (thing.flight && !thing.labCounted && thing.checkCollision(lab.player)) {
+                    thing.labCounted = true;
+                    upheavalHits++;
+                }
+            }
+            if (fight && fight.upheaval && !inUpheaval) upheavals++;
+            inUpheaval = Boolean(fight && fight.upheaval);
             gs.health = 100000;
             lastHealth = gs.health;
             if (lastArrows !== null) {
@@ -141,6 +153,13 @@ async function playFight({ faction, zone, limitSeconds, autoshot, casual }) {
                 if (bundle) {
                     x = bundle.x + (bundle.width || 0) / 2 - p.width / 2;
                     y = Math.max(top, Math.min(H - p.height, bundle.y));
+                } else if (casual && fight.upheaval) {
+                    // The clear column of the wave being marked or coming through
+                    const wave = fight.upheaval.waves.find(each => fight.upheaval.steps >= each.markAt && fight.upheaval.steps < each.clearAt);
+                    // Walked to at his own speed, as on a keyboard (with a mouse he is already there)
+                    const wanted = wave ? (wave.gap.left + wave.gap.right) / 2 - p.width / 2 : p.x;
+                    x = p.x + Math.max(-p.speed, Math.min(p.speed, wanted - p.x));
+                    y = H - p.height;
                 } else {
                     x = fight.x - p.width / 2;
                     y = casual ? H - p.height : spellSystem.hasUnrestrictedMovement() && box ? box.y + box.height + 6 : top;
@@ -163,6 +182,7 @@ async function playFight({ faction, zone, limitSeconds, autoshot, casual }) {
                 arrowsSpent, caught, taken: Math.round(taken), hits,
                 dragonCry: +(dcFrames / Math.max(1, frames)).toFixed(2),
                 shieldedSeconds: +(shieldFrames / 60).toFixed(1),
+                upheavals, upheavalHits,
             });
         }
         requestAnimationFrame(step);
@@ -242,5 +262,6 @@ console.table(results.map(r => ({
     time: r.won ? `${r.seconds}s` : `not beaten (${r.left} left)`,
     health: r.health, arrows: r.arrowsSpent, caught: r.caught, taken: r.taken, hits: r.hits,
     'dragon cry': r.dragonCry, shielded: `${r.shieldedSeconds}s`,
+    ...(r.upheavals ? { upheavals: r.upheavals, 'upheaval hits': r.upheavalHits } : {}),
 })));
 if (outFile) fs.writeFileSync(outFile, JSON.stringify(results, null, 1));

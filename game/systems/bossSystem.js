@@ -373,13 +373,12 @@ function startUpheaval(context) {
     const field = { width: canvas.logicalWidth, height: canvas.logicalHeight, floorTop: floorTop(canvas) };
     fight.upheaval = {
         steps: 0,
-        waves: planUpheaval(field, probe.width, settings).map((wave, index) => ({
-            ...wave,
-            // Marked from this step on, sent at the next
-            markAt: index * settings.every,
-            sendAt: index * settings.every + settings.warn,
-            sent: false,
-        })),
+        // One wave after another: each marked, sent, and through before the next is marked
+        // Each clear column within the hunter's reach of the last, at his speed while it is marked
+        waves: planUpheaval(field, probe.width, settings, {
+            x: context.player.x + context.player.width / 2,
+            reach: context.player.speed * settings.warn,
+        }).map(wave => ({ ...wave, sent: false })),
     };
 }
 
@@ -389,14 +388,17 @@ function updateUpheaval(context) {
     if (!upheaval) return;
 
     const settings = gameConfig.bosses.upheaval;
-    upheaval.steps++;
+    // Its clock runs as fast as what it sends moves: held by Frost Nova, slowed with time
+    // itself, so one wave is never sent before the one before has gone through
+    const { gameState, spellSystem } = context;
+    upheaval.steps += gameState.freezeTimeActive ? 0 : (spellSystem ? spellSystem.getProjectileSpeedMultiplier() : 1);
 
     for (const wave of upheaval.waves) {
         if (wave.sent || upheaval.steps < wave.sendAt) continue;
         wave.sent = true;
         for (const entry of wave.entries) {
             const sent = throwProjectile(context, 0, {
-                flight: { vx: entry.vx, vy: entry.vy },
+                flight: { vx: entry.vx, vy: entry.vy, gravity: entry.gravity, stopX: entry.stopX },
                 damage: Math.round(fight.stats.damage * settings.damage * enrage()),
             });
             sent.x = entry.x - sent.width / 2;
@@ -406,62 +408,57 @@ function updateUpheaval(context) {
         }
     }
 
-    if (upheaval.waves.every(wave => wave.sent)) {
+    if (upheaval.steps >= upheaval.waves[upheaval.waves.length - 1].clearAt) {
         fight.upheaval = null;
         // Its round picks up again a moment later
         fight.sinceAttack = 0;
     }
 }
 
-// The marks of the waves about to come: the columns that will rise (and the one that will
-// not), and the edge and half of the band a line will fly in along
+// The marks of the waves about to come: the columns of the ground things will come through
+// (rising, or dropping from where they stop), the one column left clear, and for those hurled
+// from a side, the edge they come in at
 function drawUpheaval(ctx, canvas, pulse) {
     const top = floorTop(canvas);
     const band = canvas.logicalHeight - top;
     const { steps, waves } = fight.upheaval;
 
     for (const wave of waves) {
-        if (wave.sent || steps < wave.markAt) continue;
-        // Brighter as it comes nearer
+        // Marked from before it is sent until all of it has gone through
+        if (steps < wave.markAt || steps >= wave.clearAt) continue;
+        // Brighter as it comes nearer, full while it comes through
         const near = Math.min(1, (steps - wave.markAt) / Math.max(1, wave.sendAt - wave.markAt));
         const strength = (0.25 + 0.45 * near) * pulse;
+        const slotWidth = wave.slotWidth;
+        // Rising from the ground, brightest at the bottom; dropping from above, at the top
+        const rising = wave.kind === 'floor';
 
-        if (wave.kind === 'floor') {
-            const slotWidth = wave.gap.right - wave.gap.left;
-            for (const entry of wave.entries) {
-                const left = entry.x - slotWidth / 2;
-                const glow = ctx.createLinearGradient(0, canvas.logicalHeight, 0, top);
-                glow.addColorStop(0, `rgba(190, 80, 255, ${strength})`);
-                glow.addColorStop(1, 'rgba(190, 80, 255, 0)');
-                ctx.fillStyle = glow;
-                ctx.fillRect(left + 3, top, slotWidth - 6, band);
-            }
-            // The column that stays clear
-            ctx.fillStyle = `rgba(90, 230, 120, ${0.18 + 0.12 * near})`;
-            ctx.fillRect(wave.gap.left, top, slotWidth, band);
-            ctx.strokeStyle = `rgba(190, 255, 200, ${0.5 + 0.4 * near})`;
-            ctx.lineWidth = 2;
-            ctx.strokeRect(wave.gap.left, top, slotWidth, band);
-            continue;
+        for (const entry of wave.entries) {
+            const left = entry.lane - slotWidth / 2;
+            const glow = ctx.createLinearGradient(0, rising ? canvas.logicalHeight : top, 0, rising ? top : canvas.logicalHeight);
+            glow.addColorStop(0, `rgba(190, 80, 255, ${strength})`);
+            glow.addColorStop(1, `rgba(190, 80, 255, ${strength * 0.15})`);
+            ctx.fillStyle = glow;
+            ctx.fillRect(left + 3, top, slotWidth - 6, band);
         }
 
-        // A line from a side: its half of the band, brightest at the edge it comes in at
-        const laneTop = wave.lane === 'high' ? top : top + band / 2;
+        // The column that stays clear
+        ctx.fillStyle = `rgba(90, 230, 120, ${0.18 + 0.12 * near})`;
+        ctx.fillRect(wave.gap.left, top, slotWidth, band);
+        ctx.strokeStyle = `rgba(190, 255, 200, ${0.5 + 0.4 * near})`;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(wave.gap.left, top, slotWidth, band);
+
+        if (rising) continue;
+
+        // Chevrons at the edges they come in at, high up, pointing the way they will fly
+        const size = band * 0.12;
+        ctx.strokeStyle = `rgba(235, 200, 255, ${0.5 + 0.5 * near})`;
+        ctx.lineWidth = 3;
         for (const from of new Set(wave.entries.map(entry => entry.from))) {
             const edge = from === 'left' ? 0 : canvas.logicalWidth;
-            const glow = ctx.createLinearGradient(edge, 0, from === 'left' ? canvas.logicalWidth : 0, 0);
-            glow.addColorStop(0, `rgba(190, 80, 255, ${strength * 1.4})`);
-            glow.addColorStop(0.35, `rgba(190, 80, 255, ${strength * 0.5})`);
-            glow.addColorStop(1, 'rgba(190, 80, 255, 0.04)');
-            ctx.fillStyle = glow;
-            ctx.fillRect(0, laneTop, canvas.logicalWidth, band / 2);
-
-            // Chevrons at the edge, pointing the way it will fly
             const direction = from === 'left' ? 1 : -1;
-            const size = band * 0.12;
-            const middle = laneTop + band / 4;
-            ctx.strokeStyle = `rgba(235, 200, 255, ${0.5 + 0.5 * near})`;
-            ctx.lineWidth = 3;
+            const middle = wave.entries.find(entry => entry.from === from).y;
             for (let chevron = 0; chevron < 2; chevron++) {
                 const x = edge + direction * (size * 0.8 + chevron * size * 0.9);
                 ctx.beginPath();
