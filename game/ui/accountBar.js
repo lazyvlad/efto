@@ -11,7 +11,13 @@ export const siteBoot = window.INPUT_BOOT || null;
 
 // The logged-in player's account name, or null for guests
 export function getAccountName() {
-    return siteBoot && siteBoot.user ? siteBoot.user.name : null;
+    return siteBoot && siteBoot.user && !siteBoot.user.guest ? siteBoot.user.name : null;
+}
+
+// Playing on a guest account: what he finds is his in this browser, kept by the site, until he
+// signs up and it comes along (App\Support\GuestHunter)
+export function isGuestAccount() {
+    return Boolean(siteBoot && siteBoot.user && siteBoot.user.guest);
 }
 
 const DEFAULT_PORTRAIT = 'assets/player/efto.png';
@@ -44,6 +50,22 @@ export function getGuestName() {
     return siteBoot ? siteBoot.guestName || null : null;
 }
 
+// Sign up and log in, the guest's way to keep what he found for good
+function accountButtons(signUpFirst) {
+    const buttons = document.createElement('div');
+    buttons.className = 'login-offer-buttons';
+    const choices = signUpFirst
+        ? [['Sign up', siteBoot.urls.register, 'login-offer-btn login-offer-primary'], ['Log in', siteBoot.urls.login, 'login-offer-btn']]
+        : [['Log in', siteBoot.urls.login, 'login-offer-btn login-offer-primary'], ['Register', siteBoot.urls.register, 'login-offer-btn']];
+    for (const [label, href, className] of choices) {
+        const anchor = link(label, href);
+        anchor.className = className;
+        if (siteBoot.embedded) anchor.target = '_top';
+        buttons.append(anchor);
+    }
+    return buttons;
+}
+
 function link(text, href) {
     const anchor = document.createElement('a');
     anchor.textContent = text;
@@ -60,14 +82,17 @@ function renderLoginOffer() {
     if (!offer) return;
 
     const guest = Boolean(siteBoot) && !siteBoot.user;
+    const guestAccount = isGuestAccount();
     // Logged in, but the account has not been activated through the emailed link: the player
     // earns as usual, and is told what activating adds
-    const inactive = Boolean(siteBoot) && Boolean(siteBoot.user) && siteBoot.user.verified === false;
+    const inactive = Boolean(siteBoot) && Boolean(siteBoot.user) && !guestAccount && siteBoot.user.verified === false;
     offer.textContent = '';
-    offer.hidden = !guest && !inactive;
+    offer.hidden = !guest && !inactive && !guestAccount;
 
     if (prompt) {
-        prompt.textContent = guest
+        prompt.textContent = guestAccount
+            ? 'Playing as a guest: what you find is yours in this browser. Sign up any time to keep it for good:'
+            : guest
             ? 'Log in to keep your coins, boss loot and scores, or play as a guest:'
             : inactive
                 ? 'Activate your account to spend coins, wear your sets and carry the large quiver. Until then you keep earning:'
@@ -83,21 +108,9 @@ function renderLoginOffer() {
         offer.append(buttons);
         return;
     }
-    if (!guest) return;
+    if (!guest && !guestAccount) return;
 
-    const buttons = document.createElement('div');
-    buttons.className = 'login-offer-buttons';
-    for (const [label, href, className] of [
-        ['Log in', siteBoot.urls.login, 'login-offer-btn login-offer-primary'],
-        ['Register', siteBoot.urls.register, 'login-offer-btn']
-    ]) {
-        const anchor = link(label, href);
-        anchor.className = className;
-        if (siteBoot.embedded) anchor.target = '_top';
-        buttons.append(anchor);
-    }
-
-    offer.append(buttons);
+    offer.append(accountButtons(guestAccount));
 }
 
 // A logged-in player's coins, at the top of the starting window. Shown under the site's
@@ -114,6 +127,7 @@ function renderPurse() {
     const amount = document.createElement('strong');
     amount.textContent = formatCoins(user.coins);
     purse.append('Purse: ', amount);
+    if (user.guest) purse.append(' · sign up to spend it');
 }
 
 // Fill the line under the name box: who you are playing as, and the way in or out
@@ -126,7 +140,7 @@ export function renderAccountBar() {
 
     bar.textContent = '';
     // Guests have the offer above; under the site's header the account links are up there
-    if (!siteBoot || siteBoot.embedded || !siteBoot.user) {
+    if (!siteBoot || siteBoot.embedded || !siteBoot.user || siteBoot.user.guest) {
         bar.hidden = true;
         return;
     }

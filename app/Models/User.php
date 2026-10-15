@@ -67,6 +67,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'materials' => 'array',
             'sold' => 'array',
             'is_admin' => 'boolean',
+            'is_guest' => 'boolean',
             'blocked_at' => 'datetime',
         ];
     }
@@ -78,6 +79,15 @@ class User extends Authenticatable implements MustVerifyEmail
     public function canUseRewards(): bool
     {
         return $this->hasVerifiedEmail() || $this->discord_id !== null;
+    }
+
+    /**
+     * Whether the hunters keep what they find, to wear and use: an account that can use its
+     * rewards, and a guest's (App\Support\GuestHunter), who only cannot spend his coins.
+     */
+    public function keepsLoot(): bool
+    {
+        return $this->is_guest || $this->canUseRewards();
     }
 
     /**

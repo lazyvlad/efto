@@ -68,7 +68,8 @@ import { generateDynamicHelpContent as renderDynamicHelpContent } from './ui/hel
 import { updateSpellBar, updateHealthBar } from './ui/statusBars.js';
 import { updateCanvasOverlayVisibility } from './ui/canvasOverlay.js';
 import { menuScreenManager } from './ui/menuScreenManager.js';
-import { applyPortrait, getAccountName, getGuestName, getPortraitUrl, renderAccountBar, siteBoot } from './ui/accountBar.js';
+import { showGuestSession } from './ui/guestSession.js';
+import { applyPortrait, getAccountName, getGuestName, getPortraitUrl, isGuestAccount, renderAccountBar, siteBoot } from './ui/accountBar.js';
 import { initializeScreenNavigation, updateScreenNavigation } from './ui/screenNavigation.js';
 import { bindSettingsScreen, resetSettingsScreen, setSettingsBackLabel, updateSettingsScreen } from './ui/settingsScreen.js';
 import { addBuff, removeBuff, updateBuffTracker, clearAllBuffs } from './systems/buffTrackerSystem.js';
@@ -431,6 +432,8 @@ async function init() {
     // NOW we can hide loading screen and show the welcome screen
     hideLoadingScreen();
     showNameEntry();
+    // A guest coming back, or a guest session to bring to the account logged in to
+    showGuestSession();
     
     
     // Start game loop
@@ -3112,6 +3115,9 @@ function setupUIEventHandlers() {
                 forSale: user && siteBoot.bagsForSale ? siteBoot.bagsForSale : null,
                 coins: user ? user.coins || 0 : null,
                 canSpend: Boolean(user && user.verified),
+                // A guest sells for coins he can spend once he signs up
+                canSell: Boolean(user && (user.verified || user.guest)),
+                guest: Boolean(user && user.guest),
                 bank: bankContents(),
                 otherSide: currentSide() === 'alliance' ? 'horde' : 'alliance',
                 // The copies of each thing bound to this hunter (the rest that bind when worn
@@ -5207,7 +5213,7 @@ function gameOverSummary() {
             image: item.image,
             name: item.name,
             rarity: 'epic',
-            note: set ? `${set.name}: you have ${ownedCount(pieces, ownedPieces())} of ${pieces.length}` : (loggedIn ? 'Kept on your account' : 'Log in to keep what you find'),
+            note: set ? `${set.name}: you have ${ownedCount(pieces, ownedPieces())} of ${pieces.length}` : (loggedIn ? (isGuestAccount() ? 'Kept in your guest session' : 'Kept on your account') : 'Log in to keep what you find'),
             isNew: false,
         });
     }
@@ -5240,6 +5246,7 @@ function gameOverSummary() {
         notes.push({ text: `${short} ${short === 1 ? 'thing' : 'things'} did not fit in your bags and sold for ${share}%`, kind: 'warning' });
     }
     if (!loggedIn) notes.push({ text: 'Log in to keep your coins, boss loot, gear and materials.', kind: '' });
+    else if (isGuestAccount()) notes.push({ text: 'Kept in this browser as a guest for a week after you last play. Sign up to keep it for good.', kind: '' });
     
     const figures = [
         { name: 'Level', value: String((gameState.currentLevel || 0) + 1) },

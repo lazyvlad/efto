@@ -28,7 +28,7 @@ class BagController extends Controller
         ]);
 
         $user = $request->user();
-        abort_unless($user->canUseRewards(), 422, 'Activate your account to spend coins.');
+        abort_unless($user->canUseRewards(), 422, $user->is_guest ? 'Sign up to spend coins.' : 'Activate your account to spend coins.');
 
         $size = (int) $data['size'];
         abort_unless(Bags::wouldGoOn($user, $size), 422, 'Every bag you have is at least that big.');

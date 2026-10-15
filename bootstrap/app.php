@@ -12,7 +12,12 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [\App\Http\Middleware\RejectBlocked::class]);
-        $middleware->alias(['admin' => \App\Http\Middleware\EnsureAdmin::class]);
+        // The guest's account is found before anything asks who is playing
+        $middleware->prependToPriorityList(
+            before: \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            prepend: \App\Http\Middleware\ResolveGuestHunter::class,
+        );
+        $middleware->alias(['admin' => \App\Http\Middleware\EnsureAdmin::class, 'guest.hunter' => \App\Http\Middleware\ResolveGuestHunter::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

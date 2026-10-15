@@ -128,8 +128,11 @@ class GamePageTest extends TestCase
 
         $boot = $this->bootData($response->getContent());
 
-        $this->assertNull($boot['user']);
+        // A guest account of his own, under his guest name (App\Support\GuestHunter)
+        $this->assertTrue($boot['user']['guest']);
+        $this->assertFalse($boot['user']['verified']);
         $this->assertMatchesRegularExpression('/^[A-Z][a-z]+[A-Z][a-z]+\d{3}$/', $boot['guestName']);
+        $this->assertSame($boot['guestName'], $boot['user']['name']);
         $this->assertSame(route('scores.index'), $boot['urls']['scores']);
         $this->assertSame(route('games.open'), $boot['urls']['games']);
         $this->assertNotEmpty($boot['csrfToken']);

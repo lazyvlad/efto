@@ -48,6 +48,12 @@ class GameRecordController extends Controller
         // Logged-in players always play under their account name. Guests use the name they
         // typed, or the random guest name they were given for this session.
         $user = $request->user();
+        // A guest's account plays under the name he typed, kept for next time; and it has been
+        // played, so it is kept a week from now (App\Support\GuestHunter)
+        if ($user?->is_guest) {
+            $typed = Score::cleanName($data['name'] ?? '');
+            $user->forceFill(['name' => $typed ?: $user->name, 'updated_at' => now()])->save();
+        }
         $name = $user
             ? Score::cleanName($user->name)
             : (Score::cleanName($data['name'] ?? '') ?: GuestName::forSession($request));
@@ -56,7 +62,7 @@ class GameRecordController extends Controller
         $mode = $data['mode'] ?? Game::NORMAL;
         if ($mode === Game::BOSS_RUSH) {
             abort_unless($user && isset($data['faction']), 422, 'Log in to play Boss Rush.');
-            abort_unless($user->canUseRewards(), 422, 'Activate your account to spend coins.');
+            abort_unless($user->canUseRewards(), 422, $user->is_guest ? 'Sign up to spend coins.' : 'Activate your account to spend coins.');
             abort_if((int) ($data['startZone'] ?? 1) > 1, 422, 'Boss Rush starts with the first boss.');
 
             $fee = (int) config('boss_loot.rush.entry_fee');
@@ -82,7 +88,7 @@ class GameRecordController extends Controller
         $startZone = (int) ($data['startZone'] ?? 1);
         if ($startZone > 1) {
             abort_unless($user && isset($data['faction']), 422, 'Log in to skip ahead.');
-            abort_unless($user->canUseRewards(), 422, 'Activate your account to spend coins.');
+            abort_unless($user->canUseRewards(), 422, $user->is_guest ? 'Sign up to spend coins.' : 'Activate your account to spend coins.');
             abort_if($startZone > BossLoot::unlockedZone($user, $data['faction']), 422, 'Defeat the earlier bosses first.');
 
             // Only taken if the purse still holds that much

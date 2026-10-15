@@ -37,6 +37,7 @@ function describe(place) {
 
     if (place.zone === 1) return { ...known, open: true, cost: 0, why: 'Where the ' + known.side + ' starts' };
     if (!siteBoot || !siteBoot.user) return { ...known, open: false, why: 'Log in to start past the first zone' };
+    if (siteBoot.user.guest) return { ...known, open: false, why: 'Sign up to start past the first zone' };
     if (siteBoot.user.verified === false) return { ...known, open: false, why: 'Activate your account to start past the first zone' };
 
     const furthest = unlockedZone(place.faction);

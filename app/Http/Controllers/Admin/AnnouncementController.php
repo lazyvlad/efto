@@ -85,7 +85,7 @@ class AnnouncementController extends Controller
      */
     private function recipients(): Builder
     {
-        return User::query()
+        return User::query()->where('is_guest', false)
             ->whereNotNull('email_verified_at')
             ->whereNull('blocked_at')
             ->where('news_emails', true);

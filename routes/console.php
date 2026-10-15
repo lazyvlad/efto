@@ -6,3 +6,10 @@ use Illuminate\Support\Facades\Artisan;
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
+
+// Guests who have not played for a week are let go (App\Support\GuestHunter)
+Artisan::command('input:prune-guests', function () {
+    $this->info(\App\Support\GuestHunter::prune().' guest accounts let go.');
+})->purpose('Let go of guest accounts not played for a week');
+
+\Illuminate\Support\Facades\Schedule::command('input:prune-guests')->daily();

@@ -8,6 +8,7 @@ use App\Http\Controllers\OutfitController;
 use App\Http\Controllers\GameController;
 use App\Http\Controllers\GameHistoryController;
 use App\Http\Controllers\GameRecordController;
+use App\Http\Controllers\GuestController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\ProfileController;
@@ -22,7 +23,8 @@ use Illuminate\Support\Facades\Route;
 // The landing page is the site header around the game; /play is the game on its own
 Route::get('/', [GameController::class, 'home'])->name('home');
 
-Route::get('/play', [GameController::class, 'play'])->name('play');
+// A guest plays as his guest account there (App\Support\GuestHunter)
+Route::get('/play', [GameController::class, 'play'])->middleware('guest.hunter')->name('play');
 
 Route::get('/highscores', [ScoreController::class, 'page'])->name('highscores');
 
@@ -47,21 +49,27 @@ Route::get('/api/scores', [ScoreController::class, 'index'])->name('scores.index
 // Every game played is recorded: opened when it starts, handed its rare loot a chunk of play
 // at a time, closed when it ends. Open to guests; a logged-in player's games are tied to
 // their account. A finished game is what puts a score on the leaderboard.
-Route::post('/api/games', [GameRecordController::class, 'open'])
-    ->middleware('throttle:20,1')
-    ->name('games.open');
-Route::post('/api/games/{game}/drops', [GameRecordController::class, 'drops'])
-    ->middleware('throttle:30,1')
-    ->name('games.drops');
-Route::post('/api/games/{game}/bosses', [GameRecordController::class, 'boss'])
-    ->middleware('throttle:20,1')
-    ->name('games.boss');
-Route::post('/api/games/{game}/finish', [GameRecordController::class, 'finish'])
-    ->middleware('throttle:20,1')
-    ->name('games.finish');
+Route::middleware('guest.hunter')->group(function () {
+    Route::post('/api/games', [GameRecordController::class, 'open'])
+        ->middleware('throttle:20,1')
+        ->name('games.open');
+    Route::post('/api/games/{game}/drops', [GameRecordController::class, 'drops'])
+        ->middleware('throttle:30,1')
+        ->name('games.drops');
+    Route::post('/api/games/{game}/bosses', [GameRecordController::class, 'boss'])
+        ->middleware('throttle:20,1')
+        ->name('games.boss');
+    Route::post('/api/games/{game}/finish', [GameRecordController::class, 'finish'])
+        ->middleware('throttle:20,1')
+        ->name('games.finish');
+});
 
-Route::middleware('auth')->group(function () {
-    Route::get('/my-games', [GameHistoryController::class, 'index'])->name('games.history');
+// A guest leaves his guest account behind, or brings it to the account he logged in to
+Route::post('/api/guest/forget', [GuestController::class, 'forget'])->middleware(['guest.hunter', 'throttle:10,1'])->name('guest.forget');
+Route::post('/api/guest/merge', [GuestController::class, 'merge'])->middleware(['auth', 'throttle:10,1'])->name('guest.merge');
+
+// What the game does with the hunter between games: a guest's too
+Route::middleware(['guest.hunter', 'auth'])->group(function () {
     // The same collection as data, for the game's loot screen
     Route::get('/api/collection', [GameHistoryController::class, 'collection'])->name('collection');
     // What the hunter is wearing, set on the game's character sheet
@@ -76,8 +84,12 @@ Route::middleware('auth')->group(function () {
     Route::post('/api/bags/move', [BagController::class, 'move'])->middleware('throttle:120,1')->name('bags.move');
     // Debug mode's measurements from the game (game/utils/perfProbe.js)
     Route::post('/api/perf', [PerfController::class, 'store'])->middleware('throttle:60,1')->name('perf.store');
-Route::post('/api/bags/send', [BagController::class, 'send'])->middleware('throttle:60,1')->name('bags.send');
+    Route::post('/api/bags/send', [BagController::class, 'send'])->middleware('throttle:60,1')->name('bags.send');
     Route::post('/api/craft', [BagController::class, 'craft'])->middleware('throttle:60,1')->name('craft');
+});
+
+Route::middleware('auth')->group(function () {
+    Route::get('/my-games', [GameHistoryController::class, 'index'])->name('games.history');
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

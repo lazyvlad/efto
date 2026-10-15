@@ -276,3 +276,67 @@
     gap: 10px;
     margin-top: 4px;
 }
+
+/* ----- A guest's session: welcome back, or bringing it to an account (ui/guestSession.js) ----- */
+
+.guest-panel {
+    width: min(560px, 100%);
+}
+
+.guest-hunters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.guest-hunter {
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.42);
+    border: 1px solid #5d4c25;
+    border-radius: 6px;
+}
+
+.guest-hunter-name {
+    margin: 0 0 4px;
+    font-family: var(--wow-font, Georgia, serif);
+    font-size: 16px;
+    font-weight: 400;
+}
+
+.guest-hunter.is-alliance .guest-hunter-name { color: #8fc4ff; }
+.guest-hunter.is-horde .guest-hunter-name { color: #ff7a6b; }
+
+.guest-hunter-line {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: #cfc4ad;
+}
+
+.guest-coins {
+    margin: 0;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: #cfc4ad;
+    border: 1px dashed #8f7a45;
+    border-radius: 6px;
+}
+
+.guest-buttons .guest-fresh {
+    margin-right: auto;
+}
+
+.guest-buttons a.game-btn {
+    text-decoration: none;
+}
+
+.guest-fine {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #a89a78;
+}
+
+@media (max-width: 520px) {
+    .guest-hunters { grid-template-columns: 1fr; }
+}

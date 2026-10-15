@@ -24,7 +24,7 @@ class VendorController extends Controller
         $side = $data['side'] ?? 'alliance';
 
         $user = $request->user();
-        abort_unless($user->canUseRewards(), 422, 'Activate your account to sell things.');
+        abort_unless($user->keepsLoot(), 422, 'Activate your account to sell things.');
 
         $item = Gear::catalog()[$data['item']] ?? null;
         $have = Gear::owned($user, $side)[$data['item']] ?? 0;

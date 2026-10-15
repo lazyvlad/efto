@@ -118,7 +118,7 @@ class BossLoot
     {
         $rules = config('boss_loot.bags');
         $sizes = $rules['sizes'][$boss['zone']] ?? [];
-        if ($user === null || ! $user->canUseRewards() || ! $sizes || $boss['zone'] < (int) $rules['from_zone']
+        if ($user === null || ! $user->keepsLoot() || ! $sizes || $boss['zone'] < (int) $rules['from_zone']
             || random_int(0, PHP_INT_MAX - 1) / PHP_INT_MAX >= (float) $rules['chance']) {
             return null;
         }

@@ -565,7 +565,7 @@ function renderBagShop(side, state) {
     box.append(list);
 
     if (notice) box.append(make('p', 'inventory-text window-warning', notice));
-    if (!state.canSpend) box.append(make('p', 'inventory-text', 'Activate your account to spend coins.'));
+    if (!state.canSpend) box.append(make('p', 'inventory-text', state.guest ? 'Sign up to spend coins: what you earn as a guest is kept for you.' : 'Activate your account to spend coins.'));
     box.append(make('p', 'inventory-text inventory-fine', 'Junk is sold for coins as a game ends. Materials stay in your bags. Gear is kept.'));
 }
 
@@ -787,7 +787,7 @@ function renderCarrySide(side, state, owned, carried, full) {
     const end = make('div', 'inventory-side-end');
     text.append(end);
 
-    if (!state.canSpend) {
+    if (!state.canSell) {
         end.append(make('p', 'inventory-text', 'Activate your account to sell things.'));
         return;
     }
@@ -906,7 +906,7 @@ function gearRow({ item, count, sells }, state, carried, full, list) {
         buttons.append(send);
     }
 
-    if (sells && state.canSpend) {
+    if (sells && state.canSell) {
         const button = make('button', 'game-btn is-figures inventory-sell');
         button.type = 'button';
 

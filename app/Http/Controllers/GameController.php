@@ -8,7 +8,9 @@ use App\Support\Fingerprint;
 use App\Support\GameSettings;
 use App\Support\Gear;
 use App\Support\GuestName;
+use App\Support\GuestHunter;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\View\View;
@@ -42,29 +44,52 @@ class GameController extends Controller
                 : 'public/game-src is missing. See "Development" in the README.'
         );
 
+        // A visitor plays as a guest account of his own, kept as long as his browser keeps its
+        // key (App\Support\GuestHunter). One coming back is told he is continuing it, once a
+        // visit; one logged in with a guest account still in the browser is asked whether to
+        // bring it along.
         $user = $request->user();
+        if ($user === null) {
+            $user = GuestHunter::create($request);
+            Auth::guard('web')->setUser($user);
+            $request->attributes->set('guestHunter', 'new');
+        }
+        $welcomeBack = null;
+        $guestMerge = null;
+        if ($user->is_guest) {
+            if ($request->attributes->get('guestHunter') === 'returning' && ! $request->session()->get('guest_welcomed')) {
+                $welcomeBack = GuestHunter::summary($user);
+                $request->session()->put('guest_welcomed', true);
+            }
+        } elseif ($guest = GuestHunter::fromRequest($request)) {
+            if ($request->session()->get('guest_merge_left') !== $guest->id) {
+                $guestMerge = GuestHunter::summary($guest);
+            }
+        }
 
         $boot = [
             // An account that is not activated yet earns but cannot use: its quiver and set
             // pieces are held back here, and skipping and Boss Rush below
             'user' => $user ? [
                 'name' => $user->name,
+                // A guest's account: he keeps what he finds, but needs an account to spend coins
+                'guest' => (bool) $user->is_guest,
                 'avatar' => $user->avatarUrl(),
                 'coins' => (int) $user->coins,
                 'verified' => $user->canUseRewards(),
-                'quiver' => $user->canUseRewards() && $user->quiver,
+                'quiver' => $user->keepsLoot() && $user->quiver,
                 // Each hunter's own set pieces, and below his other gear: { alliance, horde }
-                'pieces' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => $user->canUseRewards() ? $user->setPieces($side) : []])->all(),
+                'pieces' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => $user->keepsLoot() ? $user->setPieces($side) : []])->all(),
                 // What the hunter is wearing, slot by slot (the game's character sheet)
                 // (null until the player has chosen: the game then puts on what they own)
                 // Each hunter's outfit, null for one never chosen (the game then dresses it in
                 // what that side starts in)
-                'equipment' => ! $user->canUseRewards() ? null : collect(Gear::allEquipment($user))->map(
+                'equipment' => ! $user->keepsLoot() ? null : collect(Gear::allEquipment($user))->map(
                     fn ($chosen, $side) => $chosen === null ? null : (object) Gear::dressed($user, $chosen, $side)
                 )->all(),
                 // What each hunter takes into a game, of everything owned (null until chosen:
                 // the game then takes what he wears and whatever else of his there is room for)
-                'carried' => $user->carried === null || ! $user->canUseRewards()
+                'carried' => $user->carried === null || ! $user->keepsLoot()
                     ? null
                     : collect(Gear::allCarried($user))->map(
                         fn ($chosen, $side) => $chosen === null ? null : Gear::carried($user, $chosen, null, $side)
@@ -74,20 +99,24 @@ class GameController extends Controller
                 // What each hunter wears but is not drawn in
                 'hidden' => Gear::allHidden($user),
                 // The gear owned besides the sets, and how many of each (App\Support\Gear)
-                'gear' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => (object) ($user->canUseRewards() ? Gear::owned($user, $side) : [])])->all(),
+                'gear' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => (object) ($user->keepsLoot() ? Gear::owned($user, $side) : [])])->all(),
                 // Of that, the copies bound to each hunter (the rest, gear that binds when worn,
                 // can be sent to the other)
-                'bound' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => (object) ($user->canUseRewards() ? Gear::bound($user, $side) : [])])->all(),
+                'bound' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => (object) ($user->keepsLoot() ? Gear::bound($user, $side) : [])])->all(),
                 // The bags bought (their sizes), what is in them between games, and the bank of
                 // materials and what is crafted from them (App\Support\Bags)
-                'bags' => $user->canUseRewards() ? ($user->bags ?? []) : [],
+                'bags' => $user->keepsLoot() ? ($user->bags ?? []) : [],
                 // ...each hunter his own: { alliance, horde } each
                 'bagContents' => Bags::allKept($user)['bags'],
                 'materials' => Bags::allKept($user)['bank'],
                 // The bosses the player has beaten: the ones they may fight again on their own
                 'bosses' => $user->bossDrops()->distinct()->pluck('boss_id')->all(),
             ] : null,
-            'guestName' => $user ? null : GuestName::forSession($request),
+            'guestName' => $user->is_guest ? $user->name : null,
+            // A guest coming back: what he is continuing with (App\Support\GuestHunter::summary)
+            'welcomeBack' => $welcomeBack,
+            // Logged in with a guest account in this browser: what it would bring along
+            'guestMerge' => $guestMerge,
             // Skipping ahead: the price per zone and the furthest zone open to the player on each side
             'skip' => $user?->canUseRewards() ? [
                 'costPerZone' => (int) config('boss_loot.skip_cost_per_zone'),
@@ -128,6 +157,8 @@ class GameController extends Controller
                 'login' => route('login'),
                 'register' => route('register'),
                 'logout' => route('logout'),
+                'guestForget' => route('guest.forget'),
+                'guestMerge' => route('guest.merge'),
                 'profile' => route('profile.edit'),
             ],
         ];

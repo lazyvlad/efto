@@ -23,7 +23,7 @@ class UserController extends Controller
         $search = trim((string) $request->query('q'));
         $show = $request->query('show');
 
-        $users = User::query()
+        $users = User::query()->where('is_guest', false)
             ->when($search !== '', fn ($query) => $query->where(fn ($q) => $q
                 ->where('name', 'like', "%{$search}%")
                 ->orWhere('email', 'like', "%{$search}%")
