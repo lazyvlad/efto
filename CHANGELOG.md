@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.3.1 - 2026-10-15
+
+### Fixed
+- **The Onslaught Girdle on the Horde hunter**: repainted by the art agent to sit on his waist,
+  its shield buckle whole and in front of his warcloth, in melee as well as standing.
+
 ## 3.3.0 - 2026-10-15
 
 ### Added
