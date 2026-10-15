@@ -1355,6 +1355,9 @@ function wearCaughtPiece(item) {
     
     if (slotId && !Object.values(gameState.equipment).includes(item.id)) {
         setEquipment(equip(gameState.equipment, slotId, item, wearables()));
+        // Say so, and where it can be changed
+        const sheetKey = keyName('character') || 'C';
+        addNotification(gameState, `${item.name} is on: change it on the character sheet (${sheetKey})`, 360, '#9FE870');
     } else {
         refreshSetBonus();
     }
