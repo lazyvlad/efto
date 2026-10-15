@@ -101,7 +101,8 @@ return [
      * worth that, a boss's two-handed weapon gives this many times what a one-handed weapon of
      * its rarity and zone gives; the two that fall in a game say what they give below.
      */
-    'two_handed' => ['hoggers-trophy-axe', 'gathilzoggs-war-axe', 'ashkandi2', 'crulshorukh', 'walking-stick'],
+    'two_handed' => ['hoggers-trophy-axe', 'gathilzoggs-war-axe', 'ashkandi2', 'crulshorukh', 'walking-stick',
+        'redridge-blackiron-glaive', 'stromgarde-oathblade', 'highperch-windglaive', 'magram-crescent-cleaver'],
     'two_handed_factor' => 1.7,
 
     // Gear that is made (config/crafting.php), not found: the hunter's for good once made, one
@@ -154,8 +155,30 @@ return [
         'levels_per_zone' => 2,     // As the game's backgrounds.levelsPerBackground
     ],
     'zone_names' => [
-        'alliance' => [1 => 'Northshire Abbey'],
-        'horde' => [1 => 'Valley of Trials'],
+        'alliance' => [
+            1 => 'Northshire Abbey',
+            2 => 'Eastvale, Elwynn Forest',
+            3 => 'Stormwind',
+            4 => 'Westfall',
+            5 => 'Lakeshire, Redridge Mountains',
+            6 => 'Darkshire, Duskwood',
+            7 => 'Menethil Harbor, Wetlands',
+            8 => 'Stromgarde, Arathi Highlands',
+            9 => 'Stranglethorn Vale',
+            10 => 'Aerie Peak, The Hinterlands',
+        ],
+        'horde' => [
+            1 => 'Valley of Trials',
+            2 => 'Razor Hill, Durotar',
+            3 => 'Valley of Strength, Orgrimmar',
+            4 => 'Ratchet, The Barrens',
+            5 => 'Sun Rock Retreat, Stonetalon Mountains',
+            6 => 'Splintertree Post, Ashenvale',
+            7 => 'Freewind Post, Thousand Needles',
+            8 => 'Tarren Mill, Hillsbrad Foothills',
+            9 => 'Shadowprey Village, Desolace',
+            10 => 'Gadgetzan, Tanaris',
+        ],
     ],
     'zone_items' => [
         'alliance' => [
@@ -166,6 +189,45 @@ return [
                 'abbey-road-mantle' => ['name' => 'Abbey Road Mantle', 'slot' => 'back', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['armor' => 3, 'health' => 2], 'value' => 25],
                 'northshire-vineyard-bow' => ['name' => 'Northshire Vineyard Bow', 'slot' => 'ranged', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['attackPower' => 2], 'value' => 25],
             ],
+            2 => [ // Eastvale, Elwynn Forest
+                'riverstone-hunters-band' => ['name' => 'Riverstone Hunter’s Band', 'slot' => 'ring', 'rarity' => 'rare', 'item_level' => 20, 'stats' => ['armor' => 5, 'health' => 3], 'value' => 150, 'binding' => 'equip'],
+                'gnollhide-trail-pendant' => ['name' => 'Gnollhide Trail Pendant', 'slot' => 'neck', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['attackPower' => 2, 'health' => 2], 'value' => 50, 'binding' => 'equip'],
+                'woodcutters-whetstone' => ['name' => 'Woodcutter’s Whetstone', 'slot' => 'trinket', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['armor' => 4, 'health' => 2], 'value' => 50, 'binding' => 'equip'],
+                'eastvale-barkcloth-cape' => ['name' => 'Eastvale Barkcloth Cape', 'slot' => 'back', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['armor' => 5, 'health' => 2], 'value' => 50, 'binding' => 'equip'],
+                'riverpaw-skinning-knife' => ['name' => 'Riverpaw Skinning Knife', 'slot' => 'offhand', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['attackPower' => 3], 'value' => 50, 'binding' => 'equip'],
+            ],
+            3 => [ // Stormwind
+                'stockade-iron-signet' => ['name' => 'Stockade Iron Signet', 'slot' => 'ring', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['armor' => 5, 'health' => 3], 'value' => 75, 'binding' => 'equip'],
+                'broken-shackle-pendant' => ['name' => 'Broken Shackle Pendant', 'slot' => 'neck', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['health' => 6, 'attackPower' => 1], 'value' => 75, 'binding' => 'equip'],
+                'confiscated-lockpick-roll' => ['name' => 'Confiscated Lockpick Roll', 'slot' => 'trinket', 'rarity' => 'rare', 'item_level' => 25, 'stats' => ['attackPower' => 2, 'health' => 4, 'carrying' => 2], 'value' => 225, 'binding' => 'equip'],
+                'prisoners-smuggler-cape' => ['name' => 'Prisoner’s Smuggler Cape', 'slot' => 'back', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['armor' => 7, 'health' => 3], 'value' => 75, 'binding' => 'equip'],
+                'stockade-lockbreaker' => ['name' => 'Stockade Lockbreaker', 'slot' => 'mainhand', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['attackPower' => 4], 'value' => 75, 'binding' => 'equip'],
+            ],
+            4 => [ // Westfall
+                'harvest-cog-ring' => ['name' => 'Harvest Cog Ring', 'slot' => 'ring', 'rarity' => 'uncommon', 'item_level' => 25, 'stats' => ['attackPower' => 4, 'health' => 2], 'value' => 100, 'binding' => 'equip'],
+                'defias-signal-medallion' => ['name' => 'Defias Signal Medallion', 'slot' => 'neck', 'rarity' => 'uncommon', 'item_level' => 25, 'stats' => ['attackPower' => 4, 'health' => 2], 'value' => 100, 'binding' => 'equip'],
+                'golem-governor-spring' => ['name' => 'Golem Governor Spring', 'slot' => 'trinket', 'rarity' => 'uncommon', 'item_level' => 25, 'stats' => ['attackPower' => 2, 'health' => 4, 'carrying' => 2], 'value' => 100, 'binding' => 'equip'],
+                'dustfield-watch-cape' => ['name' => 'Dustfield Watch Cape', 'slot' => 'back', 'rarity' => 'uncommon', 'item_level' => 25, 'stats' => ['armor' => 8, 'health' => 4], 'value' => 100, 'binding' => 'equip'],
+                'westfall-field-repeater' => ['name' => 'Westfall Field Repeater', 'slot' => 'ranged', 'rarity' => 'rare', 'item_level' => 30, 'stats' => ['attackPower' => 6], 'value' => 300, 'binding' => 'equip'],
+            ],
+            5 => [ // Lakeshire, Redridge Mountains
+                'redridge-blackiron-glaive' => ['name' => 'Redridge Blackiron Glaive', 'slot' => 'mainhand', 'rarity' => 'uncommon', 'item_level' => 30, 'stats' => ['attackPower' => 10], 'value' => 125, 'binding' => 'equip'],
+            ],
+            6 => [ // Darkshire, Duskwood
+                'raven-hill-watchknife' => ['name' => 'Raven Hill Watchknife', 'slot' => 'offhand', 'rarity' => 'uncommon', 'item_level' => 35, 'stats' => ['attackPower' => 7], 'value' => 150, 'binding' => 'equip'],
+            ],
+            7 => [ // Menethil Harbor, Wetlands
+                'menethil-marsh-harpoon' => ['name' => 'Menethil Marsh Harpoon', 'slot' => 'ranged', 'rarity' => 'uncommon', 'item_level' => 40, 'stats' => ['crit' => 1, 'attackPower' => 5], 'value' => 175, 'binding' => 'equip'],
+            ],
+            8 => [ // Stromgarde, Arathi Highlands
+                'stromgarde-oathblade' => ['name' => 'Stromgarde Oathblade', 'slot' => 'mainhand', 'rarity' => 'rare', 'item_level' => 50, 'stats' => ['crit' => 1, 'attackPower' => 14], 'value' => 600, 'binding' => 'equip'],
+            ],
+            9 => [ // Stranglethorn Vale
+                'stranglethorn-trackers-bow' => ['name' => 'Stranglethorn Tracker’s Bow', 'slot' => 'ranged', 'rarity' => 'uncommon', 'item_level' => 50, 'stats' => ['crit' => 1, 'attackPower' => 7], 'value' => 225, 'binding' => 'equip'],
+            ],
+            10 => [ // Aerie Peak, The Hinterlands
+                'vilebranch-ritual-knife' => ['name' => 'Vilebranch Ritual Knife', 'slot' => 'offhand', 'rarity' => 'uncommon', 'item_level' => 55, 'stats' => ['crit' => 1, 'attackPower' => 8], 'value' => 250, 'binding' => 'equip'],
+            ],
         ],
         'horde' => [
             1 => [ // Valley of Trials
@@ -174,6 +236,45 @@ return [
                 'boarhide-water-flask' => ['name' => 'Boarhide Water Flask', 'slot' => 'trinket', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['attackPower' => 1, 'health' => 1, 'carrying' => 1], 'value' => 25],
                 'scorpidhide-trail-cape' => ['name' => 'Scorpidhide Trail Cape', 'slot' => 'back', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['armor' => 3, 'health' => 2], 'value' => 25],
                 'trialhunters-shortbow' => ['name' => 'Trialhunter’s Shortbow', 'slot' => 'ranged', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['attackPower' => 2], 'value' => 25],
+            ],
+            2 => [ // Razor Hill, Durotar
+                'quillguard-bronze-band' => ['name' => 'Quillguard Bronze Band', 'slot' => 'ring', 'rarity' => 'rare', 'item_level' => 20, 'stats' => ['attackPower' => 3, 'health' => 2], 'value' => 150, 'binding' => 'equip'],
+                'raptor-track-pendant' => ['name' => 'Raptor Track Pendant', 'slot' => 'neck', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['attackPower' => 2, 'health' => 2], 'value' => 50, 'binding' => 'equip'],
+                'dustwind-trail-marker' => ['name' => 'Dustwind Trail Marker', 'slot' => 'trinket', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['armor' => 4, 'health' => 2], 'value' => 50, 'binding' => 'equip'],
+                'razor-hill-dustcloak' => ['name' => 'Razor Hill Dustcloak', 'slot' => 'back', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['armor' => 5, 'health' => 2], 'value' => 50, 'binding' => 'equip'],
+                'razormane-thornknife' => ['name' => 'Razormane Thornknife', 'slot' => 'offhand', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['attackPower' => 3], 'value' => 50, 'binding' => 'equip'],
+            ],
+            3 => [ // Valley of Strength, Orgrimmar
+                'cinder-rivet-ring' => ['name' => 'Cinder Rivet Ring', 'slot' => 'ring', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['armor' => 5, 'health' => 3], 'value' => 75, 'binding' => 'equip'],
+                'ashbound-copper-seal' => ['name' => 'Ashbound Copper Seal', 'slot' => 'neck', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['health' => 6, 'attackPower' => 1], 'value' => 75, 'binding' => 'equip'],
+                'bound-ember-censer' => ['name' => 'Bound Ember Censer', 'slot' => 'trinket', 'rarity' => 'rare', 'item_level' => 25, 'stats' => ['attackPower' => 2, 'health' => 4, 'carrying' => 2], 'value' => 225, 'binding' => 'equip'],
+                'cinderward-hide-cape' => ['name' => 'Cinderward Hide Cape', 'slot' => 'back', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['armor' => 7, 'health' => 3], 'value' => 75, 'binding' => 'equip'],
+                'searing-blade-embermace' => ['name' => 'Searing Blade Embermace', 'slot' => 'mainhand', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['attackPower' => 4], 'value' => 75, 'binding' => 'equip'],
+            ],
+            4 => [ // Ratchet, The Barrens
+                'dockside-brass-signet' => ['name' => 'Dockside Brass Signet', 'slot' => 'ring', 'rarity' => 'uncommon', 'item_level' => 25, 'stats' => ['attackPower' => 4, 'health' => 2], 'value' => 100, 'binding' => 'equip'],
+                'saltglass-trade-pendant' => ['name' => 'Saltglass Trade Pendant', 'slot' => 'neck', 'rarity' => 'uncommon', 'item_level' => 25, 'stats' => ['attackPower' => 4, 'health' => 2], 'value' => 100, 'binding' => 'equip'],
+                'caravan-balance-weight' => ['name' => 'Caravan Balance Weight', 'slot' => 'trinket', 'rarity' => 'uncommon', 'item_level' => 25, 'stats' => ['attackPower' => 2, 'health' => 4, 'carrying' => 2], 'value' => 100, 'binding' => 'equip'],
+                'ratchet-sailcloth-cape' => ['name' => 'Ratchet Sailcloth Cape', 'slot' => 'back', 'rarity' => 'uncommon', 'item_level' => 25, 'stats' => ['armor' => 8, 'health' => 4], 'value' => 100, 'binding' => 'equip'],
+                'ratchet-deck-crossbow' => ['name' => 'Ratchet Deck Crossbow', 'slot' => 'ranged', 'rarity' => 'rare', 'item_level' => 30, 'stats' => ['attackPower' => 6], 'value' => 300, 'binding' => 'equip'],
+            ],
+            5 => [ // Sun Rock Retreat, Stonetalon Mountains
+                'windshear-ratchet-pick' => ['name' => 'Windshear Ratchet Pick', 'slot' => 'offhand', 'rarity' => 'uncommon', 'item_level' => 30, 'stats' => ['attackPower' => 6], 'value' => 125, 'binding' => 'equip'],
+            ],
+            6 => [ // Splintertree Post, Ashenvale
+                'satyrwood-longbow' => ['name' => 'Satyrwood Longbow', 'slot' => 'ranged', 'rarity' => 'uncommon', 'item_level' => 35, 'stats' => ['attackPower' => 7], 'value' => 150, 'binding' => 'equip'],
+            ],
+            7 => [ // Freewind Post, Thousand Needles
+                'highperch-windglaive' => ['name' => 'Highperch Windglaive', 'slot' => 'mainhand', 'rarity' => 'uncommon', 'item_level' => 40, 'stats' => ['crit' => 1, 'attackPower' => 10], 'value' => 175, 'binding' => 'equip'],
+            ],
+            8 => [ // Tarren Mill, Hillsbrad Foothills
+                'hillsbrad-poachers-bow' => ['name' => 'Hillsbrad Poacher’s Bow', 'slot' => 'ranged', 'rarity' => 'rare', 'item_level' => 50, 'stats' => ['crit' => 1, 'attackPower' => 7], 'value' => 600, 'binding' => 'equip'],
+            ],
+            9 => [ // Shadowprey Village, Desolace
+                'magram-crescent-cleaver' => ['name' => 'Magram Crescent Cleaver', 'slot' => 'mainhand', 'rarity' => 'uncommon', 'item_level' => 50, 'stats' => ['crit' => 1, 'attackPower' => 14], 'value' => 225, 'binding' => 'equip'],
+            ],
+            10 => [ // Gadgetzan, Tanaris
+                'wastewander-glass-shiv' => ['name' => 'Wastewander Glass Shiv', 'slot' => 'offhand', 'rarity' => 'uncommon', 'item_level' => 55, 'stats' => ['crit' => 1, 'attackPower' => 8], 'value' => 250, 'binding' => 'equip'],
             ],
         ],
     ],

@@ -30,6 +30,12 @@ export const meleeRigs = {
 };
 
 export const meleeWeapons = {
+    'stockade-lockbreaker': { grip: [0.4979, 0.813], support: null, height: 275, twoHanded: false },
+    'searing-blade-embermace': { grip: [0.4989, 0.813], support: null, height: 290, twoHanded: false },
+    'redridge-blackiron-glaive': { grip: [0.7324, 0.7538], support: [0.7324, 0.8912], height: 440, twoHanded: true },
+    'stromgarde-oathblade': { grip: [0.5, 0.8225], support: [0.5, 0.9008], height: 430, twoHanded: true },
+    'highperch-windglaive': { grip: [0.4924, 0.7538], support: [0.4924, 0.8912], height: 440, twoHanded: true },
+    'magram-crescent-cleaver': { grip: [0.6395, 0.7538], support: [0.6395, 0.8912], height: 425, twoHanded: true },
     'hoggers-trophy-axe': { grip: [0.47, 0.76], support: [0.47, 0.87], height: 420, twoHanded: true },
     'thunderfury': { grip: [0.49, 0.79], support: null, height: 440, twoHanded: false },
     'cruel-barb': { grip: [0.5791, 0.8201], support: null, height: 300, twoHanded: false, style: 'short' },

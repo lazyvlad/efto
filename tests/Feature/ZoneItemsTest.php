@@ -65,8 +65,10 @@ class ZoneItemsTest extends TestCase
 
     public function test_a_zone_without_items_gives_none(): void
     {
+        // A zone whose items are not painted yet
+        config(['gear.zone_items.alliance.4' => []]);
         $game = $this->openGame(['faction' => 'alliance']);
-        $game->forceFill(['live' => ['level' => 7]])->save();     // Zone 4: nothing painted yet
+        $game->forceFill(['live' => ['level' => 7]])->save();     // Zone 4
         $this->assertSame([], $game->fresh()->zoneOffers(5, []));
     }
 

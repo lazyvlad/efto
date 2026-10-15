@@ -142,8 +142,9 @@ class Gear
             ];
         }
 
-        // Each zone's own gear, carried by its creatures (config/gear.php "zone_items"): the
-        // hunter's who caught it, bound to him; either hunter's body can wear it
+        // Each zone's own gear (config/gear.php "zone_items"): carried by its creatures, falling
+        // in it, and dropped by its boss. The hunter's who found it; either hunter's body can
+        // wear it. Bound when picked up, or (the later waves) when worn.
         foreach (self::zoneItems() as $itemId => $item) {
             $catalog[$itemId] = [
                 'name' => $item['name'],
@@ -152,10 +153,10 @@ class Gear
                 'rarity' => $item['rarity'],
                 'itemLevel' => $item['item_level'],
                 'stats' => $item['stats'],
-                'twoHanded' => false,
+                'twoHanded' => self::isTwoHanded($itemId),
                 'value' => (int) $item['value'],
-                'from' => 'Creatures of '.$item['zoneName'],
-                'binding' => 'pickup',
+                'from' => 'Found in '.$item['zoneName'],
+                'binding' => $item['binding'] ?? 'pickup',
             ];
         }
 
