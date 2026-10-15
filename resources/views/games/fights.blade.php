@@ -8,6 +8,9 @@
     $fightTime = fn (?float $seconds) => $seconds === null ? '–'
         : ($seconds < 60 ? number_format($seconds, 1).'s' : sprintf('%d:%04.1f', intdiv((int) $seconds, 60), fmod($seconds, 60)));
     $quiverName = config('boss_loot.quiver.name');
+    // Each kill against every other kill of its boss in this version (App\Support\Parses)
+    $kills->each(fn ($kill) => $kill->setRelation('game', $game));
+    $parses = \App\Support\Parses::of($kills);
 @endphp
 <div class="overflow-x-auto -mx-4 sm:mx-0">
     <table class="w-full min-w-[36rem] text-sm game-fights">
@@ -15,6 +18,7 @@
             <tr class="text-left text-xs text-gray-500">
                 <th class="py-1.5 ps-4 sm:ps-3 pe-2 font-normal">{{ __('Boss') }}</th>
                 <th class="py-1.5 px-2 text-right font-normal">{{ __('Time') }}</th>
+                <th class="py-1.5 px-2 text-right font-normal" title="{{ __('How the kill stands against every kill of this boss in this version: the share of them it beat (100 is the fastest)') }}">{{ __('Parse') }}</th>
                 <th class="py-1.5 px-2 text-right font-normal">{{ __('Points') }}</th>
                 <th class="py-1.5 px-2 text-right font-normal">{{ __('Arrows') }}</th>
                 <th class="py-1.5 px-2 text-right font-normal">{{ __('Damage taken') }}</th>
@@ -38,6 +42,13 @@
                         @if ($kill->fight_seconds !== null)
                             <span class="{{ $kill->par_seconds && $kill->fight_seconds <= $kill->par_seconds ? 'text-green-600' : 'text-gray-800' }}">{{ $fightTime($kill->fight_seconds) }}</span>
                             <span class="text-xs text-gray-500">/ {{ $kill->par_seconds }}s</span>
+                        @else
+                            <span class="text-gray-500">–</span>
+                        @endif
+                    </td>
+                    <td class="py-1.5 px-2 text-right tabular-nums">
+                        @if (isset($parses[$kill->id]))
+                            <span class="parse" style="color: {{ \App\Support\Parses::color($parses[$kill->id]) }}">{{ $parses[$kill->id] }}</span>
                         @else
                             <span class="text-gray-500">–</span>
                         @endif
@@ -76,6 +87,7 @@
                         </span>
                     </td>
                     <td class="py-1.5 px-2 text-right tabular-nums text-gray-800">{{ $fightTime($lost['seconds']) }}</td>
+                    <td class="py-1.5 px-2 text-right text-gray-500">–</td>
                     <td class="py-1.5 px-2 text-right text-gray-500">–</td>
                     <td class="py-1.5 px-2 text-right tabular-nums text-gray-800">{{ number_format($lost['arrows']) }}</td>
                     <td class="py-1.5 px-2 text-right tabular-nums text-gray-800 whitespace-nowrap">

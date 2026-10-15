@@ -210,6 +210,12 @@
         border: 1px solid #6b4f16;
     }
 
+    /* A parse: its number, in the colour of how good it is (App\Support\Parses::color) */
+    .parse {
+        font-weight: 700;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+    }
+
     /* Live games: a pulsing dot, as for something on air */
     .live-dot {
         display: inline-block;

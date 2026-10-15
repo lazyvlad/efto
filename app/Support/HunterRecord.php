@@ -71,7 +71,7 @@ class HunterRecord
      * brought it down, and his best fight by each measure. A measure is null when no fight
      * with it was recorded (kills from before fights were kept).
      *
-     * @return array<string, array{kills: int, fastest: ?float, par: ?int, mostPoints: ?int, fewestArrows: ?int, leastDamage: ?int, lastKill: ?\Illuminate\Support\Carbon}>
+     * @return array<string, array{kills: int, fastest: ?float, par: ?int, mostPoints: ?int, fewestArrows: ?int, leastDamage: ?int, lastKill: ?\Illuminate\Support\Carbon, bestParse: ?int}>
      */
     public static function bossRecords(User $user, string $side): array
     {
@@ -85,6 +85,14 @@ class HunterRecord
             ->get()
             ->keyBy('boss_id');
 
+        // His best parse against each boss: of all his timed kills, each against its version's
+        $best = [];
+        $timed = self::kills($user, $side)->where('granted', false)->whereNotNull('fight_seconds')->with('game')->get();
+        foreach (Parses::of($timed) as $killId => $parse) {
+            $bossId = $timed->firstWhere('id', $killId)->boss_id;
+            $best[$bossId] = max($best[$bossId] ?? 0, $parse);
+        }
+
         $records = [];
         foreach (array_keys(config("boss_loot.bosses.$side", [])) as $bossId) {
             $row = $rows[$bossId] ?? null;
@@ -96,6 +104,7 @@ class HunterRecord
                 'fewestArrows' => $row?->fewest_arrows !== null ? (int) $row->fewest_arrows : null,
                 'leastDamage' => $row?->least_damage !== null ? (int) $row->least_damage : null,
                 'lastKill' => $row?->last_kill ? \Illuminate\Support\Carbon::parse($row->last_kill) : null,
+                'bestParse' => $best[$bossId] ?? null,
             ];
         }
 

@@ -73,7 +73,7 @@
                         {{ __('Boss records') }}
                         <span class="text-sm text-gray-500 ms-2">{{ __(':beaten of :total brought down', ['beaten' => collect($records)->filter(fn ($record) => $record['kills'] > 0)->count(), 'total' => count($records)]) }}</span>
                     </h3>
-                    <p class="mt-1 text-sm text-gray-500">{{ __('His best fight with each boss of the :side side. Points include the bonus for coming in under par.', ['side' => $sideName]) }}</p>
+                    <p class="mt-1 text-sm text-gray-500">{{ __('His best fight with each boss of the :side side. Points include the bonus for coming in under par. A parse is how a kill stands against every kill of that boss in the same version, by time: the share of them it beat, 100 the fastest.', ['side' => $sideName]) }}</p>
 
                     <div class="mt-4 overflow-x-auto -mx-4 sm:mx-0">
                         <table class="w-full text-sm min-w-[36rem]">
@@ -81,6 +81,7 @@
                                 <tr class="text-left text-gray-500 border-b border-gray-200">
                                     <th class="py-2 ps-4 sm:ps-0 pe-2 font-normal">{{ __('Boss') }}</th>
                                     <th class="py-2 px-2 text-right font-normal">{{ __('Kills') }}</th>
+                                    <th class="py-2 px-2 text-right font-normal" title="{{ __('His best parse: how his best kill stands against every kill of the boss in its version (100 is the fastest)') }}">{{ __('Best parse') }}</th>
                                     <th class="py-2 px-2 text-right font-normal">{{ __('Fastest') }}</th>
                                     <th class="py-2 px-2 text-right font-normal">{{ __('Most points') }}</th>
                                     <th class="py-2 px-2 text-right font-normal">{{ __('Fewest arrows') }}</th>
@@ -101,6 +102,13 @@
                                             </div>
                                         </td>
                                         <td class="py-2 px-2 text-right tabular-nums text-gray-800">{{ $record['kills'] ?: '–' }}</td>
+                                        <td class="py-2 px-2 text-right tabular-nums">
+                                            @if (($record['bestParse'] ?? null) !== null)
+                                                <span class="parse" style="color: {{ \App\Support\Parses::color($record['bestParse']) }}">{{ $record['bestParse'] }}</span>
+                                            @else
+                                                <span class="text-gray-500">–</span>
+                                            @endif
+                                        </td>
                                         <td class="py-2 px-2 text-right tabular-nums whitespace-nowrap">
                                             @if ($record['fastest'] ?? null)
                                                 <span class="{{ $record['par'] && $record['fastest'] <= $record['par'] ? 'text-green-600' : 'text-gray-800' }}">{{ $fightTime($record['fastest']) }}</span>
