@@ -59,7 +59,7 @@ class EquipmentTest extends TestCase
         $user = User::factory()->create();
 
         // Never dressed: each in his own clothes, a weapon in his hand
-        $this->assertSame('starter-alliance-knife', Gear::worn($user, 'alliance')['mainhand']);
+        $this->assertSame('starter-alliance-shortsword', Gear::worn($user, 'alliance')['mainhand']);
         $this->assertSame('starter-horde-cleaver', Gear::worn($user, 'horde')['mainhand']);
 
         // An outfit saved before the hunters had one gets it, once (the migration)

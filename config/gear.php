@@ -195,7 +195,7 @@ return [
             'tabard' => ['id' => 'starter-alliance-tabard', 'name' => 'Pajama Hunter Tabard', 'slot' => 'tabard', 'stats' => ['health' => 1]],
             'ranged' => ['id' => 'starter-alliance-bow', 'name' => 'Pajama Hunter Bow', 'slot' => 'ranged', 'stats' => ['attackPower' => 1]],
             // Something to fight with up close (melee needs a main-hand weapon)
-            'mainhand' => ['id' => 'starter-alliance-knife', 'name' => 'Pajama Hunter Skinning Knife', 'slot' => 'mainhand', 'stats' => ['attackPower' => 1]],
+            'mainhand' => ['id' => 'starter-alliance-shortsword', 'name' => 'Pajama Hunter Shortsword', 'slot' => 'mainhand', 'stats' => ['attackPower' => 1]],
         ],
         'horde' => [
             'neck' => ['id' => 'starter-horde-bone-amulet', 'name' => 'Horde Hunter Bone Amulet', 'slot' => 'neck', 'stats' => ['health' => 1]],
