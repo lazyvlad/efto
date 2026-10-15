@@ -601,7 +601,27 @@ class Gear
      */
     public static function worn(User $user, string $side = 'alliance'): array
     {
-        return self::valid($user, self::equipmentFor($user, $side) ?? self::starterLoadout($side), $side);
+        return self::dressed($user, self::equipmentFor($user, $side) ?? self::starterLoadout($side), $side);
+    }
+
+    /**
+     * An outfit chosen, as it can be worn: a piece that cannot be (no longer owned, or never
+     * his) leaves the clothes he starts in in its slot, not a bare one; a slot emptied on
+     * purpose stays empty.
+     *
+     * @return array<string, string>
+     */
+    public static function dressed(User $user, array $wanted, string $side): array
+    {
+        $worn = self::valid($user, $wanted, $side);
+        $starter = self::starterLoadout($side);
+        foreach ($wanted as $slot => $itemId) {
+            if ($itemId && ! isset($worn[$slot]) && isset($starter[$slot])) {
+                $worn[$slot] = $starter[$slot];
+            }
+        }
+
+        return self::valid($user, $worn, $side);
     }
 
     /**

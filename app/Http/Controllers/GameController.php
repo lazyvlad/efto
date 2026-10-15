@@ -60,7 +60,7 @@ class GameController extends Controller
                 // Each hunter's outfit, null for one never chosen (the game then dresses it in
                 // what that side starts in)
                 'equipment' => ! $user->canUseRewards() ? null : collect(Gear::allEquipment($user))->map(
-                    fn ($chosen, $side) => $chosen === null ? null : (object) Gear::valid($user, $chosen, $side)
+                    fn ($chosen, $side) => $chosen === null ? null : (object) Gear::dressed($user, $chosen, $side)
                 )->all(),
                 // What each hunter takes into a game, of everything owned (null until chosen:
                 // the game then takes what he wears and whatever else of his there is room for)
