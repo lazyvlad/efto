@@ -2767,6 +2767,14 @@ function restartGameFromUI() {
     showNameEntry();
 }
 
+// What falls in a game looks as the gear it is: an item that is also gear (a weapon, a ring, a
+// cape) falls as its gear icon (game/assets/items/gear, by the site's catalogue) where it has
+// one, rather than the older picture it fell as before
+for (const item of gameItems) {
+    const gear = gearCatalog()[item.id];
+    if (gear && /items\/gear\//.test(gear.image || '')) item.image = gear.image;
+}
+
 // ===== UI EVENT HANDLERS =====
 
 // Between games the character sheet's and the inventory's Alliance and Horde show (and play)

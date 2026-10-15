@@ -129,7 +129,8 @@ class Gear
             $type = LootTable::typeOf($itemId);
             $catalog[$itemId] = [
                 'name' => $items[$itemId]['name'],
-                'image' => $items[$itemId]['image'],
+                // Its own gear icon if it has one, or else the picture it falls as
+                'image' => self::iconOf($itemId) ?? $items[$itemId]['image'],
                 'slot' => $drop['slot'],
                 'rarity' => $drop['rarity'] ?? 'epic',
                 'itemLevel' => $drop['item_level'],
