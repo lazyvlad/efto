@@ -222,7 +222,7 @@ class BossLootTest extends TestCase
 
     public function test_a_game_that_skipped_ahead_is_not_kept_waiting_for_loot_it_has_already_unlocked(): void
     {
-        config(['loot.spawns_per_second' => 400]);
+        config(['loot.spawns_per_second' => 400, 'loot.set_pieces_per_game' => 1000]);
 
         // Level 9 is past the level epics, specials and the first two sets unlock at, but not legendaries
         $types = fn (int $startLevel) => collect(\App\Support\LootTable::rollChunk(0, [], $startLevel))

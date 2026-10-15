@@ -282,6 +282,39 @@ class GameRecordTest extends TestCase
         }
     }
 
+    public function test_a_game_is_offered_no_more_than_two_set_pieces_from_the_sky(): void
+    {
+        config(['loot.spawns_per_second' => 400]);
+        $pieces = fn (array $drops) => count(array_filter($drops, fn ($drop) => LootTable::setOf($drop['item_id']) !== null));
+
+        $this->assertSame(2, $pieces(LootTable::rollChunk(8, [], 15)));
+        $this->assertSame(1, $pieces(LootTable::rollChunk(8, ['ds_helm'], 15)));
+        $this->assertSame(0, $pieces(LootTable::rollChunk(8, ['ds_helm', 'giantstalker-boots'], 15)));
+    }
+
+    public function test_set_pieces_fall_a_tenth_as_often_as_their_weight_alone_would_have_them(): void
+    {
+        config(['loot.set_pieces_per_game' => 1000]);
+        $count = function () {
+            $pieces = 0;
+            for ($i = 0; $i < 400; $i++) {
+                foreach (LootTable::rollChunk(20, [], 15) as $drop) {
+                    $pieces += LootTable::setOf($drop['item_id']) !== null ? 1 : 0;
+                }
+            }
+
+            return $pieces;
+        };
+
+        $rare = $count();
+        config(['loot.set_piece_share' => 1]);
+        $common = $count();
+        // About a tenth: 400 chunks give some 600 pieces at the full rate
+        $this->assertGreaterThan(300, $common);
+        $this->assertLessThan($common * 0.2, $rare);
+        $this->assertGreaterThan($common * 0.04, $rare);
+    }
+
     public function test_each_rarity_is_held_back_until_its_time_and_zee_drops_only_once(): void
     {
         $typeOf = [];

@@ -256,6 +256,12 @@ return [
     // Offered at most once in a game
     'once_per_game' => ['zee'],
 
+    // Pieces of the hunter sets are rare in what falls: a share of what their weight alone would
+    // give, and never more than so many in a game. The bosses drop them as well, a set to each
+    // stretch of zones (boss_loot.set_pieces).
+    'set_piece_share' => 0.1,
+    'set_pieces_per_game' => 2,
+
     // The level at which each server-decided rarity starts to drop (progression.unlockLevel in
     // game/config/gameConfig.js). A game that starts at or past that level, because the player
     // skipped ahead, is not held back by not_before_seconds for that rarity.
