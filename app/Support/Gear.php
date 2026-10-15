@@ -511,12 +511,15 @@ class Gear
     {
         $catalog = self::catalog();
 
-        $found = $user->bossDrops()
-            ->selectRaw('item_id, count(*) as found')
-            ->groupBy('item_id')
-            ->pluck('found', 'item_id')
-            ->filter(fn ($count, $itemId) => ($catalog[$itemId]['side'] ?? null) === $side)
-            ->all();
+        // What his side's bosses dropped (a boss's own item, or one of its pool, which may be
+        // anyone's: the side is the boss's)
+        $found = [];
+        $drops = $user->bossDrops()->selectRaw('boss_id, item_id, count(*) as found')->groupBy('boss_id', 'item_id')->get();
+        foreach ($drops as $drop) {
+            if (isset($catalog[$drop->item_id]) && (BossLoot::boss($drop->boss_id)['faction'] ?? null) === $side) {
+                $found[$drop->item_id] = ($found[$drop->item_id] ?? 0) + (int) $drop->found;
+            }
+        }
 
         $caught = \App\Models\GameDrop::query()
             ->whereNotNull('claimed_at')

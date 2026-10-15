@@ -33,7 +33,7 @@ class BossSetsAndBagsTest extends TestCase
 
     public function test_bosses_drop_the_set_of_their_zone(): void
     {
-        config(['boss_loot.set_pieces.chance' => 1, 'boss_loot.bags.chance' => 0]);
+        config(['boss_loot.set_pieces.4.chance' => 1, 'boss_loot.set_pieces.5.chance' => 1, 'boss_loot.set_pieces.6.chance' => 1, 'boss_loot.set_pieces.7.chance' => 1, 'boss_loot.set_pieces.8.chance' => 1, 'boss_loot.set_pieces.9.chance' => 1, 'boss_loot.set_pieces.10.chance' => 1, 'boss_loot.bags.chance' => 0]);
         $sets = ['hogger' => null, 'bazil-thredd' => null, 'edwin-vancleef' => 'giantstalker', 'gath-ilzogg' => 'giantstalker',
             'stitches' => 'dragonstalker', 'chieftain-nekrosh' => 'dragonstalker', 'fozruk' => 'cryptstalker',
             'king-bangalash' => 'cryptstalker', 'vile-priestess-hexx' => 'cryptstalker', 'echeyakee' => 'giantstalker'];
@@ -46,9 +46,11 @@ class BossSetsAndBagsTest extends TestCase
 
     public function test_a_set_piece_from_a_boss_is_his_hunter_s_and_never_one_he_has(): void
     {
-        config(['boss_loot.set_pieces.chance' => 1, 'boss_loot.bags.chance' => 0]);
+        config(['boss_loot.set_pieces.4.chance' => 1, 'boss_loot.set_pieces.5.chance' => 1, 'boss_loot.set_pieces.6.chance' => 1, 'boss_loot.set_pieces.7.chance' => 1, 'boss_loot.set_pieces.8.chance' => 1, 'boss_loot.set_pieces.9.chance' => 1, 'boss_loot.set_pieces.10.chance' => 1, 'boss_loot.bags.chance' => 0]);
         $user = User::factory()->create();
-        $pieces = config('loot.sets.giantstalker.pieces');
+        // Edwin VanCleef gives the smaller Giantstalker pieces; Gath'Ilzogg the larger
+        $pieces = config('boss_loot.set_pieces.4.pieces');
+        $this->assertSame(['giantstalker-bracers', 'giantstalker-gloves', 'giantstalker-belt', 'giantstalker-boots'], $pieces);
 
         $got = [];
         foreach ($pieces as $ignored) {
@@ -58,8 +60,9 @@ class BossSetsAndBagsTest extends TestCase
         $this->assertEqualsCanonicalizing($pieces, $got, 'each a piece he did not have');
         $this->assertEqualsCanonicalizing($pieces, $user->setPieces('alliance'));
         $this->assertSame([], $user->setPieces('horde'), 'the Horde hunter has none of them');
-        // He has them all: no more
+        // He has them all: no more from him, never one of the next boss's
         $this->assertNull($this->kill($user, 'edwin-vancleef')['setPiece']);
+        $this->assertContains($this->kill($user, 'gath-ilzogg')['setPiece']['id'], config('boss_loot.set_pieces.5.pieces'));
         // And he carries the first ones he found, worn or in his 36
         $fresh = $user->fresh();
         $this->assertContains($got[0], \App\Support\Gear::carried($fresh, \App\Support\Gear::carriedFor($fresh, 'alliance'), null, 'alliance'));
@@ -67,7 +70,7 @@ class BossSetsAndBagsTest extends TestCase
 
     public function test_a_guest_is_shown_a_set_piece_and_keeps_nothing(): void
     {
-        config(['boss_loot.set_pieces.chance' => 1]);
+        config(['boss_loot.set_pieces.4.chance' => 1, 'boss_loot.set_pieces.5.chance' => 1, 'boss_loot.set_pieces.6.chance' => 1, 'boss_loot.set_pieces.7.chance' => 1, 'boss_loot.set_pieces.8.chance' => 1, 'boss_loot.set_pieces.9.chance' => 1, 'boss_loot.set_pieces.10.chance' => 1]);
         $game = $this->openGame();
         $this->travel(600)->seconds();
 
@@ -79,7 +82,7 @@ class BossSetsAndBagsTest extends TestCase
 
     public function test_bosses_from_the_fourth_zone_drop_bags_that_go_on_at_once(): void
     {
-        config(['boss_loot.set_pieces.chance' => 0, 'boss_loot.bags.chance' => 1]);
+        config(['boss_loot.set_pieces' => [], 'boss_loot.bags.chance' => 1]);
         $user = User::factory()->create();
 
         $this->assertNull($this->kill($user, 'bazil-thredd')['bag'], 'not before the fourth zone');
@@ -92,7 +95,7 @@ class BossSetsAndBagsTest extends TestCase
 
     public function test_a_bag_drops_only_when_it_is_bigger_than_a_bag_it_would_replace(): void
     {
-        config(['boss_loot.set_pieces.chance' => 0, 'boss_loot.bags.chance' => 1]);
+        config(['boss_loot.set_pieces' => [], 'boss_loot.bags.chance' => 1]);
         $user = User::factory()->create();
         $user->forceFill(['bags' => [8, 8, 8, 6]])->save();
 

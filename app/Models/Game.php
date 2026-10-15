@@ -226,8 +226,10 @@ class Game extends Model
         }
 
         $offered = $this->drops()->pluck('item_id')->all();
+        // What the creatures were given to carry (what fell is not theirs)
+        $carried = $this->drops()->where('falls', false)->pluck('item_id')->all();
 
-        $rolled = array_merge(LootTable::rollChunk($chunk, $offered, $this->startLevel()), $this->zoneOffers($chunk, $offered));
+        $rolled = array_merge(LootTable::rollChunk($chunk, $offered, $this->startLevel()), $this->zoneOffers($chunk, $carried), $this->skyGear($chunk));
         usort($rolled, fn (array $a, array $b) => $a['at_seconds'] <=> $b['at_seconds']);
         $drops = collect($rolled)->map(fn (array $drop) => $this->drops()->create($drop + ['chunk' => $chunk]));
 
@@ -251,9 +253,7 @@ class Game extends Model
             return [];
         }
 
-        $perZone = (int) config('gear.zone_offers.levels_per_zone', 2);
-        $level = max(1, (int) ($this->live['level'] ?? 0) ?: ($this->start_zone - 1) * $perZone + 1);
-        $zone = intdiv($level - 1, $perZone) % count(config("boss_loot.bosses.$this->faction", [1])) + 1;
+        $zone = $this->currentZone();
         $pool = array_keys(config("gear.zone_items.$this->faction.$zone", []));
         if ($pool === []) {
             return [];
@@ -271,6 +271,47 @@ class Game extends Model
             $itemId = ($fresh ?: $pool)[array_rand($fresh ?: $pool)];
             $offered[] = $itemId;
             $drops[] = ['item_id' => $itemId, 'at_seconds' => $chunk * $chunkSeconds + random_int(0, $chunkSeconds - 1)];
+        }
+
+        return $drops;
+    }
+
+    /**
+     * The zone the game is in: from what it last said of itself (its level), or where it started.
+     */
+    public function currentZone(): int
+    {
+        $perZone = (int) config('gear.zone_offers.levels_per_zone', 2);
+        $level = max(1, (int) ($this->live['level'] ?? 0) ?: ($this->start_zone - 1) * $perZone + 1);
+
+        return intdiv($level - 1, $perZone) % count(config("boss_loot.bosses.$this->faction", [1])) + 1;
+    }
+
+    /**
+     * The zone's own gear that falls from the sky in a chunk of a normal game, in place of the
+     * epic gear that used to (config/loot.php "zone_sky"): now and then one of its greens, more
+     * rarely one of its blues, each by its chance in a chunk.
+     *
+     * @return array<int, array{item_id: string, at_seconds: int, falls: bool}>
+     */
+    public function skyGear(int $chunk): array
+    {
+        if ($this->mode !== self::NORMAL || ! $this->faction) {
+            return [];
+        }
+
+        $pool = config("gear.zone_items.$this->faction.{$this->currentZone()}", []);
+        $chunkSeconds = (int) config('loot.chunk_seconds');
+        $drops = [];
+        foreach (config('loot.zone_sky', []) as $rarity => $chance) {
+            $items = array_keys(array_filter($pool, fn ($item) => $item['rarity'] === $rarity));
+            if ($items && mt_rand() / mt_getrandmax() < (float) $chance) {
+                $drops[] = [
+                    'item_id' => $items[array_rand($items)],
+                    'at_seconds' => $chunk * $chunkSeconds + random_int(0, $chunkSeconds - 1),
+                    'falls' => true,
+                ];
+            }
         }
 
         return $drops;

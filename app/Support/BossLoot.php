@@ -74,16 +74,48 @@ class BossLoot
             $at -= $chance;
         }
 
+        // Then by weight: the boss's own item of that rarity, and the rest of its pool
+        $pool = self::pool($boss, $rarity);
+        $at = random_int(0, PHP_INT_MAX - 1) / PHP_INT_MAX * array_sum($pool);
+        foreach ($pool as $itemId => $weight) {
+            if ($at < $weight) {
+                return self::item($boss, $itemId);
+            }
+            $at -= $weight;
+        }
+
         return $boss['loot'][$rarity] + ['rarity' => $rarity];
+    }
+
+    /**
+     * What a boss may drop of a rarity, by weight: its own item, and the items of its pool that
+     * are in the game (config/boss_loot.php "pools").
+     *
+     * @return array<string, int>
+     */
+    public static function pool(array $boss, string $rarity): array
+    {
+        $catalog = Gear::catalog();
+        $pool = [$boss['loot'][$rarity]['id'] => (int) config("boss_loot.native_weight.$rarity", 1)];
+        foreach (config("boss_loot.pools.{$boss['id']}.$rarity", []) as $itemId => $weight) {
+            if (isset($catalog[$itemId])) {
+                $pool[$itemId] = (int) $weight;
+            }
+        }
+
+        return $pool;
     }
 
     /**
      * Whether this kill also drops the large quiver. Only for a hunter who does not have it:
      * each finds his own, from his side's bosses.
      */
-    public static function rollQuiver(?User $user, string $side = 'alliance'): bool
+    public static function rollQuiver(?User $user, string $side = 'alliance', int $zone = 1): bool
     {
         if ($user === null || in_array($side, Gear::quiverSides($user), true)) {
+            return false;
+        }
+        if ($zone < (int) config('boss_loot.quiver.from_zone', 1)) {
             return false;
         }
 
@@ -96,12 +128,12 @@ class BossLoot
      */
     public static function rollSetPiece(?User $user, array $boss): ?string
     {
-        $setId = config("boss_loot.set_pieces.by_zone.{$boss['zone']}");
-        if (! $setId || random_int(0, PHP_INT_MAX - 1) / PHP_INT_MAX >= (float) config('boss_loot.set_pieces.chance')) {
+        $rules = config("boss_loot.set_pieces.{$boss['zone']}");
+        if (! $rules || random_int(0, PHP_INT_MAX - 1) / PHP_INT_MAX >= (float) $rules['chance']) {
             return null;
         }
 
-        $pieces = config("loot.sets.$setId.pieces", []);
+        $pieces = $rules['pieces'];
         if ($user !== null) {
             $pieces = array_values(array_diff($pieces, $user->setPieces($boss['faction'])));
         }
@@ -139,8 +171,9 @@ class BossLoot
     public static function rollBindings(?User $user, array $boss): array
     {
         $rules = config('boss_loot.bindings');
-        // None at all while their chance is nothing (they are to drop in zones still to come)
-        if ($user === null || ! $rules || (float) $rules['chance'] <= 0 || $boss['zone'] < (int) $rules['from_zone']) {
+        // The Left from the ninth zone's boss, the Right from the tenth's
+        $here = array_keys(array_filter(['left' => $rules['left_zone'] ?? null, 'right' => $rules['right_zone'] ?? null], fn ($zone) => (int) $zone === $boss['zone']));
+        if ($user === null || ! $rules || (float) $rules['chance'] <= 0 || $here === []) {
             return [];
         }
 
@@ -154,7 +187,7 @@ class BossLoot
         }
 
         $dropped = [];
-        foreach ([$rules['left'], $rules['right']] as $binding) {
+        foreach (array_map(fn ($hand) => $rules[$hand], $here) as $binding) {
             if (($has[$binding] ?? 0) < 1 && random_int(0, PHP_INT_MAX - 1) / PHP_INT_MAX < (float) $rules['chance']) {
                 $dropped[] = $binding;
             }
@@ -173,6 +206,12 @@ class BossLoot
         foreach ($boss['loot'] as $rarity => $item) {
             if ($item['id'] === $itemId) {
                 return $item + ['rarity' => $rarity];
+            }
+        }
+        // One of its pool: named as the game names it
+        foreach (config("boss_loot.pools.{$boss['id']}", []) as $rarity => $items) {
+            if (isset($items[$itemId])) {
+                return ['id' => $itemId, 'name' => Gear::catalog()[$itemId]['name'] ?? $itemId, 'rarity' => $rarity];
             }
         }
 

@@ -276,9 +276,17 @@ class GameRecordTest extends TestCase
             }
         }
 
-        // 300 chunks is two and a half hours of play: every epic turns up many times over
+        // 300 chunks is two and a half hours of play: every epic turns up many times over, but
+        // never the gear the bosses drop
         foreach (config('loot.items.epic') as $itemId) {
-            $this->assertArrayHasKey($itemId, $seen);
+            if (in_array($itemId, config('loot.never_falls'), true)) {
+                $this->assertArrayNotHasKey($itemId, $seen);
+            } else {
+                $this->assertArrayHasKey($itemId, $seen);
+            }
+        }
+        foreach (config('loot.never_falls') as $itemId) {
+            $this->assertArrayNotHasKey($itemId, $seen);
         }
     }
 

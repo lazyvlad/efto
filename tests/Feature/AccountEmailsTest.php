@@ -49,7 +49,7 @@ class AccountEmailsTest extends TestCase
 
     public function test_an_account_that_is_not_activated_earns_but_cannot_use_what_it_has(): void
     {
-        config(['boss_loot.quiver.chance' => 1]);
+        config(['boss_loot.quiver.chance' => 1, 'boss_loot.quiver.from_zone' => 1]);
         $user = User::factory()->unverified()->create();
         $user->forceFill(['coins' => 20000])->save();
         foreach (['garrick-padfoot', 'hogger'] as $bossId) {

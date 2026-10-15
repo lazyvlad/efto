@@ -262,6 +262,17 @@ return [
     'set_piece_share' => 0.1,
     'set_pieces_per_game' => 2,
 
+    // Gear the bosses drop, never falling (config/boss_loot.php "pools"): the game gives them
+    // no chance of their own either (baseProbability 0 in game/data/gameItems.js)
+    'never_falls' => [
+        'maladath', 'quick-strike-ring', 'brutality_blade', 'dalrends', 'ashjrethul', 'ashkandi2',
+        'crulshorukh', 'drakefangtalisman', 'onslaught', 'circle-of-applied-force',
+    ],
+
+    // In their place, the gear of the zone the game is in falls (App\Models\Game::skyGear): in
+    // each chunk of play, so much chance of one of its greens, and of one of its blues
+    'zone_sky' => ['uncommon' => 0.3, 'rare' => 0.1],
+
     // The level at which each server-decided rarity starts to drop (progression.unlockLevel in
     // game/config/gameConfig.js). A game that starts at or past that level, because the player
     // skipped ahead, is not held back by not_before_seconds for that rarity.

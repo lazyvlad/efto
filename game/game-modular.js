@@ -2370,7 +2370,8 @@ function spawnItems(deltaTimeMultiplier) {
     // Nothing drops during a boss fight; rare items due in that time come once it is over
     if (isBossFightActive()) return;
     
-    // The zone's own gear is not dropped: a creature carries it (systems/creatureSystem.js)
+    // The zone's own gear is carried by a creature (systems/creatureSystem.js), unless the site
+    // offered it to fall
     for (let i = heldDrops.length - 1; i >= 0; i--) {
         if (!heldDrops[i].creature) continue;
         const [drop] = heldDrops.splice(i, 1);
@@ -2383,9 +2384,12 @@ function spawnItems(deltaTimeMultiplier) {
     heldDropWait -= deltaTimeMultiplier;
     if (heldDrops.length > 0 && heldDropWait <= 0) {
         const drop = heldDrops.shift();
-        const itemData = gameItems.find(item => item.id === drop.item);
+        // One of the game's own items, or a piece of the zone's gear that falls (the site
+        // offered it to fall, not for a creature to carry)
+        const gameItem = gameItems.find(item => item.id === drop.item);
+        const itemData = gameItem || zoneItemData(drop.item);
         
-        if (itemData && calculateItemProbability(itemData, gameState) > 0) {
+        if (itemData && (!gameItem || calculateItemProbability(itemData, gameState) > 0)) {
             const rareItem = new FallingItem(() => itemData, isValidYPosition, recentDropYPositions, gameState, images, canvas);
             rareItem.dropId = drop.id;
             fallingItems.push(rareItem);

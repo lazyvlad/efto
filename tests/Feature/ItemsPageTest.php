@@ -19,7 +19,8 @@ class ItemsPageTest extends TestCase
         // Kept and worn, kept for crafting, then sold: each where it belongs
         $response->assertSeeInOrder([
             'The hunter sets', 'Giantstalker Armor', 'Each piece: +3 health, +4 armor, +2 attack power', '8 pieces', 'Multishot hits 40% harder',
-            'Boss loot', 'item level 10', 'Weapons and jewellery that fall', 'Ashkandi', 'item level 55', 'Main hand, two-handed', '+16 attack power',
+            'Boss loot', 'item level 10', 'Weapons and jewellery', 'Ashkandi', 'item level 55', 'Main hand, two-handed', '+16 attack power', 'Dropped by the bosses of zone 9',
+            'Gear of the zones', 'Zone 1 · Northshire Abbey', 'Abbey Copper Band', 'Zone 2 · Eastvale, Elwynn Forest',
             'Materials', 'Runecloth',
             'Sold for coins', 'Zee Zgnan', '10s each', 'Legendary', '5s each', 'Uncommon', '25c each', 'Common', '10c each',
         ]);

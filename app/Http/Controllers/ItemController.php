@@ -63,11 +63,40 @@ class ItemController extends Controller
             }
         }
 
-        // The weapons and jewellery that fall in a game
+        // The weapons and jewellery found in a game: falling, or (the epics) dropped by the
+        // bosses of the later zones
+        $bossZones = [];
+        foreach (config('boss_loot.pools') as $bossId => $pool) {
+            foreach ($pool as $rarityItems) {
+                foreach (array_keys($rarityItems) as $itemId) {
+                    $bossZones[$itemId][] = BossLoot::boss($bossId)['zone'];
+                }
+            }
+        }
         $falling = [];
         foreach (array_keys(config('gear.drops')) as $itemId) {
-            $falling[] = self::gearRow($itemId, $gear[$itemId]) + ['name' => $items[$itemId]['name'], 'image' => $items[$itemId]['image'], 'rarity' => $gear[$itemId]['rarity'] ?? 'epic'];
+            $zones = array_values(array_unique($bossZones[$itemId] ?? []));
+            sort($zones);
+            $falling[] = self::gearRow($itemId, $gear[$itemId]) + [
+                'name' => $items[$itemId]['name'],
+                'image' => $items[$itemId]['image'],
+                'rarity' => $gear[$itemId]['rarity'] ?? 'epic',
+                'from' => in_array($itemId, config('loot.never_falls', []), true) && $zones
+                    ? __('Dropped by the bosses of zone :zones', ['zones' => implode(' and ', $zones)])
+                    : __('Falls in a game'),
+            ];
         }
+
+        // Each zone's own gear, by side and zone
+        $zoneGear = [];
+        foreach (Gear::zoneItems() as $itemId => $item) {
+            $zoneGear[$item['side']][$item['zone']]['name'] = $item['zoneName'];
+            $zoneGear[$item['side']][$item['zone']]['items'][] = self::gearRow($itemId, $gear[$itemId]) + ['name' => $item['name'], 'image' => asset('game/'.$gear[$itemId]['image']), 'rarity' => $item['rarity']];
+        }
+        foreach ($zoneGear as &$zones) {
+            ksort($zones);
+        }
+        unset($zones);
 
         // What is neither worn nor kept: sold for coins as a game ends, rarest first
         $kept = array_merge(array_keys(config('gear.drops')), $materials, ...array_map(fn ($set) => $set['pieces'], array_values(config('loot.sets'))));
@@ -86,6 +115,8 @@ class ItemController extends Controller
             'sets' => $sets,
             'bosses' => $bosses,
             'falling' => $falling,
+            'zoneGear' => $zoneGear,
+            'zoneSky' => config('loot.zone_sky'),
             'materials' => array_map(fn ($itemId) => $items[$itemId], $materials),
             'sold' => $sold,
             'total' => count($items),

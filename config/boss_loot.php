@@ -28,25 +28,31 @@ return [
     // (the third boss: three times this). Stops a boss being reported the moment a game opens.
     'min_seconds_per_zone' => 20,
 
-    // The large quiver: besides its item, a boss may drop this for a logged-in player who does
-    // not have it yet. It is found only once, and both hunters have it (App\Support\Gear); worn
-    // in the quiver slot it adds this many slots to the quiver, doubling the arrows the hunter
-    // can carry (quiver in game/config/gameConfig.js).
+    // The large quiver: besides its item, a boss of this zone or later may drop this for a
+    // player who does not have it yet. Each hunter finds his own (App\Support\Gear); worn in
+    // the quiver slot it adds this many slots to the quiver, doubling the arrows the hunter can
+    // carry (quiver in game/config/gameConfig.js).
     'quiver' => [
         'name' => 'Ancient Sinew Wrapped Lamina',
         'slots' => 4,
         'chance' => 0.1,
+        'from_zone' => 4,
     ],
 
-    // The hunter sets: besides its item, a boss may drop a piece of the set of its zone, one its
-    // side's hunter does not have yet (none once he has them all). A guest is only shown it.
+    // The hunter sets: besides its item, a boss from the fourth zone may drop a piece of its
+    // set, one its side's hunter does not have yet from those that boss gives (none once he has
+    // them all; never one of another boss's or set's). The first boss of a set's zones gives the
+    // smaller pieces, the second the larger; Cryptstalker's three share its nine. The same on
+    // both sides (the art agent's loot proposal, art-workbench/loot-distribution). A guest's
+    // account keeps them as anyone's does.
     'set_pieces' => [
-        'chance' => 0.3,
-        'by_zone' => [
-            4 => 'giantstalker', 5 => 'giantstalker',
-            6 => 'dragonstalker', 7 => 'dragonstalker',
-            8 => 'cryptstalker', 9 => 'cryptstalker', 10 => 'cryptstalker',
-        ],
+        4 => ['set' => 'giantstalker', 'chance' => 0.5, 'pieces' => ['giantstalker-bracers', 'giantstalker-gloves', 'giantstalker-belt', 'giantstalker-boots']],
+        5 => ['set' => 'giantstalker', 'chance' => 0.5, 'pieces' => ['giantstalker-helmet', 'giantstalker-shoulders', 'giantstalker-chest', 'giantstalker-leggings']],
+        6 => ['set' => 'dragonstalker', 'chance' => 0.4, 'pieces' => ['ds_bracers', 'ds_gloves', 'ds_belt', 'ds_boots']],
+        7 => ['set' => 'dragonstalker', 'chance' => 0.4, 'pieces' => ['ds_helm', 'ds_shoulders', 'ds_chest', 'ds_legs']],
+        8 => ['set' => 'cryptstalker', 'chance' => 0.3, 'pieces' => ['cryptstalker-bracers', 'cryptstalker-belt', 'cryptstalker-boots']],
+        9 => ['set' => 'cryptstalker', 'chance' => 0.3, 'pieces' => ['cryptstalker-gloves', 'cryptstalker-leggings', 'cryptstalker-ring']],
+        10 => ['set' => 'cryptstalker', 'chance' => 0.3, 'pieces' => ['cryptstalker-helmet', 'cryptstalker-shoulders', 'cryptstalker-chest']],
     ],
 
     // Bags: a boss of this zone or later may drop one, for a logged-in player, of one of the sizes
@@ -64,13 +70,13 @@ return [
     ],
 
     // The Bindings of the Windseeker, Left and Right, that Thunderfury is made from
-    // (config/crafting.php): besides its item, a boss of this zone or later may drop each, for
-    // a logged-in player, into the bank of the hunter whose boss it was. One of each to a
+    // (config/crafting.php): besides its item, the boss of the ninth zone may drop the Left, the
+    // tenth's the Right, into the bank of the hunter whose boss it was. One of each to a
     // hunter: none drops for one who has it already, or has made the blade.
-    // For now none drops anywhere (chance 0): they are to drop in the zones still to come.
     'bindings' => [
-        'from_zone' => 8,
-        'chance' => 0,
+        'left_zone' => 9,
+        'right_zone' => 10,
+        'chance' => 0.03,
         'left' => 'left-binding-of-the-windseeker',
         'right' => 'right-binding-of-the-windseeker',
         'makes' => 'thunderfury',
@@ -92,6 +98,107 @@ return [
 
     // Levels in a zone (levelsPerBackground in game/config/gameConfig.js)
     'levels_per_zone' => 2,
+
+    // What a boss drops besides its own three items, by rarity: the regional gear of its zone
+    // and the epics that used to fall, each with its weight against the boss's own item of that
+    // rarity ("native_weight"). One item a kill, as ever: first the rarity, then by weight among
+    // the boss's own and these. Only gear that is in the game (Gear::catalog) can drop; the
+    // rest waits for its art.
+    'native_weight' => ['uncommon' => 4, 'rare' => 3, 'epic' => 4],
+    'pools' => [
+        'garrick-padfoot' => [
+            'uncommon' => ['northshire-vineyard-bow' => 1, 'abbey-road-mantle' => 1, 'abbey-copper-band' => 1, 'vintners-field-compass' => 1],
+            'rare' => ['vinekeepers-prayer-charm' => 2],
+        ],
+        'hogger' => [
+            'uncommon' => ['riverpaw-skinning-knife' => 1, 'eastvale-barkcloth-cape' => 1, 'gnollhide-trail-pendant' => 1, 'woodcutters-whetstone' => 1],
+            'rare' => ['riverstone-hunters-band' => 2],
+        ],
+        'bazil-thredd' => [
+            'uncommon' => ['stockade-lockbreaker' => 1, 'prisoners-smuggler-cape' => 1, 'stockade-iron-signet' => 1, 'broken-shackle-pendant' => 1],
+            'rare' => ['confiscated-lockpick-roll' => 2],
+        ],
+        'edwin-vancleef' => [
+            'uncommon' => ['dustfield-watch-cape' => 1, 'harvest-cog-ring' => 1, 'defias-signal-medallion' => 1, 'golem-governor-spring' => 1],
+            'rare' => ['westfall-field-repeater' => 2],
+        ],
+        'gath-ilzogg' => [
+            'uncommon' => ['redridge-blackiron-glaive' => 1, 'blackrock-rivet-band' => 1, 'shadowhide-tooth-torque' => 1, 'raiders-signal-whistle' => 1],
+            'rare' => ['lakeshire-watchcloak' => 2],
+            'epic' => ['quick-strike-ring' => 1, 'circle-of-applied-force' => 1],
+        ],
+        'stitches' => [
+            'uncommon' => ['raven-hill-watchknife' => 1, 'nightwatch-mourning-cape' => 1, 'raven-hill-mourning-band' => 1, 'gravewatch-vigil-token' => 1],
+            'rare' => ['nightwatch-silver-charm' => 2],
+            'epic' => ['brutality_blade' => 1, 'dalrends' => 1],
+        ],
+        'chieftain-nekrosh' => [
+            'uncommon' => ['menethil-marsh-harpoon' => 1, 'harbor-oilskin-cape' => 1, 'bluegill-shell-pendant' => 1, 'stormbound-loadstone' => 1],
+            'rare' => ['tideglass-mariners-band' => 2],
+            'epic' => ['maladath' => 1, 'onslaught' => 1],
+        ],
+        'fozruk' => [
+            'uncommon' => ['fallen-keep-warcloak' => 1, 'broken-keep-signet' => 1, 'highland-watch-medallion' => 1, 'boulderfist-cairn-stone' => 1],
+            'rare' => ['stromgarde-oathblade' => 2],
+            'epic' => ['crulshorukh' => 1, 'drakefangtalisman' => 1],
+        ],
+        'king-bangalash' => [
+            'uncommon' => ['stranglethorn-trackers-bow' => 1, 'canopy-stalkers-cape' => 1, 'bloodscalp-jade-band' => 1, 'jungle-amber-necklace' => 1],
+            'rare' => ['jungle-trackers-fetish' => 2],
+            'epic' => ['ashkandi2' => 1],
+        ],
+        'vile-priestess-hexx' => [
+            'uncommon' => ['vilebranch-ritual-knife' => 1, 'highpeak-copper-signet' => 1, 'stormfeather-amulet' => 1, 'hexcallers-knotted-effigy' => 1],
+            'rare' => ['aerie-windguard-cloak' => 2],
+            'epic' => ['ashjrethul' => 1],
+        ],
+        'sarkoth' => [
+            'uncommon' => ['trialhunters-shortbow' => 1, 'scorpidhide-trail-cape' => 1, 'durotar-copper-loop' => 1, 'boarhide-water-flask' => 1],
+            'rare' => ['trialkeepers-bone-charm' => 2],
+        ],
+        'zalazane' => [
+            'uncommon' => ['razormane-thornknife' => 1, 'razor-hill-dustcloak' => 1, 'raptor-track-pendant' => 1, 'dustwind-trail-marker' => 1],
+            'rare' => ['quillguard-bronze-band' => 2],
+        ],
+        'taragaman' => [
+            'uncommon' => ['searing-blade-embermace' => 1, 'cinderward-hide-cape' => 1, 'cinder-rivet-ring' => 1, 'ashbound-copper-seal' => 1],
+            'rare' => ['bound-ember-censer' => 2],
+        ],
+        'echeyakee' => [
+            'uncommon' => ['ratchet-sailcloth-cape' => 1, 'dockside-brass-signet' => 1, 'saltglass-trade-pendant' => 1, 'caravan-balance-weight' => 1],
+            'rare' => ['ratchet-deck-crossbow' => 2],
+        ],
+        'gerenzo-wrenchwhistle' => [
+            'uncommon' => ['windshear-ratchet-pick' => 1, 'coppercoil-survey-ring' => 1, 'bloodfury-quill-charm' => 1, 'windshear-survey-dial' => 1],
+            'rare' => ['windshear-surveyor-cape' => 2],
+            'epic' => ['quick-strike-ring' => 1, 'circle-of-applied-force' => 1],
+        ],
+        'shadumbra' => [
+            'uncommon' => ['satyrwood-longbow' => 1, 'mossveil-scout-cape' => 1, 'moonbark-silver-ring' => 1, 'satyr-horn-ward' => 1],
+            'rare' => ['splintertree-moonstone' => 2],
+            'epic' => ['brutality_blade' => 1, 'dalrends' => 1],
+        ],
+        'arnak-grimtotem' => [
+            'uncommon' => ['highperch-windglaive' => 1, 'mesa-windbreak-cape' => 1, 'highperch-horn-pendant' => 1, 'echoing-mesa-chime' => 1],
+            'rare' => ['turquoise-mesa-band' => 2],
+            'epic' => ['maladath' => 1, 'onslaught' => 1],
+        ],
+        'big-samras' => [
+            'uncommon' => ['foothill-watch-cape' => 1, 'foothill-steel-signet' => 1, 'frostworn-trail-charm' => 1, 'yeti-fang-scrimshaw' => 1],
+            'rare' => ['hillsbrad-poachers-bow' => 2],
+            'epic' => ['crulshorukh' => 1, 'drakefangtalisman' => 1],
+        ],
+        'khan-dezhepah' => [
+            'uncommon' => ['magram-crescent-cleaver' => 1, 'shadowprey-saltcloak' => 1, 'slitherblade-coral-ring' => 1, 'seafoam-shell-torque' => 1],
+            'rare' => ['centaur-waystone' => 2],
+            'epic' => ['ashkandi2' => 1],
+        ],
+        'chief-ukorz-sandscalp' => [
+            'uncommon' => ['wastewander-glass-shiv' => 1, 'dune-glass-signet' => 1, 'sunscarab-neckpiece' => 1, 'desert-survey-lens' => 1],
+            'rare' => ['gadgetzan-sandrunner-cape' => 2],
+            'epic' => ['ashjrethul' => 1],
+        ],
+    ],
 
     // Images are paths inside the built game, public/game
     'bosses' => [

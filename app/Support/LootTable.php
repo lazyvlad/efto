@@ -32,7 +32,7 @@ class LootTable
                 ? 0
                 : (int) config("loot.not_before_seconds.$type", 0);
 
-            foreach (config("loot.items.$type") as $itemId) {
+            foreach (array_diff(config("loot.items.$type"), config('loot.never_falls', [])) as $itemId) {
                 // A piece of a hunter set waits for its own set's level, not its rarity's
                 $waitsUntil = $notBefore;
                 if ($set = self::setOf($itemId)) {

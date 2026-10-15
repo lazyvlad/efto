@@ -196,7 +196,7 @@ class GameRecordController extends Controller
 
         if (! $drop) {
             $item = BossLoot::roll($boss);
-            $quiver = BossLoot::rollQuiver($game->user, $boss['faction']);
+            $quiver = BossLoot::rollQuiver($game->user, $boss['faction'], $boss['zone']);
             $setPiece = BossLoot::rollSetPiece($game->user, $boss);
             $bag = BossLoot::rollBag($game->user, $boss);
 

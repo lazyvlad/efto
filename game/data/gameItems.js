@@ -51,26 +51,26 @@ export const gameItems = [
     { id: "lava-core", name: "Lava Core", image: assetRegistry.items.lavaCore, value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "" },
     
     // The hunter's weapons (once part of the Dragonstalker goal, now epics of their own)
-    { id: "ashjrethul", name: "Ashjre'thul, Crossbow of Smiting", image: assetRegistry.items.item4, value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: assetRegistry.audio.disenchant,
+    { id: "ashjrethul", name: "Ashjre'thul, Crossbow of Smiting", image: assetRegistry.items.item4, value: 6, collected: 0, type: "epic", baseProbability: 0 /* dropped by bosses, never falls */, sound: assetRegistry.audio.disenchant,
       crit_rating_bonus: 0.02, dodge_rating_bonus: 0, effect_type: "permanent" },
     
     { id: "black-lotuses", name: "Stack of Black Lotus", image: assetRegistry.buffs.blackLotuses, value: 10, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: assetRegistry.audio.voice,
       crit_rating_bonus: 0.05, dodge_rating_bonus: 0, effect_type: "temporary", effect_duration: 3600 }, // 60 seconds
     
-    { id: "maladath", name: "Maladath", image: assetRegistry.items.maladath, value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "",
+    { id: "maladath", name: "Maladath", image: assetRegistry.items.maladath, value: 6, collected: 0, type: "epic", baseProbability: 0 /* dropped by bosses, never falls */, sound: "",
       crit_rating_bonus: 0, dodge_rating_bonus: 0.02, effect_type: "permanent" },
-    { id: "ashkandi2", name: "Ashkandi, Greatsword of the Brotherhood", image: assetRegistry.items.ashkandi, value: 6, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "" },
-    { id: "quick-strike-ring", name: "Quick Strike Ring", image: assetRegistry.items.quickStrikeRing, value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "",
+    { id: "ashkandi2", name: "Ashkandi, Greatsword of the Brotherhood", image: assetRegistry.items.ashkandi, value: 6, collected: 0, type: "epic", baseProbability: 0 /* dropped by bosses, never falls */, sound: "" },
+    { id: "quick-strike-ring", name: "Quick Strike Ring", image: assetRegistry.items.quickStrikeRing, value: 5, collected: 0, type: "epic", baseProbability: 0 /* dropped by bosses, never falls */, sound: "",
       crit_rating_bonus: 0.03, dodge_rating_bonus: 0.02, effect_type: "temporary", effect_duration: 1800 }, // 30 seconds at 60fps
-    { id: "brutality_blade", name: "Brutality Blade", image: assetRegistry.items.brutalityBlade, value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: assetRegistry.audio.disenchant,
+    { id: "brutality_blade", name: "Brutality Blade", image: assetRegistry.items.brutalityBlade, value: 5, collected: 0, type: "epic", baseProbability: 0 /* dropped by bosses, never falls */, sound: assetRegistry.audio.disenchant,
       crit_rating_bonus: 0.02, dodge_rating_bonus: 0, effect_type: "permanent" },
-    { id: "dalrends", name: "Dal Rends", image: assetRegistry.items.dalrends, value: 5, collected: 0, type: "epic", baseProbability: gameConfig.itemProbabilities.epic, sound: "" },
-    { id: "crulshorukh", name: "Crulshorukh", image: assetRegistry.items.item6, value: 7, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "" },
-    { id: "drakefangtalisman", name: "Drake Fang Talisman", image: assetRegistry.items.dft, value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: assetRegistry.audio.dft },
+    { id: "dalrends", name: "Dal Rends", image: assetRegistry.items.dalrends, value: 5, collected: 0, type: "epic", baseProbability: 0 /* dropped by bosses, never falls */, sound: "" },
+    { id: "crulshorukh", name: "Crulshorukh", image: assetRegistry.items.item6, value: 7, collected: 0, type: "special", baseProbability: 0 /* dropped by bosses, never falls */, sound: "" },
+    { id: "drakefangtalisman", name: "Drake Fang Talisman", image: assetRegistry.items.dft, value: 4, collected: 0, type: "special", baseProbability: 0 /* dropped by bosses, never falls */, sound: assetRegistry.audio.dft },
     
-    { id: "onslaught", name: "Onslaught", image: assetRegistry.items.onslaught, value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "",
+    { id: "onslaught", name: "Onslaught", image: assetRegistry.items.onslaught, value: 4, collected: 0, type: "special", baseProbability: 0 /* dropped by bosses, never falls */, sound: "",
       crit_rating_bonus: 0.05, dodge_rating_bonus: 0, effect_type: "temporary", effect_duration: 1800 }, // 30 seconds at 60fps
-    { id: "circle-of-applied-force", name: "Circle of Applied", image: assetRegistry.items.circleOfAppliedForce, value: 4, collected: 0, type: "special", baseProbability: gameConfig.itemProbabilities.special, sound: "",
+    { id: "circle-of-applied-force", name: "Circle of Applied", image: assetRegistry.items.circleOfAppliedForce, value: 4, collected: 0, type: "special", baseProbability: 0 /* dropped by bosses, never falls */, sound: "",
       crit_rating_bonus: 0.01, dodge_rating_bonus: 0.03, effect_type: "permanent" }, // Permanent dodge bonus
     
     // Giantstalker Armor (tier 1): collectable pieces of a set ("set" names it, "slot" where

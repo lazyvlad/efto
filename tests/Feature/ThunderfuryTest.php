@@ -105,7 +105,7 @@ class ThunderfuryTest extends TestCase
         }
     }
 
-    // When they drop (in the zones to come, with a chance above nothing)
+    // When they drop (3% of the time, from the last two bosses)
     public function test_the_last_bosses_drop_the_bindings_into_the_hunter_s_bank(): void
     {
         config(['boss_loot.bindings.chance' => 1]);
@@ -113,7 +113,9 @@ class ThunderfuryTest extends TestCase
         $khan = BossLoot::boss('khan-dezhepah');
         $this->assertSame(9, $khan['zone']);
 
-        $this->assertEqualsCanonicalizing([self::LEFT, self::RIGHT], BossLoot::rollBindings($user, $khan));
+        // The Left from the ninth zone's boss, the Right from the tenth's
+        $this->assertSame([self::LEFT], BossLoot::rollBindings($user, $khan));
+        $this->assertSame([self::RIGHT], BossLoot::rollBindings($user, BossLoot::boss('chief-ukorz-sandscalp')));
         // Not from an early boss, nor for a guest
         $this->assertSame([], BossLoot::rollBindings($user, BossLoot::boss('sarkoth')));
         $this->assertSame([], BossLoot::rollBindings(null, $khan));
@@ -125,9 +127,9 @@ class ThunderfuryTest extends TestCase
         $game = Game::where('token', $token)->firstOrFail();
         $this->travel(2)->minutes();
         $this->postJson(route('games.boss', $game), ['boss' => 'khan-dezhepah'])->assertOk()
-            ->assertJsonCount(2, 'bindings')
+            ->assertJsonCount(1, 'bindings')
             ->assertJsonPath('bindings.0.name', 'Left Binding of the Windseeker');
-        $this->assertSame([self::LEFT => 1, self::RIGHT => 1], array_intersect_key(Bags::bank($user->fresh(), 'horde'), [self::LEFT => 1, self::RIGHT => 1]));
+        $this->assertSame([self::LEFT => 1], array_intersect_key(Bags::bank($user->fresh(), 'horde'), [self::LEFT => 1, self::RIGHT => 1]));
         $this->assertSame([], Bags::bank($user->fresh(), 'alliance'));
 
         // Bound to him: never sent to the other hunter

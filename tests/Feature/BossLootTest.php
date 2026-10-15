@@ -33,7 +33,9 @@ class BossLootTest extends TestCase
             ->assertJsonPath('kept', true)
             ->assertJsonPath('timesFound', 1);
 
-        $itemIds = array_column(config('boss_loot.bosses.alliance.hogger.loot'), 'id');
+        // One of its own three, or of its pool that is in the game
+        $hogger = BossLoot::boss('hogger');
+        $itemIds = array_merge(...array_map(fn ($rarity) => array_keys(BossLoot::pool($hogger, $rarity)), ['uncommon', 'rare', 'epic']));
         $this->assertContains($response->json('item.id'), $itemIds);
         $this->assertDatabaseHas('boss_drops', [
             'game_id' => $game->id,
@@ -229,7 +231,8 @@ class BossLootTest extends TestCase
             ->map(fn (array $drop) => \App\Support\LootTable::typeOf($drop['item_id']))
             ->unique();
 
-        $this->assertEqualsCanonicalizing(['epic', 'special', 'set_piece'], $types(9)->all());
+        // (no special falls any more: all four are gear the bosses drop)
+        $this->assertEqualsCanonicalizing(['epic', 'set_piece'], $types(9)->all());
         // A game from the start gets only pieces of the first set this early
         $this->assertSame([], array_values(array_diff($types(1)->all(), ['set_piece'])));
 
@@ -255,7 +258,8 @@ class BossLootTest extends TestCase
 
     public function test_a_boss_may_drop_the_large_quiver_once_for_a_player(): void
     {
-        config(['boss_loot.quiver.chance' => 1]);
+        // From the first boss on, for this test (it drops from the fourth zone's)
+        config(['boss_loot.quiver.chance' => 1, 'boss_loot.quiver.from_zone' => 1]);
         $user = User::factory()->create();
         $game = $this->actingAs($user)->openGame();
         $this->travel(60)->seconds();

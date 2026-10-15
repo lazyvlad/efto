@@ -112,12 +112,15 @@
                     </p>
                     <p class="mt-1 text-sm text-gray-600">
                         <span class="rarity-legendary">{{ $quiverName }}</span>
-                        {{ __('Any boss may also drop this large quiver for a logged-in player, :chance% of the time. Each hunter finds his own, from the bosses of his side: worn in his quiver slot, it doubles the arrows he can carry.', ['chance' => $quiverChance]) }}
+                        {{ __('From the fourth zone on, a boss may also drop this large quiver, :chance% of the time. Each hunter finds his own, from the bosses of his side: worn in his quiver slot, it doubles the arrows he can carry.', ['chance' => $quiverChance]) }}
                     </p>
                     <p class="mt-1 text-sm text-gray-600">
-                        {{ __('From the fourth zone on, a boss may also drop a piece of a hunter set, :setChance% of the time, one its hunter does not have yet: Giantstalker in zones 4 and 5, Dragonstalker in 6 and 7, Cryptstalker from 8. And now and then, :bagChance% of the time, a bag for a logged-in player, bigger in the later zones. It goes on at once, into a free bag slot or in place of a smaller bag.', [
-                            'setChance' => round(config('boss_loot.set_pieces.chance') * 100),
+                        {{ __('Its item may also be one of its zone\'s own gear, and from the fifth zone one of the epics that no longer fall. From the fourth zone on, a boss may drop a piece of a hunter set besides, one its hunter does not have yet of the pieces that boss gives: Giantstalker in zones 4 and 5 (:gs%), Dragonstalker in 6 and 7 (:ds%), Cryptstalker from 8 (:cs%). From the fourth zone, :bagChance% of the time, a bag, bigger in the later zones: it goes on at once, into a free bag slot or in place of a smaller bag. The large quiver drops from the fourth zone too, and the bindings Thunderfury is made from, :binding% of the time, from the last two bosses.', [
+                            'gs' => round(config('boss_loot.set_pieces.4.chance') * 100),
+                            'ds' => round(config('boss_loot.set_pieces.6.chance') * 100),
+                            'cs' => round(config('boss_loot.set_pieces.8.chance') * 100),
                             'bagChance' => round(config('boss_loot.bags.chance') * 100),
+                            'binding' => round(config('boss_loot.bindings.chance') * 100),
                         ]) }}
                     </p>
                 </div>
@@ -154,7 +157,8 @@
             <section id="falling" class="scroll-mt-20 space-y-3">
                 <div>
                     <p class="game-label">{{ __('Kept on your account, and worn') }}</p>
-                    <h3 class="game-heading text-2xl">{{ __('Weapons and jewellery that fall') }}</h3>
+                    <h3 class="game-heading text-2xl">{{ __('Weapons and jewellery') }}</h3>
+                    <p class="mt-1 text-sm text-gray-600">{{ __('The plain ones fall in a game. The epics no longer fall: the bosses of the later zones drop them, now and then, in place of their own purple.') }}</p>
                 </div>
                 <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     @foreach ($falling as $item)
@@ -164,10 +168,38 @@
                                 <span class="block truncate rarity-{{ $item['rarity'] }}" title="{{ $item['name'] }}">{{ $item['name'] }}</span>
                                 <span class="block text-xs text-gray-500">{{ __('item level :level', ['level' => $item['itemLevel']]) }} · {{ $item['worn'] }}@if ($item['twoHanded']), {{ __('two-handed') }}@endif</span>
                                 <span class="block text-xs text-gray-900">{{ $item['stats'] }}</span>
+                                <span class="block text-xs text-gray-500">{{ $item['from'] }}</span>
                             </span>
                         </li>
                     @endforeach
                 </ul>
+            </section>
+
+            {{-- Each zone's own gear --}}
+            <section id="zone-gear" class="scroll-mt-20 space-y-3">
+                <div>
+                    <p class="game-label">{{ __('Kept on your account, and worn') }}</p>
+                    <h3 class="game-heading text-2xl">{{ __('Gear of the zones') }}</h3>
+                    <p class="mt-1 text-sm text-gray-600">{{ __('Every zone has gear of its own. Its creatures carry it; it falls there now and then, the greens more often than the blues (:green% and :blue% each half minute of play); and the zone\'s boss may drop it in place of its own item.', ['green' => round($zoneSky['uncommon'] * 100), 'blue' => round($zoneSky['rare'] * 100)]) }}</p>
+                </div>
+                @foreach ($zoneGear as $side => $zones)
+                    <h4 class="game-label !text-sm pt-2">{{ $side === 'alliance' ? __('Alliance') : __('Horde') }}</h4>
+                    @foreach ($zones as $zone => $place)
+                        <p class="text-sm text-gray-900">{{ __('Zone :zone · :name', ['zone' => $zone, 'name' => $place['name']]) }}</p>
+                        <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            @foreach ($place['items'] as $item)
+                                <li class="game-item min-w-0" data-rarity="{{ $item['rarity'] }}">
+                                    <img src="{{ $item['image'] }}" alt="" loading="lazy" class="h-11 w-11 shrink-0 object-contain">
+                                    <span class="min-w-0">
+                                        <span class="block truncate rarity-{{ $item['rarity'] }}" title="{{ $item['name'] }}">{{ $item['name'] }}</span>
+                                        <span class="block text-xs text-gray-500">{{ __('item level :level', ['level' => $item['itemLevel']]) }} · {{ $item['worn'] }}@if ($item['twoHanded']), {{ __('two-handed') }}@endif</span>
+                                        <span class="block text-xs text-gray-900">{{ $item['stats'] }}</span>
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endforeach
+                @endforeach
             </section>
 
             {{-- The crafting materials --}}
