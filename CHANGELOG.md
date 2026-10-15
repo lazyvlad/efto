@@ -1,5 +1,27 @@
 # Changelog
 
+## 3.0.9 - 2026-10-15
+
+### Changed
+- **The Bindings of the Windseeker no longer drop**, from any boss: they will drop in the zones
+  still to come. Thunderfury and its recipe stay in the game, waiting for them.
+- **An admin can give Thunderfury** to either hunter on its own (the account page, under each
+  hunter's Gear), to try it out, and take it back. It is worn like any weapon, from the
+  character sheet's main hand.
+
+### What's new
+- **Parses**, as the WoW log sites have them. Every timed boss kill is set against every
+  other kill of that boss in the same version of the game, by how long the fight took, and
+  given a number: the share of those kills it beat, 100 for the fastest, 0 for the slowest. It
+  is shown in the colours the log sites use (grey, green, blue, purple, orange, pink, gold for
+  the very best) in every game's boss fights, on My Games and on its page from the high
+  scores, and Boss records gives each hunter's best parse against each boss. Parses move as
+  others play.
+
+### For developers
+- `App\Support\Parses` (`of`, `percentile`, `color`): worked out when asked, from the timed
+  kills not given by an admin, by boss and `games.version_rank`.
+
 ## 3.0.8 - 2026-10-14
 
 ### What's new
