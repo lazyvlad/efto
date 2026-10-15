@@ -24,9 +24,22 @@
 
             <!-- Page Heading -->
             @isset($header)
+                @php
+                    // The other pages of this page's category, as tabs under its heading
+                    $siteCategory = \App\Support\SiteMenu::current();
+                    $siteTabs = $siteCategory ? \App\Support\SiteMenu::pages($siteCategory) : [];
+                @endphp
                 <header class="bg-white shadow">
-                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 {{ count($siteTabs) > 1 ? '!pb-0' : '' }}">
                         {{ $header }}
+                        @if (count($siteTabs) > 1)
+                            <nav class="site-tabs mt-4 flex flex-wrap gap-x-1" aria-label="{{ \App\Support\SiteMenu::categories()[$siteCategory]['label'] }}">
+                                @foreach ($siteTabs as $tab)
+                                    @php $here = \App\Support\SiteMenu::isOn($tab); @endphp
+                                    <a href="{{ route($tab['route']) }}" class="site-tab {{ $here ? 'is-on' : '' }}" @if ($here) aria-current="page" @endif>{{ $tab['label'] }}</a>
+                                @endforeach
+                            </nav>
+                        @endif
                     </div>
                 </header>
             @endisset

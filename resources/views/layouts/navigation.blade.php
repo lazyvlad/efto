@@ -10,26 +10,15 @@
                     </a>
                 </div>
 
-                <!-- Navigation Links -->
+                <!-- The categories (App\Support\SiteMenu): each opens its first page; the pages of
+                     the one open are tabs under the page's heading (layouts/app) -->
+                @php $siteMenu = \App\Support\SiteMenu::categories(); $siteOpen = \App\Support\SiteMenu::current(); @endphp
                 <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('home')" :active="request()->routeIs('home')">
-                        {{ __('Play') }}
-                    </x-nav-link>
-                    <x-nav-link :href="route('highscores')" :active="request()->routeIs('highscores')">
-                        {{ __('High Scores') }}
-                    </x-nav-link>
-                    <x-nav-link :href="route('live')" :active="request()->routeIs('live')">
-                        {{ __('Live') }}
-                    </x-nav-link>
-                    <x-nav-link :href="route('items')" :active="request()->routeIs('items')">
-                        {{ __('Items') }}
-                    </x-nav-link>
-                    <x-nav-link :href="route('whats-new')" :active="request()->routeIs('whats-new')">
-                        {{ __('What\'s new') }}
-                    </x-nav-link>
-                    <x-nav-link :href="route('about')" :active="request()->routeIs('about')">
-                        {{ __('About') }}
-                    </x-nav-link>
+                    @foreach ($siteMenu as $key => $category)
+                        <x-nav-link :href="route(\App\Support\SiteMenu::pages($key)[0]['route'])" :active="$siteOpen === $key">
+                            {{ $category['label'] }}
+                        </x-nav-link>
+                    @endforeach
                 </div>
             </div>
 
@@ -96,24 +85,21 @@
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden absolute inset-x-0 top-full bg-white border-b border-gray-200 shadow-lg">
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('home')" :active="request()->routeIs('home')">
-                {{ __('Play') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('highscores')" :active="request()->routeIs('highscores')">
-                {{ __('High Scores') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('live')" :active="request()->routeIs('live')">
-                {{ __('Live') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('items')" :active="request()->routeIs('items')">
-                {{ __('Items') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('whats-new')" :active="request()->routeIs('whats-new')">
-                {{ __('What\'s new') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('about')" :active="request()->routeIs('about')">
-                {{ __('About') }}
-            </x-responsive-nav-link>
+            @foreach ($siteMenu as $key => $category)
+                @php $pages = \App\Support\SiteMenu::pages($key); @endphp
+                @if (count($pages) === 1)
+                    <x-responsive-nav-link :href="route($pages[0]['route'])" :active="\App\Support\SiteMenu::isOn($pages[0])">
+                        {{ $category['label'] }}
+                    </x-responsive-nav-link>
+                @else
+                    <div class="px-4 pt-2 text-xs uppercase tracking-wider text-gray-500">{{ $category['label'] }}</div>
+                    @foreach ($pages as $page)
+                        <x-responsive-nav-link :href="route($page['route'])" :active="\App\Support\SiteMenu::isOn($page)" class="!ps-7">
+                            {{ $page['label'] }}
+                        </x-responsive-nav-link>
+                    @endforeach
+                @endif
+            @endforeach
         </div>
 
         <!-- Responsive Settings Options -->

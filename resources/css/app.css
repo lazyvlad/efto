@@ -262,6 +262,25 @@
     .side-dot[data-side="alliance"] { background: #4a86e8; }
     .side-dot[data-side="horde"] { background: #d8392b; }
 
+    /* The pages of a category, as tabs under a page's heading (App\Support\SiteMenu) */
+    .site-tab {
+        padding: 0.55rem 0.9rem;
+        font-family: theme('fontFamily.display');
+        font-size: 0.95rem;
+        color: theme('colors.gray.600');
+        border-bottom: 2px solid transparent;
+    }
+
+    .site-tab:hover {
+        color: theme('colors.gray.800');
+        border-bottom-color: theme('colors.gray.300');
+    }
+
+    .site-tab.is-on {
+        color: theme('colors.gray.900');
+        border-bottom-color: theme('colors.indigo.600');
+    }
+
     /* The admin section's categories, at the top of every admin page */
     .admin-category {
         padding: 0.35rem 0.85rem;
