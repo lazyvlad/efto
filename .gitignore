@@ -50,3 +50,5 @@ Thumbs.db
 /art-workbench/
 # Screenshots and logs from browser checks (Playwright)
 /.playwright-mcp/
+# This server's deploy script (pull, composer, migrate, caches)
+/deploy.sh
