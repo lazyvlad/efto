@@ -576,6 +576,21 @@ class Gear
     }
 
     /**
+     * An outfit with nothing in the main hand: the side's starter weapon goes there. The hunters
+     * had none before melee, so every outfit saved then has an empty hand (put right once, by
+     * the migration that gave them one; an empty hand after that is the player's choice).
+     */
+    public static function withStarterWeapon(array $equipment, string $side): array
+    {
+        $weapon = config("gear.starter.$side.mainhand.id");
+        if ($weapon && empty($equipment['mainhand'])) {
+            $equipment['mainhand'] = $weapon;
+        }
+
+        return $equipment;
+    }
+
+    /**
      * An outfit saved when quivers were worn on the back: the quiver there is in the quiver
      * slot now (unless that has one already).
      */

@@ -973,13 +973,35 @@ function chosenEquipment(side) {
     return account === null ? null : storedEquipment(side);
 }
 
+// An outfit kept in this browser from before the hunters had a weapon to start with has an
+// empty hand: the starter weapon goes there, once (an account's outfits were seen to on the
+// site). After that an empty hand is the player's choice.
+const STARTER_WEAPON_KEY = 'input_starter_weapon_given';
+function withStarterWeapon(outfit, side) {
+    if (!outfit || hasBank()) return outfit;
+    let given = {};
+    try {
+        given = JSON.parse(localStorage.getItem(STARTER_WEAPON_KEY)) || {};
+    } catch (e) {
+        return outfit;
+    }
+    if (given[side]) return outfit;
+    try {
+        localStorage.setItem(STARTER_WEAPON_KEY, JSON.stringify({ ...given, [side]: true }));
+    } catch (e) {
+        // Not kept: asked again next time, which does no harm
+    }
+    const weapon = starterLoadout(side).mainhand;
+    return outfit.mainhand || !weapon ? outfit : { ...outfit, mainhand: weapon };
+}
+
 // As a game starts, and when the side changes: what the player chose for that side's hunter to
 // wear, as far as they still own it. A hunter never dressed starts in his own clothes and the
 // pieces owned of the set last worn.
 function restoreEquipment() {
     const side = currentSide();
     const owned = forSide(ownedPieces(), side);
-    const chosen = chosenEquipment(side);
+    const chosen = withStarterWeapon(chosenEquipment(side), side);
     
     gameState.equipment = chosen
         ? validEquipment(chosen, wearables(), owned)

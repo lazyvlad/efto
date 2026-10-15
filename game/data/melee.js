@@ -45,6 +45,9 @@ export const meleeWeapons = {
     'ashkandi2': { grip: [0.5969, 0.7072], support: [0.5969, 0.7974], height: 470, twoHanded: true },
     'crulshorukh': { grip: [0.4803, 0.662], support: [0.4803, 0.8092], height: 425, twoHanded: true },
     'walking-stick': { grip: [0.3935, 0.6684], support: [0.3935, 0.8001], height: 430, twoHanded: true },
+    // The weapons the hunters start with, drawn as other weapons until they have art of their own
+    'starter-alliance-knife': { grip: [0.5791, 0.8201], support: null, height: 300, twoHanded: false, art: 'cruel-barb' },
+    'starter-horde-cleaver': { grip: [0.4985, 0.7457], support: null, height: 280, twoHanded: false, art: 'embalmers-cleaver' },
 };
 
 // The plain body each hunter fights in (his arms off, nothing worn), and his bare arms and

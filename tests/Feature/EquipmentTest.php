@@ -54,6 +54,23 @@ class EquipmentTest extends TestCase
         $this->get(route('play'))->assertSee('"equipment":{"alliance":{},"horde":{"chest":"giantstalker-chest"}}', false);
     }
 
+    public function test_each_hunter_starts_with_a_weapon_and_may_put_it_down(): void
+    {
+        $user = User::factory()->create();
+
+        // Never dressed: each in his own clothes, a weapon in his hand
+        $this->assertSame('starter-alliance-knife', Gear::worn($user, 'alliance')['mainhand']);
+        $this->assertSame('starter-horde-cleaver', Gear::worn($user, 'horde')['mainhand']);
+
+        // An outfit saved before the hunters had one gets it, once (the migration)
+        $this->assertSame(['chest' => 'x', 'mainhand' => 'starter-horde-cleaver'], Gear::withStarterWeapon(['chest' => 'x'], 'horde'));
+        $this->assertSame(['mainhand' => 'ashkandi2'], Gear::withStarterWeapon(['mainhand' => 'ashkandi2'], 'alliance'));
+
+        // Put down after that, it stays down
+        $this->actingAs($user)->putJson(route('equipment.update'), ['side' => 'alliance', 'equipment' => []])->assertOk();
+        $this->assertArrayNotHasKey('mainhand', Gear::worn($user->fresh(), 'alliance'));
+    }
+
     public function test_a_piece_taken_back_is_no_longer_worn(): void
     {
         $user = User::factory()->create();

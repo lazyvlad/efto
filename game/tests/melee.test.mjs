@@ -108,6 +108,7 @@ test('every main-hand weapon of the site can be swung, one-handed or two as the 
     // The weapons the hunters start with are named by their "id"; their slot's key is no weapon
     mainHand.delete('mainhand');
     for (const m of gear.matchAll(/'id' => '([^']+)'[^\]]*'slot' => 'mainhand'/g)) mainHand.add(m[1]);
+    assert.ok(mainHand.has('starter-alliance-knife') && mainHand.has('starter-horde-cleaver'));
     assert.ok(mainHand.size >= 15, `found ${mainHand.size}`);
     for (const id of mainHand) {
         assert.ok(meleeWeapons[id], `${id} has a whole picture`);
