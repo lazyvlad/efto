@@ -139,6 +139,45 @@ return [
     ],
 
     /*
+     * Each zone's own gear (the art agent's regional items, art-workbench/zone-items): carried by
+     * the zone's creatures, never falling from the sky. The server decides which creature
+     * carries one (the game asks for it with the rest of a chunk's drops, and says how far it
+     * has come): up to "offers" of a zone's items while a game is in that zone, each a "chance"
+     * to be offered. What is caught belongs to the hunter who caught it, as any gear found in
+     * his games; either hunter can wear it. By side, then zone (1 is the first), then item.
+     */
+    'zone_offers' => [
+        // The first zones are generous: a new hunter should see what creatures carry
+        'by_zone' => [1 => ['offers' => 3, 'chance' => 1.0]],
+        'otherwise' => ['offers' => 1, 'chance' => 0.6],
+        'levels_per_zone' => 2,     // As the game's backgrounds.levelsPerBackground
+    ],
+    'zone_names' => [
+        'alliance' => [1 => 'Northshire Abbey'],
+        'horde' => [1 => 'Valley of Trials'],
+    ],
+    'zone_items' => [
+        'alliance' => [
+            1 => [ // Northshire Abbey
+                'abbey-copper-band' => ['name' => 'Abbey Copper Band', 'slot' => 'ring', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['attackPower' => 1, 'health' => 2], 'value' => 25],
+                'vinekeepers-prayer-charm' => ['name' => 'Vinekeeper’s Prayer Charm', 'slot' => 'neck', 'rarity' => 'rare', 'item_level' => 15, 'stats' => ['health' => 4, 'attackPower' => 1], 'value' => 75],
+                'vintners-field-compass' => ['name' => 'Vintner’s Field Compass', 'slot' => 'trinket', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['attackPower' => 1, 'health' => 1, 'carrying' => 1], 'value' => 25],
+                'abbey-road-mantle' => ['name' => 'Abbey Road Mantle', 'slot' => 'back', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['armor' => 3, 'health' => 2], 'value' => 25],
+                'northshire-vineyard-bow' => ['name' => 'Northshire Vineyard Bow', 'slot' => 'ranged', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['attackPower' => 2], 'value' => 25],
+            ],
+        ],
+        'horde' => [
+            1 => [ // Valley of Trials
+                'durotar-copper-loop' => ['name' => 'Durotar Copper Loop', 'slot' => 'ring', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['armor' => 2, 'health' => 2], 'value' => 25],
+                'trialkeepers-bone-charm' => ['name' => 'Trialkeeper’s Bone Charm', 'slot' => 'neck', 'rarity' => 'rare', 'item_level' => 15, 'stats' => ['health' => 4, 'attackPower' => 1], 'value' => 75],
+                'boarhide-water-flask' => ['name' => 'Boarhide Water Flask', 'slot' => 'trinket', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['attackPower' => 1, 'health' => 1, 'carrying' => 1], 'value' => 25],
+                'scorpidhide-trail-cape' => ['name' => 'Scorpidhide Trail Cape', 'slot' => 'back', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['armor' => 3, 'health' => 2], 'value' => 25],
+                'trialhunters-shortbow' => ['name' => 'Trialhunter’s Shortbow', 'slot' => 'ranged', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['attackPower' => 2], 'value' => 25],
+            ],
+        ],
+    ],
+
+    /*
      * The clothes each hunter starts in: gear like any other, worn slot by slot, taken off and
      * replaced by better things. Every account (and every guest) has both sets, once; they
      * are never sold and never count towards what a hunter carries. Each side's hunter starts

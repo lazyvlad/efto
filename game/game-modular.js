@@ -49,7 +49,7 @@ import { actionFor, keyName, resetKeys } from './utils/keybindings.js';
 import { say, preloadVoiceLines, resetVoiceLines, updateBanter, watchHealth, forgetHealth } from './systems/voiceSystem.js';
 import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies, fightInProgress, strikeBoss, bossFightState } from './systems/bossSystem.js';
 import { BossProjectile } from './classes/BossProjectile.js';
-import { resetCreatures, updateCreatures, creaturesAbout, strikeCreatures } from './systems/creatureSystem.js';
+import { resetCreatures, updateCreatures, creaturesAbout, strikeCreatures, carryForCreatures } from './systems/creatureSystem.js';
 import { dressForMelee, updateMelee, drawMelee, resetMelee, meleeFramesSince } from './systems/meleeSystem.js';
 import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground, currentBackgroundImage, currentBackgroundName } from './systems/backgroundSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState, updateMouseLock } from './systems/inputSystem.js';
@@ -2164,6 +2164,14 @@ function spawnItems(deltaTimeMultiplier) {
     // Nothing drops during a boss fight; rare items due in that time come once it is over
     if (isBossFightActive()) return;
     
+    // The zone's own gear is not dropped: a creature carries it (systems/creatureSystem.js)
+    for (let i = heldDrops.length - 1; i >= 0; i--) {
+        if (!heldDrops[i].creature) continue;
+        const [drop] = heldDrops.splice(i, 1);
+        const itemData = zoneItemData(drop.item);
+        if (itemData) carryForCreatures(itemData, drop.id);
+    }
+    
     // One at a time, a second apart: after a fight several may be waiting, and they should not
     // all come down at once
     heldDropWait -= deltaTimeMultiplier;
@@ -2293,11 +2301,31 @@ function updateFallingItems(deltaTimeMultiplier) {
     });
 }
 
-// Loot a creature dropped hops out of it, to be caught like anything that falls
-function popCreatureLoot(itemData, x, y) {
+// Loot a creature dropped hops out of it, to be caught like anything that falls; a piece of
+// the zone's gear the site gave it to carry keeps its drop's id, to be reported when caught
+function popCreatureLoot(itemData, x, y, dropId = null) {
     const item = new FallingItem(() => itemData, isValidYPosition, [], gameState, images, canvas);
     item.popFrom(x, y, canvas, gameConfig.creatures.pop);
+    if (dropId !== null && dropId !== undefined) item.dropId = dropId;
     fallingItems.push(item);
+}
+
+// A piece of the zone's gear as it falls: from the site's catalogue (INPUT_BOOT.gear), sized and
+// shown by its rarity like the other things that fall. It is kept, like any gear caught.
+const zoneItems = new Map();
+function zoneItemData(itemId) {
+    if (!zoneItems.has(itemId)) {
+        const gear = gearCatalog()[itemId];
+        zoneItems.set(itemId, gear ? {
+            id: itemId,
+            name: gear.name,
+            image: gear.image,
+            type: gear.rarity === 'rare' ? 'special' : 'green',
+            value: 0,
+            collected: 0,
+        } : null);
+    }
+    return zoneItems.get(itemId);
 }
 
 function updateProjectiles(deltaTimeMultiplier) {

@@ -67,7 +67,7 @@ function layersFor(side, equipment) {
     const ids = [...new Set(Object.values(equipment || {}).filter(Boolean).map(id => hunterArt.aliases[id] || id))];
     return ids.flatMap(itemId => (hunterArt.items[itemId] && hunterArt.items[itemId][side]) || [])
         .map(part => ({ ...part }))
-        .sort((a, b) => a.order - b.order || a.layer.localeCompare(b.layer));
+        .sort((a, b) => a.order - b.order || (a.stack || 0) - (b.stack || 0) || a.layer.localeCompare(b.layer));
 }
 
 async function compose(side, layers) {

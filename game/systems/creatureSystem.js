@@ -18,6 +18,9 @@ import { trackActivity } from '../utils/gameUtils.js';
 import { playFireballImpactSound } from './audioSystem.js';
 
 let living = [];
+// Zone gear the site gave the game for creatures to carry, waiting for a creature to carry
+// it: { item (as it falls), dropId }
+let carried = [];
 let zoneId = null;
 let nextIn = 0;              // Steps until the next one comes
 const sheets = new Map();    // Their pictures, loaded when their zone is reached
@@ -35,8 +38,17 @@ function sheetOf(id) {
 // A new game: none about
 export function resetCreatures() {
     living = [];
+    carried = [];
     zoneId = null;
     nextIn = 0;
+}
+
+/**
+ * A piece of the zone's gear the site handed out for a creature to carry: the next creature to
+ * come carries it, as well as its own loot. Caught, it is reported with its drop's id.
+ */
+export function carryForCreatures(item, dropId) {
+    carried.push({ item, dropId });
 }
 
 export function creaturesAbout() {
@@ -74,8 +86,10 @@ function spawn(zone, context) {
     const loot = [];
     for (let i = 0; i < (rules.loot[data.grade] || 1); i++) {
         const item = pickLoot();
-        if (item) loot.push(item);
+        if (item) loot.push({ item, dropId: null });
     }
+    // And a piece of the zone's gear, if one is waiting
+    if (carried.length) loot.push(carried.shift());
 
     sheetOf(id);
     const size = player.figureHeight() * data.cell;
@@ -169,8 +183,8 @@ function brought(creature, context) {
 // Its loot hops out of it
 function dropLoot(creature, context) {
     const body = creature.core();
-    for (const item of creature.loot) {
-        context.popLoot(item, body.x + body.width / 2, body.y + body.height / 2);
+    for (const { item, dropId } of creature.loot) {
+        context.popLoot(item, body.x + body.width / 2, body.y + body.height / 2, dropId);
     }
     creature.loot = [];
 }
@@ -209,15 +223,20 @@ function bite(creature, context) {
  * One step of the game.
  * @param {object} context  { gameState, player, canvas, delta, bossFight, spellSystem,
  *                           combatTexts, particles, shouldDodge, showDodgeText, trackDodge,
- *                           pickLoot: () => item, popLoot: (item, x, y) => void }
+ *                           pickLoot: () => item, popLoot: (item, x, y, dropId) => void }
  */
 export function updateCreatures(context) {
     const { gameState, player, canvas, delta, bossFight } = context;
     const rules = gameConfig.creatures;
 
-    // A boss coming in sends them away
+    // A boss coming in sends them away; the zone gear one carried waits for the next
     if (bossFight) {
-        for (const creature of living) creature.leave();
+        for (const creature of living) {
+            if (!creature.alive) continue;
+            carried.push(...creature.loot.filter(loot => loot.dropId !== null));
+            creature.loot = [];
+            creature.leave();
+        }
     }
 
     const zone = currentZone();

@@ -36,8 +36,9 @@ class GearTest extends TestCase
         }
         $starter = count(config('gear.starter.alliance')) + count(config('gear.starter.horde'));
         // ...and the large quiver
-        // Boss loot, what falls in a game, the starting clothes, the large quiver, and what is made
-        $this->assertCount(60 + count(config('gear.drops')) + $starter + 1 + count(config('gear.crafted')), $catalog);
+        // Boss loot, what falls in a game, the starting clothes, the large quiver, what is made,
+        // and what the zones' creatures carry
+        $this->assertCount(60 + count(config('gear.drops')) + $starter + 1 + count(config('gear.crafted')) + count(Gear::zoneItems()), $catalog);
 
         // Item levels: a boss's item is of its zone's level, a step up for each step of rarity
         $this->assertSame(10, $catalog['garricks-red-bandana']['itemLevel']);

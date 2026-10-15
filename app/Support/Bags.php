@@ -76,7 +76,7 @@ class Bags
         $materials = config('loot.materials');
         // Weapons and jewellery that fall are kept to wear or to sell later: they pay nothing
         // now and take no room (config/gear.php)
-        $kept_gear = array_keys(config('gear.drops'));
+        $kept_gear = Gear::foundInGames();
         // What the gear being worn takes off the loss on things that did not fit
         $carrying = Gear::carrying($game->user, $game->faction);
 

@@ -33,6 +33,12 @@ class GameDrop extends Model
      */
     public function forGame(): array
     {
-        return ['id' => $this->id, 'item' => $this->item_id, 'at' => $this->at_seconds];
+        // The zone's own gear is carried by a creature, not dropped from the sky
+        $drop = ['id' => $this->id, 'item' => $this->item_id, 'at' => $this->at_seconds];
+        if (array_key_exists($this->item_id, \App\Support\Gear::zoneItems())) {
+            $drop['creature'] = true;
+        }
+
+        return $drop;
     }
 }

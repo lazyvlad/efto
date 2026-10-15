@@ -227,10 +227,51 @@ class Game extends Model
 
         $offered = $this->drops()->pluck('item_id')->all();
 
-        $drops = collect(LootTable::rollChunk($chunk, $offered, $this->startLevel()))
-            ->map(fn (array $drop) => $this->drops()->create($drop + ['chunk' => $chunk]));
+        $rolled = array_merge(LootTable::rollChunk($chunk, $offered, $this->startLevel()), $this->zoneOffers($chunk, $offered));
+        usort($rolled, fn (array $a, array $b) => $a['at_seconds'] <=> $b['at_seconds']);
+        $drops = collect($rolled)->map(fn (array $drop) => $this->drops()->create($drop + ['chunk' => $chunk]));
 
         $this->update(['chunks_issued' => $chunk + 1]);
+
+        return $drops;
+    }
+
+    /**
+     * The zone's own gear for a chunk, for its creatures to carry (config/gear.php "zone_offers"):
+     * up to so many of the zone's items while the game is in it, each offered by chance, a
+     * different one each time while there are any left. Only in a normal game. Where the game
+     * is comes from what it last said of itself (its level), or where it started.
+     *
+     * @param  array<int, string>  $offered  item ids offered earlier in this game
+     * @return array<int, array{item_id: string, at_seconds: int}>
+     */
+    public function zoneOffers(int $chunk, array $offered): array
+    {
+        if ($this->mode !== self::NORMAL || ! $this->faction) {
+            return [];
+        }
+
+        $perZone = (int) config('gear.zone_offers.levels_per_zone', 2);
+        $level = max(1, (int) ($this->live['level'] ?? 0) ?: ($this->start_zone - 1) * $perZone + 1);
+        $zone = intdiv($level - 1, $perZone) % count(config("boss_loot.bosses.$this->faction", [1])) + 1;
+        $pool = array_keys(config("gear.zone_items.$this->faction.$zone", []));
+        if ($pool === []) {
+            return [];
+        }
+
+        $rules = config("gear.zone_offers.by_zone.$zone") ?? config('gear.zone_offers.otherwise');
+        $left = (int) $rules['offers'] - count(array_intersect($offered, $pool));
+        $chunkSeconds = (int) config('loot.chunk_seconds');
+        $drops = [];
+        for ($i = 0; $i < $left; $i++) {
+            if (mt_rand() / mt_getrandmax() >= (float) $rules['chance']) {
+                continue;
+            }
+            $fresh = array_values(array_diff($pool, $offered));
+            $itemId = ($fresh ?: $pool)[array_rand($fresh ?: $pool)];
+            $offered[] = $itemId;
+            $drops[] = ['item_id' => $itemId, 'at_seconds' => $chunk * $chunkSeconds + random_int(0, $chunkSeconds - 1)];
+        }
 
         return $drops;
     }

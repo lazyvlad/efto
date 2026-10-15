@@ -142,6 +142,23 @@ class Gear
             ];
         }
 
+        // Each zone's own gear, carried by its creatures (config/gear.php "zone_items"): the
+        // hunter's who caught it, bound to him; either hunter's body can wear it
+        foreach (self::zoneItems() as $itemId => $item) {
+            $catalog[$itemId] = [
+                'name' => $item['name'],
+                'image' => self::iconOf($itemId) ?? 'assets/items/gear/'.$itemId.'.webp',
+                'slot' => $item['slot'],
+                'rarity' => $item['rarity'],
+                'itemLevel' => $item['item_level'],
+                'stats' => $item['stats'],
+                'twoHanded' => false,
+                'value' => (int) $item['value'],
+                'from' => 'Creatures of '.$item['zoneName'],
+                'binding' => 'pickup',
+            ];
+        }
+
         // What is made, not found (config/crafting.php): the maker's for good, bound to him
         foreach (config('gear.crafted', []) as $itemId => $made) {
             $catalog[$itemId] = [
@@ -325,6 +342,38 @@ class Gear
         return is_file($file) ? 'assets/items/gear/'.$itemId.'.webp?v='.filemtime($file) : null;
     }
 
+    /**
+     * Each zone's own gear, by item: its entry in config/gear.php "zone_items", with the side
+     * and zone (1 is the first) whose creatures carry it, and that zone's name.
+     *
+     * @return array<string, array>
+     */
+    public static function zoneItems(): array
+    {
+        $items = [];
+        foreach (config('gear.zone_items', []) as $side => $zones) {
+            foreach ($zones as $zone => $pool) {
+                foreach ($pool as $itemId => $item) {
+                    $items[$itemId] = $item + ['side' => $side, 'zone' => (int) $zone, 'zoneName' => self::zoneName($side, (int) $zone)];
+                }
+            }
+        }
+
+        return $items;
+    }
+
+    /** The name of a side's zone, as the game shows it (game/data/backgrounds.js) */
+    public static function zoneName(string $side, int $zone): string
+    {
+        return config("gear.zone_names.$side.$zone", ucfirst($side)." zone $zone");
+    }
+
+    /** The gear that can be caught in a game, and is then the catching hunter's to keep */
+    public static function foundInGames(): array
+    {
+        return array_merge(array_keys(config('gear.drops')), array_keys(self::zoneItems()));
+    }
+
     /** What a side's hunter starts in: [slot => itemId] */
     public static function starterLoadout(string $side): array
     {
@@ -470,7 +519,7 @@ class Gear
 
         $caught = \App\Models\GameDrop::query()
             ->whereNotNull('claimed_at')
-            ->whereIn('item_id', array_keys(config('gear.drops')))
+            ->whereIn('item_id', self::foundInGames())
             ->whereHas('game', fn ($game) => self::onSide($game->where('user_id', $user->id), $side))
             ->selectRaw('item_id, count(*) as found')
             ->groupBy('item_id')
