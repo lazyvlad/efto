@@ -995,15 +995,38 @@ function withStarterWeapon(outfit, side) {
     return outfit.mainhand || !weapon ? outfit : { ...outfit, mainhand: weapon };
 }
 
+const GUEST_REDRESSED_KEY = 'input_guest_redressed';
+function markGuestRepaired(side) {
+    for (const key of [GUEST_REDRESSED_KEY, STARTER_WEAPON_KEY]) {
+        try {
+            const done = JSON.parse(localStorage.getItem(key)) || {};
+            localStorage.setItem(key, JSON.stringify({ ...done, [side]: true }));
+        } catch (e) {
+            // Storage unavailable: nothing kept, nothing to repair
+        }
+    }
+}
+function guestRedressed(side) {
+    try {
+        const done = JSON.parse(localStorage.getItem(GUEST_REDRESSED_KEY)) || {};
+        if (done[side]) return true;
+        localStorage.setItem(GUEST_REDRESSED_KEY, JSON.stringify({ ...done, [side]: true }));
+    } catch (e) {
+        return true;
+    }
+    return false;
+}
+
 // An outfit with pieces that are not this player's (an account's, kept in this browser and
 // played as a guest; something sold): each such slot gets the clothes the hunter starts in,
 // rather than leaving him bare. A slot left empty on purpose stays empty, for a player with an
 // account.
 function withStarterFor(outfit, owned, side) {
     const starter = starterLoadout(side);
-    // A guest has nothing but these to wear: every slot of his left empty gets them too (an
-    // outfit kept by this browser may have been left bare by an older version)
-    const fixed = hasBank() ? { ...outfit } : { ...starter, ...Object.fromEntries(Object.entries(outfit).filter(([, itemId]) => itemId)) };
+    // A guest's outfit kept by this browser may have been left bare by an older version: his
+    // empty slots get his starter clothes, once. After that an empty slot is his choice (what
+    // he took off stays in his 36).
+    const fixed = hasBank() || guestRedressed(side) ? { ...outfit } : { ...starter, ...Object.fromEntries(Object.entries(outfit).filter(([, itemId]) => itemId)) };
     for (const [slotId, itemId] of Object.entries(outfit)) {
         if (itemId && !owned.has(itemId) && starter[slotId]) fixed[slotId] = starter[slotId];
     }
@@ -1016,6 +1039,9 @@ function withStarterFor(outfit, owned, side) {
 function restoreEquipment() {
     const side = currentSide();
     const owned = forSide(ownedPieces(), side);
+    // A guest who has never chosen has nothing old to put right: the one-time repairs below
+    // are done for him from the start, so what he takes off later stays off
+    if (!hasBank() && !chosenEquipment(side)) markGuestRepaired(side);
     const chosen = withStarterWeapon(chosenEquipment(side), side);
     
     gameState.equipment = chosen
