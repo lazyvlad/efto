@@ -1334,6 +1334,21 @@ function noteGearUsed() {
 
 // A piece was just caught: it goes on at once if it belongs to the set being worn, or if
 // nothing is in its slot
+// Gear caught goes with the hunter, into his 36, while there is room (the site does the same
+// as the game ends). True if he has it with him now (a guest always has); else it waits in
+// the bank, and is not put on, since only what he carries can be worn.
+function carryCaught(itemId) {
+    if (!hasBank() || isStarter(itemId)) return true;
+    if (gameState.carried.includes(itemId)) return true;
+    if (gameState.carried.length >= gameConfig.bags.carry) {
+        addNotification(gameState, `${(wearableById(itemId) || {}).name || 'It'} is in your bank: your hunter carries ${gameConfig.bags.carry} things already`, 300, '#FFB347');
+        return false;
+    }
+    gameState.carried = [...gameState.carried, itemId];
+    refreshInventory();
+    return true;
+}
+
 function wearCaughtPiece(item) {
     const emptySlot = slotsFor(item).find(slotId => !gameState.equipment[slotId]);
     const slotId = item.set === gameState.wornSet ? (emptySlot || slotsFor(item)[0]) : emptySlot;
@@ -4760,7 +4775,7 @@ function stowCatch(itemData) {
             const gear = accountGear();
             gear[itemData.id] = (gear[itemData.id] || 0) + 1;
         }
-        wearCaughtPiece(wearableById(itemData.id));
+        if (carryCaught(itemData.id)) wearCaughtPiece(wearableById(itemData.id));
         return;
     }
     
@@ -4814,7 +4829,7 @@ function onItemCollected(itemData, fallingItem = null) {
             const pieces = accountPieces();
             if (!pieces.includes(itemData.id)) pieces.push(itemData.id);
         }
-        wearCaughtPiece(itemData);
+        if (carryCaught(itemData.id)) wearCaughtPiece(itemData);
         
         const set = setById(gameConfig.sets, itemData.set);
         const pieces = piecesOf(gameItems, itemData.set);
@@ -5076,6 +5091,8 @@ function onBossDefeated(boss, fight = null, at = null) {
         if (drop.kept && siteBoot && siteBoot.user && isKeptGear(drop.item.id)) {
             const gear = accountGear(boss.faction);
             gear[drop.item.id] = (gear[drop.item.id] || 0) + 1;
+            // With him, while there is room in his 36 (the site did the same)
+            carryCaught(drop.item.id);
         }
         
         // Listed with the game's loot, in the panel and on the loot screen
@@ -5218,6 +5235,9 @@ function endGame() {
         if (recorded) {
             recorded.then(result => {
                 if (result.scores) cacheHighScores(result.scores);
+                // What he wears and carries, saved again now the site has what he caught: saved
+                // during the game, a piece caught then was not his yet, and was left out
+                if (siteBoot && siteBoot.user) saveEquipment();
                 if (result.coins) showCoinsEarned(result.coins);
                 // What is kept on the account now, for the inventory, and the totals beside
                 // the materials brought home

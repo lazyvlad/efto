@@ -750,6 +750,44 @@ class Gear
         return array_values($saved);
     }
 
+    /**
+     * Gear a hunter caught in a game goes with him (into his 36) while there is room, as it
+     * does in the game: else it is in his bank. Only for a list the player chose; one never
+     * chosen takes what he owns anyway (carried).
+     *
+     * @param  array<int, string>  $itemIds
+     */
+    public static function carryCaught(User $user, string $side, array $itemIds): void
+    {
+        $saved = $user->carried;
+        $list = self::carriedFor($user, $side);
+        if ($list === null) {
+            return;
+        }
+
+        $limit = (int) config('gear.carry');
+        $catalog = self::catalog();
+        $changed = false;
+        foreach (array_unique($itemIds) as $itemId) {
+            $isGear = isset($catalog[$itemId]) || in_array($itemId, $user->setPieces($side), true);
+            if (! $isGear || self::isStarter($itemId) || in_array($itemId, $list, true) || count($list) >= $limit) {
+                continue;
+            }
+            if (($catalog[$itemId]['side'] ?? $side) !== $side) {
+                continue;
+            }
+            $list[] = $itemId;
+            $changed = true;
+        }
+        if (! $changed) {
+            return;
+        }
+
+        $all = self::isPerSide($saved ?? []) ? $saved : self::allCarried($user);
+        $all[$side] = $list;
+        $user->forceFill(['carried' => $all])->save();
+    }
+
     /** Both hunters' carried lists as saved, the old single list made into two */
     public static function allCarried(User $user): array
     {

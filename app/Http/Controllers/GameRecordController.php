@@ -8,6 +8,7 @@ use App\Models\GameDrop;
 use App\Models\Score;
 use App\Models\User;
 use App\Support\Bags;
+use App\Support\Gear;
 use App\Support\BossLoot;
 use App\Support\Coins;
 use App\Support\DiscordFeed;
@@ -203,6 +204,10 @@ class GameRecordController extends Controller
 
                 if ($quiver) {
                     $game->user->forceFill(['quiver' => true])->save();
+                }
+                // His now: it goes with him, while there is room in his 36
+                if ($game->user) {
+                    Gear::carryCaught($game->user, $boss['faction'], [$item['id']]);
                 }
 
                 // A Binding of the Windseeker, now and then, into his bank
@@ -411,6 +416,8 @@ class GameRecordController extends Controller
             $kept = fn ($list) => array_filter($list ?? [], fn ($count, $itemId) => Bags::keepable((string) $itemId), ARRAY_FILTER_USE_BOTH);
             $stored = array_intersect_key($kept($data['stored'] ?? []), config('crafting.stored_per_minute', []));
             Bags::afterGame($game->user()->first(), $game->faction ?: 'alliance', $settled['materials'], $kept($data['used'] ?? []), $stored, (int) $game->game_time);
+            // The gear he caught goes with him, while there is room in his 36
+            Gear::carryCaught($game->user()->first(), $game->faction ?: 'alliance', $game->pickups()->pluck('item_id')->all());
         }
 
         // Only games that count go on the leaderboard, and Boss Rush and boss fights are not
