@@ -143,7 +143,8 @@ class NotificationSystem {
         // Update shield notifications
         if (gameState.shieldActive && gameState.shieldTimer > 0) {
             const seconds = Math.ceil(gameState.shieldTimer / 60);
-            this.showPersistentNotification('shield', `Shield Active (${seconds}s)`, 'shield', true);
+            const charges = gameState.shieldCharges ?? 1;
+            this.showPersistentNotification('shield', `Shield: ${charges} hit${charges === 1 ? '' : 's'} (${seconds}s)`, 'shield', true);
         } else {
             this.removePersistentNotification('shield');
         }

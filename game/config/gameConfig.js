@@ -165,6 +165,13 @@ export const gameConfig = {
             duration: 120,          // Freeze duration in frames (120 = 2 seconds at 60fps)
             freezeAllProjectiles: true, // Freeze all damage projectiles
         },
+        
+        // Power Word: Shield lasts its time (3, 5 or 10 seconds, data/damageProjectiles.js) or
+        // until its charges are used up, whichever comes first. Anything it blocks uses one;
+        // a creature's bite uses more (creatures.shieldCost), so it cannot shrug off everything.
+        shield: {
+            charges: 3,
+        },
     },
     
     // === NOTIFICATION SETTINGS ===

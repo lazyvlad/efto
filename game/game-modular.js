@@ -24,6 +24,7 @@ import * as lootSystem from './systems/lootSystem.js';
 import { totalXpAtLevel } from './utils/progression.js';
 import { coinsForItem, coinsForBoss, formatCoins } from './utils/coins.js';
 import { quiverCapacity, startingArrows } from './utils/quiver.js';
+import { dropShield, shieldBlocks } from './utils/shield.js';
 import { setById, piecesOf, ownedCount, setBonus, nextStep, bonusText } from './utils/sets.js';
 import { healthAtNewMax, armorReduction } from './utils/stats.js';
 import { SLOTS, validEquipment, equip, equipSet, mainSet, setsWorn, gearTotals, slotsFor, carriedOf, fitsCarried } from './utils/gear.js';
@@ -1707,8 +1708,7 @@ function startGame() {
     gameState.hasteTimer = 0;
     gameState.speedIncreaseMultiplier = 1.0;
     gameState.currentSpeedIncreasePercent = 0;
-    gameState.shieldActive = false;
-    gameState.shieldTimer = 0;
+    dropShield(gameState);
     
     // Clear horizontal speed modification effects
     gameState.horizontalSpeedModActive = false;
@@ -1957,8 +1957,7 @@ function restartGame() {
     gameState.timeSlowMultiplier = 1.0;
     gameState.freezeTimeActive = false;
     gameState.freezeTimeTimer = 0;
-    gameState.shieldActive = false;
-    gameState.shieldTimer = 0;
+    dropShield(gameState);
     gameState.horizontalSpeedModActive = false;
     gameState.horizontalSpeedModTimer = 0;
     gameState.originalHorizontalSpeedReduction = 0.15;
@@ -2222,7 +2221,7 @@ function updateFallingItems(deltaTimeMultiplier) {
                 showDodgeText(player.x + player.width/2, player.y);
                 trackDodge(gameConfig.gameplay.healthLossOnMiss); // Track HP saved from dodging missed item
                 playUffSound(); // Still play the sound for feedback
-            } else if (gameState.shieldActive) {
+            } else if (shieldBlocks(gameState)) {
                 // Shield blocks the damage from missed items (only if dodge failed)
                 combatTexts.push(new CombatText(player.x + player.width/2, player.y, 'BLOCKED', '#FFD700', false));
             } else {

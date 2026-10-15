@@ -26,6 +26,7 @@ import { areMessagesAboveField } from './hudNotificationSystem.js';
 import { keyName } from '../utils/keybindings.js';
 import { planUpheaval } from '../utils/upheaval.js';
 import { arrowDamage, damageAfterArmor, armorReduction } from '../utils/stats.js';
+import { shieldBlocks } from '../utils/shield.js';
 import { getCurrentTotalCritRating } from './statEffectsSystem.js';
 
 const INTRO_STEPS = 120;
@@ -572,7 +573,7 @@ function hurtPlayer(context, damage, { quiet = false } = {}) {
     if (context.shouldDodge(fight.stats.level)) {
         context.showDodgeText(x, player.y);
         context.trackDodge(damage);
-    } else if (gameState.shieldActive) {
+    } else if (shieldBlocks(gameState)) {
         combatTexts.push(new CombatText(x, player.y, 'BLOCKED', '#FFD700', false));
     } else {
         // His armor takes its share off the hit

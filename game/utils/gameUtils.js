@@ -3,6 +3,7 @@ import { gameConfig, cacheConfig } from '../config/gameConfig.js';
 import { GAME_VERSION } from '../config/gameVersion.js';
 import { gameClock } from './gameClock.js';
 import { levelProgress } from './progression.js';
+import { dropShield, shieldBlocks } from './shield.js';
 
 // Calculate level-specific speed multiplier using hybrid progression
 export function calculateLevelSpeedMultiplier(gameState) {
@@ -512,14 +513,12 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
     if (gameState.shieldActive && gameState.shieldTimer > 0) {
         // Add/update buff in tracker
         if (typeof window.addBuff === 'function') {
-            window.addBuff('shield', 'Shield', 'Blocks All Damage', gameState.shieldTimer, 'shield');
+            const charges = gameState.shieldCharges ?? 1;
+            window.addBuff('shield', 'Shield', `Blocks ${charges} more hit${charges === 1 ? '' : 's'}`, gameState.shieldTimer, 'shield');
         }
         
         gameState.shieldTimer -= deltaTimeMultiplier;
-        if (gameState.shieldTimer <= 0) {
-            gameState.shieldActive = false;
-            gameState.shieldTimer = 0;
-        }
+        if (gameState.shieldTimer <= 0) dropShield(gameState);
     }
     
     // Update dodge boost timer
@@ -583,7 +582,7 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
             const damageThisTick = activeDots * gameState.shadowboltDamagePerTick;
             
             // Check if shield blocks DOT damage
-            if (gameState.shieldActive) {
+            if (shieldBlocks(gameState)) {
                 // Shield blocks shadowbolt damage
                 addNotification(gameState, `🛡️ Shield Blocked ${damageThisTick} Shadow Damage!`, 120, '#FFD700');
             } else {

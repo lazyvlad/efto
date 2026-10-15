@@ -6,6 +6,7 @@ import { CombatText } from '../classes/CombatText.js';
 import { isHarmfulProjectile } from '../data/damageProjectiles.js';
 import { itemValueAtLevel } from '../utils/progression.js';
 import { damageAfterArmor } from '../utils/stats.js';
+import { raiseShield, shieldBlocks } from '../utils/shield.js';
 import { startBackgroundMusic, playDragonstalkerSound, playTotalSound, playItemSound, playThunderSound } from './audioSystem.js';
 
 export function checkCollisions(context) {
@@ -250,7 +251,7 @@ export function checkCollisions(context) {
                             // Player dodged the Frost Nova damage
                             showDodgeText(player.x + player.width/2, player.y);
                             trackDodge(projectile.data.damage); // Track HP saved from dodging Frost Nova
-                        } else if (gameState.shieldActive) {
+                        } else if (shieldBlocks(gameState)) {
                             // Shield blocks the damage (only if dodge failed)
                             combatTexts.push(new CombatText(player.x + player.width/2, player.y, 'BLOCKED', '#FFD700', false));
                         } else {
@@ -273,13 +274,12 @@ export function checkCollisions(context) {
                     fireballs.splice(projectileIndex, 1);
                     return;
                 } else if (projectile.data.effects === "shield") {
-                    // Apply shield effect
-                    gameState.shieldActive = true;
-                    gameState.shieldTimer = projectile.shieldDuration || 300; // Default 5 seconds
+                    // The shield goes up: for its time, or until its charges are spent
+                    const charges = gameConfig.powerUps.shield.charges;
+                    raiseShield(gameState, projectile.shieldDuration || 300, charges);
                     
-                    // Add notification for shield effect
                     const shieldSeconds = Math.round((projectile.shieldDuration || 300) / 60);
-                    addNotification(gameState, `🛡️ Shield Active ${shieldSeconds}s`, 120, '#FFD700');
+                    addNotification(gameState, `🛡️ Shield: ${charges} hits or ${shieldSeconds}s`, 120, '#FFD700');
                     
                     // Don't damage player for beneficial projectiles
                     createCollectionParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles);
@@ -293,7 +293,7 @@ export function checkCollisions(context) {
                             // Player dodged the shadowbolt
                             showDodgeText(player.x + player.width/2, player.y);
                             trackDodge(0); // Track dodge but no immediate HP saved (prevents DOT application)
-                        } else if (gameState.shieldActive) {
+                        } else if (shieldBlocks(gameState)) {
                             // Shield blocks shadowbolt application (only if dodge failed)
                             combatTexts.push(new CombatText(player.x + player.width/2, player.y, 'BLOCKED', '#FFD700', false));
                         } else {
@@ -333,7 +333,7 @@ export function checkCollisions(context) {
                             
                             // Create dodge particles for visual feedback
                             createCollectionParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles, '#00FF00');
-                        } else if (gameState.shieldActive) {
+                        } else if (shieldBlocks(gameState)) {
                             // Shield blocks the damage (only if dodge failed)
                             combatTexts.push(new CombatText(player.x + player.width/2, player.y, 'BLOCKED', '#FFD700', false));
                             

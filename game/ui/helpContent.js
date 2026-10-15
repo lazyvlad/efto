@@ -101,6 +101,7 @@ function generateDodgeSystemContent(gameState, gameItems) {
         <p>• Evasion power-up: +1% permanent dodge chance</p>
         <p>• <strong>Area Expansion:</strong> Each HP saved from dodges expands your movable area by 1 pixel</p>
         <p>• Dodge is checked BEFORE Power Word Shield</p>
+        <p>• <strong>Power Word Shield:</strong> blocks ${gameConfig.powerUps.shield.charges} hits or lasts its time, whichever runs out first. A creature's bite uses ${gameConfig.creatures.shieldCost.common}, a bruiser's ${gameConfig.creatures.shieldCost.bruiser}</p>
         <p>• Dodge does NOT prevent DOT damage ticks</p>
         <p>• <strong>Maximum dodge chance: ${maxDodgePercent}%</strong></p>
     `;
