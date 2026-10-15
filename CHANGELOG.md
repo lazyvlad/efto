@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.0.20 - 2026-10-15
+
+### Changed
+- **Short blades are thrust, not swung**: with a dagger or a shortsword (Pajama Hunter
+  Shortsword, Cruel Barb, Vilebranch Soul Dagger) the hunter held it like an axe, his arm
+  folded across his chest, and cut sideways under what came down at him. He holds it out at his
+  side now, draws back a little, and thrusts it up at the creature. Timing, damage and cooldown
+  are as they were. Following the art agent's review of the swings on dev2.
+
 ## 3.0.19 - 2026-10-15
 
 ### Added
