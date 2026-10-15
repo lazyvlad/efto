@@ -580,8 +580,8 @@ async function sell(itemId, count) {
 // thing can be worn, so the spare ones are for selling, and the last one can be sold too,
 // after a warning: it is then no longer the player's to wear.
 function renderGear(main, side, state) {
-    // (the clothes the hunters start in are always with them, and in neither list)
-    const owned = state.loggedIn ? state.owned.map(itemId => wearableById(itemId)).filter(item => item && !item.starter)
+    // (the clothes the hunters start in too: they take up room in his 36 like anything else)
+    const owned = state.loggedIn ? state.owned.map(itemId => wearableById(itemId)).filter(Boolean)
         .map(item => ({ item, count: state.gear[item.id] || 1, sells: Boolean(state.gear[item.id]) && item.value > 0 })) : [];
     const carried = new Set(state.carried);
     const full = carried.size >= state.carryLimit;

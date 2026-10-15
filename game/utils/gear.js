@@ -161,10 +161,11 @@ export function validEquipment(equipment, items, owned) {
  */
 export function carriedOf(chosen, worn, owned, limit) {
     const has = new Set(owned);
-    const list = chosen ? chosen : [...worn, ...has];
+    const list = chosen ? chosen : [...has];
     const carried = [];
 
-    for (const itemId of [...list, ...worn]) {
+    // What he wears first: it is always with him
+    for (const itemId of [...worn, ...list]) {
         if (carried.length >= limit) break;
         if (has.has(itemId) && !carried.includes(itemId)) carried.push(itemId);
     }

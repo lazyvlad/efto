@@ -1047,11 +1047,10 @@ function restoreEquipment() {
     gameState.equipment = chosen
         ? validEquipment(withStarterFor(chosen, owned, side), wearables(), owned)
         : equipSet(starterLoadout(side), rememberedSet(), wearables(), owned);
-    // Only what the hunter carries can be worn
-    if (hasBank()) {
-        gameState.carried = carriedOf(chosenCarried(side), countedOf(Object.values(gameState.equipment)), countedOf(owned), gameConfig.bags.carry);
-        gameState.equipment = validEquipment(gameState.equipment, wearables(), withStarter(gameState.carried));
-    }
+    // His 36: what he wears first, then what he chose to take (a guest has no bank: everything
+    // he has is with him). Only what he carries can be worn.
+    gameState.carried = carriedOf(hasBank() ? chosenCarried(side) : null, countedOf(Object.values(gameState.equipment)), countedOf(owned), gameConfig.bags.carry);
+    gameState.equipment = validEquipment(gameState.equipment, wearables(), withStarter(gameState.carried));
     gameState.wornSet = mainSet(gameState.equipment, wearables(), gameConfig.sets) || rememberedSet();
     refreshSetBonus();
 }
@@ -1065,14 +1064,14 @@ function chosenCarried(side) {
     return Array.isArray(saved[side]) ? saved[side] : null;
 }
 
-// What counts towards what a hunter carries: anything but the clothes he starts in
+// What counts towards what a hunter carries: all his gear, the clothes he starts in too
 function countedOf(itemIds) {
-    return [...itemIds].filter(itemId => !isStarter(itemId));
+    return [...itemIds];
 }
 
-// What is carried, and the clothes, which always are: what this side's hunter can wear of it
+// What this side's hunter can wear of what he carries (only what he carries can be worn)
 function withStarter(carried) {
-    return forSide([...carried, ...starterItems()]);
+    return forSide([...carried]);
 }
 
 // ----- What the hunter carries (carriedOf in utils/gear.js) -----
@@ -1100,7 +1099,7 @@ function availablePieces() {
     const owned = ownedPieces();
     if (!hasBank() || !isPlaying()) return forSide(owned);
     
-    return forSide([...gameState.carried.filter(itemId => owned.has(itemId)), ...caughtGear(), ...starterItems()]);
+    return forSide([...gameState.carried.filter(itemId => owned.has(itemId)), ...caughtGear()]);
 }
 
 // Why this cannot be worn now, in words, or '' when it can: between games there must be room
@@ -1127,7 +1126,7 @@ function carryMany(itemIds, take) {
         const owned = forSide(ownedPieces());
         for (const itemId of itemIds) {
             if (carried.length >= limit) break;
-            if (owned.has(itemId) && !isStarter(itemId) && !carried.includes(itemId)) {
+            if (owned.has(itemId) && !carried.includes(itemId)) {
                 carried.push(itemId);
                 moved++;
             }
@@ -1361,13 +1360,15 @@ function noteGearUsed() {
 // A piece was just caught: it goes on at once if it belongs to the set being worn, or if
 // nothing is in its slot
 // Gear caught goes with the hunter, into his 36, while there is room (the site does the same
-// as the game ends). True if he has it with him now (a guest always has); else it waits in
-// the bank, and is not put on, since only what he carries can be worn.
+// as the game ends). True if he has it with him now; else it waits in the bank (a guest, who
+// has none, leaves it behind), and is not put on, since only what he carries can be worn.
 function carryCaught(itemId) {
-    if (!hasBank() || isStarter(itemId)) return true;
     if (gameState.carried.includes(itemId)) return true;
     if (gameState.carried.length >= gameConfig.bags.carry) {
-        addNotification(gameState, `${(wearableById(itemId) || {}).name || 'It'} is in your bank: your hunter carries ${gameConfig.bags.carry} things already`, 300, '#FFB347');
+        const name = (wearableById(itemId) || {}).name || 'It';
+        addNotification(gameState, hasBank()
+            ? `${name} is in your bank: your hunter carries ${gameConfig.bags.carry} things already`
+            : `${name} is left behind: your hunter carries ${gameConfig.bags.carry} things already`, 300, '#FFB347');
         return false;
     }
     gameState.carried = [...gameState.carried, itemId];
@@ -3029,7 +3030,7 @@ function setupUIEventHandlers() {
             // In a game: how much of what is owned was left in the bank
             inBank: forSide(ownedPieces()).size - availablePieces().size,
             // What a player with an account takes into a game (a guest has no bank)
-            carried: hasBank() ? new Set(gameState.carried) : null,
+            carried: new Set(gameState.carried),
             carryLimit: gameConfig.bags.carry,
             outfits: outfitsForSheet(),
             mostOutfits: MOST_OUTFITS,

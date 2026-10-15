@@ -813,16 +813,16 @@ class Gear
     {
         $limit = (int) config('gear.carry');
         $catalog = self::catalog();
-        // The clothes the hunters start in are always with them, and never count; the other
-        // side's loot is never his
-        $counted = fn ($itemId) => is_string($itemId) && ! self::isStarter($itemId)
+        // All his gear counts, the clothes he starts in too; the other side's loot is never his
+        $counted = fn ($itemId) => is_string($itemId)
             && ($catalog[$itemId]['side'] ?? $side) === $side;
         $owned = array_values(array_filter(array_merge($user->setPieces($side), array_keys(self::owned($user, $side))), $counted));
         $worn = array_values(array_filter($worn ?? self::worn($user, $side), $counted));
 
-        $list = $chosen === null ? array_merge($worn, $owned) : $chosen;
+        $list = $chosen === null ? $owned : $chosen;
         $carried = [];
-        foreach (array_merge($list, $worn) as $itemId) {
+        // What he wears first: it is always with him
+        foreach (array_merge($worn, $list) as $itemId) {
             if (count($carried) >= $limit) {
                 break;
             }

@@ -142,9 +142,9 @@ test('the hunter carries what was chosen, as far as it is owned and there is roo
     assert.deepEqual(carriedOf(['c', 'a', 'b'], [], owned, 2), ['c', 'a']);
     assert.deepEqual(carriedOf([], [], owned, 36), []);
 
-    // What is worn is carried while there is room, and pushes nothing out
-    assert.deepEqual(carriedOf(['c'], ['e'], owned, 36), ['c', 'e']);
-    assert.deepEqual(carriedOf(['c', 'a'], ['e'], owned, 2), ['c', 'a']);
+    // What is worn is always carried, first: it is with him, whatever else is chosen
+    assert.deepEqual(carriedOf(['c'], ['e'], owned, 36), ['e', 'c']);
+    assert.deepEqual(carriedOf(['c', 'a'], ['e'], owned, 2), ['e', 'c']);
 });
 
 test('putting something on needs room for it', () => {

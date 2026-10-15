@@ -180,7 +180,8 @@ return [
     /*
      * The clothes each hunter starts in: gear like any other, worn slot by slot, taken off and
      * replaced by better things. Every account (and every guest) has both sets, once; they
-     * are never sold and never count towards what a hunter carries. Each side's hunter starts
+     * are never sold. Like all his gear they take up room in his 36 (taken off, they stay there,
+     * or go to the bank like anything else). Each side's hunter starts
      * in its own (game/data/hunterArt.js draws them). By the sheet's slot.
      */
     'starter' => [

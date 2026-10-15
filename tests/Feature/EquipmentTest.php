@@ -157,7 +157,7 @@ class EquipmentTest extends TestCase
         $this->assertSame(['back' => 'miners-cape'], Gear::quiverMoved(['back' => 'miners-cape']));
     }
 
-    public function test_the_clothes_a_hunter_starts_in_are_his_and_not_carried_or_sold(): void
+    public function test_the_clothes_a_hunter_starts_in_are_his_carried_like_any_gear_and_not_sold(): void
     {
         $user = User::factory()->create();
         $owned = Gear::owned($user);
@@ -165,11 +165,18 @@ class EquipmentTest extends TestCase
             $this->assertSame(1, $owned[$itemId], $itemId);
         }
 
-        // Worn without counting towards the carried: none of it is in the list
+        // Worn, they are in his 36 like any gear (what he wears goes in first)
         $response = $this->actingAs($user)->putJson(route('equipment.update'), ['equipment' => Gear::starterLoadout('alliance'), 'carried' => []])
             ->assertOk();
         $this->assertEquals(Gear::starterLoadout('alliance'), $response->json('equipment'));
-        $this->assertSame([], $response->json('carried'));
+        $this->assertEqualsCanonicalizing(array_values(Gear::starterLoadout('alliance')), $response->json('carried'));
+
+        // Taken off, one stays in his 36, no longer on
+        $outfit = Gear::starterLoadout('alliance');
+        unset($outfit['tabard']);
+        $response = $this->putJson(route('equipment.update'), ['equipment' => $outfit, 'carried' => array_values(Gear::starterLoadout('alliance'))])->assertOk();
+        $this->assertArrayNotHasKey('tabard', $response->json('equipment'));
+        $this->assertContains('starter-alliance-tabard', $response->json('carried'));
 
         // Never for sale
         $user->forceFill(['email_verified_at' => now()])->save();
@@ -316,18 +323,20 @@ class EquipmentTest extends TestCase
         ])->assertOk()->assertJsonPath('carried', ['cryptstalker-helmet', 'cryptstalker-chest', ...array_values($pieces)]);
         $this->assertCount(10, $user->fresh()->carried['alliance']);
 
-        // What is not carried cannot be worn
+        // What is put on goes with him first: with no room, the last thing chosen stays behind
         $this->putJson(route('equipment.update'), ['equipment' => ['head' => 'cryptstalker-helmet', 'feet' => 'cryptstalker-boots']])
-            ->assertOk()->assertJsonPath('equipment', ['head' => 'cryptstalker-helmet']);
+            ->assertOk()->assertJsonPath('equipment', ['head' => 'cryptstalker-helmet', 'feet' => 'cryptstalker-boots'])
+            ->assertJsonPath('carried.0', 'cryptstalker-helmet')->assertJsonPath('carried.1', 'cryptstalker-boots')
+            ->assertJsonCount(10, 'carried');
 
         // With room, what is put on is carried
         $this->putJson(route('equipment.update'), [
             'equipment' => ['feet' => 'cryptstalker-boots'],
             'carried' => ['cryptstalker-helmet'],
-        ])->assertOk()->assertJsonPath('carried', ['cryptstalker-helmet', 'cryptstalker-boots'])
+        ])->assertOk()->assertJsonPath('carried', ['cryptstalker-boots', 'cryptstalker-helmet'])
             ->assertJsonPath('equipment', ['feet' => 'cryptstalker-boots']);
 
-        $this->get(route('play'))->assertSee('"carried":{"alliance":["cryptstalker-helmet","cryptstalker-boots"],"horde":null}', false);
+        $this->get(route('play'))->assertSee('"carried":{"alliance":["cryptstalker-boots","cryptstalker-helmet"],"horde":null}', false);
     }
 
     public function test_each_hunter_carries_his_own(): void
@@ -338,8 +347,9 @@ class EquipmentTest extends TestCase
         $user->bossDrops()->create(['boss_id' => 'garrick-padfoot', 'item_id' => 'garricks-red-bandana', 'rarity' => 'uncommon', 'dropped_at' => now()]);
         $user->bossDrops()->create(['boss_id' => 'sarkoth', 'item_id' => 'scorpid-stinger', 'rarity' => 'uncommon', 'dropped_at' => now()]);
 
-        // A list saved before each hunter had his own is both's, less the other side's loot
-        $user->forceFill(['carried' => ['garricks-red-bandana', 'scorpid-stinger', 'giantstalker-helmet']])->save();
+        // A list saved before each hunter had his own is both's, less the other side's loot (and
+        // with what each wears first: here nothing, the outfits emptied)
+        $user->forceFill(['carried' => ['garricks-red-bandana', 'scorpid-stinger', 'giantstalker-helmet'], 'equipment' => ['alliance' => [], 'horde' => []]])->save();
         $this->actingAs($user)->get(route('play'))->assertSee(
             '"carried":{"alliance":["garricks-red-bandana","giantstalker-helmet"],"horde":["scorpid-stinger","giantstalker-helmet"]}', false
         );
