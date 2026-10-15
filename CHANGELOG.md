@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.2.0 - 2026-10-15
+
+### Changed
+- **Set pieces rarely fall from the sky**: pieces of the three hunter sets fall a tenth as often
+  as they did, and a game offers no more than two of them. They come from the bosses instead.
+
+### Added
+- **Bosses drop set pieces**: from the fourth zone a boss may drop, besides its item (30% of
+  the time), a piece of its zone's set that its hunter does not have yet: Giantstalker in zones
+  4 and 5, Dragonstalker in 6 and 7, Cryptstalker in 8 to 10. It pops out of the boss and goes
+  on like one caught. The items page says which bosses drop which set.
+- **Bosses drop bags**: from the fourth zone a boss may also drop a bag (10% of the time),
+  bigger in the later zones, from 6 slots up to 14. It goes on at once, into a free bag slot or
+  in place of a smaller bag, and its room counts in the same game. None drops that would be no
+  bigger than every bag already on.
+
 ## 3.1.0 - 2026-10-15
 
 ### Changed
