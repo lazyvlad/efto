@@ -752,36 +752,48 @@ class Gear
 
     /**
      * Gear a hunter caught in a game goes with him (into his 36, besides what he wears) while
-     * there is room, as it does in the game: else it is in his bank. Only for a list the player chose; one never
-     * chosen takes what he owns anyway (carried).
+     * there is room, as it does in the game; with his 36 full, into his bags while they have a
+     * slot free (bagGear); else it is in his bank. A list never chosen takes what he owns anyway
+     * (carried), so only what goes into the bags is kept for him then.
      *
      * @param  array<int, string>  $itemIds
      */
     public static function carryCaught(User $user, string $side, array $itemIds): void
     {
         $saved = $user->carried;
-        $list = self::carriedFor($user, $side);
-        if ($list === null) {
-            return;
-        }
+        $chosen = self::carriedFor($user, $side);
+        // Never chosen: he takes what he has anyway, while there is room (carried)
+        $list = $chosen ?? self::carried($user, null, null, $side);
 
         $limit = (int) config('gear.carry');
         $catalog = self::catalog();
         $worn = array_values(self::worn($user, $side));
+        $bagGear = self::bagGear($user, $side);
+        $free = Bags::freeSlots($user, $side);
         $changed = false;
+        $bagged = false;
         foreach (array_unique($itemIds) as $itemId) {
             $isGear = isset($catalog[$itemId]) || in_array($itemId, $user->setPieces($side), true);
-            $inHis36 = count(array_diff($list, $worn));
-            if (! $isGear || self::isStarter($itemId) || in_array($itemId, $list, true) || $inHis36 >= $limit) {
+            if (! $isGear || self::isStarter($itemId) || in_array($itemId, $list, true) || in_array($itemId, $bagGear, true)) {
                 continue;
             }
             if (($catalog[$itemId]['side'] ?? $side) !== $side) {
                 continue;
             }
-            $list[] = $itemId;
-            $changed = true;
+            if (count(array_diff($list, $worn)) < $limit) {
+                $list[] = $itemId;
+                $changed = true;
+            } elseif ($free > 0) {
+                // His 36 are full: into a bag, a slot of it
+                $bagGear[] = $itemId;
+                $free--;
+                $bagged = true;
+            }
         }
-        if (! $changed) {
+        if ($bagged) {
+            self::keepBagGear($user, $side, $bagGear);
+        }
+        if (! $changed || $chosen === null) {
             return;
         }
 
@@ -821,7 +833,9 @@ class Gear
         $owned = array_values(array_filter(array_merge($user->setPieces($side), array_keys(self::owned($user, $side))), $counted));
         $worn = array_values(array_filter($worn ?? self::worn($user, $side), $counted));
 
-        $list = $chosen === null ? $owned : $chosen;
+        // Never chosen: what he has, less what he keeps in his bags (a list chosen is as chosen;
+        // what is in it is not kept in the bags too: validBagGear)
+        $list = $chosen === null ? array_values(array_diff($owned, self::bagGear($user, $side))) : $chosen;
         $carried = [];
         // What he wears is with him, and takes no room in his 36
         foreach ($worn as $itemId) {
@@ -842,6 +856,59 @@ class Gear
         }
 
         return $carried;
+    }
+
+    /**
+     * The gear a side's hunter keeps in his bags besides his 36, a slot a piece
+     * (users.bag_gear: { alliance: [...], horde: [...] }).
+     *
+     * @return array<int, string>
+     */
+    public static function bagGear(User $user, string $side): array
+    {
+        $saved = $user->bag_gear[$side] ?? [];
+
+        return array_values(array_unique(array_filter(is_array($saved) ? $saved : [], 'is_string')));
+    }
+
+    /**
+     * What a side's hunter asked to keep in his bags, with everything taken out that cannot be
+     * there: what is not his, what he wears or has in his 36, second copies, and what there is
+     * no room for once the bags hold what they hold.
+     *
+     * @param  array<int, mixed>  $wanted
+     * @param  array<int, string>  $carried  what he wears and has in his 36
+     * @return array<int, string>
+     */
+    public static function validBagGear(User $user, array $wanted, array $carried, string $side): array
+    {
+        $catalog = self::catalog();
+        $owned = array_merge($user->setPieces($side), array_keys(self::owned($user, $side)));
+        $room = (int) config('loot.bags.backpack') + array_sum(array_slice($user->bags ?? [], 0, (int) config('loot.bags.bag_slots')))
+            - Bags::slotsUsed(Bags::contents($user, $side));
+
+        $kept = [];
+        foreach ($wanted as $itemId) {
+            if (count($kept) >= $room) {
+                break;
+            }
+            if (is_string($itemId) && in_array($itemId, $owned, true) && ! in_array($itemId, $carried, true)
+                && ! in_array($itemId, $kept, true) && ($catalog[$itemId]['side'] ?? $side) === $side) {
+                $kept[] = $itemId;
+            }
+        }
+
+        return $kept;
+    }
+
+    /** Keep a side's hunter's bag gear as given, the other's as it was */
+    public static function keepBagGear(User $user, string $side, array $itemIds): void
+    {
+        $all = [];
+        foreach (self::SIDES as $each) {
+            $all[$each] = $each === $side ? array_values($itemIds) : self::bagGear($user, $each);
+        }
+        $user->forceFill(['bag_gear' => $all])->save();
     }
 
     /**

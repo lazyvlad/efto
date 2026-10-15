@@ -108,6 +108,8 @@ class GameController extends Controller
                 'bags' => $user->keepsLoot() ? ($user->bags ?? []) : [],
                 // ...each hunter his own: { alliance, horde } each
                 'bagContents' => Bags::allKept($user)['bags'],
+                // The gear each keeps in his bags besides his 36, a slot a piece
+                'bagGear' => collect(Gear::SIDES)->mapWithKeys(fn ($side) => [$side => $user->keepsLoot() ? Gear::bagGear($user, $side) : []])->all(),
                 'materials' => Bags::allKept($user)['bank'],
                 // The bosses the player has beaten: the ones they may fight again on their own
                 'bosses' => $user->bossDrops()->distinct()->pluck('boss_id')->all(),

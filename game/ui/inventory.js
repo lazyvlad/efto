@@ -22,7 +22,7 @@ import { stacksOf, slotsUsed, roomFor as roomInBags } from '../utils/bags.js';
 import { craftedById, canMake } from '../data/crafting.js';
 import { formatCoins } from '../utils/coins.js';
 import { wearableById } from '../data/wearables.js';
-import { itemStats, groupByKind } from '../utils/gear.js';
+import { itemStats, groupByKind, slotsFor } from '../utils/gear.js';
 
 let game = null;        // What the game gave when it set the inventory up
 let tab = 'bags';
@@ -38,9 +38,14 @@ let sideShows = 'bank'; // What the Bags tab shows beside the bags: 'bank' or 'v
 let recipeId = null;    // The recipe open on the Crafting tab
 let makeCount = 1;      // How many of it to make
 let busy = false;       // A move or a craft on its way to the site
+// A piece of gear picked on the Bags tab, on him, in his 36 or in his bags: { id, from }
+let gearPick = null;
+let switching = null;   // A worn piece, while what goes on in its place is picked
 
 function clearPicked() {
     picked = { list: null, ids: new Set(), last: null };
+    gearPick = null;
+    switching = null;
 }
 
 const element = id => document.getElementById(id);
@@ -305,46 +310,159 @@ async function move(itemId, count, to) {
     render();
 }
 
+// Slots free in the bags between games: what is in them and the gear kept there take the rest
+function freeSlots(state) {
+    return Math.max(0, state.capacity - slotsUsed(state.contents, gameConfig.bags.stack) - (state.bagged || []).length);
+}
+
+// Whether a piece can go on where this worn one is
+function fitsWhereWorn(state, wornId, itemId) {
+    const slotId = Object.keys(state.equipment || {}).find(slot => state.equipment[slot] === wornId);
+    const item = wearableById(itemId);
+    return Boolean(slotId && item && itemId !== wornId && slotsFor(item).includes(slotId));
+}
+
+// Do a move of gear, then say what happened (the game answers at once)
+function gearAction(run) {
+    notice = run() || '';
+    gearPick = null;
+    switching = null;
+    render();
+}
+
+// A piece of gear in a slot: on him, in his 36 or in his bags. Between games it can be picked,
+// and while a worn piece is being switched, what can go on in its place is lit and picked.
+function gearSlot(itemId, from, state, className) {
+    const item = itemId ? wearableById(itemId) : null;
+    const movable = Boolean(item) && state.loggedIn && !state.playing;
+    const slot = make(movable ? 'button' : 'div', item ? className : `${className} is-empty`);
+    if (!item) return slot;
+
+    slot.dataset.rarity = item.set ? 'epic' : item.rarity || 'epic';
+    slot.title = item.name;
+    const picture = make('img');
+    picture.src = item.image;
+    picture.alt = '';
+    slot.append(picture);
+    if (!movable) return slot;
+
+    slot.type = 'button';
+    const candidate = switching && from !== 'worn' && fitsWhereWorn(state, switching, itemId);
+    slot.classList.toggle('is-candidate', Boolean(candidate));
+    slot.classList.toggle('is-picked', Boolean(gearPick && gearPick.id === itemId && gearPick.from === from));
+    slot.addEventListener('click', () => {
+        if (candidate) {
+            const wornId = switching;
+            gearAction(() => game.onSwitchGear(wornId, itemId));
+            return;
+        }
+        switching = null;
+        notice = '';
+        gearPick = gearPick && gearPick.id === itemId && gearPick.from === from ? null : { id: itemId, from };
+        render();
+    });
+    return slot;
+}
+
+// Under what holds it: the piece picked, and where it can go
+function gearBar(state) {
+    const item = wearableById(gearPick.id);
+    const bar = make('div', 'inventory-picked inventory-gear-picked');
+    const picture = make('img');
+    picture.src = item ? item.image : '';
+    picture.alt = '';
+    const text = make('span', 'window-item-text');
+    const worn = new Set(state.worn);
+    const full = state.inHis36 >= state.carryLimit;
+    const free = freeSlots(state);
+
+    if (switching) {
+        text.append(
+            make('span', 'window-item-name', `In place of ${item ? item.name : 'it'}`),
+            make('span', 'window-item-note', 'Pick what goes on: what can is lit, in his 36 and in your bags. The two trade places.'),
+        );
+        bar.append(picture, text, button('Cancel', '', () => { switching = null; render(); }));
+        return bar;
+    }
+
+    const where = { worn: 'Worn · takes no room', '36': `In his ${state.carryLimit}`, bags: 'In a bag · takes one slot · to wear it, it goes into his 36' }[gearPick.from];
+    text.append(make('span', 'window-item-name', item ? item.name : gearPick.id), make('span', 'window-item-note', where));
+    bar.append(picture, text);
+
+    const move = to => () => gearAction(() => game.onMoveGear(gearPick.id, to));
+    if (gearPick.from !== 'worn') {
+        const where = Object.keys(state.equipment || {}).find(slot => slotsFor(item).includes(slot));
+        const putOn = button('Put on', 'is-primary', () => gearAction(() => game.onWearGear(gearPick.id)));
+        const swaps = slotsFor(item).every(slot => state.equipment && state.equipment[slot]) && where;
+        putOn.title = swaps ? `In place of ${(wearableById(state.equipment[where]) || {}).name || 'what is worn there'}, which takes its place` : 'Put it on';
+        bar.append(putOn);
+    }
+    if (gearPick.from !== '36') {
+        const into = button(full ? `To his ${state.carryLimit} · full` : `To his ${state.carryLimit}`, gearPick.from === 'bags' ? 'is-on' : '', move('36'));
+        into.disabled = full;
+        bar.append(into);
+    }
+    if (gearPick.from !== 'bags') {
+        const toBags = button(free ? 'To bags' : 'To bags · full', gearPick.from === '36' ? 'is-on' : '', move('bags'));
+        toBags.disabled = free < 1;
+        bar.append(toBags);
+    }
+    if (gearPick.from === 'worn') {
+        const others = [...state.carried.filter(id => !worn.has(id)), ...(state.bagged || [])];
+        const switchFor = button('Switch for…', full && free < 1 ? 'is-on' : '', () => { switching = gearPick.id; render(); });
+        switchFor.disabled = !others.some(id => fitsWhereWorn(state, gearPick.id, id));
+        switchFor.title = switchFor.disabled ? 'Nothing in his 36 or your bags goes there' : 'Trade it for a piece in his 36 or your bags';
+        bar.append(switchFor);
+    }
+    bar.append(button('To the bank', '', move('bank')));
+    return bar;
+}
+
+function button(label, kind, run) {
+    const node = make('button', `game-btn ${kind}`.trim(), label);
+    node.type = 'button';
+    node.addEventListener('click', run);
+    return node;
+}
+
 // What he wears, then his 36: the gear he carries besides it, a slot each. What he wears takes
-// no place in his 36; taken off, a piece goes into it.
+// no place in his 36; taken off, a piece goes into it. Between games a piece picked can go into
+// his 36, his bags or the bank, a worn one be switched for another, and all he wears go into
+// the bags at once.
 function renderCarry(column, state) {
     const box = make('section', 'window-card inventory-left-card');
     const worn = new Set(state.worn);
     const carried = state.carried ? [...state.carried] : [...worn];
     const onHim = carried.filter(itemId => worn.has(itemId));
     const inHis36 = carried.filter(itemId => !worn.has(itemId));
-    const slotOf = (itemId, className) => {
-        const item = itemId ? wearableById(itemId) : null;
-        const slot = make('div', item ? className : `${className} is-empty`);
-        if (item) {
-            slot.dataset.rarity = item.set ? 'epic' : item.rarity || 'epic';
-            slot.title = item.name;
-            const picture = make('img');
-            picture.src = item.image;
-            picture.alt = '';
-            slot.append(picture);
-        }
-        return slot;
-    };
+    if (gearPick && gearPick.from !== 'bags' && !(gearPick.from === 'worn' ? onHim : inHis36).includes(gearPick.id)) gearPick = null;
+    if (switching && !onHim.includes(switching)) switching = null;
 
     box.append(make('p', 'window-label', 'With your hunter, into every fight'));
     const wornHeading = make('div', 'window-card-title');
     wornHeading.append(make('h3', '', 'On him'), make('span', 'inventory-carry-count', `${onHim.length} worn · no room taken`));
+    if (state.loggedIn && !state.playing && onHim.length) {
+        const allToBags = button('All to bags', 'is-on inventory-all-to-bags', () => gearAction(() => game.onWornToBags()));
+        allToBags.disabled = freeSlots(state) < 1;
+        allToBags.title = allToBags.disabled ? 'Your bags are full' : 'Take everything off, into your bags';
+        wornHeading.append(allToBags);
+    }
     box.append(wornHeading);
     const wornRow = make('div', 'inventory-carry-grid inventory-worn-row');
     for (const itemId of onHim) {
-        const slot = slotOf(itemId, 'inventory-carry-slot');
+        const slot = gearSlot(itemId, 'worn', state, 'inventory-carry-slot');
         slot.append(make('span', 'inventory-carry-on'));
         wornRow.append(slot);
     }
     box.append(wornRow);
+    if (gearPick && gearPick.from !== 'bags') box.append(gearBar(state));
 
     const heading = make('div', 'window-card-title');
     heading.append(make('h3', '', `His ${state.carryLimit}`), make('span', 'inventory-carry-count', `${inHis36.length} of ${state.carryLimit}`));
     box.append(heading);
 
     const grid = make('div', 'inventory-carry-grid');
-    for (let index = 0; index < state.carryLimit; index++) grid.append(slotOf(inHis36[index], 'inventory-carry-slot'));
+    for (let index = 0; index < state.carryLimit; index++) grid.append(gearSlot(inHis36[index], '36', state, 'inventory-carry-slot'));
     box.append(grid);
 
     const legend = make('div', 'inventory-carry-legend');
@@ -352,7 +470,7 @@ function renderCarry(column, state) {
     box.append(legend);
 
     const text = make('p', 'inventory-text inventory-fine', state.carried
-        ? 'In a game he can put on only what he wears and what is in his 36. Choose them under Gear.'
+        ? 'In a game he can put on only what he wears and what is in his 36. Pick a piece to move it; choose many at once under Gear.'
         : 'What he wears. With an account he takes 36 things into a game, chosen under Gear.');
     box.append(text);
     const toGear = make('button', 'game-btn inventory-carry-btn', 'Choose under Gear');
@@ -369,17 +487,26 @@ function renderCarry(column, state) {
 function renderBags(main, state) {
     const stack = gameConfig.bags.stack;
     const stacks = stacksOf(state.contents, stack);
-    const used = slotsUsed(state.contents, stack);
+    // The gear kept in the bags first, a slot a piece, then the stacks
+    const bagged = state.bagged || [];
+    const used = slotsUsed(state.contents, stack) + bagged.length;
+    if (gearPick && gearPick.from === 'bags' && !bagged.includes(gearPick.id)) gearPick = null;
     // Less is lost with gear that helps carrying
     const share = Math.round((1 - state.fullBagLoss) * 100);
     if (pickedStack && !state.contents[pickedStack]) pickedStack = null;
 
-    const box = card('In your bags', `${used} of ${state.capacity} slots · a slot holds ${stack} of one kind`, 'inventory-bags-card');
+    const box = card('In your bags', `${used} of ${state.capacity} slots${bagged.length ? ` · ${bagged.length} gear` : ''} · a slot holds ${stack} of one kind`, 'inventory-bags-card');
     const grid = make('div', 'inventory-grid');
-    for (let index = 0; index < state.capacity; index++) {
+    for (const itemId of bagged) {
+        const slot = gearSlot(itemId, 'bags', state, 'inventory-slot is-gear-kept');
+        slot.append(make('span', 'inventory-gear-badge'));
+        grid.append(slot);
+    }
+    for (let index = 0; index < state.capacity - bagged.length; index++) {
         grid.append(slotOf(stacks[index] || null, state));
     }
     box.append(grid);
+    if (gearPick && gearPick.from === 'bags') box.append(gearBar(state));
 
     // A kind picked: what can be done with it
     if (pickedStack) box.append(pickedBar(pickedStack, state));
@@ -458,13 +585,16 @@ function pickedBar(itemId, state) {
 // The bank: the materials (and what is crafted) kept without limit, moved into the bags
 function renderBank(side, state) {
     const box = make('section', 'window-card inventory-side-card');
-    box.append(make('p', 'window-label', 'The bank · no limit'), make('h3', 'inventory-side-title', 'Materials'));
+    box.append(make('p', 'window-label', 'The bank · no limit'));
     side.append(box);
 
     if (!state.loggedIn) {
+        box.append(make('h3', 'inventory-side-title', 'Materials'));
         box.append(make('p', 'inventory-text', 'The bank is kept on an account. Log in to keep what you find, and craft with it.'));
         return;
     }
+    renderBankGear(box, state);
+    box.append(make('h3', 'inventory-side-title', 'Materials'));
     const ids = Object.keys(state.bank).filter(itemId => state.bank[itemId] > 0 && isKept(itemId))
         .sort((a, b) => (itemById(a)?.name || a).localeCompare(itemById(b)?.name || b));
     if (ids.length === 0) {
@@ -515,7 +645,42 @@ function renderBank(side, state) {
     if (notice && notice.startsWith('Sent ')) box.append(make('p', 'inventory-text inventory-made', notice));
     box.append(make('p', 'inventory-text inventory-fine', state.playing
         ? 'Things are moved between the bank and your bags between games.'
-        : `Gear in the bank is under Gear. A stack moved to your bags takes one slot for every ${gameConfig.bags.stack}.`));
+        : `A stack moved to your bags takes one slot for every ${gameConfig.bags.stack}; a piece of gear, one slot.`));
+}
+
+// The gear in the bank: what he owns and has neither on him, in his 36 nor in his bags. Into
+// his 36 or his bags from here, between games.
+function renderBankGear(box, state) {
+    const away = new Set([...(state.carried || []), ...(state.bagged || [])]);
+    const ids = [...new Set(state.owned || [])].filter(itemId => !away.has(itemId) && wearableById(itemId))
+        .sort((a, b) => wearableById(a).name.localeCompare(wearableById(b).name));
+    box.append(make('h3', 'inventory-side-title', 'Gear'));
+    if (ids.length === 0) {
+        box.append(make('p', 'inventory-text inventory-fine', 'No gear in the bank. What you take off and do not keep with him waits here.'));
+        return;
+    }
+    const full = state.inHis36 >= state.carryLimit;
+    const free = freeSlots(state);
+    const list = make('div', 'inventory-list inventory-bank-gear');
+    for (const itemId of ids) {
+        const item = wearableById(itemId);
+        const row = make('div', 'window-item inventory-bank-row');
+        row.dataset.rarity = item.set ? 'epic' : item.rarity || 'epic';
+        const picture = make('img');
+        picture.src = item.image;
+        picture.alt = '';
+        const text = make('span', 'window-item-text');
+        text.append(make('span', 'window-item-name', item.name));
+        const into36 = button(`To his ${state.carryLimit}`, 'is-on inventory-bank-btn', () => gearAction(() => game.onMoveGear(itemId, '36')));
+        into36.disabled = state.playing || full;
+        into36.title = state.playing ? 'Between games' : full ? `His ${state.carryLimit} are full` : 'Take it with him';
+        const toBags = button('To bags', 'inventory-bank-btn', () => gearAction(() => game.onMoveGear(itemId, 'bags')));
+        toBags.disabled = state.playing || free < 1;
+        toBags.title = state.playing ? 'Between games' : free < 1 ? 'Your bags are full' : 'Into your bags: it takes a slot';
+        row.append(picture, text, into36, toBags);
+        list.append(row);
+    }
+    box.append(list);
 }
 
 // The bag vendor
@@ -863,7 +1028,8 @@ function gearRow({ item, count, sells }, state, carried, full, list) {
     const binding = item.binding === 'equip'
         ? (sendable === 0 ? 'Bound (worn)' : bound > 0 ? `Binds when equipped · ${sendable} not yet bound` : 'Binds when equipped')
         : 'Soulbound';
-    const about = [item.itemLevel ? `Item level ${item.itemLevel}` : '', binding, item.twoHanded ? 'Two-handed' : '', item.from, worn ? 'being worn' : '', sells ? `sells for ${formatCoins(item.value)}${count > 1 ? ' each' : ''}` : ''].filter(Boolean).join(' · ');
+    const inBags = (state.bagged || []).includes(item.id);
+    const about = [item.itemLevel ? `Item level ${item.itemLevel}` : '', binding, item.twoHanded ? 'Two-handed' : '', item.from, worn ? 'being worn' : '', inBags ? 'in your bags' : '', sells ? `sells for ${formatCoins(item.value)}${count > 1 ? ' each' : ''}` : ''].filter(Boolean).join(' · ');
     const text = make('span', 'window-item-text');
     text.append(
         make('span', 'window-item-name', count > 1 ? `${item.name} ×${count}` : item.name),
@@ -883,6 +1049,16 @@ function gearRow({ item, count, sells }, state, carried, full, list) {
             : (full ? `Your hunter already carries ${state.carryLimit} things` : 'Take it into the game');
         carry.addEventListener('click', () => moveAcross([item.id], !taken));
         buttons.append(carry);
+        // Not taken: it can wait in the bags instead of the bank, a slot of them
+        if (!taken && state.loggedIn) {
+            const free = freeSlots(state);
+            const bagIt = make('button', 'game-btn inventory-carry', inBags ? 'To bank' : 'To bags');
+            bagIt.type = 'button';
+            bagIt.disabled = !inBags && free < 1;
+            bagIt.title = inBags ? 'Out of your bags, into the bank' : (free < 1 ? 'Your bags are full' : 'Into your bags: it takes a slot a material could have');
+            bagIt.addEventListener('click', () => gearAction(() => game.onMoveGear(item.id, inBags ? 'bank' : 'bags')));
+            buttons.append(bagIt);
+        }
     }
 
     // To the other hunter: only copies not yet bound, between games

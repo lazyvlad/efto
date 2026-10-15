@@ -26,13 +26,22 @@ use App\Models\User;
 class Bags
 {
     /**
-     * How many slots a player's bags have: the backpack, and the bags they have bought.
+     * How many slots a player's bags have: the backpack, and the bags they have bought. For a
+     * side's hunter, what is left of them besides the gear he keeps in them (a slot a piece:
+     * Gear::bagGear).
      */
-    public static function capacity(?User $user): int
+    public static function capacity(?User $user, ?string $side = null): int
     {
         $bags = array_slice($user?->bags ?? [], 0, (int) config('loot.bags.bag_slots'));
+        $gear = $user && $side ? count(Gear::bagGear($user, $side)) : 0;
 
-        return (int) config('loot.bags.backpack') + array_sum($bags);
+        return (int) config('loot.bags.backpack') + array_sum($bags) - $gear;
+    }
+
+    /** Slots free in a side's hunter's bags, after what is in them and his gear there */
+    public static function freeSlots(User $user, string $side): int
+    {
+        return max(0, self::capacity($user, $side) - self::slotsUsed(self::contents($user, $side)));
     }
 
     /**
@@ -151,7 +160,7 @@ class Bags
         // game's account of them cannot be right, and everything is paid as if there had been
         // no room for it
         $stored = self::contents($game->user, $game->faction ?: 'alliance');
-        if (self::slotsUsed(self::plus($stored, array_filter($carried))) > self::capacity($game->user)) {
+        if (self::slotsUsed(self::plus($stored, array_filter($carried))) > self::capacity($game->user, $game->faction ?: 'alliance')) {
             $short = array_map(fn (int $count, string $itemId) => $count + $short[$itemId], $carried, array_keys($carried));
             $short = array_combine(array_keys($carried), $short);
             $carried = array_map(fn () => 0, $carried);
@@ -285,7 +294,7 @@ class Bags
         foreach ($stored as $itemId => $count) {
             $most = (int) ceil(($perMinute[$itemId] ?? 0) * max(1, $gameSeconds) / 60);
             $count = min(max(0, (int) $count), $most);
-            while ($count > 0 && self::slotsUsed(self::plus($contents, [$itemId => $count])) > self::capacity($user)) {
+            while ($count > 0 && self::slotsUsed(self::plus($contents, [$itemId => $count])) > self::capacity($user, $side)) {
                 $count--;
             }
             $contents = self::plus($contents, [$itemId => $count]);
@@ -312,7 +321,7 @@ class Bags
 
         if ($toBags) {
             $contents = self::plus($contents, [$itemId => $count]);
-            if (self::slotsUsed($contents) > self::capacity($user)) {
+            if (self::slotsUsed($contents) > self::capacity($user, $side)) {
                 return 'There is no room for that much in your bags.';
             }
             $bank[$itemId] -= $count;
@@ -385,7 +394,7 @@ class Bags
         }
 
         $contents = self::plus(array_filter($contents), [$recipeId => $count]);
-        if (self::slotsUsed($contents) > self::capacity($user)) {
+        if (self::slotsUsed($contents) > self::capacity($user, $side)) {
             return 'There is no room in your bags for what it makes.';
         }
 

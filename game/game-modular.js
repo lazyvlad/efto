@@ -1054,8 +1054,128 @@ function restoreEquipment() {
     // he has is with him). Only what he carries can be worn.
     gameState.carried = carriedOf(hasBank() ? chosenCarried(side) : null, countedOf(Object.values(gameState.equipment)), countedOf(owned), gameConfig.bags.carry);
     gameState.equipment = validEquipment(gameState.equipment, wearables(), withStarter(gameState.carried));
+    // What he keeps in his bags: his, and neither worn nor in his 36
+    gameState.bagged = chosenBagGear(side).filter(itemId => owned.has(itemId) && !gameState.carried.includes(itemId));
     gameState.wornSet = mainSet(gameState.equipment, wearables(), gameConfig.sets) || rememberedSet();
     refreshSetBonus();
+}
+
+// The gear a side's hunter keeps in his bags besides his 36 (INPUT_BOOT.user.bagGear)
+function chosenBagGear(side) {
+    const saved = siteBoot && siteBoot.user && siteBoot.user.bagGear ? siteBoot.user.bagGear[side] : null;
+    return Array.isArray(saved) ? [...new Set(saved)] : [];
+}
+
+// Slots free in the bags between games, after what is in them and the gear kept there
+function freeBagSlots() {
+    const user = siteBoot && siteBoot.user;
+    const capacity = bagCapacity(gameConfig.bags, user && user.bags ? user.bags : []);
+    return Math.max(0, capacity - slotsUsed(bagContents(), gameConfig.bags.stack) - (gameState.bagged || []).length);
+}
+
+// ----- Where a piece of gear is: on him, in his 36, in his bags, or in the bank -----
+// Between games only. What he wears takes no room; his 36 hold what he carries besides it; a
+// piece in his bags takes a slot there that a stack of materials could have; the bank holds the
+// rest. Each returns what went wrong, in words, or ''.
+function gearPlace(itemId) {
+    if (Object.values(gameState.equipment).includes(itemId)) return 'worn';
+    if (gameState.carried.includes(itemId)) return '36';
+    if ((gameState.bagged || []).includes(itemId)) return 'bags';
+    return 'bank';
+}
+
+function takeOffPiece(equipment, itemId) {
+    return Object.fromEntries(Object.entries(equipment).filter(([, worn]) => worn !== itemId));
+}
+
+function afterGearMoved() {
+    gameState.equipment = validEquipment(gameState.equipment, wearables(), withStarter(gameState.carried));
+    gameState.wornSet = mainSet(gameState.equipment, wearables(), gameConfig.sets) || gameState.wornSet;
+    refreshSetBonus();
+    dressHunter();
+    saveEquipment();
+}
+
+function moveGear(itemId, to) {
+    if (isPlaying()) return 'Gear is moved between games.';
+    if (!hasBank()) return 'Log in to keep gear.';
+    const from = gearPlace(itemId);
+    if (from === to) return '';
+    const worn = Object.values(gameState.equipment);
+    if (to === '36' && from !== 'worn' && inHis36(gameState.carried, worn) >= gameConfig.bags.carry) {
+        return `His ${gameConfig.bags.carry} are full.`;
+    }
+    if (to === 'bags' && freeBagSlots() < 1) return 'Your bags are full.';
+
+    if (from === 'worn') gameState.equipment = takeOffPiece(gameState.equipment, itemId);
+    if (from === 'bags') gameState.bagged = gameState.bagged.filter(id => id !== itemId);
+    if (to !== '36' && to !== 'worn') gameState.carried = gameState.carried.filter(id => id !== itemId);
+    if (to === '36' && !gameState.carried.includes(itemId)) gameState.carried = [...gameState.carried, itemId];
+    if (to === 'bags') gameState.bagged = [...(gameState.bagged || []), itemId];
+    afterGearMoved();
+    return '';
+}
+
+// Put on a piece from his 36 or his bags: into a free slot it fits, else in place of what is
+// in its first slot. What it replaces takes its place: in his 36, or its slot in the bags.
+function wearGear(itemId) {
+    if (isPlaying()) return 'Gear is put on between games, or from the character sheet.';
+    const item = wearableById(itemId);
+    const slots = item ? slotsFor(item) : [];
+    if (!slots.length) return 'That cannot be worn.';
+    const from = gearPlace(itemId);
+    if (from === 'worn') return '';
+    if (from !== '36' && from !== 'bags') return 'Only what is in his 36 or his bags is put on here.';
+    const slotId = slots.find(slot => !gameState.equipment[slot]) || slots[0];
+    const replaced = gameState.equipment[slotId];
+    if (from === 'bags') {
+        gameState.bagged = replaced
+            ? gameState.bagged.map(id => (id === itemId ? replaced : id))
+            : gameState.bagged.filter(id => id !== itemId);
+        gameState.carried = [...gameState.carried.filter(id => id !== replaced), itemId];
+    }
+    gameState.equipment = equip(gameState.equipment, slotId, item, wearables());
+    afterGearMoved();
+    return '';
+}
+
+// Everything he wears into the bags, as much as fits, to undress him quickly
+function wornToBags() {
+    if (isPlaying()) return 'Gear is moved between games.';
+    const worn = [...new Set(Object.values(gameState.equipment))];
+    let moved = 0;
+    for (const itemId of worn) {
+        if (freeBagSlots() < 1) break;
+        gameState.equipment = takeOffPiece(gameState.equipment, itemId);
+        gameState.carried = gameState.carried.filter(id => id !== itemId);
+        gameState.bagged = [...(gameState.bagged || []), itemId];
+        moved++;
+    }
+    afterGearMoved();
+    if (moved < worn.length) {
+        const left = worn.length - moved;
+        return moved === 0 ? 'Your bags are full.' : `${left} ${left === 1 ? 'piece' : 'pieces'} did not fit in your bags and stayed on him.`;
+    }
+    return '';
+}
+
+// A worn piece and one in his 36 or his bags trade places: that one goes on, this one takes
+// its place
+function switchGear(wornId, otherId) {
+    if (isPlaying()) return 'Gear is moved between games.';
+    const slotId = Object.keys(gameState.equipment).find(slot => gameState.equipment[slot] === wornId);
+    const other = wearableById(otherId);
+    if (!slotId || !other || !slotsFor(other).includes(slotId)) return 'That does not go where it is worn.';
+    const from = gearPlace(otherId);
+    if (from === 'bags') {
+        gameState.bagged = gameState.bagged.map(id => (id === otherId ? wornId : id));
+        gameState.carried = [...gameState.carried.filter(id => id !== wornId), otherId];
+    } else if (from !== '36') {
+        return 'Only what is in his 36 or his bags can be switched in.';
+    }
+    gameState.equipment = equip(takeOffPiece(gameState.equipment, wornId), slotId, other, wearables());
+    afterGearMoved();
+    return '';
 }
 
 // What a side's hunter was chosen to carry (INPUT_BOOT.user.carried, { alliance, horde }), or
@@ -1187,6 +1307,7 @@ function saveEquipment() {
         horde: chosenCarried('horde'),
         [side]: [...gameState.carried],
     };
+    siteBoot.user.bagGear = { alliance: chosenBagGear('alliance'), horde: chosenBagGear('horde'), [side]: [...(gameState.bagged || [])] };
     clearTimeout(equipmentSaveTimer);
     equipmentSaveTimer = setTimeout(() => {
         fetch(siteBoot.urls.equipment, {
@@ -1194,7 +1315,7 @@ function saveEquipment() {
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': siteBoot.csrfToken || '' },
             credentials: 'same-origin',
             keepalive: true,
-            body: JSON.stringify({ equipment: gameState.equipment, side, carried: gameState.carried, hidden: [...hiddenGear(side)] })
+            body: JSON.stringify({ equipment: gameState.equipment, side, carried: gameState.carried, hidden: [...hiddenGear(side)], bagged: gameState.bagged || [] })
         }).catch(() => { /* Kept in this browser; saved with the next change */ });
     }, 600);
 }
@@ -1373,6 +1494,18 @@ function carryCaught(itemId) {
     const goesOn = Boolean(item) && slotsFor(item).some(slotId => !gameState.equipment[slotId]);
     if (!goesOn && inHis36(gameState.carried, Object.values(gameState.equipment)) >= gameConfig.bags.carry) {
         const name = (wearableById(itemId) || {}).name || 'It';
+        // His 36 are full: into his bags, a slot of them, while there is one free
+        const bagged = gameState.bagged || [];
+        const free = isPlaying()
+            ? gameState.bagCapacity - slotsUsed(gameState.bags.contents, gameConfig.bags.stack)
+            : freeBagSlots();
+        if (hasBank() && !bagged.includes(itemId) && free > 0) {
+            gameState.bagged = [...bagged, itemId];
+            if (isPlaying()) gameState.bagCapacity -= 1;
+            addNotification(gameState, `${name}: his ${gameConfig.bags.carry} are full, so it went into a bag (one slot)`, 300, '#E6B0FF');
+            refreshInventory();
+            return false;
+        }
         addNotification(gameState, hasBank()
             ? `${name} is in your bank: your hunter carries ${gameConfig.bags.carry} things already`
             : `${name} is left behind: your hunter carries ${gameConfig.bags.carry} things already`, 300, '#FFB347');
@@ -2746,7 +2879,7 @@ function renderPauseStatus() {
         ['Score', Math.round(gameState.score || 0).toLocaleString('en-US'), 'is-score'],
         ['Health', `${Math.ceil(gameState.health || 0)} / ${gameState.maxHealth}`, 'is-health'],
         ['Time', `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`, ''],
-        ['Bags', `${slotsUsed((gameState.bags && gameState.bags.contents) || {}, gameConfig.bags.stack)} / ${capacity}`, ''],
+        ['Bags', `${slotsUsed((gameState.bags && gameState.bags.contents) || {}, gameConfig.bags.stack) + (gameState.bagged || []).length} / ${capacity}`, ''],
     ];
     
     holder.textContent = '';
@@ -3135,6 +3268,9 @@ function setupUIEventHandlers() {
                 name: getAccountName() || gameState.playerName || document.getElementById('playerNameInput')?.value || 'Hunter',
                 level: (gameState.currentLevel || 0) + 1,
                 carried: gameState.carried,
+                // The gear he keeps in his bags, a slot a piece
+                bagged: gameState.bagged || [],
+                equipment: gameState.equipment,
                 inHis36: inHis36(gameState.carried, Object.values(gameState.equipment)),
                 carryLimit: gameConfig.bags.carry,
                 // The pictures of the place and the hunter, for the gear tab
@@ -3151,6 +3287,10 @@ function setupUIEventHandlers() {
         onCraft: craft,
         onSell: sellGear,
         onCarry: carryMany,
+        onMoveGear: moveGear,
+        onWornToBags: wornToBags,
+        onWearGear: wearGear,
+        onSwitchGear: switchGear,
         onCloseAll: closeWindowsAndResume,
         // The sheet closes the inventory itself once it is open, so the game stays paused
         onOpenGear: () => showCharacterSheet(),
@@ -4583,7 +4723,8 @@ function emptyBags() {
     gameState.bags = { contents: { ...kept }, overflow: {} };
     gameState.bagsAtStart = { ...kept };
     gameState.potionReadyAt = {};
-    gameState.bagCapacity = bagCapacity(gameConfig.bags, siteBoot && siteBoot.user && siteBoot.user.bags ? siteBoot.user.bags : []);
+    // Less the slots taken by the gear he keeps in them
+    gameState.bagCapacity = bagCapacity(gameConfig.bags, siteBoot && siteBoot.user && siteBoot.user.bags ? siteBoot.user.bags : []) - (gameState.bagged || []).length;
     gameState.bagsFullSaid = false;
     // A potion caught at full health (or while time is slowed) and the arrows the quiver cannot
     // hold go into the bags, as far as there is room: how many went in
@@ -5132,7 +5273,7 @@ function onBossDefeated(boss, fight = null, at = null) {
         // A bag, on at once: more room in the bags from now on, this game too
         if (drop.bag && siteBoot && siteBoot.user) {
             siteBoot.user.bags = drop.bag.bags;
-            gameState.bagCapacity = bagCapacity(gameConfig.bags, siteBoot.user.bags);
+            gameState.bagCapacity = bagCapacity(gameConfig.bags, siteBoot.user.bags) - (gameState.bagged || []).length;
             addNotification(gameState, `${boss.name} dropped a ${drop.bag.size}-slot bag! It is on: your bags hold ${gameState.bagCapacity}`, 480, '#9FE870');
             combatTexts.push(new CombatText((canvas.logicalWidth || canvas.width) / 2, player.y - 150, `${drop.bag.size}-slot bag`, '#9FE870', true));
         }

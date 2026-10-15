@@ -988,3 +988,66 @@ button.inventory-slot:hover {
 .inventory-main .inventory-recipe-head[data-rarity="legendary"] h3.inventory-recipe-name {
     color: #ffa64d;
 }
+
+/* ----- Gear moved on the Bags tab: picked on him, in his 36 or in the bags ----- */
+
+button.inventory-carry-slot {
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+.inventory-carry-slot.is-picked,
+.inventory-slot.is-gear-kept.is-picked {
+    outline: 2px solid #fff2ba;
+    outline-offset: 1px;
+}
+
+/* What can go on in place of the worn piece being switched */
+.inventory-carry-slot.is-candidate,
+.inventory-slot.is-gear-kept.is-candidate {
+    box-shadow: 0 0 0 2px #9fe870, 0 0 10px rgba(159, 232, 112, 0.7);
+}
+
+.inventory-slot.is-gear-kept {
+    position: relative;
+}
+
+/* Gear in a bag: a small shield in its corner */
+.inventory-gear-badge {
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 12px;
+    height: 12px;
+    background: #1a0f22 no-repeat center / 8px 8px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 .8 9 2.4V5c0 2.4-1.8 3.8-4 4.4C2.8 8.8 1 7.4 1 5V2.4Z' fill='%23e6b0ff'/%3E%3C/svg%3E");
+    border: 1px solid #b06ae6;
+    border-radius: 3px;
+    pointer-events: none;
+}
+
+.inventory-gear-picked {
+    flex-wrap: wrap;
+}
+
+.inventory-gear-picked .game-btn {
+    padding: 6px 10px;
+    font-size: 13px;
+}
+
+.inventory-all-to-bags.game-btn {
+    margin-left: 8px;
+    padding: 3px 9px;
+    font-size: 12px;
+}
+
+.inventory-slot.is-gear-kept[data-rarity="epic"] { border-color: #b048f8; }
+.inventory-slot.is-gear-kept[data-rarity="rare"] { border-color: #3d9bff; }
+.inventory-slot.is-gear-kept[data-rarity="uncommon"] { border-color: #1eff00; }
+.inventory-slot.is-gear-kept[data-rarity="common"] { border-color: #9d9d9d; }
+
+/* The bank's gear, above its materials */
+.inventory-bank-gear {
+    flex: none;
+    margin-bottom: 14px;
+}

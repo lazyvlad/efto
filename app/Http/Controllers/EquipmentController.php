@@ -29,6 +29,10 @@ class EquipmentController extends Controller
             // What he wears but is not to be seen in; without it, what was hidden before stays
             'hidden' => ['sometimes', 'array', 'max:'.count(Gear::SLOTS)],
             'hidden.*' => ['string', 'max:60'],
+            // The gear he keeps in his bags besides his 36, a slot a piece; without it, what
+            // was there stays (less what he now wears or carries)
+            'bagged' => ['sometimes', 'array', 'max:200'],
+            'bagged.*' => ['string', 'max:60'],
         ]);
 
         $user = $request->user();
@@ -56,10 +60,14 @@ class EquipmentController extends Controller
             'hidden_gear' => $hidden,
         ])->save();
 
+        // What he keeps in his bags: never what he wears or has in his 36
+        $bagged = Gear::validBagGear($user, $data['bagged'] ?? Gear::bagGear($user, $side), $carried, $side);
+        Gear::keepBagGear($user, $side, $bagged);
+
         // What binds when worn is his now
         Gear::bindWorn($user, $side, $worn);
 
-        return response()->json(['equipment' => (object) $worn, 'side' => $side, 'carried' => $carried, 'hidden' => $hidden[$side]]);
+        return response()->json(['equipment' => (object) $worn, 'side' => $side, 'carried' => $carried, 'hidden' => $hidden[$side], 'bagged' => $bagged]);
     }
 
     /**
