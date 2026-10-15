@@ -38,6 +38,31 @@ return [
         'chance' => 0.1,
     ],
 
+    // The hunter sets: besides its item, a boss may drop a piece of the set of its zone, one its
+    // side's hunter does not have yet (none once he has them all). A guest is only shown it.
+    'set_pieces' => [
+        'chance' => 0.3,
+        'by_zone' => [
+            4 => 'giantstalker', 5 => 'giantstalker',
+            6 => 'dragonstalker', 7 => 'dragonstalker',
+            8 => 'cryptstalker', 9 => 'cryptstalker', 10 => 'cryptstalker',
+        ],
+    ],
+
+    // Bags: a boss of this zone or later may drop one, for a logged-in player, of one of the sizes
+    // its zone gives. It goes on at once, into a free bag slot or in place of a smaller bag (the
+    // bags are both hunters', as bought ones are); none drops that would be no bigger than every
+    // bag already on.
+    'bags' => [
+        'from_zone' => 4,
+        'chance' => 0.1,
+        'sizes' => [
+            4 => [6, 8], 5 => [6, 8],
+            6 => [8, 10], 7 => [8, 10],
+            8 => [10, 12], 9 => [10, 12], 10 => [12, 14],
+        ],
+    ],
+
     // The Bindings of the Windseeker, Left and Right, that Thunderfury is made from
     // (config/crafting.php): besides its item, a boss of this zone or later may drop each, for
     // a logged-in player, into the bank of the hunter whose boss it was. One of each to a

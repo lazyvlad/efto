@@ -191,6 +191,8 @@ class GameRecordController extends Controller
         if (! $drop) {
             $item = BossLoot::roll($boss);
             $quiver = BossLoot::rollQuiver($game->user, $boss['faction']);
+            $setPiece = BossLoot::rollSetPiece($game->user, $boss);
+            $bag = BossLoot::rollBag($game->user, $boss);
 
             try {
                 $drop = $game->bossDrops()->create([
@@ -199,6 +201,8 @@ class GameRecordController extends Controller
                     'item_id' => $item['id'],
                     'rarity' => $item['rarity'],
                     'quiver' => $quiver,
+                    'set_piece' => $setPiece,
+                    'bag' => $bag,
                     'dropped_at' => now(),
                 ] + $this->fightRecord($data['fight'] ?? null));
 
@@ -207,7 +211,11 @@ class GameRecordController extends Controller
                 }
                 // His now: it goes with him, while there is room in his 36
                 if ($game->user) {
-                    Gear::carryCaught($game->user, $boss['faction'], [$item['id']]);
+                    Gear::carryCaught($game->user, $boss['faction'], array_filter([$item['id'], $setPiece]));
+                }
+                // A bag goes on at once
+                if ($bag !== null) {
+                    Bags::putOn($game->user, $bag);
                 }
 
                 // A Binding of the Windseeker, now and then, into his bank
@@ -227,6 +235,14 @@ class GameRecordController extends Controller
             'kept' => $drop->user_id !== null,
             // The large quiver came with it (once in an account's life)
             'quiver' => $drop->quiver ? config('boss_loot.quiver.name') : null,
+            // A piece of the zone's hunter set came with it
+            'setPiece' => $drop->set_piece ? [
+                'id' => $drop->set_piece,
+                'name' => LootTable::catalog()[$drop->set_piece]['name'] ?? $drop->set_piece,
+                'set' => LootTable::setOf($drop->set_piece)['id'] ?? null,
+            ] : null,
+            // A bag came with it, and is on: its size, and the bags after
+            'bag' => $drop->bag ? ['size' => $drop->bag, 'bags' => $game->user?->fresh()->bags ?? []] : null,
             // A Binding of the Windseeker came with it, into his bank (the first report only)
             'bindings' => array_map(fn ($id) => ['id' => $id, 'name' => config("crafting.items.$id.name")], $bindings),
             'timesFound' => $drop->user_id !== null

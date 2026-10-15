@@ -5123,6 +5123,30 @@ function onBossDefeated(boss, fight = null, at = null) {
             addNotification(gameState, `${binding.name}! It is in your bank: Thunderfury is made from both`, 600, '#FF8000');
             combatTexts.push(new CombatText((canvas.logicalWidth || canvas.width) / 2, player.y - 120, binding.name, '#FF8000', true));
         }
+        // A bag, on at once: more room in the bags from now on, this game too
+        if (drop.bag && siteBoot && siteBoot.user) {
+            siteBoot.user.bags = drop.bag.bags;
+            gameState.bagCapacity = bagCapacity(gameConfig.bags, siteBoot.user.bags);
+            addNotification(gameState, `${boss.name} dropped a ${drop.bag.size}-slot bag! It is on: your bags hold ${gameState.bagCapacity}`, 480, '#9FE870');
+            combatTexts.push(new CombatText((canvas.logicalWidth || canvas.width) / 2, player.y - 150, `${drop.bag.size}-slot bag`, '#9FE870', true));
+        }
+        // A piece of the zone's hunter set: his, and it goes on as one caught does
+        const piece = drop.setPiece ? gameItems.find(item => item.id === drop.setPiece.id) : null;
+        if (piece) {
+            if (drop.kept && siteBoot && siteBoot.user) {
+                const pieces = accountPieces(boss.faction);
+                if (!pieces.includes(piece.id)) pieces.push(piece.id);
+                if (carryCaught(piece.id)) wearCaughtPiece(piece);
+            }
+            gameState.bossLoot.push({ boss, item: { id: piece.id, name: piece.name, rarity: 'epic' }, kept: drop.kept, timesFound: null });
+            if (gameState.gameRunning && at) popBossLoot({ id: piece.id, name: piece.name, rarity: 'epic', image: piece.image }, at);
+            const set = setById(gameConfig.sets, piece.set);
+            const owned = ownedCount(piecesOf(gameItems, piece.set), ownedPieces());
+            addNotification(gameState, drop.kept
+                ? `${boss.name} dropped ${piece.name}: ${set.name} ${owned}/${piecesOf(gameItems, piece.set).length}`
+                : `Loot: ${piece.name} - log in to keep it`, 480, '#C77DFF');
+            combatTexts.push(new CombatText((canvas.logicalWidth || canvas.width) / 2, player.y - 70, piece.name, '#C77DFF', true));
+        }
         if (!drop.item) return;
         // Kept: its side's hunter owns it from now on
         if (drop.kept && siteBoot && siteBoot.user && isKeptGear(drop.item.id)) {

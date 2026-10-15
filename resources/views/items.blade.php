@@ -74,7 +74,10 @@
                 <div class="grid gap-4 lg:grid-cols-3">
                     @foreach ($sets as $set)
                         <div class="game-card p-4">
-                            <p class="game-label">{{ __('Tier :tier · falls from level :level', ['tier' => $set['tier'], 'level' => $set['fromLevel']]) }}</p>
+                            <p class="game-label">{{ __('Tier :tier · rarely falls from level :level', ['tier' => $set['tier'], 'level' => $set['fromLevel']]) }}</p>
+                            @if ($set['bossZones'])
+                                <p class="game-label">{{ __('Dropped by the bosses of zones :zones', ['zones' => $set['bossZones']]) }}</p>
+                            @endif
                             <h4 class="font-display text-lg rarity-epic mt-0.5">{{ $set['name'] }}</h4>
                             <p class="mt-2 text-sm text-gray-900">{{ __('Each piece: :stats', ['stats' => $set['perPiece']]) }}</p>
                             <ul class="mt-2 space-y-1 text-sm">
@@ -110,6 +113,12 @@
                     <p class="mt-1 text-sm text-gray-600">
                         <span class="rarity-legendary">{{ $quiverName }}</span>
                         {{ __('Any boss may also drop this large quiver for a logged-in player, :chance% of the time. Each hunter finds his own, from the bosses of his side: worn in his quiver slot, it doubles the arrows he can carry.', ['chance' => $quiverChance]) }}
+                    </p>
+                    <p class="mt-1 text-sm text-gray-600">
+                        {{ __('From the fourth zone on, a boss may also drop a piece of a hunter set, :setChance% of the time, one its hunter does not have yet: Giantstalker in zones 4 and 5, Dragonstalker in 6 and 7, Cryptstalker from 8. And now and then, :bagChance% of the time, a bag for a logged-in player, bigger in the later zones. It goes on at once, into a free bag slot or in place of a smaller bag.', [
+                            'setChance' => round(config('boss_loot.set_pieces.chance') * 100),
+                            'bagChance' => round(config('boss_loot.bags.chance') * 100),
+                        ]) }}
                     </p>
                 </div>
 

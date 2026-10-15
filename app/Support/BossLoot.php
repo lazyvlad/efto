@@ -91,6 +91,44 @@ class BossLoot
     }
 
     /**
+     * A piece of the zone's hunter set this kill drops besides its item (boss_loot.set_pieces):
+     * one the side's hunter does not have yet, or for a guest any of the set. Null for none.
+     */
+    public static function rollSetPiece(?User $user, array $boss): ?string
+    {
+        $setId = config("boss_loot.set_pieces.by_zone.{$boss['zone']}");
+        if (! $setId || random_int(0, PHP_INT_MAX - 1) / PHP_INT_MAX >= (float) config('boss_loot.set_pieces.chance')) {
+            return null;
+        }
+
+        $pieces = config("loot.sets.$setId.pieces", []);
+        if ($user !== null) {
+            $pieces = array_values(array_diff($pieces, $user->setPieces($boss['faction'])));
+        }
+
+        return $pieces ? $pieces[array_rand($pieces)] : null;
+    }
+
+    /**
+     * The size of a bag this kill drops besides its item (boss_loot.bags), for a logged-in
+     * player who can use it: only one that would go on, into a free bag slot or in place of a
+     * smaller bag. Null for none.
+     */
+    public static function rollBag(?User $user, array $boss): ?int
+    {
+        $rules = config('boss_loot.bags');
+        $sizes = $rules['sizes'][$boss['zone']] ?? [];
+        if ($user === null || ! $user->canUseRewards() || ! $sizes || $boss['zone'] < (int) $rules['from_zone']
+            || random_int(0, PHP_INT_MAX - 1) / PHP_INT_MAX >= (float) $rules['chance']) {
+            return null;
+        }
+
+        $size = (int) $sizes[array_rand($sizes)];
+
+        return Bags::wouldGoOn($user, $size) ? $size : null;
+    }
+
+    /**
      * The Bindings of the Windseeker a boss drops besides its item (boss_loot.bindings), for a
      * logged-in player's hunter: none from a boss before the zone they start in, none he has
      * already (in his bank or bags), and none once he has made Thunderfury. Ids of those that

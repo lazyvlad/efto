@@ -31,21 +31,13 @@ class BagController extends Controller
         abort_unless($user->canUseRewards(), 422, 'Activate your account to spend coins.');
 
         $size = (int) $data['size'];
-        $bags = $user->bags ?? [];
-        sort($bags);
-
-        if (count($bags) >= (int) config('loot.bags.bag_slots')) {
-            abort_if($size <= $bags[0], 422, 'Every bag you have is at least that big.');
-            array_shift($bags);
-        }
+        abort_unless(Bags::wouldGoOn($user, $size), 422, 'Every bag you have is at least that big.');
 
         // Only taken if the purse still holds that much
         $paid = User::whereKey($user->id)->where('coins', '>=', $forSale[$size])->decrement('coins', $forSale[$size]);
         abort_if($paid === 0, 422, 'Not enough coins.');
 
-        $bags[] = $size;
-        rsort($bags);
-        $user->forceFill(['bags' => $bags])->save();
+        $bags = Bags::putOn($user, $size);
 
         return response()->json([
             'bags' => $bags,

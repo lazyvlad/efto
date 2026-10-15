@@ -159,6 +159,22 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function caughtPieces(?string $side = null): array
     {
+        // Dropped by his side's bosses
+        $fromBosses = $this->bossDrops()->whereNotNull('set_piece')->get(['boss_id', 'set_piece'])
+            ->filter(fn ($drop) => $side === null || (\App\Support\BossLoot::boss($drop->boss_id)['faction'] ?? null) === $side)
+            ->pluck('set_piece')
+            ->all();
+
+        return array_values(array_unique(array_merge($fromBosses, $this->caughtFromTheSky($side))));
+    }
+
+    /**
+     * The set pieces a side's hunter caught as they fell.
+     *
+     * @return array<int, string>
+     */
+    private function caughtFromTheSky(?string $side): array
+    {
         return GameDrop::query()
             ->whereNotNull('claimed_at')
             ->whereIn('item_id', config('loot.items.set_piece'))

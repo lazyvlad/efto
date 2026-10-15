@@ -36,6 +36,40 @@ class Bags
     }
 
     /**
+     * Whether a bag of this size would go on: into a free bag slot, or in place of a smaller bag.
+     */
+    public static function wouldGoOn(User $user, int $size): bool
+    {
+        $bags = $user->bags ?? [];
+
+        return count($bags) < (int) config('loot.bags.bag_slots') || $size > min($bags);
+    }
+
+    /**
+     * Put a bag on: into a free bag slot, or in place of the smallest bag if it is bigger. The
+     * bags after, biggest first, or null if it would not go on.
+     *
+     * @return array<int, int>|null
+     */
+    public static function putOn(User $user, int $size): ?array
+    {
+        if (! self::wouldGoOn($user, $size)) {
+            return null;
+        }
+
+        $bags = $user->bags ?? [];
+        sort($bags);
+        if (count($bags) >= (int) config('loot.bags.bag_slots')) {
+            array_shift($bags);
+        }
+        $bags[] = $size;
+        rsort($bags);
+        $user->forceFill(['bags' => $bags])->save();
+
+        return $bags;
+    }
+
+    /**
      * How many slots these things take: [itemId => count].
      */
     public static function slotsUsed(array $contents): int

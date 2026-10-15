@@ -32,7 +32,8 @@ class ItemController extends Controller
 
         // The hunter sets
         $sets = [];
-        foreach (config('loot.sets') as $set) {
+        foreach (config('loot.sets') as $setId => $set) {
+            $bossZones = array_keys(array_filter(config('boss_loot.set_pieces.by_zone', []), fn ($id) => $id === $setId));
             $bonuses = [];
             foreach ($set['bonuses'] as $pieces => $bonus) {
                 $bonuses[$pieces] = self::bonusText($bonus);
@@ -41,6 +42,7 @@ class ItemController extends Controller
                 'name' => $set['name'],
                 'tier' => $set['tier'],
                 'fromLevel' => $set['from_level'],
+                'bossZones' => $bossZones ? ($bossZones === [min($bossZones)] ? (string) min($bossZones) : min($bossZones).'–'.max($bossZones)) : null,
                 'perPiece' => self::statsText($set['per_piece']),
                 'bonuses' => $bonuses,
                 'pieces' => array_map(fn ($itemId) => $items[$itemId], $set['pieces']),
