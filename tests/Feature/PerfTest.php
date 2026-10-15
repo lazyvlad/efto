@@ -55,4 +55,12 @@ class PerfTest extends TestCase
         $player = User::factory()->create();
         $this->actingAs($player)->get(route('admin.perf.index'))->assertNotFound();
     }
+
+    public function test_debug_mode_asked_on_the_home_page_reaches_the_game_in_its_frame(): void
+    {
+        $this->get('/?debug=perf')->assertOk()->assertSee(e(route('play', ['embedded' => 1, 'debug' => 'perf'])), false);
+        $this->get('/?debug=off')->assertOk()->assertSee(e(route('play', ['embedded' => 1, 'debug' => 'off'])), false);
+        // Nothing else is passed on
+        $this->get('/?debug=<x>')->assertOk()->assertSee(e(route('play', ['embedded' => 1])).'"', false);
+    }
 }

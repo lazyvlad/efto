@@ -29,7 +29,8 @@
 
             <iframe
                 x-ref="frame"
-                src="{{ route('play', ['embedded' => 1]) }}"
+                {{-- Debug mode (?debug=perf / ?debug=off) is passed on to the game in the frame --}}
+                src="{{ route('play', ['embedded' => 1] + (in_array(request('debug'), ['perf', 'off'], true) ? ['debug' => request('debug')] : [])) }}"
                 title="{{ config('app.name') }}"
                 class="flex-1 min-h-0 w-full border-0 bg-black"
                 {{-- An iPhone sizes a frame to what is in it, not to the room it is given: this
