@@ -2,8 +2,8 @@
 // loot they leave. The rules are under "creatures" in config/gameConfig.js, the creatures and
 // where they live in data/creatures.js, and how one moves in classes/Creature.js.
 //
-// Only in normal play, and never during a boss fight: when a boss comes in, the creatures
-// about slink away, leaving nothing. A zone with none painted yet has none.
+// Only in normal play. None come during a boss fight, but those about when it begins stay and
+// fight on. A zone with none painted yet has none.
 
 import { gameConfig } from '../config/gameConfig.js';
 import { GAME_VERSION, BUILD_TIMESTAMP } from '../config/gameVersion.js';
@@ -231,15 +231,7 @@ export function updateCreatures(context) {
     const { gameState, player, canvas, delta, bossFight } = context;
     const rules = gameConfig.creatures;
 
-    // A boss coming in sends them away; the zone gear one carried waits for the next
-    if (bossFight) {
-        for (const creature of living) {
-            if (!creature.alive) continue;
-            carried.push(...creature.loot.filter(loot => loot.dropId !== null));
-            creature.loot = [];
-            creature.leave();
-        }
-    }
+    // A boss coming in brings no more of them, but those about stay and fight on
 
     const zone = currentZone();
     const here = zone ? zoneCreatures[zone.id] : null;

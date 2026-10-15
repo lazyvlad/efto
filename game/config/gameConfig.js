@@ -598,7 +598,8 @@ export const gameConfig = {
     // fight, hand to hand. It stalks at the top of the field and closes in on the hunter as
     // its time runs (each zone's own); arrows push it back. Once on him it stays, and bites him
     // now and then, until it is killed, by arrows or his weapon; then it leaves loot that hops
-    // out of it and falls to be caught. Its bites never kill. None during a boss fight.
+    // out of it and falls to be caught. Its bites never kill. None come during a boss fight
+    // (those about stay).
     creatures: {
         enabled: true,
         firstAfter: 5,              // Seconds into a zone before its first creature
