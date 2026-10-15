@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.1.0 - 2026-10-15
+
+### Changed
+- **His 36 hold all the gear he carries besides what he wears**: his starter clothes were
+  "always with him" but in none of his lists, so a piece taken off showed nowhere. What he
+  wears is with him and takes no room; taken off, a piece goes into his 36 (or, with his 36
+  full, to the bank), ready to be put on again; put on, it frees its place. The Bags screen
+  shows what he wears above his 36. A guest has his 36 too (with no bank, all he has is with
+  him).
+
+### Fixed
+- **What a guest takes off stays off**: a one-time repair of outfits left bare by an older
+  version put his starter clothes back on whenever his outfit was read again.
+
 ## 3.0.20 - 2026-10-15
 
 ### Changed
