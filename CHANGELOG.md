@@ -1,5 +1,34 @@
 # Changelog
 
+## 3.3.0 - 2026-10-15
+
+### Added
+- **Guests keep what they find**: a guest plays on an account of his own, known by a key his
+  browser keeps. Gear, set pieces, his 36, the bank and materials are his, as an account's are;
+  he earns coins but spends them once he signs up. Coming back he is welcomed to the session he
+  is continuing, or starts fresh. Signing up keeps everything; logging in to an account he has
+  offers to bring it along, each hunter's to his own. A guest session not played for a week is
+  let go.
+- **Gear in the bags**: besides his 36, gear can be kept in the bags, a slot a piece (room a
+  material could have had). On the Bags tab a piece picked on him, in his 36 or in the bags
+  can be put on, sent to his 36, the bags or the bank, or (worn) switched for a piece that fits
+  where it is; All to bags takes everything off at once. The bank's gear is shown beside its
+  materials. Caught gear goes into the bags when his 36 are full.
+- **The gear of every zone**: 42 more regional items from the art agent (rings, necks,
+  trinkets, cloaks and weapons), so every zone on both sides has gear of its own. The items page
+  lists them zone by zone.
+
+### Changed
+- **Bosses drop the epics; the zones' gear falls**: Ashkandi, Ashjre'thul and the other epic
+  and special weapons and jewels no longer fall from the sky. The bosses of the later zones drop
+  them now and then in place of their own purple, and every boss may drop its zone's gear in
+  place of its own item. What falls instead is the gear of the zone being played: its greens
+  now and then, its blues more rarely.
+- **Set pieces in two halves**: each set's first boss drops its smaller pieces, the second its
+  larger (Giantstalker 50%, Dragonstalker 40%, Cryptstalker 30%).
+- **The large quiver drops from the fourth zone**, and the **Bindings of the Windseeker** drop
+  at last: the Left from the ninth boss, the Right from the tenth, 3% of the time.
+
 ## 3.2.0 - 2026-10-15
 
 ### Changed
