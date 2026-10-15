@@ -52,13 +52,13 @@ export class LightningBolt {
         ctx.save();
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        // The glow, then the white-hot core
-        ctx.shadowColor = 'rgba(110, 190, 255, 0.95)';
-        ctx.shadowBlur = 18;
-        ctx.strokeStyle = `rgba(120, 190, 255, ${0.55 * fade})`;
-        ctx.lineWidth = 7;
-        trace();
-        ctx.shadowBlur = 6;
+        // The glow as wide see-through strokes, widest and faintest first, then the white-hot
+        // core: no canvas shadow blur, which is slow enough to drop frames
+        for (const [lineWidth, alpha] of [[16, 0.12], [10, 0.22], [6, 0.45]]) {
+            ctx.strokeStyle = `rgba(110, 190, 255, ${alpha * fade})`;
+            ctx.lineWidth = lineWidth;
+            trace();
+        }
         ctx.strokeStyle = `rgba(235, 248, 255, ${fade})`;
         ctx.lineWidth = 2.5;
         trace();

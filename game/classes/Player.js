@@ -10,9 +10,9 @@ import { maskOfPicture, maskHitsRect, maskHitsCircle } from '../utils/hitMask.js
 // player's box is this many times taller than it is wide. The figure stands as tall as the
 // box; a broad one reaches a little outside it to either side.
 export const FIGURE_HEIGHT_TO_WIDTH = 1.88;
-// Under the feet, inside the player's box, is room for a small health bar: this much of the
-// box's width, top to bottom.
-const HEALTH_BAR_ROOM = 0.16;
+// Under the feet, inside the player's box, is room for his health and his quiver, a row each:
+// this much of the box's width, top to bottom.
+const HEALTH_BAR_ROOM = 0.36;
 
 // Player Class - Encapsulates all player functionality
 export class Player {
@@ -102,9 +102,10 @@ export class Player {
      * Draw the player.
      * @param {number}  shield  Steps (1/60 s) left of a Power Word: Shield around him, 0 for none
      * @param {number}  health  How much health he has left, 0 to 1, shown under his feet
-     * @param {object}  [arrows]  { count, capacity }: what is in his quiver, beside the bar
+     * @param {object}  [status]  { health, arrows, capacity, slotSize }: his health as a number,
+     *                  and his quiver, for the two rows under his feet
      */
-    draw(ctx, shield = 0, health = 1, arrows = null) {
+    draw(ctx, shield = 0, health = 1, status = null) {
         // The box holds him and, under his feet, his health bar
         const barRoom = this.width * HEALTH_BAR_ROOM;
         const figureHeight = this.height - barRoom;
@@ -130,68 +131,9 @@ export class Player {
         if (bubble) drawShieldFront(ctx, bubble);
         ctx.restore();
         
-        this.drawHealthBar(ctx, this.y + figureHeight, barRoom, health);
-        if (arrows) this.drawArrowCount(ctx, this.y + figureHeight, barRoom, arrows);
+        this.drawStatus(ctx, this.y + figureHeight, barRoom, health, status);
     }
 
-    // Beside the health bar, what is in his quiver: an arrow and "11/23". Amber when a quarter
-    // or less is left, red when it is empty. On the side of the bar with room for it.
-    drawArrowCount(ctx, top, room, { count, capacity }) {
-        const fontSize = Math.max(11, Math.round(this.width * 0.15));
-        const text = `${Math.max(0, Math.floor(count))}/${capacity}`;
-        ctx.save();
-        ctx.font = `bold ${fontSize}px Arial, sans-serif`;
-        const iconWidth = fontSize * 1.1;
-        const width = iconWidth + 3 + ctx.measureText(text).width;
-        const barWidth = this.width * 0.9;
-        const barLeft = this.x + (this.width - barWidth) / 2;
-        const middle = top + room / 2;
-        const canvasWidth = ctx.canvas.logicalWidth || ctx.canvas.width;
-        const left = barLeft + barWidth + 6 + width <= canvasWidth ? barLeft + barWidth + 6 : barLeft - 6 - width;
-        const color = count <= 0 ? '#ff7a6a' : count <= capacity / 4 ? '#ffc85a' : '#f4ecd8';
-
-        // The arrow: a shaft rising to the right, its head, and its fletching
-        const size = fontSize * 0.95;
-        const x0 = left + 1;
-        const y0 = middle + size * 0.4;
-        const x1 = left + size;
-        const y1 = middle - size * 0.4;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
-        ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-        ctx.strokeStyle = '#d9b46a';
-        ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
-        ctx.fillStyle = '#e8e2d0';
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x1 + size * 0.12, y1 - size * 0.12);
-        ctx.lineTo(x1 - size * 0.32, y1 + size * 0.02);
-        ctx.lineTo(x1 - size * 0.02, y1 + size * 0.32);
-        ctx.closePath();
-        ctx.fill(); ctx.stroke();
-        ctx.strokeStyle = '#c0392b';
-        ctx.lineWidth = 2;
-        for (const back of [0.05, 0.22]) {
-            const fx = x0 + (x1 - x0) * back;
-            const fy = y0 + (y1 - y0) * back;
-            ctx.beginPath(); ctx.moveTo(fx - size * 0.16, fy - size * 0.02); ctx.lineTo(fx, fy); ctx.lineTo(fx + size * 0.02, fy + size * 0.16); ctx.stroke();
-        }
-
-        // The count, outlined to read on any ground
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.lineJoin = 'round';
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
-        ctx.strokeText(text, left + iconWidth + 3, middle + 1);
-        ctx.fillStyle = color;
-        ctx.fillText(text, left + iconWidth + 3, middle + 1);
-        ctx.restore();
-    }
-    
     // How tall the figure is, and where the ground under his feet is (his pet stands on it)
     figureHeight() {
         return this.height - this.width * HEALTH_BAR_ROOM;
@@ -201,36 +143,104 @@ export class Player {
         return this.y + this.figureHeight();
     }
     
-    // A small health bar under his feet: a dark well with a gold edge, as on the panels, filled
-    // green, then amber, then red as his health drops
-    drawHealthBar(ctx, top, room, health) {
+    // Under his feet, two rows: his health (a heart, the bar, the number), then his quiver (the
+    // arrows, a segment for each slot, the count). The bars line up, the numbers beside them.
+    // Health goes green, amber, red; the quiver amber and pulsing with a quarter or less left,
+    // red when empty. Without status (a hunter drawn outside a game): the health bar alone.
+    drawStatus(ctx, top, room, health, status) {
         const fill = Math.max(0, Math.min(1, health));
-        const width = this.width * 0.9;
-        const height = Math.max(4, room * 0.45);
+        const rowHeight = Math.max(5, room * 0.2);
+        const gap = Math.max(4, room * 0.24);
+        const width = this.width * 0.72;
         const x = this.x + (this.width - width) / 2;
-        const y = top + (room - height) / 2;
-        const colors = fill <= 0.25 ? ['#ff8a7a', '#8e0c0c'] : fill <= 0.6 ? ['#ffe680', '#b97800'] : ['#7dfa7d', '#0c7a0c'];
-        
+        const firstY = top + (room - rowHeight * 2 - gap) / 2;
+        const secondY = firstY + rowHeight + gap;
+        const fontSize = Math.max(11, Math.round(this.width * 0.15));
+        const icon = Math.round(fontSize * 1.25);
+        const colors = fill <= 0.25 ? ['#ff8a7a', '#8e0c0c', '#ff8a7a'] : fill <= 0.6 ? ['#ffe680', '#b97800', '#ffd56a'] : ['#7dfa7d', '#0c7a0c', '#a8f5a8'];
+        const number = (text, y, color) => {
+            // Plain and bold: Marcellus's figures are too ornate to read at this size
+            ctx.font = `bold ${fontSize}px 'Trebuchet MS', 'Segoe UI', Verdana, sans-serif`;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.92)';
+            ctx.strokeText(text, x + width + 5, y);
+            ctx.fillStyle = color;
+            ctx.fillText(text, x + width + 5, y);
+        };
+
         ctx.save();
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-        ctx.fillRect(x, y, width, height);
-        
-        const gradient = ctx.createLinearGradient(0, y, 0, y + height);
+        // Health: the heart, the bar, the number
+        drawHeart(ctx, x - icon * 0.5 - 4, firstY + rowHeight / 2, icon * 0.45);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillRect(x, firstY, width, rowHeight);
+        const gradient = ctx.createLinearGradient(0, firstY, 0, firstY + rowHeight);
         gradient.addColorStop(0, colors[0]);
         gradient.addColorStop(1, colors[1]);
         ctx.fillStyle = gradient;
-        ctx.fillRect(x, y, width * fill, height);
-        
+        ctx.fillRect(x, firstY, width * fill, rowHeight);
         ctx.strokeStyle = '#000';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x, y, width, height);
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - 1, firstY - 1, width + 2, rowHeight + 2);
         ctx.strokeStyle = '#b9902f';
         ctx.lineWidth = 1;
-        ctx.strokeRect(x, y, width, height);
-        
-        // What is eating at his health without anything hitting him (a curse, a shadowbolt's
-        // burn), named right under the bar with the time it has left: this.debuffs is set by
-        // the game each frame as [{ label, color }]
+        ctx.strokeRect(x - 0.5, firstY - 0.5, width + 1, rowHeight + 1);
+        if (status) number(String(Math.max(0, Math.ceil(status.health))), firstY + rowHeight / 2, colors[2]);
+
+        // The quiver: the arrows, a segment for each slot, the count
+        if (status && status.capacity > 0) {
+            const slots = Math.max(1, Math.round(status.capacity / (status.slotSize || 50)));
+            const count = Math.max(0, Math.floor(status.arrows));
+            const low = count <= status.capacity / 4;
+            const pulse = count > 0 && low ? 0.5 + 0.5 * Math.sin(performance.now() / 220) : 0;
+            const arrowsPicture = assetManager.getImage(assetRegistry.powerups.bronzeArrows);
+            if (arrowsPicture && arrowsPicture.complete && arrowsPicture.naturalWidth) {
+                ctx.drawImage(arrowsPicture, x - icon - 2, secondY + rowHeight / 2 - icon / 2, icon, icon);
+            }
+            // The well, its frame red when empty and glowing amber when low
+            ctx.fillStyle = 'rgba(12, 9, 6, 0.9)';
+            ctx.fillRect(x - 1, secondY - 1, width + 2, rowHeight + 2);
+            // The glow when low: a wider see-through frame, not a canvas shadow (too slow)
+            if (pulse > 0) {
+                ctx.strokeStyle = `rgba(255, 176, 60, ${0.55 * pulse})`;
+                ctx.lineWidth = 4;
+                ctx.strokeRect(x - 3, secondY - 3, width + 6, rowHeight + 6);
+            }
+            ctx.strokeStyle = count <= 0 ? '#b3231a' : '#8f7a45';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x - 1.5, secondY - 1.5, width + 3, rowHeight + 3);
+            const segmentGap = 2;
+            const segment = (width - segmentGap * (slots - 1)) / slots;
+            // One gradient for the row, shared by its segments
+            const fillGradient = ctx.createLinearGradient(0, secondY, 0, secondY + rowHeight);
+            fillGradient.addColorStop(0, low ? '#ffd37a' : '#fff0b0');
+            fillGradient.addColorStop(1, low ? '#c46a00' : '#c99a2e');
+            for (let slot = 0; slot < slots; slot++) {
+                const share = Math.max(0, Math.min(1, (count - slot * (status.slotSize || 50)) / (status.slotSize || 50)));
+                const left = x + slot * (segment + segmentGap);
+                // An empty slot a shade lighter than the well, so the slots read apart
+                ctx.fillStyle = '#3a2e1d';
+                ctx.fillRect(left, secondY, segment, rowHeight);
+                if (share > 0) {
+                    ctx.fillStyle = fillGradient;
+                    ctx.fillRect(left, secondY, segment * share, rowHeight);
+                }
+            }
+            number(String(count), secondY + rowHeight / 2, count <= 0 ? '#ff7a6a' : low ? '#ffc85a' : '#f4ecd8');
+        }
+        ctx.restore();
+
+        // What is eating at his health is named under the rows (drawn as before)
+        this.drawDebuffs(ctx, x, width, (status ? secondY : firstY) + rowHeight);
+    }
+
+    // What is eating at his health without anything hitting him (a curse, a shadowbolt's burn),
+    // named under his rows with the time it has left: this.debuffs is set by the game each
+    // frame as [{ label, color }]
+    drawDebuffs(ctx, x, width, bottom) {
+        ctx.save();
         const debuffs = this.debuffs || [];
         if (debuffs.length > 0) {
             const fontSize = Math.max(11, Math.round(this.width * 0.15));
@@ -239,7 +249,7 @@ export class Player {
             ctx.textBaseline = 'top';
             ctx.lineJoin = 'round';
             debuffs.forEach((debuff, index) => {
-                const textY = y + height + 3 + index * (fontSize + 2);
+                const textY = bottom + 3 + index * (fontSize + 2);
                 ctx.lineWidth = 3;
                 ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
                 ctx.strokeText(debuff.label, x + width / 2, textY);
@@ -456,6 +466,28 @@ function drawShieldFront(ctx, bubble) {
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(x, y, r * 0.82, -2.5, -1.75);
+    ctx.stroke();
+    ctx.restore();
+}
+
+// A small heart, red with a dark edge, centred on (x, y)
+function drawHeart(ctx, x, y, size) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(size / 8, size / 8);
+    ctx.beginPath();
+    ctx.moveTo(0, 6);
+    ctx.bezierCurveTo(-5, 2.5, -7, 0, -7, -2.5);
+    ctx.bezierCurveTo(-7, -4.5, -5.4, -6, -3.5, -6);
+    ctx.bezierCurveTo(-2, -6, -0.8, -5.1, 0, -4);
+    ctx.bezierCurveTo(0.8, -5.1, 2, -6, 3.5, -6);
+    ctx.bezierCurveTo(5.4, -6, 7, -4.5, 7, -2.5);
+    ctx.bezierCurveTo(7, 0, 5, 2.5, 0, 6);
+    ctx.closePath();
+    ctx.fillStyle = '#d8392b';
+    ctx.fill();
+    ctx.lineWidth = 1.2;
+    ctx.strokeStyle = '#000';
     ctx.stroke();
     ctx.restore();
 }

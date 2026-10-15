@@ -252,13 +252,10 @@ function drawIcon(ctx, src, x, y, size, borderColor) {
     const image = getIconImage(src);
     if (!image) return false;
 
-    // A cut-out picture stands on its own, with a soft shadow to lift it off the card; only a
-    // square painting gets the dark tile and the coloured frame
+    // A cut-out picture stands on its own (no shadow: a canvas blur every frame costs more than
+    // it shows); only a square painting gets the dark tile and the coloured frame
     if (isCutOut(image)) {
         ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
-        ctx.shadowBlur = 4;
-        ctx.shadowOffsetY = 1;
         const scale = Math.min(size / image.naturalWidth, size / image.naturalHeight) || 1;
         const width = image.naturalWidth * scale;
         const height = image.naturalHeight * scale;

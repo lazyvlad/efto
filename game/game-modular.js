@@ -2772,7 +2772,11 @@ function restartGameFromUI() {
 // one, rather than the older picture it fell as before
 for (const item of gameItems) {
     const gear = gearCatalog()[item.id];
-    if (gear && /items\/gear\//.test(gear.image || '')) item.image = gear.image;
+    if (gear && /items\/gear\//.test(gear.image || '')) {
+        item.image = gear.image;
+        // Fetched now, so the first to fall finds its picture loaded
+        assetManager.getImage(item.image);
+    }
 }
 
 // ===== UI EVENT HANDLERS =====
