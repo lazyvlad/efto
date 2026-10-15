@@ -1,5 +1,29 @@
 # Changelog
 
+## 3.0.19 - 2026-10-15
+
+### Added
+- **A swing timer**: under the hunter's feet, below his health and his arrows, a third row with
+  his weapon and a bar that fills as his next swing comes ready, glowing when it is (with the
+  seconds left until then). Step in and strike when it is ready, and away while it fills.
+- **A piece put on by itself says so**: caught and put on in a free slot, it is named, with
+  where it can be changed: the character sheet (C).
+
+### Changed
+- **A boss's loot pops out of it** as it falls, as a creature's does, to be caught. It is his
+  already (the site gave it as the boss fell): missed, it is his all the same.
+- **Creatures stay when a boss comes**, and fight on beside it; no more come until it is down.
+- **A blow of his weapon knocks a creature back**, as far as three arrows, and breaks off its
+  pounce.
+
+### Fixed
+- **Gear caught goes with the hunter**: a piece caught in a game (a set piece, a weapon, a
+  zone's item) or dropped by a boss was put on him, but never joined his 36: worn, yet in none
+  of his bags, and taken off again the next time he was dressed. It now goes into his 36 while
+  there is room, in the game at once and on the site as the game ends; with his 36 full it
+  waits in the bank, and is not put on (only what he carries can be worn). What he wears is
+  saved again once the game is recorded, so a piece put on during it stays on.
+
 ## 3.0.18 - 2026-10-15
 
 ### Added
@@ -41,8 +65,8 @@
   every couple of seconds pounces where he stands (it gathers itself first: step aside), for a
   bite that never kills. It leaves only when it is killed, by arrows or his weapon, and then
   leaves loot that hops out of it to be caught. Arrows strike it a little outside its painted
-  body. Points for each one killed. Two at a time (Westfall three), and they leave when a boss
-  comes. In the zones painted so far: Northshire Abbey (Timber Wolf, Kobold Worker), Eastvale
+  body. Points for each one killed. Two at a time (Westfall three), and none come during a
+  boss fight. In the zones painted so far: Northshire Abbey (Timber Wolf, Kobold Worker), Eastvale
   (Prowler), Westfall (Harvest Golem), Valley of Trials (Scorpid Worker, Mottled Boar) and
   Razor Hill (Bloodtalon Raptor).
 - **Both hunters start with a weapon**: the Alliance hunter a Pajama Hunter Shortsword, the
