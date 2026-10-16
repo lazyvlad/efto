@@ -19,6 +19,7 @@ import { trackActivity, responsiveScaler } from '../utils/gameUtils.js';
 import { playFireballImpactSound } from './audioSystem.js';
 import { updateFrostTraps } from './frostTrapSystem.js';
 import { readyImage } from '../utils/readyImage.js';
+import { valueMultiplier } from '../utils/progression.js';
 
 let living = [];
 // Zone gear the site gave the game for creatures to carry, waiting for a creature to carry
@@ -176,7 +177,7 @@ function shootAt(context) {
     }
 }
 
-// Brought down by arrows: points for it, and its loot
+// Brought down, by arrows or a blow: points and experience for it, and its loot
 function brought(creature, context) {
     const { gameState, combatTexts } = context;
     const rules = gameConfig.creatures.score;
@@ -185,6 +186,10 @@ function brought(creature, context) {
 
     gameState.score += points;
     gameState.creaturesKilled = (gameState.creaturesKilled || 0) + 1;
+    // And experience, as for so many seconds of catching at his level
+    const level = (gameState.currentLevel || 0) + 1;
+    const seconds = gameConfig.creatures.xp[creature.data.grade] || 0;
+    gameState.xp = (gameState.xp || 0) + Math.round(gameConfig.progression.xpPerSecond * valueMultiplier(level, gameConfig.progression) * seconds);
     combatTexts.push(new CombatText(body.x + body.width / 2, body.y - body.height * 0.4, `+${points}`, '#FFD700', false));
     dropLoot(creature, context);
 }

@@ -624,8 +624,11 @@ export const gameConfig = {
     // (data/melee.js); else he keeps to his bow.
     melee: {
         enabled: true,
-        reach: 0.45,                // He swings at what comes this near his chest: a share of his height
-        ready: 1,                   // He takes his weapon in hand when something comes this near
+        reach: 0.45,                // He swings at a boss this near his chest: a share of his height
+        // A creature from further off: struck as it comes down, it is knocked back before it can
+        // pounce, so a player who times his blows need not be bitten
+        creatureReach: 0.75,
+        ready: 1.2,                 // He takes his weapon in hand when something comes this near
         follow: 1,                  // A blow still lands on what he swung at if it is this near when it lands
         cooldown: { one: 2, two: 3 },           // Seconds from one swing to the next: one-handed, two-handed
         damage: { one: 14, two: 22 },           // A blow, before his attack power (+1% each), crits and armor
@@ -657,7 +660,7 @@ export const gameConfig = {
 
     creatures: {
         enabled: true,
-        firstAfter: 5,              // Seconds into a zone before its first creature
+        firstAfter: 3,              // Seconds into a zone before its first creature
         healthPerZone: 0.15,        // Each zone further in, so much more health (0.15 = +15%)
         moveSpeed: 0.09,            // How fast it moves about at the top: a share of the field's width a second (times its pace)
         biteEvery: [1.6, 2.4],      // Seconds between its pounces, once it is on him
@@ -673,6 +676,9 @@ export const gameConfig = {
         shieldCost: { common: 1, bruiser: 2 },  // Shield charges a bite uses
         loot: { common: 1, bruiser: 2 },        // Items in it
         score: { base: 30, perZone: 10 },       // Points for bringing one down with arrows
+        // Experience for bringing one down: as much as so many seconds of catching at his level
+        // (progression.xpPerSecond)
+        xp: { common: 4, bruiser: 6 },
         // The loot's hop: up at this share of the field's height a second, then falling under
         // this much gravity (field heights a second, each second)
         pop: { up: 0.75, sideways: 0.18, gravity: 1.6 },

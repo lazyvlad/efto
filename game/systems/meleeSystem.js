@@ -152,14 +152,15 @@ function distanceTo(point, box) {
 }
 
 // The nearest thing in reach: a creature, or the boss. { creature } or { boss: box }, or null.
-function target(context, reach) {
+// A creature may be reached from further off than the boss (melee.creatureReach).
+function target(context, reach, creatureReach = reach) {
     const { player, canvas, creatures } = context;
     const from = anchor(player);
     let best = null;
     for (const creature of creatures) {
         if (!creature.alive || creature.state === 'enter') continue;
         const distance = distanceTo(from, creature.core());
-        if (distance <= reach && (!best || distance < best.distance)) best = { creature, distance };
+        if (distance <= creatureReach && (!best || distance < best.distance)) best = { creature, distance };
     }
     const box = bossMeleeBox(canvas);
     if (box) {
@@ -173,7 +174,7 @@ function target(context, reach) {
 function land(context) {
     const { gameState, player, combatTexts, particles, canvas } = context;
     const rules = gameConfig.melee;
-    let hit = target(context, player.figureHeight() * rules.reach * 1.15);
+    let hit = target(context, player.figureHeight() * rules.reach * 1.15, player.figureHeight() * rules.creatureReach * 1.15);
     // What he swung at, if it is gone a little further meanwhile (a boss's charge goes by in a
     // moment): the blow still finds it within his reach to follow it ("follow")
     const aimed = swingAt;
@@ -230,7 +231,7 @@ export function updateMelee(context) {
     const family = meleeWeapons[look.weaponId].twoHanded ? 'two' : 'one';
 
     if (near && melee.state === 'ranged') melee.engage(family, meleeWeapons[look.weaponId].style || null);
-    const strike = near && target(context, reach);
+    const strike = near && target(context, reach, player.figureHeight() * rules.creatureReach);
     if (strike) {
         melee.attack(rules.cooldown[family] * 1000);
         // What he swings at: the blow lands on it a moment later, even if it has moved on a little

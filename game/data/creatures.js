@@ -40,11 +40,11 @@ export const creatures = {
 // next coming in, once the last is gone (or while it is about, if "most" lets more be);
 // "approach": seconds one takes to close in on him, if nothing pushes it back. Bruisers come
 // a quarter of the time.
-const START = { every: [3, 5], most: 2, approach: [10, 14] };
+const START = { every: [2, 3.5], most: 3, approach: [10, 14] };
 export const zoneCreatures = {
     'northshire-abbey': { ...START, creatures: { 'timber-wolf': 75, 'kobold-worker': 25 } },
     'elwynn-eastvale': { ...START, creatures: { 'prowler': 1 } },
-    'westfall': { every: [3, 5], most: 3, approach: [9, 12], creatures: { 'harvest-golem': 1 } },
+    'westfall': { every: [2, 3.5], most: 4, approach: [9, 12], creatures: { 'harvest-golem': 1 } },
     'valley-of-trials': { ...START, creatures: { 'scorpid-worker': 75, 'mottled-boar': 25 } },
     'durotar-razor-hill': { ...START, creatures: { 'bloodtalon-raptor': 1 } },
 };
