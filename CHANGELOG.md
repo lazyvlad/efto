@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.5.7 - 2026-10-16
+
+### Fixed
+- **Games played as a guest** show under the account's name once brought over, on the high
+  scores and everywhere else; a migration renames those brought over before.
+
 ## 3.5.6 - 2026-10-16
 
 ### Changed
