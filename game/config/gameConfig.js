@@ -571,6 +571,17 @@ export const gameConfig = {
         arrowBundle: 'bronze_arrows', // The arrow bundle dropped during a fight (data/powerUpItems.js)
         arrowsEvery: 600,           // Steps between arrow bundles (10 seconds)
         potionEvery: 1200,          // Steps between health potions
+        // Help that falls in a fight, now and then, to change how it goes: Haste, Power Word:
+        // Shield, or Reverse Gravity (which sends what the boss throws flying up). Seconds
+        // between them, somewhere in the range; one of the drops, by weight. Spells are from
+        // data/damageProjectiles.js, the rest from data/powerUpItems.js.
+        help: {
+            every: [8, 14],
+            drops: { speedboost: 1, power_word_shield_projectile: 1, reverse_gravity: 1 },
+            // The shield a fight drops is a short one: it takes one hit, for a moment, so it
+            // cannot carry him through the boss's charges and stomps
+            shield: { charges: 1, steps: 120 },
+        },
         
         // In normal play, the chance per step that one of the bosses' attacks falls as a hazard
         // (any boss of either side, picked at random)

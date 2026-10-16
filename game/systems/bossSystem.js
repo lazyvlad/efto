@@ -17,6 +17,8 @@ import { levelProgress } from '../utils/progression.js';
 import { powerUpItems } from '../data/powerUpItems.js';
 import { BossProjectile } from '../classes/BossProjectile.js';
 import { PowerUpItem } from '../classes/PowerUpItem.js';
+import { DamageProjectile } from '../classes/DamageProjectile.js';
+import { damageProjectiles } from '../data/damageProjectiles.js';
 import { CombatText } from '../classes/CombatText.js';
 import { Particle } from '../classes/Particle.js';
 import { addNotification, trackActivity, responsiveScaler } from '../utils/gameUtils.js';
@@ -312,6 +314,8 @@ export function guardZone(gameState, canvas) {
         shielded: false,
         // Seconds until the next shield goes up (never, for bosses without one)
         shieldIn: stats.shieldAfter === null ? Infinity : stats.shieldAfter,
+        // Seconds until help falls (gameConfig.bosses.help)
+        helpIn: helpAfter(),
         enraged: false,
         absorbedTextAt: -Infinity,
 
@@ -586,6 +590,33 @@ function throwFan(context) {
  */
 export function dropSupplies(context, ids) {
     ids.forEach(id => dropPowerUp(context, id));
+}
+
+// Seconds until the next help falls in a fight
+function helpAfter() {
+    const [low, high] = gameConfig.bosses.help.every;
+    return low + Math.random() * (high - low);
+}
+
+// One of the help a fight drops, by weight: a falling spell (Haste, Power Word: Shield) or a
+// power-up (Reverse Gravity)
+function dropHelp(context) {
+    const drops = Object.entries(gameConfig.bosses.help.drops);
+    let at = Math.random() * drops.reduce((total, [, weight]) => total + weight, 0);
+    const [id] = drops.find(([, weight]) => (at -= weight) < 0) || drops[drops.length - 1];
+
+    const spell = damageProjectiles.find(projectile => projectile.id === id);
+    if (spell) {
+        const { gameState, fireballs, canvas, isValidYPosition, recentDropYPositions } = context;
+        const projectile = new DamageProjectile(spell, isValidYPosition, recentDropYPositions, gameState, canvas);
+        if (spell.effects === 'shield') {
+            projectile.shieldDuration = gameConfig.bosses.help.shield.steps;
+            projectile.shieldCharges = gameConfig.bosses.help.shield.charges;
+        }
+        fireballs.push(projectile);
+    } else {
+        dropPowerUp(context, id);
+    }
 }
 
 function dropPowerUp(context, id) {
@@ -1260,6 +1291,13 @@ export function updateBoss(context) {
         fight.enraged = true;
         addNotification(gameState, `${boss.name} is enraged!`, 300, '#FF2020');
         playScreamSound();
+    }
+
+    // Help falls now and then: Haste, a shield, or Reverse Gravity
+    fight.helpIn -= 1 / 60;
+    if (fight.helpIn <= 0) {
+        fight.helpIn = helpAfter();
+        dropHelp(context);
     }
 
     // The shield goes up when its time comes and stays until an Arcane Shot breaks it

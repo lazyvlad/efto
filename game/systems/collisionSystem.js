@@ -285,11 +285,12 @@ export function checkCollisions(context) {
                     return;
                 } else if (projectile.data.effects === "shield") {
                     // The shield goes up: for its time, or until its charges are spent
-                    const charges = gameConfig.powerUps.shield.charges;
+                    // (one a boss fight drops is shorter, and takes fewer hits: bossSystem's help)
+                    const charges = projectile.shieldCharges || gameConfig.powerUps.shield.charges;
                     raiseShield(gameState, projectile.shieldDuration || 300, charges);
                     
                     const shieldSeconds = Math.round((projectile.shieldDuration || 300) / 60);
-                    addNotification(gameState, `🛡️ Shield: ${charges} hits or ${shieldSeconds}s`, 120, '#FFD700');
+                    addNotification(gameState, `🛡️ Shield: ${charges} ${charges === 1 ? 'hit' : 'hits'} or ${shieldSeconds}s`, 120, '#FFD700');
                     
                     // Don't damage player for beneficial projectiles
                     createCollectionParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles);
@@ -401,9 +402,6 @@ export function checkCollisions(context) {
         // One that could not be used falls on through him
         if (powerUp.refused) return;
         if (powerUp.checkCollision && powerUp.checkCollision(player)) {
-            // Track activity for hybrid progression
-            trackActivity(gameState, 'powerUp', 1);
-            
             // Apply power-up effect
             if (powerUp.applyEffect) {
                 const taken = powerUp.applyEffect(gameState, {
@@ -417,6 +415,8 @@ export function checkCollisions(context) {
                     return;
                 }
             }
+            // Track activity for hybrid progression
+            trackActivity(gameState, 'powerUp', 1);
             
             createCollectionParticles(powerUp.x + powerUp.width/2, powerUp.y + powerUp.height/2, particles);
             powerUps.splice(powerUpIndex, 1);
