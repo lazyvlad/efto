@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-16T17:20:17.668Z",
-  "buildTimestamp": 1792171217672,
+  "buildTime": "2026-10-16T17:27:59.394Z",
+  "buildTimestamp": 1792171679399,
   "mode": "production",
-  "gameVersion": "3.5.2",
-  "cacheHash": "gxssr46y",
+  "gameVersion": "3.5.3",
+  "cacheHash": "qu2hnawb",
   "fileMap": {
-    "game-modular.js": "game-modular.gxssr46y.js"
+    "game-modular.js": "game-modular.qu2hnawb.js"
   },
-  "buildSystemVersion": "3.5.2"
+  "buildSystemVersion": "3.5.3"
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.5.3 - 2026-10-16
+
+### Fixed
+- **No pictures in the game after deploying 3.5.2** without caching the configuration again:
+  a missing `GAME_ASSET_URL` setting now means the pictures come from this server.
+
 ## 3.5.2 - 2026-10-16
 
 ### Changed
