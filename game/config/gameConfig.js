@@ -581,6 +581,11 @@ export const gameConfig = {
         // many of his widths wide, and it comes up out of it; then a backstab where he is, a mark
         // this many widths wide. Each hits for the boss's heavy damage times "damage".
         ambush: { width: 4, backstabWidth: 2.2, damage: 1.5 },
+        // A charge down the field: it hurts across the lane it was drawn for at full size, however
+        // small the boss is drawn (canvas.scaling.objectScale). Landing, it hits anyone within his
+        // melee reach beside the lane for "splash" of its damage: meleeing a charging boss is
+        // allowed, at a price.
+        charge: { splash: 0.4 },
         // The side charge: a dash across the ground (heavy damage times "damage": massive), then
         // a strike where he is (times "strikeDamage")
         sideCharge: { damage: 2.5, strikeDamage: 1.5 },

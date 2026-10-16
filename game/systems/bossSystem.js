@@ -581,7 +581,11 @@ function throwRow(context) {
     const { canvas } = context;
     const first = throwProjectile(context, 0);
 
-    const slots = Math.max(3, Math.min(8, Math.floor(canvas.logicalWidth / (first.width * 1.7))));
+    // Spaced by the hunter's width, so the gap left is the one place he fits: between any two
+    // others there is less room than he takes up (a thrown thing hurts across its middle 60%,
+    // DamageProjectile.checkCollision)
+    const spacing = first.width * 0.6 + context.player.width * 0.8;
+    const slots = Math.max(3, Math.min(16, Math.floor(canvas.logicalWidth / spacing)));
     const gap = Math.floor(Math.random() * slots);
     const slotWidth = canvas.logicalWidth / slots;
     const speed = first.baseSpeed;
@@ -1618,12 +1622,14 @@ function act(context) {
         const depth = canvas.logicalHeight - place.top - place.height;
         fight.drop = Math.sin(Math.PI * fight.doingSteps / CHARGE_STEPS) * depth;
 
-        const box = hitBox(canvas);
+        const box = chargeBox(canvas);
         const touching = player.isHitBy(box);
         if (touching && !fight.attackData.hit) {
             fight.attackData.hit = true;
             hurtPlayer(context, heavyDamage());
         }
+        // Landing: beside the lane, within his melee reach of it, he pays for the blows he got in
+        if (fight.doingSteps === Math.floor(CHARGE_STEPS / 2) && !fight.attackData.hit) landCharge(context, box);
 
         if (fight.doingSteps >= CHARGE_STEPS) {
             fight.drop = 0;
@@ -1631,6 +1637,34 @@ function act(context) {
             fight.sinceAttack = 0;
         }
     }
+}
+
+// What a charge hurts: the boss's body, as wide as at its full size (canvas.scaling.objectScale)
+function chargeBox(canvas) {
+    const box = hitBox(canvas);
+    const width = box.width / (responsiveScaler.objectScale || 1);
+    return { ...box, x: box.x + box.width / 2 - width / 2, width };
+}
+
+// The charge hits the ground: anyone close beside it, within reach of a blow, is caught in it
+function landCharge(context, box) {
+    const { player, gameState, particles } = context;
+    const settings = gameConfig.bosses.charge;
+    const body = playerBody(player);
+    const chest = { x: body.centerX, y: player.y + player.figureHeight() * 0.3 };
+    const nearX = Math.max(box.x, Math.min(chest.x, box.x + box.width));
+    const nearY = Math.max(box.y, Math.min(chest.y, box.y + box.height));
+    const reach = player.figureHeight() * gameConfig.melee.follow;
+    // Dust along the ground either side, where it lands
+    for (let i = 0; i < 30; i++) {
+        const side = Math.random() < 0.5 ? -1 : 1;
+        particles.push(new Particle(box.x + box.width / 2 + side * (box.width / 2 + Math.random() * reach), box.y + box.height * (0.7 + Math.random() * 0.3), '#C8A878'));
+    }
+    if (Math.hypot(chest.x - nearX, chest.y - nearY) > reach) return;
+
+    gameState.specialHits = gameState.specialHits || {};
+    gameState.specialHits['charge:landing'] = (gameState.specialHits['charge:landing'] || 0) + 1;
+    hurtPlayer(context, Math.round(heavyDamage() * settings.splash));
 }
 
 // Things lobbed at the player fly to where they stood, lie there a moment, and burst
@@ -1900,7 +1934,7 @@ function drawWarnings(ctx, canvas, place) {
     if (fight.upheaval) drawUpheaval(ctx, canvas, pulse);
 
     if (fight.attack === 'charge' && fight.doing !== 'moving') {
-        const width = place.width * 0.6;
+        const width = place.width * 0.6 / (responsiveScaler.objectScale || 1);
         const top = place.top + place.height * 0.9;
         const lane = ctx.createLinearGradient(0, top, 0, canvas.logicalHeight);
         lane.addColorStop(0, 'rgba(255, 60, 30, 0)');
