@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.5.1 - 2026-10-16
+
+### Changed
+- **The big cats stay up top longer**: more throws and a row between their ambush and side
+  charge, and after either one a boss stays up top at least 7 seconds before the next. They
+  are up to be shot about 80% of the fight, from little more than half.
+- **Meleeing a charging boss has a price**: when the charge lands, a hunter within reach
+  beside its lane takes 40% of its damage.
+
+### Fixed
+- **Rows of daggers**: spaced by the hunter's size again, so the smaller hunter no longer fits
+  between them, only in the gap the boss leaves.
+- **Charges** hurt across their full lane again, not just the narrower body of a smaller boss.
+- **Thunderfury** is held by its handle, not beside it.
+
 ## 3.5.0 - 2026-10-16
 
 ### Added
