@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.5.5 - 2026-10-16
+
+### Fixed
+- **Loot from creatures and bosses** no longer shows for a moment as a bare glow: it pops out
+  once its picture is ready, fetched ahead where it can be.
+
 ## 3.5.4 - 2026-10-16
 
 ### Changed
