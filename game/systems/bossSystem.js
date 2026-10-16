@@ -135,8 +135,8 @@ function layout(canvas, boss) {
     const narrow = canvas.logicalHeight > canvas.logicalWidth;
     const tallest = narrow
         ? responsiveScaler.getSize('player').width * FIGURE_HEIGHT_TO_WIDTH * size.vsHunterOnNarrowField
-        : canvas.logicalHeight * size.height;
-    const height = Math.min(tallest, canvas.logicalWidth * size.width / aspect);
+        : canvas.logicalHeight * size.height * (responsiveScaler.objectScale || 1);
+    const height = Math.min(tallest, canvas.logicalWidth * size.width * (responsiveScaler.objectScale || 1) / aspect);
     const width = height * aspect;
 
     return { barTop, barHeight, width, height, top: barTop + barHeight + 8 };

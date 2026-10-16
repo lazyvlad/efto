@@ -106,6 +106,10 @@ export const gameConfig = {
             
             // Playable area based scaling (THE KING 👑)
             usePlayableAreaScaling: true, // Base all item/UI scaling on playable area dimensions
+            // On a landscape screen (anything but a phone) the hunter and the bosses are drawn at
+            // this share of their size, for more room between them; everything else keeps its
+            // size, and speeds stay as they are.
+            objectScale: 0.8,
             basePlayableArea: {     // Reference playable area for scaling calculations
                 width: 1600,        // Desktop playable width (reference)
                 height: 270,        // Desktop playable height (900 * 0.3)

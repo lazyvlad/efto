@@ -11,6 +11,7 @@
 
 import { gameConfig } from '../config/gameConfig.js';
 import { readyImage } from '../utils/readyImage.js';
+import { responsiveScaler } from '../utils/gameUtils.js';
 
 const STEP_MS = 1000 / 60;
 const ATLAS = 'assets/effects/frost-trap.webp';
@@ -68,11 +69,17 @@ export function frostTrapsOut() {
  * at him. All three or none: false (and nothing set) if there is no room for three.
  * @param {object} field  { width, height, player: his body { x, y, width, height } }
  */
+// The hunter's height at his full size: traps keep their size when he is drawn smaller on a wide
+// field (canvas.scaling.objectScale)
+function hunterSize(field) {
+    return field.player.height / (responsiveScaler.objectScale || 1);
+}
+
 export function deployFrostTraps(field) {
     const r = rules();
     if (traps.length + r.perPickup > r.most) return false;
 
-    const hunter = field.player.height;
+    const hunter = hunterSize(field);
     const radius = r.trigger * hunter;
     const top = field.height * 0.1;
     const bottom = Math.max(top + radius, field.player.y - radius);
@@ -110,7 +117,7 @@ export function deployFrostTraps(field) {
 export function updateFrostTraps(delta, creatures, field) {
     const r = rules();
     const ms = delta * STEP_MS;
-    const hunter = field.player.height;
+    const hunter = hunterSize(field);
     const living = creatures.filter(creature => creature.alive && creature.state !== 'enter' && creature.state !== 'leaving');
 
     for (const creature of creatures) {
@@ -170,7 +177,7 @@ export function drawFrostTraps(ctx, field) {
     if (traps.length === 0) return;
 
     const r = rules();
-    const hunter = field.player.height;
+    const hunter = hunterSize(field);
     const device = r.device * hunter;
     const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 

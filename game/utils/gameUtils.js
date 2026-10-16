@@ -1045,11 +1045,16 @@ export class ResponsiveScaler {
         const basePowerUpSize = 80;      // Keep original power-up size
         const baseProjectileSize = 60;   // Keep original projectile size
         
+        // Landscape screens draw the hunter (and the bosses, systems/bossSystem.js) smaller
+        // (canvas.scaling.objectScale); a phone has its own sizing below. Speeds are not touched.
+        this.objectScale = this.deviceType === 'mobile' ? 1 : (this.canvasConfig.scaling.objectScale || 1);
+        const drawn = this.uniformScale * this.objectScale;
+
         this.sizes = {
             // Player sizes (bound to 65px border)
             player: {
-                width: Math.round(basePlayerWidth * this.uniformScale),
-                height: Math.round((basePlayerWidth / playerAspectRatio) * this.uniformScale),
+                width: Math.round(basePlayerWidth * drawn),
+                height: Math.round((basePlayerWidth / playerAspectRatio) * drawn),
                 speed: Math.round(12 * this.uniformScale),
                 maxBorderSize: Math.round(elementBorderSize * this.uniformScale) // Visual boundary
             },

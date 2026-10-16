@@ -15,7 +15,7 @@ import { currentZone } from './backgroundSystem.js';
 import { arrowDamage, armorReduction, damageAfterArmor } from '../utils/stats.js';
 import { shieldBlocks } from '../utils/shield.js';
 import { getCurrentTotalCritRating } from './statEffectsSystem.js';
-import { trackActivity } from '../utils/gameUtils.js';
+import { trackActivity, responsiveScaler } from '../utils/gameUtils.js';
 import { playFireballImpactSound } from './audioSystem.js';
 import { updateFrostTraps } from './frostTrapSystem.js';
 import { readyImage } from '../utils/readyImage.js';
@@ -100,7 +100,8 @@ function spawn(zone, context) {
     if (carried.length) loot.push(carried.shift());
 
     sheetOf(id);
-    const size = player.figureHeight() * data.cell;
+    // As big as against the hunter at his full size: he is drawn smaller on a wide field, they are not
+    const size = player.figureHeight() / (responsiveScaler.objectScale || 1) * data.cell;
     living.push(new Creature(id, data, {
         // Comes in anywhere a little in from the sides
         x: size * 0.4 + Math.random() * Math.max(0, width - size * 0.8),
