@@ -44,9 +44,28 @@ const START = { every: [2, 3.5], most: 3, approach: [10, 14] };
 export const zoneCreatures = {
     'northshire-abbey': { ...START, creatures: { 'timber-wolf': 75, 'kobold-worker': 25 } },
     'elwynn-eastvale': { ...START, creatures: { 'prowler': 1 } },
-    'westfall': { every: [2, 3.5], most: 4, approach: [9, 12], creatures: { 'harvest-golem': 1 } },
+    'westfall': { every: [2, 3.5], most: 4, approach: [9, 12], creatures: { 'timber-wolf': 65, 'harvest-golem': 35 } },
     'valley-of-trials': { ...START, creatures: { 'scorpid-worker': 75, 'mottled-boar': 25 } },
     'durotar-razor-hill': { ...START, creatures: { 'bloodtalon-raptor': 1 } },
+
+    // Stand-ins, until each zone's own creatures are painted (art-workbench/zone-creatures/
+    // ROSTER.md): creatures we have, as close to the zone as they come. Every zone has some,
+    // and from the fourth on more than one kind; bruisers about a quarter of them.
+    'stormwind': { ...START, creatures: { 'prowler': 75, 'kobold-worker': 25 } },
+    'redridge-lakeshire': { ...START, creatures: { 'prowler': 40, 'timber-wolf': 35, 'kobold-worker': 25 } },
+    'duskwood-darkshire': { ...START, creatures: { 'timber-wolf': 50, 'prowler': 25, 'mottled-boar': 25 } },
+    'wetlands-menethil': { ...START, creatures: { 'bloodtalon-raptor': 75, 'mottled-boar': 25 } },
+    'arathi-stromgarde': { ...START, creatures: { 'timber-wolf': 45, 'prowler': 30, 'harvest-golem': 25 } },
+    'stranglethorn-vale': { ...START, creatures: { 'bloodtalon-raptor': 45, 'prowler': 30, 'mottled-boar': 25 } },
+    'hinterlands-aerie-peak': { ...START, creatures: { 'timber-wolf': 45, 'prowler': 30, 'mottled-boar': 25 } },
+    'orgrimmar-valley-of-strength': { ...START, creatures: { 'scorpid-worker': 50, 'bloodtalon-raptor': 25, 'mottled-boar': 25 } },
+    'barrens-ratchet': { ...START, creatures: { 'bloodtalon-raptor': 45, 'prowler': 30, 'mottled-boar': 25 } },
+    'stonetalon-sun-rock': { ...START, creatures: { 'timber-wolf': 75, 'kobold-worker': 15, 'harvest-golem': 10 } },
+    'ashenvale-splintertree': { ...START, creatures: { 'timber-wolf': 45, 'prowler': 30, 'mottled-boar': 25 } },
+    'thousand-needles-freewind': { ...START, creatures: { 'scorpid-worker': 45, 'bloodtalon-raptor': 30, 'mottled-boar': 25 } },
+    'hillsbrad-tarren-mill': { ...START, creatures: { 'timber-wolf': 45, 'prowler': 30, 'harvest-golem': 25 } },
+    'desolace-shadowprey': { ...START, creatures: { 'scorpid-worker': 45, 'bloodtalon-raptor': 30, 'mottled-boar': 25 } },
+    'tanaris-gadgetzan': { ...START, creatures: { 'scorpid-worker': 50, 'bloodtalon-raptor': 25, 'harvest-golem': 25 } },
 };
 
 export function creatureImage(id) {

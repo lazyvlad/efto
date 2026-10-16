@@ -155,3 +155,15 @@ test('the shield takes a hit a charge, and a creature can take it all at once', 
     assert.equal(shieldBlocks(state, BRUISER_SHIELD_COST), true);
     assert.equal(state.shieldActive, false, 'a bruiser breaks it');
 });
+
+test('every zone has creatures, and from the fourth on more than one kind', async () => {
+    const { backgrounds } = await import(asUrl(await readFile(new URL('../data/backgrounds.js', import.meta.url))));
+    for (const side of ['alliance', 'horde']) {
+        backgrounds[side].forEach((zone, i) => {
+            const here = zoneCreatures[zone.id];
+            assert.ok(here, `${side} zone ${i + 1} (${zone.name}) has creatures`);
+            for (const id of Object.keys(here.creatures)) assert.ok(creatures[id], `${zone.name}: ${id} is a painted creature`);
+            if (i >= 3) assert.ok(Object.keys(here.creatures).length >= 2, `${zone.name} has more than one kind`);
+        });
+    }
+});
