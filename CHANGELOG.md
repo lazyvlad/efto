@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.5.9 - 2026-10-17
+
+### Changed
+- **Creatures in every zone**: Stormwind, Orgrimmar and every zone after them have creatures,
+  more than one kind from the fourth zone on; stand-ins from the creatures we have until each
+  zone's own are painted.
+- **The bot's reactions** on the game channel's posts are the guild's own: :ogino:,
+  :idelazo: and the bow and arrow.
+
 ## 3.5.8 - 2026-10-16
 
 ### Changed

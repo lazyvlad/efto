@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-16T22:31:12.402Z",
-  "buildTimestamp": 1792189872407,
+  "buildTime": "2026-10-16T23:36:18.814Z",
+  "buildTimestamp": 1792193778820,
   "mode": "production",
-  "gameVersion": "3.5.8",
-  "cacheHash": "krvtge2p",
+  "gameVersion": "3.5.9",
+  "cacheHash": "wi3irvmi",
   "fileMap": {
-    "game-modular.js": "game-modular.krvtge2p.js"
+    "game-modular.js": "game-modular.wi3irvmi.js"
   },
-  "buildSystemVersion": "3.5.8"
+  "buildSystemVersion": "3.5.9"
 }
