@@ -171,7 +171,8 @@ class GameController extends Controller
         // bucket when there is one (config game.asset_url). Pictures from there are fetched as
         // cross-origin requests the bucket allows (its CORS rules), or the game could not read
         // their pixels (utils/hitMask.js) nor make its hunter's picture from them.
-        $assets = $folder === 'game' ? config('game.asset_url') : '';
+        // (A configuration cached before the setting existed has none: no bucket, then)
+        $assets = $folder === 'game' ? (string) config('game.asset_url') : '';
         $head = ($assets !== ''
                 ? '<base href="'.e($assets).'/">'."\n"
                     .'    <script>'.self::CROSS_ORIGIN_PICTURES.'</script>'."\n"
@@ -215,7 +216,7 @@ class GameController extends Controller
     {
         // With its pictures in the S3 bucket the page's base is there: the icons and the
         // manifest, which are not uploaded, are linked to here in full
-        $elsewhere = $folder === 'game' && config('game.asset_url') !== '';
+        $elsewhere = $folder === 'game' && (string) config('game.asset_url') !== '';
         foreach (self::FIXED_NAMES as $name) {
             $version = Fingerprint::of(public_path($folder.'/'.$name));
             $address = $elsewhere && ! str_starts_with($name, 'assets/') ? asset($folder.'/'.$name) : $name;

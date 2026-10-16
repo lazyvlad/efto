@@ -103,6 +103,15 @@ class GamePageTest extends TestCase
         $this->assertStringContainsString('src="'.asset('build/'), $html);
     }
 
+    public function test_a_configuration_cached_before_the_bucket_setting_keeps_the_pictures_here(): void
+    {
+        config(['game.serve' => 'build', 'game.asset_url' => null]);
+
+        $this->get(route('play'))->assertOk()
+            ->assertSee('<base href="'.asset('game').'/">', false)
+            ->assertDontSee("i.crossOrigin='anonymous'", false);
+    }
+
     public function test_the_unbuilt_game_never_takes_its_files_from_the_bucket(): void
     {
         config(['game.serve' => 'source', 'game.asset_url' => 'https://bucket.example/game']);
