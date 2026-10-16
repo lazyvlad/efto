@@ -35,6 +35,9 @@ return [
         'client_secret' => env('DISCORD_CLIENT_SECRET'),
         // A channel webhook: games that were played are posted there (App\Support\DiscordFeed)
         'webhook' => env('DISCORD_WEBHOOK_URL'),
+        // A bot in the same server, allowed to add reactions in that channel: it reacts to each
+        // post (a webhook cannot). Left empty, the posts go out without reactions.
+        'bot_token' => env('DISCORD_BOT_TOKEN'),
     ],
 
     // Google Analytics: the measurement id ("G-..."). Left empty, visits are not counted.

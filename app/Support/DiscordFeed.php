@@ -31,39 +31,248 @@ class DiscordFeed
             return;
         }
 
-        $post = self::post($game);
+        $image = self::image($game);
+        $post = self::post($game, $image !== null);
+        $reactions = self::reactions($game);
 
         // After the player has their answer: the game does not wait for Discord
-        defer(function () use ($webhook, $post) {
-            try {
-                Http::timeout(5)->post($webhook, $post + [
-                    // A player's name must not be able to ping anyone
-                    'allowed_mentions' => ['parse' => []],
-                ]);
-            } catch (Throwable $e) {
-                Log::warning('Discord did not take the game post: '.$e->getMessage());
-            }
-        });
+        defer(fn () => self::send($webhook, $post, $reactions, $image));
     }
 
     /**
-     * What is posted for a game: the line, beside the portrait of the hunter who played it in
-     * his side's colour. A game from before there were sides is posted as the line alone.
+     * Post to the channel, then (with a bot set up) react to the post. Discord being down or
+     * refusing is logged, never passed on.
+     *
+     * @param  array<int, string>  $reactions
+     * @param  ?string  $image  The picture under the card (PNG), attached as game.png
      */
-    public static function post(Game $game): array
+    public static function send(string $webhook, array $post, array $reactions = [], ?string $image = null): bool
     {
-        $message = self::message($game);
-        $portrait = HunterPortrait::thumbnailUrl($game->faction);
+        try {
+            // "wait": Discord answers with the message, whose id the reactions need
+            $url = $webhook.(str_contains($webhook, '?') ? '&' : '?').'wait=true';
+            // A player's name must not be able to ping anyone
+            $post += ['allowed_mentions' => ['parse' => []]];
+            $response = $image === null
+                ? Http::timeout(5)->post($url, $post)
+                : Http::timeout(10)->attach('files[0]', $image, self::IMAGE)->post($url, ['payload_json' => json_encode($post)]);
+            if (! $response->successful()) {
+                Log::warning('Discord did not take the game post: '.$response->status());
 
-        if ($portrait === null) {
-            return ['content' => $message];
+                return false;
+            }
+
+            $bot = config('services.discord.bot_token');
+            $channel = $response->json('channel_id');
+            $message = $response->json('id');
+            if (filled($bot) && $channel && $message) {
+                foreach ($reactions as $i => $emoji) {
+                    // Discord takes about one reaction every quarter second from a bot
+                    if ($i > 0) {
+                        usleep(300_000);
+                    }
+                    $reacted = Http::timeout(5)->withHeaders(['Authorization' => 'Bot '.$bot])
+                        ->withBody('', 'application/json')
+                        ->put(self::API."/channels/{$channel}/messages/{$message}/reactions/".rawurlencode($emoji).'/@me');
+                    if (! $reacted->successful()) {
+                        // Most likely the bot cannot see the channel or add reactions in it
+                        Log::warning("Discord did not take the bot's reaction {$emoji}: ".$reacted->status().' '.$reacted->json('message'));
+                        break;
+                    }
+                }
+            }
+
+            return true;
+        } catch (Throwable $e) {
+            Log::warning('Discord did not take the game post: '.$e->getMessage());
+
+            return false;
+        }
+    }
+
+    private const API = 'https://discord.com/api/v10';
+
+    /**
+     * The reactions a post gets: the same few on every game, a trophy for a game won, a Boss
+     * Rush cleared or a place in the top ten, and a heart for epic or legendary loot.
+     *
+     * @return array<int, string>
+     */
+    public static function reactions(Game $game): array
+    {
+        $reactions = ['🔥', '👏', '🏹'];
+
+        $bosses = $game->bossDrops()->orderBy('dropped_at')->pluck('boss_id');
+        $last = $bosses->isNotEmpty() ? BossLoot::boss($bosses->last()) : null;
+        $won = $last !== null && $last['zone'] >= count(config('boss_loot.bosses.'.$last['faction'], []));
+        $top = ! $game->isOnlyBosses() && Score::rankOf($game->score, $game->version_rank) <= 10;
+        if ($won || $top) {
+            $reactions[] = '🏆';
+        }
+        if (collect(self::notableLoot($game))->contains(fn ($line) => str_starts_with($line, self::RARE['epic']) || str_starts_with($line, self::RARE['legendary']))) {
+            $reactions[] = '💜';
         }
 
-        return ['embeds' => [[
-            'description' => $message,
+        return $reactions;
+    }
+
+    /**
+     * What is posted for a game: a card in his side's colour, beside the portrait of the hunter
+     * who played it. The line at the top, then how long it took, the coins it made, the bosses
+     * brought down and the best loot, and links to the game's own page and the high scores.
+     */
+    public static function post(Game $game, bool $withImage = false): array
+    {
+        $embed = [
+            'description' => self::message($game)."\n".self::links($game),
             'color' => $game->faction === 'horde' ? 0x8C1616 : 0x1F4FA8,
-            'thumbnail' => ['url' => $portrait],
-        ]]];
+            'fields' => self::fields($game),
+        ];
+        // The bosses and the loot as pictures, under the card (self::image)
+        if ($withImage) {
+            $embed['image'] = ['url' => 'attachment://'.self::IMAGE];
+        }
+        if (($portrait = HunterPortrait::thumbnailUrl($game->faction)) !== null) {
+            $embed['thumbnail'] = ['url' => $portrait];
+        }
+
+        return ['embeds' => [$embed]];
+    }
+
+    /** The attached picture's name */
+    private const IMAGE = 'game.png';
+
+    /**
+     * The picture under the card: the bosses brought down, then the best loot in frames of its
+     * rarity's colour (App\Support\GameCardImage). Null with neither to show.
+     */
+    public static function image(Game $game): ?string
+    {
+        $bosses = $game->bossDrops()->orderBy('dropped_at')->pluck('boss_id')
+            ->map(fn ($id) => BossLoot::boss($id)['image'] ?? null)->all();
+
+        return GameCardImage::png($bosses, self::bestLoot($game));
+    }
+
+    /** Time, coins, bosses and loot, as the card's fields; those with nothing to say left out */
+    private static function fields(Game $game): array
+    {
+        $fields = [['name' => 'Time', 'value' => self::duration((int) $game->game_time), 'inline' => true]];
+        if ((int) $game->coins > 0) {
+            $fields[] = ['name' => 'Coins', 'value' => Coins::format((int) $game->coins), 'inline' => true];
+        }
+
+        $bosses = $game->bossDrops()->orderBy('dropped_at')->pluck('boss_id')
+            ->map(fn ($id) => BossLoot::boss($id)['name'] ?? $id);
+        if ($bosses->isNotEmpty()) {
+            $fields[] = ['name' => 'Bosses down ('.$bosses->count().')', 'value' => self::fit($bosses->implode(' · ')), 'inline' => false];
+        }
+
+        $loot = self::notableLoot($game);
+        if ($loot !== []) {
+            $shown = array_slice($loot, 0, self::LOOT_SHOWN);
+            $more = count($loot) - count($shown);
+            $fields[] = ['name' => 'Best loot', 'value' => self::fit(implode("\n", $shown).($more > 0 ? "\n…and {$more} more" : '')), 'inline' => false];
+        }
+
+        return $fields;
+    }
+
+    /** At most this many pieces of loot are named, the rarest first */
+    private const LOOT_SHOWN = 8;
+
+    /** Loot worth telling, by its rarity: a mark for each (as the item colours) */
+    private const RARE = ['legendary' => '🟠', 'epic' => '🟣', 'rare' => '🔵'];
+
+    /**
+     * The rare, epic and legendary things the game brought: what the bosses dropped and what
+     * was caught, rarest first, each named once with how many.
+     *
+     * @return array<int, string>
+     */
+    public static function notableLoot(Game $game): array
+    {
+        return array_map(
+            fn ($item) => self::RARE[$item['rarity']].' '.$item['name'].($item['times'] > 1 ? " ×{$item['times']}" : ''),
+            self::bestLoot($game)
+        );
+    }
+
+    /**
+     * The same, as items: id, name, rarity, how many, and the picture in the game's folder.
+     *
+     * @return array<int, array{id: string, name: string, rarity: string, times: int, image: ?string}>
+     */
+    public static function bestLoot(Game $game): array
+    {
+        $gear = Gear::catalog();
+        $items = LootTable::catalog();
+        $pictures = config('loot.catalog');
+        // An item's rarity, as the gear and the falling items name theirs
+        $rarityOf = function (string $itemId, ?string $dropped = null) use ($gear, $items): ?string {
+            $rarity = $dropped ?? $gear[$itemId]['rarity'] ?? match ($items[$itemId]['type'] ?? null) {
+                'legendary', 'zee_zgnan' => 'legendary',
+                'epic', 'set_piece' => 'epic',
+                'special' => 'rare',
+                default => null,
+            };
+
+            return isset(self::RARE[$rarity]) ? $rarity : null;
+        };
+
+        $found = [];
+        foreach ($game->bossDrops()->get(['item_id', 'rarity']) as $drop) {
+            if ($drop->item_id && ($rarity = $rarityOf($drop->item_id, $drop->rarity))) {
+                $found[$drop->item_id] = ['rarity' => $rarity, 'times' => ($found[$drop->item_id]['times'] ?? 0) + 1];
+            }
+        }
+        foreach ($game->pickups()->pluck('item_id') as $itemId) {
+            if ($rarity = $rarityOf($itemId)) {
+                $found[$itemId] = ['rarity' => $found[$itemId]['rarity'] ?? $rarity, 'times' => ($found[$itemId]['times'] ?? 0) + 1];
+            }
+        }
+
+        $order = array_flip(array_keys(self::RARE));
+        uasort($found, fn ($a, $b) => $order[$a['rarity']] <=> $order[$b['rarity']]);
+
+        $loot = [];
+        foreach ($found as $itemId => $item) {
+            $loot[] = [
+                'id' => $itemId,
+                'name' => $gear[$itemId]['name'] ?? $items[$itemId]['name'] ?? $itemId,
+                'rarity' => $item['rarity'],
+                'times' => $item['times'],
+                'image' => $gear[$itemId]['image'] ?? $pictures[$itemId]['image'] ?? null,
+            ];
+        }
+
+        return $loot;
+    }
+
+    /** Where to see more: the game's own page (once it is on the high scores) and the high scores */
+    private static function links(Game $game): string
+    {
+        $links = [];
+        if ($game->scoreEntry()->exists()) {
+            $links[] = '[The game]('.route('games.show', $game).')';
+        }
+        $links[] = '[High scores]('.route('highscores').')';
+        $links[] = '[Play]('.route('home').')';
+
+        return implode(' · ', $links);
+    }
+
+    private static function duration(int $seconds): string
+    {
+        return $seconds >= 3600
+            ? sprintf('%dh %02dm', intdiv($seconds, 3600), intdiv($seconds % 3600, 60))
+            : sprintf('%d:%02d', intdiv($seconds, 60), $seconds % 60);
+    }
+
+    /** A field's value within what Discord takes (1024 characters) */
+    private static function fit(string $value): string
+    {
+        return mb_strlen($value) > 1024 ? mb_substr($value, 0, 1020).'…' : $value;
     }
 
     /**
@@ -92,10 +301,6 @@ class DiscordFeed
                 ? "{$name} beat the game for the {$side}: {$last['name']} is down. Score ".number_format($game->score).'.'
                 : "{$name} scored ".number_format($game->score)." at level {$game->level}".($side ? " for the {$side}" : '').'.';
 
-            if (! $won && $last) {
-                $line .= " Last boss down: {$last['name']}.";
-            }
-
             // As the high scores have it: among the scores of its own version
             $rank = Score::rankOf($game->score, $game->version_rank);
             $version = $game->game_version ? " of version {$game->game_version}" : '';
@@ -104,8 +309,7 @@ class DiscordFeed
             }
         }
 
-        // In angle brackets, so Discord does not unfold the site's card under every post
-        return $line.' <'.route('home').'>';
+        return $line;
     }
 
     /**

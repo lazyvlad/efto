@@ -22,8 +22,22 @@ class DiscordFeedTest extends TestCase
         parent::setUp();
 
         config(['services.discord.webhook' => self::WEBHOOK]);
-        Http::fake([self::WEBHOOK => Http::response(null, 204)]);
+        Http::fake([
+            self::WEBHOOK.'*' => Http::response(['id' => '222', 'channel_id' => '111'], 200),
+            'discord.com/api/v10/channels/*' => Http::response(null, 204),
+        ]);
         $this->withoutDefer();
+    }
+
+    /** What a request posted: as JSON, or (with a picture) in the multipart's payload_json */
+    private function payload(Request $request): array
+    {
+        if (! $request->isMultipart()) {
+            return $request->data();
+        }
+        $part = collect($request->data())->firstWhere('name', 'payload_json');
+
+        return json_decode($part['contents'] ?? '{}', true);
     }
 
     private function play(array $open = [], array $finish = []): Game
@@ -39,12 +53,63 @@ class DiscordFeedTest extends TestCase
     {
         $this->play();
 
-        Http::assertSent(fn (Request $request) => $request->url() === self::WEBHOOK
+        Http::assertSent(fn (Request $request) => $request->url() === self::WEBHOOK.'?wait=true'
             && str_contains($request['embeds'][0]['description'], '**Bob** scored 1,200 at level 3 for the Horde.')
             && str_contains($request['embeds'][0]['description'], 'That is the new top score.')
             && str_contains($request['embeds'][0]['thumbnail']['url'], 'images/hunters/horde-portrait.jpg')
             && $request['allowed_mentions'] === ['parse' => []]);
         Http::assertSentCount(1);
+    }
+
+    public function test_with_a_bot_set_up_the_post_gets_its_reactions(): void
+    {
+        config(['services.discord.bot_token' => 'bot-token']);
+        $this->play();
+
+        // The same few on every game; this one is the top score, so a trophy too
+        $reacted = collect(Http::recorded())->map(fn ($pair) => $pair[0])
+            ->filter(fn (Request $request) => $request->method() === 'PUT')
+            ->map(fn (Request $request) => rawurldecode(explode('/', $request->url())[10]))
+            ->values()->all();
+        $this->assertSame(['🔥', '👏', '🏹', '🏆'], $reacted);
+        Http::assertSent(fn (Request $request) => $request->method() === 'PUT'
+            && str_starts_with($request->url(), 'https://discord.com/api/v10/channels/111/messages/222/reactions/')
+            && $request->header('Authorization') === ['Bot bot-token']);
+    }
+
+    public function test_without_a_bot_there_are_no_reactions(): void
+    {
+        $this->play();
+
+        Http::assertSentCount(1);
+    }
+
+    public function test_the_bosses_and_the_loot_come_as_a_picture_under_the_card(): void
+    {
+        $game = $this->play();
+        $game->bossDrops()->create(['boss_id' => 'sarkoth', 'item_id' => 'cruel-barb', 'rarity' => 'epic', 'dropped_at' => now()]);
+
+        $png = DiscordFeed::image($game);
+        $this->assertNotNull($png);
+        $this->assertSame("\x89PNG", substr($png, 0, 4));
+        // Two rows: the boss, then the loot
+        [$width, $height] = getimagesizefromstring($png);
+        $this->assertSame([72, 152], [$width, $height]);
+        $this->assertSame('attachment://game.png', DiscordFeed::post($game, true)['embeds'][0]['image']['url']);
+
+        // Sent with the post, as a file
+        DiscordFeed::send(self::WEBHOOK, DiscordFeed::post($game, true), [], $png);
+        Http::assertSent(fn (Request $request) => $request->isMultipart()
+            && $request->hasFile('files[0]', $png, 'game.png')
+            && $this->payload($request)['embeds'][0]['image']['url'] === 'attachment://game.png');
+    }
+
+    public function test_a_game_with_neither_bosses_nor_loot_has_no_picture(): void
+    {
+        $game = $this->play();
+
+        $this->assertNull(DiscordFeed::image($game));
+        $this->assertArrayNotHasKey('image', DiscordFeed::post($game)['embeds'][0]);
     }
 
     public function test_nothing_is_posted_without_a_webhook(): void
@@ -73,12 +138,47 @@ class DiscordFeedTest extends TestCase
         Http::assertSentCount(1);
     }
 
-    public function test_the_last_boss_beaten_is_named(): void
+    /** A field of the card posted for a game, by its name's start */
+    private function field(Game $game, string $name): ?string
+    {
+        foreach (DiscordFeed::post($game)['embeds'][0]['fields'] as $field) {
+            if (str_starts_with($field['name'], $name)) {
+                return $field['value'];
+            }
+        }
+
+        return null;
+    }
+
+    public function test_the_card_tells_the_time_the_coins_and_the_bosses_brought_down(): void
     {
         $game = $this->play();
-        $game->bossDrops()->create(['boss_id' => 'sarkoth', 'item_id' => 'x', 'rarity' => 'common', 'dropped_at' => now()]);
+        $game->forceFill(['game_time' => 754, 'coins' => 43_85])->save();
+        $game->bossDrops()->create(['boss_id' => 'sarkoth', 'item_id' => 'x', 'rarity' => 'common', 'dropped_at' => now()->subMinute()]);
+        $game->bossDrops()->create(['boss_id' => 'zalazane', 'item_id' => 'y', 'rarity' => 'common', 'dropped_at' => now()]);
 
-        $this->assertStringContainsString('Last boss down: Sarkoth.', DiscordFeed::message($game));
+        $this->assertSame('12:34', $this->field($game, 'Time'));
+        $this->assertSame('43s 85c', $this->field($game, 'Coins'));
+        $this->assertSame('Sarkoth · Zalazane', $this->field($game, 'Bosses down (2)'));
+    }
+
+    public function test_the_best_loot_is_named_rarest_first_and_the_common_left_out(): void
+    {
+        $game = $this->play();
+        $game->bossDrops()->create(['boss_id' => 'sarkoth', 'item_id' => 'cape-of-the-brotherhood', 'rarity' => 'rare', 'dropped_at' => now()]);
+        $game->bossDrops()->create(['boss_id' => 'zalazane', 'item_id' => 'cruel-barb', 'rarity' => 'epic', 'dropped_at' => now()]);
+        $game->bossDrops()->create(['boss_id' => 'taragaman', 'item_id' => 'blackened-defias-belt', 'rarity' => 'uncommon', 'dropped_at' => now()]);
+
+        $this->assertSame("🟣 Cruel Barb\n🔵 Cape of the Brotherhood", $this->field($game, 'Best loot'));
+    }
+
+    public function test_the_card_links_to_the_game_and_the_high_scores(): void
+    {
+        $game = $this->play();
+
+        $description = DiscordFeed::post($game)['embeds'][0]['description'];
+        $this->assertStringContainsString('[The game]('.route('games.show', $game).')', $description);
+        $this->assertStringContainsString('[High scores]('.route('highscores').')', $description);
     }
 
     public function test_a_player_with_discord_connected_goes_by_their_discord_name(): void
@@ -105,7 +205,7 @@ class DiscordFeedTest extends TestCase
         $this->postJson(route('games.boss', $token), ['boss' => 'sarkoth'])->assertOk();
         $this->postJson(route('games.finish', $token), ['score' => 100, 'gameTime' => 20])->assertOk();
 
-        Http::assertSent(fn (Request $request) => str_contains($request['embeds'][0]['description'], '**Bob** brought down Sarkoth in a boss fight.'));
+        Http::assertSent(fn (Request $request) => str_contains($this->payload($request)['embeds'][0]['description'] ?? '', '**Bob** brought down Sarkoth in a boss fight.'));
         Http::assertSentCount(1);
     }
 
