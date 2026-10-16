@@ -258,8 +258,9 @@ export const gameConfig = {
     progression: {
         // The pace is set in seconds: a player who catches most things spends about
         // secondsAtLevel1 on level 1 and secondsPerLevel more on every level after that
-        // (level 5: 22s, level 10: 37s, level 20: 67s).
-        secondsAtLevel1: 10,
+        // (level 5: 42s, level 10: 57s, level 20: 87s). A zone (two levels, then its boss)
+        // takes about 1 minute at the start and 3 at the end, for time with its creatures.
+        secondsAtLevel1: 30,
         secondsPerLevel: 3,
         xpPerSecond: 1.2,           // Experience such a player earns per second from level 1 items
         

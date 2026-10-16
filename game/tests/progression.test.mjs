@@ -9,7 +9,7 @@ const { valueMultiplier, itemValueAtLevel, secondsForLevel, xpForLevel, totalXpA
     await import(`data:text/javascript;base64,${source.toString('base64')}`);
 
 const rules = {
-    secondsAtLevel1: 10,
+    secondsAtLevel1: 30,
     secondsPerLevel: 3,
     xpPerSecond: 1.2,
     valueGrowthPerLevel: 0.12,
@@ -22,9 +22,9 @@ test('every level needs more experience, and takes longer, than the one before',
         assert.ok(secondsForLevel(level + 1, rules) > secondsForLevel(level, rules));
     }
 
-    assert.equal(xpForLevel(1, rules), 12);
-    assert.equal(secondsForLevel(1, rules), 10);
-    assert.equal(secondsForLevel(10, rules), 37);
+    assert.equal(xpForLevel(1, rules), 36);
+    assert.equal(secondsForLevel(1, rules), 30);
+    assert.equal(secondsForLevel(10, rules), 57);
 });
 
 test('items are worth more at higher levels, and never less than 1', () => {
@@ -36,9 +36,9 @@ test('items are worth more at higher levels, and never less than 1', () => {
 });
 
 test('experience turns into a level and the progress through it', () => {
-    assert.deepEqual(levelProgress(0, rules), { level: 1, into: 0, needed: 12 });
-    assert.deepEqual(levelProgress(11, rules), { level: 1, into: 11, needed: 12 });
-    assert.deepEqual(levelProgress(12, rules), { level: 2, into: 0, needed: xpForLevel(2, rules) });
+    assert.deepEqual(levelProgress(0, rules), { level: 1, into: 0, needed: 36 });
+    assert.deepEqual(levelProgress(35, rules), { level: 1, into: 35, needed: 36 });
+    assert.deepEqual(levelProgress(36, rules), { level: 2, into: 0, needed: xpForLevel(2, rules) });
 
     for (const level of [1, 2, 5, 12, 25]) {
         assert.equal(levelProgress(totalXpAtLevel(level, rules), rules).level, level);
