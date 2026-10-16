@@ -32,6 +32,11 @@ export function calculateItemProbability(item, gameState) {
         probability = 0;
     }
     
+    // A piece of a hunter set never falls: only the bosses drop them (config/boss_loot.php)
+    if (item.type === "set_piece") {
+        probability = 0;
+    }
+    
     // A piece of a hunter set waits for its own set's level
     if (item.type === "set_piece" && !pieceUnlocked(item, (gameState.currentLevel || 0) + 1, gameConfig.sets)) {
         probability = 0;

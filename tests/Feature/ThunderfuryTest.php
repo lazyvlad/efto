@@ -97,8 +97,9 @@ class ThunderfuryTest extends TestCase
         $this->assertArrayNotHasKey('thunderfury', Gear::owned($user->fresh(), 'alliance'));
     }
 
-    public function test_for_now_no_boss_drops_a_binding(): void
+    public function test_no_boss_drops_a_binding_while_their_chance_is_nothing(): void
     {
+        config(['boss_loot.bindings.chance' => 0]);
         $user = User::factory()->create();
         foreach (['khan-dezhepah', 'chief-ukorz-sandscalp', 'vile-priestess-hexx'] as $bossId) {
             $this->assertSame([], BossLoot::rollBindings($user, BossLoot::boss($bossId)));

@@ -74,10 +74,7 @@
                 <div class="grid gap-4 lg:grid-cols-3">
                     @foreach ($sets as $set)
                         <div class="game-card p-4">
-                            <p class="game-label">{{ __('Tier :tier · rarely falls from level :level', ['tier' => $set['tier'], 'level' => $set['fromLevel']]) }}</p>
-                            @if ($set['bossZones'])
-                                <p class="game-label">{{ __('Dropped by the bosses of zones :zones', ['zones' => $set['bossZones']]) }}</p>
-                            @endif
+                            <p class="game-label">{{ __('Tier :tier · dropped by the bosses of zones :zones', ['tier' => $set['tier'], 'zones' => $set['bossZones']]) }}</p>
                             <h4 class="font-display text-lg rarity-epic mt-0.5">{{ $set['name'] }}</h4>
                             <p class="mt-2 text-sm text-gray-900">{{ __('Each piece: :stats', ['stats' => $set['perPiece']]) }}</p>
                             <ul class="mt-2 space-y-1 text-sm">

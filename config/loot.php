@@ -256,11 +256,10 @@ return [
     // Offered at most once in a game
     'once_per_game' => ['zee'],
 
-    // Pieces of the hunter sets are rare in what falls: a share of what their weight alone would
-    // give, and never more than so many in a game. The bosses drop them as well, a set to each
-    // stretch of zones (boss_loot.set_pieces).
-    'set_piece_share' => 0.1,
-    'set_pieces_per_game' => 2,
+    // Pieces of the hunter sets never fall: only the bosses drop them, a set to each stretch of
+    // zones (boss_loot.set_pieces). The game gives them no chance of its own either
+    // (calculateItemProbability in game/utils/spawning.js).
+    'set_pieces_per_game' => 0,
 
     // Gear the bosses drop, never falling (config/boss_loot.php "pools"): the game gives them
     // no chance of their own either (baseProbability 0 in game/data/gameItems.js)

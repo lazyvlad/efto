@@ -45,9 +45,7 @@ class LootTable
                 }
 
                 // Each spawn picks this item with chance weight / total, as the game does itself
-                // (a set piece, only a share of that)
-                $share = $type === 'set_piece' ? (float) config('loot.set_piece_share', 1) : 1.0;
-                $count = self::poisson($spawns * $weight * $share / $totalWeight);
+                $count = self::poisson($spawns * $weight / $totalWeight);
 
                 for ($i = 0; $i < ($once ? min(1, $count) : $count); $i++) {
                     $at = $start + random_int(0, $chunkSeconds - 1);
