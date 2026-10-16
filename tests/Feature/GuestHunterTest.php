@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Game;
+use App\Models\Score;
 use App\Models\User;
 use App\Support\Bags;
 use App\Support\GuestHunter;
@@ -151,6 +152,67 @@ class GuestHunterTest extends TestCase
         $this->assertSame(1, $user->bossDrops()->count());
         $this->assertSame($user->id, Game::latest('id')->first()->user_id);
         $this->assertSame([], Bags::bank($user, 'horde'));
+    }
+
+    /** A score set as a guest, on the high scores under the name he played under */
+    private function guestScore(User $guest): Score
+    {
+        $game = Game::where('user_id', $guest->id)->latest('id')->firstOrFail();
+
+        return Score::forceCreate(['user_id' => $guest->id, 'game_id' => $game->id, 'name' => $game->name, 'score' => 500, 'level' => 3, 'game_time' => 120]);
+    }
+
+    public function test_signing_up_his_games_and_scores_take_his_account_s_name(): void
+    {
+        [$key, $guest] = $this->newGuest();
+        $this->playAndBeatHogger($key);
+        $score = $this->guestScore($guest);
+        $this->assertSame('Kestrel', $score->name);
+
+        $this->withCredentials()->withCookie(GuestHunter::COOKIE, $key)->post(route('register'), [
+            'name' => 'Windrunner',
+            'email' => 'windrunner@example.test',
+            'password' => 'a-long-and-unguessable-one-9',
+            'password_confirmation' => 'a-long-and-unguessable-one-9',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(['Windrunner'], Game::where('user_id', $guest->id)->pluck('name')->unique()->values()->all());
+        $this->assertSame('Windrunner', $score->fresh()->name);
+    }
+
+    public function test_brought_to_an_account_his_games_and_scores_take_its_name(): void
+    {
+        [$key, $guest] = $this->newGuest();
+        $this->playAndBeatHogger($key);
+        $score = $this->guestScore($guest);
+        $user = User::factory()->create(['name' => 'Sylvanas']);
+
+        $this->actingAs($user)->withCredentials()->withCookie(GuestHunter::COOKIE, $key)->postJson(route('guest.merge'), ['bring' => true])
+            ->assertOk()->assertJsonPath('merged', true);
+
+        $this->assertSame(['Sylvanas'], Game::where('user_id', $user->id)->pluck('name')->unique()->values()->all());
+        $this->assertSame('Sylvanas', $score->fresh()->name);
+        $this->assertSame($user->id, $score->fresh()->user_id);
+    }
+
+    public function test_games_brought_over_before_take_their_account_s_name_as_the_deploy_migrates(): void
+    {
+        [$key, $guest] = $this->newGuest();
+        $this->playAndBeatHogger($key);
+        $score = $this->guestScore($guest);
+        $user = User::factory()->create(['name' => 'Sylvanas']);
+        // Brought over before 3.5.7: still under the name played as a guest
+        Game::where('user_id', $guest->id)->update(['user_id' => $user->id]);
+        $score->forceFill(['user_id' => $user->id])->save();
+        // A guest's own games keep his name
+        [$otherKey, $other] = $this->newGuest();
+        $this->playAndBeatHogger($otherKey);
+
+        (require base_path('database/migrations/2026_10_16_140000_name_games_after_their_accounts.php'))->up();
+
+        $this->assertSame(['Sylvanas'], Game::where('user_id', $user->id)->pluck('name')->unique()->values()->all());
+        $this->assertSame('Sylvanas', $score->fresh()->name);
+        $this->assertSame(['Kestrel'], Game::where('user_id', $other->id)->pluck('name')->unique()->values()->all());
     }
 
     public function test_left_behind_it_is_not_offered_again_this_visit(): void

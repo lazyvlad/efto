@@ -107,17 +107,23 @@ class GuestHunter
     }
 
     /**
-     * A guest signs up: his account becomes a real one, with all he found.
+     * A guest signs up: his account becomes a real one, with all he found. The games he played
+     * and the scores he set are shown under his account's name from now on, not the one he
+     * played under as a guest.
      */
     public static function adopt(User $guest, string $name, string $email, string $password): User
     {
-        $guest->forceFill([
-            'name' => $name,
-            'email' => $email,
-            'password' => $password,
-            'is_guest' => false,
-            'guest_key' => null,
-        ])->save();
+        DB::transaction(function () use ($guest, $name, $email, $password) {
+            $guest->forceFill([
+                'name' => $name,
+                'email' => $email,
+                'password' => $password,
+                'is_guest' => false,
+                'guest_key' => null,
+            ])->save();
+            Game::where('user_id', $guest->id)->update(['name' => $name]);
+            \App\Models\Score::where('user_id', $guest->id)->update(['name' => $name]);
+        });
 
         return $guest;
     }
@@ -126,14 +132,15 @@ class GuestHunter
      * A guest logs in to an account he has and brings along what he found: each hunter's to
      * the same hunter. His games and boss loot become the account's, what he kept in his bags
      * and bank goes to the bank, his coins to the purse. What the account wears and carries is
-     * left as it is: the guest's gear waits in the bank.
+     * left as it is: the guest's gear waits in the bank. His games and scores are shown under
+     * the account's name.
      */
     public static function mergeInto(User $guest, User $user): void
     {
         DB::transaction(function () use ($guest, $user) {
-            Game::where('user_id', $guest->id)->update(['user_id' => $user->id]);
+            Game::where('user_id', $guest->id)->update(['user_id' => $user->id, 'name' => $user->name]);
             BossDrop::where('user_id', $guest->id)->update(['user_id' => $user->id]);
-            \App\Models\Score::where('user_id', $guest->id)->update(['user_id' => $user->id]);
+            \App\Models\Score::where('user_id', $guest->id)->update(['user_id' => $user->id, 'name' => $user->name]);
 
             $bank = [];
             $sold = [];
