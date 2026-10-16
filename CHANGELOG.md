@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.5.8 - 2026-10-16
+
+### Changed
+- **The game channel on Discord** gets a card for each game: how long it took, the coins it
+  made, the bosses brought down, the best loot, links to the game's page and the high scores,
+  and a picture of the bosses and the loot under it. The guild's bot reacts to each post.
+
 ## 3.5.7 - 2026-10-16
 
 ### Fixed
