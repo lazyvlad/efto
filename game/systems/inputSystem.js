@@ -1,3 +1,4 @@
+import { movementBounds } from '../utils/movement.js';
 import { fallbackAudioInit } from './audioSystem.js';
 import { spellSystem } from './spellSystem.js';
 import { responsiveScaler } from '../utils/gameUtils.js';
@@ -529,13 +530,8 @@ export function updatePlayerPosition(player, canvas, deltaTimeMultiplier, gameCo
     const hasUnrestrictedMovement = spellSystem.hasUnrestrictedMovement();
     
     if (movableAreaConfig.enabled && !hasUnrestrictedMovement) {
-        // Constrain to bottom portion of canvas (unless spell allows unrestricted movement)
-        const baseMovableHeight = canvas.logicalHeight * movableAreaConfig.heightPercent;
-        // Add dodge area expansion to movable height
-        const dodgeExpansion = gameState ? (gameState.dodgeAreaExpansion || 0) : 0;
-        const movableHeight = baseMovableHeight + dodgeExpansion;
-        minY = canvas.logicalHeight - movableHeight;
-        maxY = canvas.logicalHeight - player.height;
+        // At the bottom of the field, rising a little (utils/movement.js), unless a spell frees him
+        ({ minY, maxY } = movementBounds(canvas.logicalHeight, player, gameState));
     }
     
     // Initialize player position if not done yet

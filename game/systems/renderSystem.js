@@ -1,3 +1,4 @@
+import { movementBounds } from '../utils/movement.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { renderCanvasHud, hideMessagesAboveField } from './hudNotificationSystem.js';
 import { drawBoss } from './bossSystem.js';
@@ -87,59 +88,32 @@ function renderGame({
     renderBulletTimeEffects,
     alpha = 1
 }) {
-    // Draw movable area border if enabled (now responsive)
+    // The top of where the hunter can reach (utils/movement.js): a faint line; while a boss's
+    // ambush or side charge opens more room, that room lit, so he sees where to go
     const movableAreaConfig = responsiveScaler.getMovableAreaConfig();
-    if (movableAreaConfig.enabled && movableAreaConfig.showBorder) {
-        const baseMovableHeight = canvas.logicalHeight * movableAreaConfig.heightPercent;
-        const dodgeExpansion = gameState.dodgeAreaExpansion || 0;
-        const totalMovableHeight = baseMovableHeight + dodgeExpansion;
-        
-        const baseBorderY = canvas.logicalHeight - baseMovableHeight;
-        const expandedBorderY = canvas.logicalHeight - totalMovableHeight;
-        
+    if (movableAreaConfig.enabled && movableAreaConfig.showBorder && player) {
+        const usual = movementBounds(canvas.logicalHeight, player, { moveCeiling: gameState.moveCeiling });
+        const now = movementBounds(canvas.logicalHeight, player, gameState);
         ctx.save();
-        
-        // Draw base movable area border (normal color)
-        ctx.strokeStyle = movableAreaConfig.borderColor;
-        ctx.globalAlpha = movableAreaConfig.borderOpacity;
-        ctx.lineWidth = movableAreaConfig.borderWidth;
-        
-        ctx.beginPath();
-        ctx.moveTo(0, baseBorderY);
-        ctx.lineTo(canvas.logicalWidth, baseBorderY);
-        ctx.stroke();
-        
-        // Draw dodge-expanded area if present
-        if (dodgeExpansion > 0) {
-            // Fill the dodge area with a subtle background
-            ctx.fillStyle = '#00FF88';
-            ctx.globalAlpha = 0.05;
-            ctx.fillRect(0, expandedBorderY, canvas.logicalWidth, dodgeExpansion);
-            
-            // Draw dodge area border (bright green)
-            // A faint line, nothing written across the field (the figure is in his stats)
-            ctx.strokeStyle = '#00FF88';
-            ctx.globalAlpha = 0.3;
-            ctx.lineWidth = movableAreaConfig.borderWidth;
-            
+        if (now.minY < usual.minY - 1) {
+            ctx.fillStyle = '#9FE870';
+            ctx.globalAlpha = 0.12 + 0.06 * Math.sin(performance.now() / 160);
+            ctx.fillRect(0, now.minY, canvas.logicalWidth, usual.minY - now.minY);
+            ctx.globalAlpha = 0.7;
+            ctx.strokeStyle = '#9FE870';
+            ctx.lineWidth = movableAreaConfig.borderWidth + 1;
             ctx.beginPath();
-            ctx.moveTo(0, expandedBorderY);
-            ctx.lineTo(canvas.logicalWidth, expandedBorderY);
+            ctx.moveTo(0, now.minY);
+            ctx.lineTo(canvas.logicalWidth, now.minY);
             ctx.stroke();
         }
-        
-        // Draw side borders for both areas
         ctx.strokeStyle = movableAreaConfig.borderColor;
         ctx.globalAlpha = movableAreaConfig.borderOpacity;
         ctx.lineWidth = movableAreaConfig.borderWidth;
-        
         ctx.beginPath();
-        ctx.moveTo(0, expandedBorderY);
-        ctx.lineTo(0, canvas.logicalHeight);
-        ctx.moveTo(canvas.logicalWidth, expandedBorderY);
-        ctx.lineTo(canvas.logicalWidth, canvas.logicalHeight);
+        ctx.moveTo(0, usual.minY);
+        ctx.lineTo(canvas.logicalWidth, usual.minY);
         ctx.stroke();
-        
         ctx.restore();
     }
     

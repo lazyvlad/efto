@@ -39,8 +39,7 @@ export function showDodgeText(x, y, combatTexts) {
 export function trackDodge(gameState, healthSaved = 0) {
     gameState.totalDodges++;
     gameState.healthSavedFromDodges += healthSaved;
-    // Expand movable area by 1 pixel per HP saved from dodges
-    gameState.dodgeAreaExpansion += healthSaved;
+    // (Dodging no longer widens the area he moves in: utils/movement.js)
 }
 
 // Apply stat bonuses from collected items (crit rating, dodge rating)

@@ -111,7 +111,6 @@ let gameState = {
     // Dodge statistics
     totalDodges: 0, // Total number of successful dodges
     healthSavedFromDodges: 0, // Total health points saved from dodges
-    dodgeAreaExpansion: 0, // Additional movable area height from dodges (pixels)
     
     // Level and speed
     currentLevel: 0, // 0-based internal level (displays as Level 1 to user)
@@ -651,6 +650,12 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     // Boss Rush has nothing but the bosses.
     const onlyBosses = gameState.mode !== 'normal';
     if (!onlyBosses) spawnItems(bulletTimeAdjustedDelta);
+    if (!isBossFightActive()) {
+        // Out of a boss fight nothing holds him down or opens up his room (utils/movement.js)
+        gameState.moveCeiling = null;
+        gameState.moveRaise = 0;
+        gameState.hooked = null;
+    }
     if (isBossFightActive()) {
         updateBoss({ gameState, canvas, player, fireballs, powerUps, particles, combatTexts, spellSystem, isValidYPosition, recentDropYPositions, shouldDodge, showDodgeText, trackDodge, onBossDefeated });
     } else if (!onlyBosses) {
@@ -2007,7 +2012,8 @@ function startGame() {
     // Reset dodge statistics
     gameState.totalDodges = 0;
     gameState.healthSavedFromDodges = 0;
-    gameState.dodgeAreaExpansion = 0;
+    gameState.specialHits = {};
+    gameState.hooked = null;
     
     // The quiver: some of its slots filled, and bigger for a player who has found the large one.
     // A boss fight has no zone before it to gather arrows in, so it starts with the quiver full.
@@ -2264,7 +2270,8 @@ function restartGame() {
     // Reset dodge statistics
     gameState.totalDodges = 0;
     gameState.healthSavedFromDodges = 0;
-    gameState.dodgeAreaExpansion = 0;
+    gameState.specialHits = {};
+    gameState.hooked = null;
     
     // The quiver: some of its slots filled, and bigger for a player who has found the large one.
     // A boss fight has no zone before it to gather arrows in, so it starts with the quiver full.
@@ -4173,7 +4180,6 @@ function createMobileIntegratedLayout(gameState, gameItems) {
         <div style="display: none;">
             <span id="dodgeRating">0%</span>
             <span id="healthSavedFromDodges">0 HP</span>
-            <span id="dodgeAreaExpansion">+0px</span>
         </div>
     `;
     panel.insertAdjacentHTML('beforeend', hiddenElements);
@@ -4527,21 +4533,6 @@ function updatePlayerStats(gameState) {
             healthSavedElement.style.color = '#FFD700'; // Gold for some health saved
         } else {
             healthSavedElement.style.color = '#00FF00'; // Green for significant health saved
-        }
-    }
-    
-    // Update dodge area expansion display
-    const dodgeAreaElement = document.getElementById('dodgeAreaExpansion');
-    if (dodgeAreaElement) {
-        const expansion = gameState.dodgeAreaExpansion || 0;
-        setTextIfChanged(dodgeAreaElement, `+${Math.round(expansion)}px`);
-        // Color code based on area expansion
-        if (expansion === 0) {
-            dodgeAreaElement.style.color = '#CCCCCC'; // Gray for no expansion
-        } else if (expansion < 50) {
-            dodgeAreaElement.style.color = '#FFD700'; // Gold for some expansion
-        } else {
-            dodgeAreaElement.style.color = '#00FF88'; // Bright green for significant expansion
         }
     }
     

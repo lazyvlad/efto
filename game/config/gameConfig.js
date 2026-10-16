@@ -237,7 +237,9 @@ export const gameConfig = {
         // === MOVABLE AREA SETTINGS ===
         movableArea: {
             enabled: true,          // Enable movement constraints
-            heightPercent: 0.3,     // Player can move in bottom 30% of canvas
+            heightPercent: 0.3,     // The bosses' "ground": the bottom 30% of the field, where their stomps, Upheaval and storms strike
+            rise: 1 / 3,            // How far the hunter can rise above where he stands, in his own heights (utils/movement.js)
+            bossGap: 0.7,           // In a boss fight, how far below the boss his head is kept at least, in his heights
             showBorder: true,       // Show visual border of movable area
             borderColor: '#e8c66a', // Border color (the interface's soft gold)
             borderOpacity: 0.3,     // Border opacity (30%)

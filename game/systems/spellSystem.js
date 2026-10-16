@@ -1,4 +1,5 @@
 // Player spell system
+import { movementBounds } from '../utils/movement.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { playerSpells } from '../data/playerSpells.js';
 import { notificationSystem } from './notificationSystem.js';
@@ -227,10 +228,8 @@ class SpellSystem {
         
         if (!movableArea.enabled) return; // No constraints to enforce
         
-        // Calculate constrained area bounds
-        const movableHeight = canvas.logicalHeight * movableArea.heightPercent;
-        const minY = canvas.logicalHeight - movableHeight;
-        const maxY = canvas.logicalHeight - player.height;
+        // Calculate constrained area bounds (utils/movement.js)
+        const { minY, maxY } = movementBounds(canvas.logicalHeight, player, (this.gameStateCallback && this.gameStateCallback()) || {});
         
         // Check if player is outside the constrained area
         if (player.y < minY) {

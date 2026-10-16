@@ -1,3 +1,4 @@
+import { movementBounds } from '../utils/movement.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { assetManager } from '../utils/AssetManager.js';
 import { assetRegistry } from '../data/assetRegistry.js';
@@ -374,10 +375,9 @@ export class Player {
         // Reposition Y based on responsive movable area
         const movableAreaConfig = responsiveScaler.getMovableAreaConfig();
         if (movableAreaConfig.enabled) {
-            const movableHeight = canvasHeight * movableAreaConfig.heightPercent;
-            const movableAreaTop = canvasHeight - movableHeight;
-            // Keep player within movable area bounds
-            this.y = Math.max(movableAreaTop, Math.min(canvasHeight - this.height, this.y));
+            // Keep player within movable area bounds (utils/movement.js)
+            const { minY, maxY } = movementBounds(canvasHeight, this);
+            this.y = Math.max(minY, Math.min(maxY, this.y));
         } else {
             // Fallback to responsive positioning
             this.y = canvasHeight - responsiveScaler.scale(180);

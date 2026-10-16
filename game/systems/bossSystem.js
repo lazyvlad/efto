@@ -11,6 +11,7 @@
 //   acting   - carrying out an attack that takes time (a charge, being vanished)
 // Its attacks come round in the order its behaviour lists them.
 
+import { movementBounds } from '../utils/movement.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { bosses, behaviours, bossForZone, bossStats, levelCap, zoneForLevel, weakenedMultiplier, enrageMultiplier, speedBonus } from '../data/bosses.js';
 import { levelProgress } from '../utils/progression.js';
@@ -1263,6 +1264,10 @@ export function updateBoss(context) {
 
     fight.steps++;
     if (fight.dazedSteps > 0) fight.dazedSteps--;
+
+    // He is kept far enough below the boss (utils/movement.js), however the field is sized
+    const standing = layout(canvas, boss);
+    gameState.moveCeiling = standing.top + standing.height + context.player.figureHeight() * gameConfig.player.movableArea.bossGap;
     fight.prevX = fight.x;
     fight.prevDrop = fight.drop;
     if (fight.hitFlash > 0) fight.hitFlash--;
