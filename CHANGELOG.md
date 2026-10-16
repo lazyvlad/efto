@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.5.2 - 2026-10-16
+
+### Changed
+- **The game's pictures and sounds come from Amazon S3** (the bucket efto-input-assets) once
+  production's `GAME_ASSET_URL` is set, instead of from this server. Before each release
+  `scripts/upload-game-assets.sh` sends the new and changed ones.
+
 ## 3.5.1 - 2026-10-16
 
 ### Changed
