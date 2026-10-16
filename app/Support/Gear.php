@@ -523,6 +523,8 @@ class Gear
 
         $caught = \App\Models\GameDrop::query()
             ->whereNotNull('claimed_at')
+            // Since he last started over (users.loot_reset_at)
+            ->when($user->loot_reset_at, fn ($drops) => $drops->where('claimed_at', '>=', $user->loot_reset_at))
             ->whereIn('item_id', self::foundInGames())
             ->whereHas('game', fn ($game) => self::onSide($game->where('user_id', $user->id), $side))
             ->selectRaw('item_id, count(*) as found')

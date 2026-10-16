@@ -70,6 +70,7 @@ class User extends Authenticatable implements MustVerifyEmail
             'is_admin' => 'boolean',
             'is_guest' => 'boolean',
             'blocked_at' => 'datetime',
+            'loot_reset_at' => 'datetime',
         ];
     }
 
@@ -124,11 +125,15 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * The boss loot this player has collected.
+     * The boss loot this player has collected: since he last started over (loot_reset_at), what
+     * he owns and the bosses he has beaten come from these alone. The games' own boss drops
+     * (Game::bossDrops) keep the whole record.
      */
     public function bossDrops(): HasMany
     {
-        return $this->hasMany(BossDrop::class);
+        $drops = $this->hasMany(BossDrop::class);
+
+        return $this->loot_reset_at ? $drops->where('dropped_at', '>=', $this->loot_reset_at) : $drops;
     }
 
     /**
@@ -188,6 +193,8 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return GameDrop::query()
             ->whereNotNull('claimed_at')
+            // Since he last started over
+            ->when($this->loot_reset_at, fn ($drops) => $drops->where('claimed_at', '>=', $this->loot_reset_at))
             ->whereIn('item_id', config('loot.items.set_piece'))
             ->whereHas('game', function ($game) use ($side) {
                 $game->where('user_id', $this->id);
