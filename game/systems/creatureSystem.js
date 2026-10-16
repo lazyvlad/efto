@@ -20,6 +20,7 @@ import { playFireballImpactSound } from './audioSystem.js';
 import { updateFrostTraps } from './frostTrapSystem.js';
 import { readyImage } from '../utils/readyImage.js';
 import { valueMultiplier } from '../utils/progression.js';
+import { assetManager } from '../utils/AssetManager.js';
 
 let living = [];
 // Zone gear the site gave the game for creatures to carry, waiting for a creature to carry
@@ -52,6 +53,8 @@ export function resetCreatures() {
  */
 export function carryForCreatures(item, dropId) {
     carried.push({ item, dropId });
+    // Its picture fetched now, to be there when it pops out of the creature
+    if (item && item.image) assetManager.getImage(item.image);
 }
 
 /** Whether the zone being played has creatures of its own (Frost Traps fall only where it does) */
@@ -99,6 +102,8 @@ function spawn(zone, context) {
     }
     // And a piece of the zone's gear, if one is waiting
     if (carried.length) loot.push(carried.shift());
+    // Their pictures fetched now, to be there when it falls and they pop out of it
+    for (const { item } of loot) if (item && item.image) assetManager.getImage(item.image);
 
     sheetOf(id);
     // As big as against the hunter at his full size: he is drawn smaller on a wide field, they are not

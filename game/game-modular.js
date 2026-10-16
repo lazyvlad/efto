@@ -2527,10 +2527,28 @@ function updateFallingItems(deltaTimeMultiplier) {
 // Loot a creature dropped hops out of it, to be caught like anything that falls; a piece of
 // the zone's gear the site gave it to carry keeps its drop's id, to be reported when caught
 function popCreatureLoot(itemData, x, y, dropId = null) {
-    const item = new FallingItem(() => itemData, isValidYPosition, [], gameState, images, canvas);
-    item.popFrom(x, y, canvas, gameConfig.creatures.pop);
-    if (dropId !== null && dropId !== undefined) item.dropId = dropId;
-    fallingItems.push(item);
+    whenPictureReady(itemData.image, () => {
+        const item = new FallingItem(() => itemData, isValidYPosition, [], gameState, images, canvas);
+        item.popFrom(x, y, canvas, gameConfig.creatures.pop);
+        if (dropId !== null && dropId !== undefined) item.dropId = dropId;
+        fallingItems.push(item);
+    });
+}
+
+// Loot pops out only once its picture is there to draw (fetched when the creature came in, so
+// usually at once; a boss's once the site has said what it dropped), never as a glow alone.
+// A picture that cannot be had pops out anyway, drawn as the game draws a missing picture.
+function whenPictureReady(path, pop) {
+    const picture = path ? assetManager.getImage(path) : null;
+    // Loaded, or failed for good: at once
+    if (!picture || picture.complete) return pop();
+    const go = () => {
+        picture.removeEventListener('load', go);
+        picture.removeEventListener('error', go);
+        if (gameState.gameRunning) pop();
+    };
+    picture.addEventListener('load', go);
+    picture.addEventListener('error', go);
 }
 
 // A boss's loot, popping out of it where it fell. It is shown, not caught for keeps: the site
@@ -2540,10 +2558,12 @@ function popBossLoot(item, at) {
     const image = (gear && gear.image) || item.image;
     if (!image) return;
     const itemData = { id: item.id, name: item.name, image, type: item.rarity === 'epic' ? 'epic' : item.rarity === 'rare' ? 'special' : 'green', value: 0, collected: 0 };
-    const falling = new FallingItem(() => itemData, isValidYPosition, [], gameState, images, canvas);
-    falling.popFrom(at.x, at.y, canvas, gameConfig.creatures.pop);
-    falling.shownOnly = true;
-    fallingItems.push(falling);
+    whenPictureReady(image, () => {
+        const falling = new FallingItem(() => itemData, isValidYPosition, [], gameState, images, canvas);
+        falling.popFrom(at.x, at.y, canvas, gameConfig.creatures.pop);
+        falling.shownOnly = true;
+        fallingItems.push(falling);
+    });
 }
 
 // A piece of the zone's gear as it falls: from the site's catalogue (INPUT_BOOT.gear), sized and
