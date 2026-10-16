@@ -1,5 +1,34 @@
 # Changelog
 
+## 3.5.0 - 2026-10-16
+
+### Added
+- **The ambush**: Edwin VanCleef vanishes, and the ground where the hunter stands is marked while
+  a row of room opens above it, lit green. Rise into it: he strikes up out of the ground, then
+  marks where the hunter has gone and backstabs there; step out of that mark.
+- **The side charge**: Gath'Ilzogg leaves the top and a lane is marked along the ground. Rise into
+  the room it opens as he dashes across from the far side (a hit is massive), then step out of
+  the mark where he strikes next.
+- **Stitches' hook**: a red mark where the hunter stands, and exactly half a second later the
+  hook flies there. Caught, he is dragged in under Stitches, held and hit. New art from the art
+  agent: the hook, its chain, and Stitches throwing it.
+
+### Changed
+- **The big cats** (King Bangalash, Echeyakee, Shadumbra) drop their plain charge for the ambush
+  and the side charge, between their throws.
+- **Movement**: the hunter can always rise a third of his own height, so melee can reach, and
+  dodging no longer widens his room (the Dodge Area stat is gone). In a boss fight his head is
+  kept well below the boss, whatever the window's size. Dragon Cry still frees him.
+- **The hunter and the bosses are drawn smaller** on anything but a phone (80%), for more room
+  between them. Everything else keeps its size, and speeds are unchanged.
+- **Everyone starts over**: the players so far were testing, so every hunter goes back to his
+  starting clothes, without gear, materials, bags bought, coins or bosses beaten. Games, scores
+  and boss fights stay on record.
+
+### Fixed
+- **Dragon Cry is no way out of a mark**: a mark where the hunter stands reaches up to him,
+  wherever he flies.
+
 ## 3.4.0 - 2026-10-16
 
 ### Added
