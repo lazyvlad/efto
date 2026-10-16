@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.5.4 - 2026-10-16
+
+### Changed
+- **Longer zones**: every level takes 20 seconds more, so the first boss comes after about a
+  minute instead of 23 seconds, and the last zones last about 3 minutes.
+- **Creatures give experience**: bringing one down counts as a few seconds of catching (more
+  for a bruiser).
+- **More creatures**: they come more often, up to three at a time (four in Westfall), the first
+  sooner into a zone.
+- **Longer melee reach against creatures**: the hunter strikes a creature as it comes down and
+  knocks it back before it can pounce. Against bosses his reach is unchanged.
+
+### Fixed
+- **The site's tests can no longer empty a real database**: they refuse to run while the
+  configuration is cached.
+
 ## 3.5.3 - 2026-10-16
 
 ### Fixed
