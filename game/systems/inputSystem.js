@@ -549,6 +549,12 @@ export function updatePlayerPosition(player, canvas, deltaTimeMultiplier, gameCo
         inputState.playerInitialized = true;
     }
 
+    // Caught on a boss's hook he is dragged, not walked (systems/bossSystem.js)
+    if (gameState && gameState.hooked) {
+        player.updateTimers(deltaTimeMultiplier);
+        return;
+    }
+
     let targetX = player.x;
     let targetY = player.y;
 

@@ -42,7 +42,18 @@ const ATTACK_SPEED = { min: 1.2, max: 2.0 };  // How fast a boss's attack falls,
 // How long the first boss stands to wind up each attack, in steps (60 = 1 second); later
 // bosses are quicker. The charge and the stomp show the player where the danger will be for
 // the whole of theirs.
-const WIND_UP = { throw: 24, row: 36, fan: 24, vanish: 18, charge: 54, bolt: 24, curse: 36, bomb: 24, stomp: 66, hex: 66, swipe: 30, riot: 48, upheaval: 60 };
+const WIND_UP = { throw: 24, row: 36, fan: 24, vanish: 18, charge: 54, bolt: 24, curse: 36, bomb: 24, stomp: 66, hex: 66, swipe: 30, riot: 48, upheaval: 60, ambush: 18, sidecharge: 72, hook: 30 };
+
+// The rogue's ambush and the side charge (gameConfig.bosses.ambush, .sideCharge): their parts,
+// in steps. The marks (where it will strike) are shorter for the later bosses, as wind-ups are.
+//   Ambush: it vanishes, the hunter's room opens up, the ground where he stands is marked and it
+//           comes up out of it; then it marks where he is now and backstabs him there; then home.
+//   Side charge: the ground is marked across the field from one side, the room opens up, and it
+//           dashes over it; then it marks where he is and strikes there; then home.
+const AMBUSH = { vanish: 30, mark: 72, strike: 12, backMark: 48, back: 12, home: 30 };
+const SIDE = { dash: 36, mark: 48, strike: 12, home: 30 };
+// The hook going back to the boss when it caught nothing
+const HOOK_REEL_STEPS = 10;
 
 // The attacks that strike all of the ground but one safe patch, and what each looks like: the
 // colour the ground to be struck is marked in (as "r, g, b") and the colour of what rises
@@ -73,6 +84,20 @@ function load(path) {
 
 const picture = boss => load(boss.image);
 const attackPicture = boss => load(boss.attack.image);
+// Stitches' hook (art-workbench/stitches-hook): the hook and its chain, Stitches without the
+// hook painted in his hand (shown while he throws it), and his fingers, drawn over the chain
+const HOOK_ART = {
+    hook: 'assets/attacks/alliance/06-stitches-hook.webp',
+    chain: 'assets/attacks/alliance/06-stitches-chain.webp',
+    grip: 'assets/attacks/alliance/06-stitches-hook-grip.webp',
+    boss: 'assets/bosses/alliance/06-stitches-hook.webp',
+    hand: [630 / 688, 365 / 640],   // His hand on the boss picture, as shares of it
+    eye: [52.98, 46.601],           // Where the chain meets the hook, on its 192 × 320 picture
+    hookSize: 0.32,                 // The hook picture's height, against the boss's width
+    chainWidth: 0.022,              // The chain's width, against the boss's width
+    dangle: 0.13                    // How far the hook hangs below his hand before he throws it
+};
+const stillMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // The HUD panels are page elements drawn over the canvas. On a phone they reach across the
 // middle of the screen, where the boss stands, so the boss and its health bar start below them.
@@ -1046,6 +1071,11 @@ function windUp(context) {
         // The lane it will come down: where the player stands now
         const { left, right } = reach(canvas);
         fight.attackData = { x: Math.max(left, Math.min(right, body.centerX)), hit: false };
+    } else if (fight.attack === 'sidecharge') {
+        // From the side he is further from, so the dash crosses the field to reach him; the room
+        // to get out of its way opens up as it winds up
+        fight.attackData = { side: body.centerX > canvas.logicalWidth / 2 ? -1 : 1, lane: groundStrip(context) };
+        context.gameState.moveRaise = 1;
     } else if (GROUND_STRIKES[fight.attack]) {
         // The one safe patch of ground: near enough to reach, not where the player already is
         const width = body.width * 2.6;
@@ -1134,13 +1164,434 @@ function strike(context) {
             fight.doing = 'acting';
             fight.doingSteps = 0;
             break;
+        case 'ambush':
+            fight.doing = 'acting';
+            fight.doingSteps = 0;
+            fight.attackData = { phase: 'vanish', hit: false };
+            break;
+        case 'sidecharge':
+            fight.doing = 'acting';
+            fight.doingSteps = 0;
+            fight.attackData = { ...fight.attackData, phase: 'dash', hit: false };
+            break;
+        case 'hook':
+            // Where he stands now is marked; the hook follows in half a second
+            fight.doing = 'acting';
+            fight.doingSteps = 0;
+            fight.attackData = { phase: 'mark', zone: markWhereHeIs(context, gameConfig.bosses.hook.width), head: null };
+            break;
     }
+}
+
+// ----- The ambush and the side charge -----
+
+// Where he usually is: from just under the highest he can usually rise to the bottom of the
+// field. Anywhere in his usual room he is in it; only up in the room these attacks open up (a
+// row of his own height more) is he clear of it.
+function groundStrip(context) {
+    const { canvas, player } = context;
+    const usual = gameConfig.player.movableArea.rise;
+    const top = canvas.logicalHeight - player.height - player.figureHeight() * (usual - 0.1);
+    return { top, bottom: canvas.logicalHeight };
+}
+
+// Whether the hunter's body is in a marked patch { x, y, w, h }
+function bodyIn(player, patch) {
+    const body = player.getBodyBounds();
+    return body.x < patch.x + patch.w && body.x + body.width > patch.x && body.y < patch.y + patch.h && body.y + body.height > patch.y;
+}
+
+// A mark where he is now, from as high as he can go (or he is) to the bottom, to strike there next
+function markWhereHeIs(context, share) {
+    const { canvas, player, gameState } = context;
+    const body = playerBody(player);
+    const w = player.width * share;
+    const x = Math.max(0, Math.min(canvas.logicalWidth - w, body.centerX - w / 2));
+    // Up to him, wherever he is: Dragon Cry's free flight is no way out of it
+    const top = Math.min(movementBounds(canvas.logicalHeight, player, gameState).minY, player.y);
+    return { x, y: top, w, h: canvas.logicalHeight - top };
+}
+
+// How long a mark stays before the strike: shorter for the later bosses and when enraged
+function markSteps(steps) {
+    return Math.round(steps * fight.stats.heavyWindUp / Math.sqrt(enrage()));
+}
+
+// Down on the ground, at a place: the boss drawn standing on the field's bottom
+function standOnGround(canvas, x) {
+    const place = layout(canvas, fight.boss);
+    fight.x = x;
+    fight.prevX = x;
+    fight.drop = canvas.logicalHeight - place.top - place.height;
+    fight.prevDrop = fight.drop;
+}
+
+// The strike on a marked patch: hits if he is in it
+function strikePatch(context, patch, share) {
+    const { player, particles, gameState } = context;
+    if (bodyIn(player, patch)) {
+        // Counted (for the boss lab: tools/boss-lab.mjs), then dealt as any heavy blow
+        gameState.specialHits = gameState.specialHits || {};
+        gameState.specialHits[`${fight.attack}:${fight.attackData.phase}`] = (gameState.specialHits[`${fight.attack}:${fight.attackData.phase}`] || 0) + 1;
+        hurtPlayer(context, Math.round(heavyDamage() * share));
+    }
+    for (let i = 0; i < 24; i++) {
+        particles.push(new Particle(patch.x + Math.random() * patch.w, patch.y + patch.h * (0.4 + Math.random() * 0.6), '#B48CFF'));
+    }
+}
+
+// Back to its place at the top: it fades out where it is and in again up there, and the room
+// it opened up closes over the same time, so the hunter is eased down, not dropped
+function goHome(context, steps) {
+    const { gameState } = context;
+    const half = steps / 2;
+    const s = fight.doingSteps;
+    gameState.moveRaise = Math.max(0, 1 - s / steps);
+    if (s < half) {
+        fight.hidden = Math.min(1, s / half);
+    } else {
+        if (fight.drop) {
+            fight.drop = 0;
+            fight.prevDrop = 0;
+        }
+        fight.hidden = Math.max(0, 1 - (s - half) / half);
+    }
+    if (s >= steps) {
+        fight.hidden = 0;
+        fight.drop = 0;
+        gameState.moveRaise = 0;
+        fight.doing = 'moving';
+        fight.sinceAttack = 0;
+        fight.attackData = null;
+    }
+}
+
+function nextPhase(phase) {
+    fight.attackData.phase = phase;
+    fight.doingSteps = 0;
+}
+
+function actAmbush(context) {
+    const { canvas, player, gameState } = context;
+    const settings = gameConfig.bosses.ambush;
+    const data = fight.attackData;
+    const s = fight.doingSteps;
+    gameState.moveRaise = data.phase === 'home' ? gameState.moveRaise : 1;
+
+    if (data.phase === 'vanish') {
+        fight.hidden = Math.min(1, s / 12);
+        if (s >= AMBUSH.vanish) {
+            // The ground where he stands, wide: up is the way out
+            const ground = groundStrip(context);
+            const w = player.width * settings.width;
+            const x = Math.max(0, Math.min(canvas.logicalWidth - w, playerBody(player).centerX - w / 2));
+            data.zone = { x, y: ground.top, w, h: ground.bottom - ground.top };
+            nextPhase('mark');
+        }
+    } else if (data.phase === 'mark') {
+        if (s >= markSteps(AMBUSH.mark)) {
+            standOnGround(canvas, data.zone.x + data.zone.w / 2);
+            fight.hidden = 0;
+            strikePatch(context, data.zone, settings.damage);
+            nextPhase('strike');
+        }
+    } else if (data.phase === 'strike') {
+        if (s >= AMBUSH.strike) {
+            // Gone again, and behind him: where he is now
+            fight.hidden = 1;
+            data.zone = markWhereHeIs(context, settings.backstabWidth);
+            nextPhase('backMark');
+        }
+    } else if (data.phase === 'backMark') {
+        if (s >= markSteps(AMBUSH.backMark)) {
+            standOnGround(canvas, data.zone.x + data.zone.w / 2);
+            fight.hidden = 0;
+            strikePatch(context, data.zone, settings.damage);
+            nextPhase('back');
+        }
+    } else if (data.phase === 'back') {
+        if (s >= AMBUSH.back) nextPhase('home');
+    } else {
+        goHome(context, AMBUSH.home);
+    }
+}
+
+function actSideCharge(context) {
+    const { canvas, player, gameState } = context;
+    const settings = gameConfig.bosses.sideCharge;
+    const data = fight.attackData;
+    const s = fight.doingSteps;
+    if (data.phase !== 'home') gameState.moveRaise = 1;
+
+    if (data.phase === 'dash') {
+        // From one edge of the field to the other, along the ground, quickly
+        const { width } = layout(canvas, fight.boss);
+        const from = data.side < 0 ? -width / 2 : canvas.logicalWidth + width / 2;
+        const to = data.side < 0 ? canvas.logicalWidth + width / 2 : -width / 2;
+        standOnGround(canvas, from + (to - from) * Math.min(1, s / SIDE.dash));
+        if (s === 0) fight.prevX = from;
+        fight.hidden = 0;
+        const ground = groundStrip(context);
+        const body = hitBox(canvas).width;
+        if (!data.hit && bodyIn(player, { x: fight.x - body / 2, y: ground.top, w: body, h: ground.bottom - ground.top })) {
+            data.hit = true;
+            gameState.specialHits = gameState.specialHits || {};
+            gameState.specialHits['sidecharge:dash'] = (gameState.specialHits['sidecharge:dash'] || 0) + 1;
+            hurtPlayer(context, Math.round(heavyDamage() * settings.damage));
+        }
+        if (s >= SIDE.dash) {
+            fight.hidden = 1;
+            data.zone = markWhereHeIs(context, gameConfig.bosses.ambush.backstabWidth);
+            nextPhase('mark');
+        }
+    } else if (data.phase === 'mark') {
+        if (s >= markSteps(SIDE.mark)) {
+            standOnGround(canvas, data.zone.x + data.zone.w / 2);
+            fight.hidden = 0;
+            strikePatch(context, data.zone, settings.strikeDamage);
+            nextPhase('strike');
+        }
+    } else if (data.phase === 'strike') {
+        if (s >= SIDE.strike) nextPhase('home');
+    } else {
+        goHome(context, SIDE.home);
+    }
+}
+
+// ----- Stitches' hook -----
+
+// Where the hook leaves the boss: his hand
+function hookHand(canvas) {
+    const place = layout(canvas, fight.boss);
+    return { x: fight.x - place.width / 2 + place.width * HOOK_ART.hand[0], y: place.top + fight.drop + place.height * HOOK_ART.hand[1] };
+}
+
+// Where he is dragged to: under the boss, as close as he can be held (utils/movement.js)
+function pulledTo(context) {
+    const { canvas, player, gameState } = context;
+    const top = gameState.moveCeiling !== null && gameState.moveCeiling !== undefined ? gameState.moveCeiling : movementBounds(canvas.logicalHeight, player, gameState).minY;
+    const x = Math.max(0, Math.min(canvas.logicalWidth - player.width, fight.x - player.width / 2));
+    return { x, y: Math.min(canvas.logicalHeight - player.height, top) };
+}
+
+function letGo(context) {
+    context.gameState.hooked = null;
+    fight.doing = 'moving';
+    fight.sinceAttack = 0;
+    fight.attackData = null;
+}
+
+function actHook(context) {
+    const { player, particles, gameState, canvas } = context;
+    const settings = gameConfig.bosses.hook;
+    const data = fight.attackData;
+    const s = fight.doingSteps;
+    const hand = hookHand(canvas);
+    const target = { x: data.zone.x + data.zone.w / 2, y: player.y + player.height * 0.4 };
+
+    if (data.phase === 'mark') {
+        // Half a second, however far into the fight: the time to get out of the mark
+        if (s >= Math.round(settings.markSeconds * 60)) {
+            data.to = target;
+            nextPhase('fly');
+        }
+    } else if (data.phase === 'fly') {
+        // Very fast, straight at the mark
+        const t = Math.min(1, s / settings.flySteps);
+        data.head = { x: hand.x + (data.to.x - hand.x) * t, y: hand.y + (data.to.y - hand.y) * t };
+        if (s >= settings.flySteps) {
+            if (bodyIn(player, data.zone)) {
+                gameState.specialHits = gameState.specialHits || {};
+                gameState.specialHits['hook:fly'] = (gameState.specialHits['hook:fly'] || 0) + 1;
+                data.from = { x: player.x, y: player.y };
+                gameState.hooked = true;
+                nextPhase('pull');
+            } else {
+                data.from = { ...data.head };
+                nextPhase('reel');
+            }
+        }
+    } else if (data.phase === 'reel') {
+        // Caught nothing: back to his hand
+        const t = Math.min(1, s / HOOK_REEL_STEPS);
+        data.head = { x: data.from.x + (hand.x - data.from.x) * t, y: data.from.y + (hand.y - data.from.y) * t };
+        if (s >= HOOK_REEL_STEPS) letGo(context);
+    } else if (data.phase === 'pull') {
+        // Dragged in, whatever he does (systems/inputSystem.js leaves him be while hooked)
+        const to = pulledTo(context);
+        const t = Math.min(1, s / settings.pullSteps);
+        const eased = 1 - (1 - t) * (1 - t);
+        player.x = data.from.x + (to.x - data.from.x) * eased;
+        player.y = data.from.y + (to.y - data.from.y) * eased;
+        data.head = { x: player.x + player.width / 2, y: player.y + player.height * 0.4 };
+        if (s >= settings.pullSteps) {
+            hurtPlayer(context, Math.round(heavyDamage() * settings.damage));
+            const body = playerBody(player);
+            for (let i = 0; i < 24; i++) {
+                particles.push(new Particle(body.centerX + (Math.random() - 0.5) * body.width, body.centerY + (Math.random() - 0.5) * body.height, '#9BC53D'));
+            }
+            nextPhase('hold');
+        }
+    } else {
+        // Held a moment under him, then let go
+        const to = pulledTo(context);
+        player.x = to.x;
+        player.y = to.y;
+        data.head = { x: player.x + player.width / 2, y: player.y + player.height * 0.4 };
+        if (s >= settings.holdSteps) letGo(context);
+    }
+}
+
+// Whether Stitches is busy with his hook: drawn without the one painted in his hand
+function hooking() {
+    return fight && fight.phase === 'fight' && fight.attack === 'hook' && fight.doing !== 'moving';
+}
+
+// How far along the phase of the hook he is in, 0 to 1
+function hookProgress() {
+    const settings = gameConfig.bosses.hook;
+    if (fight.doing === 'winding') return Math.min(1, fight.doingSteps / WIND_UP.hook);
+    const phase = fight.attackData && fight.attackData.phase;
+    const steps = { mark: settings.markSeconds * 60, fly: settings.flySteps, pull: settings.pullSteps, hold: settings.holdSteps, reel: HOOK_REEL_STEPS }[phase] || 1;
+    return Math.min(1, fight.doingSteps / steps);
+}
+
+// How he leans as he throws and hauls: small, rigid, for the look only (the art's bossPose)
+function hookPose(place) {
+    const phase = fight.doing === 'winding' ? 'windup' : fight.attackData && fight.attackData.phase;
+    const p = stillMotion() ? 0 : Math.sin(Math.PI * hookProgress());
+    let angle = 0, dx = 0, sx = 1, sy = 1;
+    if (phase === 'windup' || phase === 'mark') { angle = -0.012 * p; sx = 1 + 0.012 * p; sy = 1 - 0.008 * p; }
+    if (phase === 'fly') { angle = 0.027 * p; dx = place.w * 0.013 * p; }
+    if (phase === 'pull') { angle = -0.026 * p; dx = -place.w * 0.02 * p; sx = 1 - 0.009 * p; }
+    if (phase === 'reel') angle = -0.012 * p;
+    const pivot = { x: place.x + place.w * 0.5, y: place.y + place.h * 0.94 };
+    const a = Math.cos(angle) * sx, b = Math.sin(angle) * sx, c = -Math.sin(angle) * sy, d = Math.cos(angle) * sy;
+    const e = pivot.x + dx - a * pivot.x - c * pivot.y, f = pivot.y - b * pivot.x - d * pivot.y;
+    const x = place.x + place.w * HOOK_ART.hand[0], y = place.y + place.h * HOOK_ART.hand[1];
+    return { matrix: [a, b, c, d, e, f], hand: { x: a * x + c * y + e, y: b * x + d * y + f } };
+}
+
+// Where the boss picture is drawn this frame
+function drawnPlace(canvas, alpha) {
+    const place = layout(canvas, fight.boss);
+    const x = fight.prevX + (fight.x - fight.prevX) * alpha;
+    const y = place.top + fight.prevDrop + (fight.drop - fight.prevDrop) * alpha;
+    return { x: x - place.width / 2, y, w: place.width, h: place.height };
+}
+
+// The hook's mark: exactly where it will land, red as every place not to stand, hatched, with a
+// dark-backed amber edge that reads on any ground
+function drawHookMark(ctx, zone) {
+    const { x, y, w, h } = zone;
+    const pulse = stillMotion() ? 1 : 0.88 + 0.12 * Math.sin(Math.PI * 2 * hookProgress());
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.clip();
+    ctx.fillStyle = `rgba(241, 43, 29, ${0.22 * pulse})`;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = 'rgba(255, 90, 55, 0.3)';
+    ctx.lineWidth = 1;
+    for (let k = -h; k < w + h; k += 34) {
+        ctx.beginPath();
+        ctx.moveTo(x + k, y + h);
+        ctx.lineTo(x + k + h, y);
+        ctx.stroke();
+    }
+    ctx.restore();
+    ctx.save();
+    ctx.lineJoin = 'round';
+    for (const [color, width] of [['rgba(35, 11, 7, 0.9)', 6], ['#FFAF6B', 2.5]]) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.strokeRect(x, y, w, h);
+    }
+    // Brackets in its lower corners, and the hook in it
+    const arm = Math.min(18, w * 0.16);
+    const lower = y + h - 12;
+    ctx.strokeStyle = '#FFD0A0';
+    ctx.lineWidth = 4;
+    for (const edge of [x, x + w]) {
+        const dir = edge === x ? 1 : -1;
+        ctx.beginPath();
+        ctx.moveTo(edge + dir * arm, lower);
+        ctx.lineTo(edge, lower);
+        ctx.lineTo(edge, lower - arm);
+        ctx.stroke();
+    }
+    const hook = load(HOOK_ART.hook);
+    if (hook.complete && hook.naturalWidth) {
+        const ih = Math.min(44, h * 0.15);
+        const iw = ih * 192 / 320;
+        ctx.globalAlpha = 0.85;
+        ctx.drawImage(hook, x + w / 2 - iw / 2, y + h - ih - 10, iw, ih);
+    }
+    ctx.restore();
+}
+
+// The chain from his hand to the hook, the hook, and his fingers over the chain. Drawn over the
+// hunter (systems/renderSystem.js), so a caught hunter has the hook in him, not behind him.
+export function drawBossHook(ctx, canvas, alpha = 1) {
+    if (!hooking() || fight.hidden > 0.5) return;
+    const chain = load(HOOK_ART.chain), hook = load(HOOK_ART.hook), grip = load(HOOK_ART.grip);
+    if (!chain.complete || !chain.naturalWidth || !hook.complete || !hook.naturalWidth) return;
+    const place = drawnPlace(canvas, alpha);
+    const pose = hookPose(place);
+    const hand = pose.hand;
+    const data = fight.attackData;
+    const head = data && data.head ? data.head : { x: hand.x, y: hand.y + place.w * HOOK_ART.dangle };
+    const dx = head.x - hand.x, dy = head.y - hand.y;
+    const length = Math.hypot(dx, dy);
+    const angle = Math.atan2(dy, dx) - Math.PI / 2;
+    const width = Math.max(3, place.w * HOOK_ART.chainWidth);
+
+    ctx.save();
+    // The chain: its links repeated along it, never stretched
+    if (length > 0.5) {
+        const period = width * 160 / 64;
+        ctx.save();
+        ctx.translate(hand.x, hand.y);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.rect(-width / 2, 0, width, length);
+        ctx.clip();
+        for (let y = 0; y < length; y += period) ctx.drawImage(chain, -width / 2, y, width, period);
+        ctx.restore();
+    }
+    // The hook, hung from its eye
+    const scale = place.w * HOOK_ART.hookSize / 320;
+    ctx.save();
+    ctx.translate(head.x, head.y);
+    ctx.rotate(angle);
+    ctx.drawImage(hook, -HOOK_ART.eye[0] * scale, -HOOK_ART.eye[1] * scale, 192 * scale, 320 * scale);
+    if (!stillMotion() && data && data.phase === 'fly') {
+        // A streak behind it, as it flies
+        ctx.strokeStyle = 'rgba(255, 214, 164, 0.55)';
+        ctx.lineWidth = Math.max(1, width * 0.16);
+        ctx.beginPath();
+        ctx.moveTo(-width, 14 * scale);
+        ctx.lineTo(-width, -Math.min(26, length * 0.2));
+        ctx.stroke();
+    }
+    ctx.restore();
+    // His fingers, closed over the chain
+    if (grip.complete && grip.naturalWidth) {
+        ctx.globalAlpha = 1 - fight.hidden;
+        ctx.transform(...pose.matrix);
+        ctx.drawImage(grip, place.x, place.y, place.w, place.h);
+    }
+    ctx.restore();
 }
 
 // Carrying out an attack that takes time
 function act(context) {
     const { canvas, player } = context;
     const { left, right } = reach(canvas);
+
+    if (fight.attack === 'ambush') return actAmbush(context);
+    if (fight.attack === 'sidecharge') return actSideCharge(context);
+    if (fight.attack === 'hook') return actHook(context);
 
     if (fight.attack === 'vanish') {
         // Gone, then back on the far side of the player with a fan of blades
@@ -1212,6 +1663,7 @@ function defeat(context) {
     const seconds = fightSeconds();
 
     fight.phase = 'dying';
+    gameState.hooked = null;
     fight.steps = 0;
     fight.shielded = false;
     fight.hidden = 0;
@@ -1340,7 +1792,10 @@ export function updateBoss(context) {
     } else if (fight.doing === 'winding') {
         // It lines up on the lane it means to charge down; otherwise it stands where it is
         if (fight.attack === 'charge') moveTowards(canvas, fight.attackData.x, canvas.logicalWidth * settings.movement.speed * 2.5);
-        const share = fight.attack === 'charge' || GROUND_STRIKES[fight.attack] || fight.attack === 'swipe' || fight.attack === 'upheaval' ? stats.heavyWindUp : stats.windUp;
+        // Before a side charge it leaves the top for the edge it will come from: gone from there
+        // while he rises into the room it opens, so it is no target for him up close
+        if (fight.attack === 'sidecharge') fight.hidden = Math.min(1, fight.doingSteps / 12);
+        const share = fight.attack === 'charge' || fight.attack === 'sidecharge' || GROUND_STRIKES[fight.attack] || fight.attack === 'swipe' || fight.attack === 'upheaval' ? stats.heavyWindUp : stats.windUp;
         if (fight.doingSteps >= WIND_UP[fight.attack] * share / Math.sqrt(rage)) strike(context);
     } else {
         act(context);
@@ -1409,6 +1864,30 @@ function drawHealthBar(ctx, canvas, place) {
     ctx.restore();
 }
 
+// The side charge's lane across the field, with arrows pointing the way it will come
+function drawGroundLane(ctx, canvas, pulse) {
+    const { lane, side } = fight.attackData;
+    const height = lane.bottom - lane.top;
+    ctx.fillStyle = `rgba(255, 60, 30, ${0.3 * pulse})`;
+    ctx.fillRect(0, lane.top, canvas.logicalWidth, height);
+    ctx.strokeStyle = `rgba(255, 190, 120, ${0.9 * pulse})`;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(0, lane.top, canvas.logicalWidth, height);
+    // Chevrons along it, pointing the way of the dash
+    const size = Math.min(height * 0.35, 40);
+    const y = lane.top + height / 2;
+    ctx.fillStyle = `rgba(255, 220, 160, ${0.85 * pulse})`;
+    for (let i = 0; i < 6; i++) {
+        const x = side < 0 ? 40 + i * size * 2.2 : canvas.logicalWidth - 40 - i * size * 2.2;
+        ctx.beginPath();
+        ctx.moveTo(x + side * -size * 0.5, y - size);
+        ctx.lineTo(x + side * size * 0.5, y);
+        ctx.lineTo(x + side * -size * 0.5, y + size);
+        ctx.closePath();
+        ctx.fill();
+    }
+}
+
 // Where the boss will strike, shown while it winds up: the lane of a charge, the safe patch of
 // a stomp. Drawn under everything else.
 function drawWarnings(ctx, canvas, place) {
@@ -1432,6 +1911,24 @@ function drawWarnings(ctx, canvas, place) {
         ctx.strokeStyle = `rgba(255, 190, 120, ${0.8 * pulse})`;
         ctx.lineWidth = 2;
         ctx.strokeRect(fight.attackData.x - width / 2, top, width, canvas.logicalHeight - top);
+    }
+
+    // The side charge's lane: the ground across the field, its arrow on the side it comes from
+    if (fight.attack === 'sidecharge' && fight.doing === 'winding' && fight.attackData && fight.attackData.lane) {
+        drawGroundLane(ctx, canvas, pulse);
+    }
+    // Where the ambush, the backstab or the strike after a side charge will land
+    const mark = fight.attackData && fight.attackData.zone && ['mark', 'backMark'].includes(fight.attackData.phase) ? fight.attackData.zone : null;
+    if (fight.attack === 'hook' && fight.attackData && fight.attackData.phase === 'mark') drawHookMark(ctx, fight.attackData.zone);
+    if (mark && (fight.attack === 'ambush' || fight.attack === 'sidecharge')) {
+        const first = fight.attack === 'ambush' && fight.attackData.phase === 'mark';
+        ctx.fillStyle = first ? `rgba(150, 70, 255, ${0.32 * pulse})` : `rgba(255, 60, 30, ${0.34 * pulse})`;
+        ctx.fillRect(mark.x, mark.y, mark.w, mark.h);
+        ctx.strokeStyle = first ? `rgba(210, 170, 255, ${0.9 * pulse})` : `rgba(255, 190, 120, ${0.9 * pulse})`;
+        ctx.lineWidth = 3;
+        ctx.setLineDash([10, 6]);
+        ctx.strokeRect(mark.x, mark.y, mark.w, mark.h);
+        ctx.setLineDash([]);
     }
 
     if (fight.attack === 'swipe' && fight.doing === 'winding') {
@@ -1538,7 +2035,20 @@ export function drawBoss(ctx, canvas, alpha = 1) {
 
     if (fight.phase === 'fight') drawWarnings(ctx, canvas, place);
 
-    if (image.complete && image.naturalWidth) {
+    // Throwing his hook he is drawn without the one painted in his hand, and leans into it
+    const clean = hooking() ? load(HOOK_ART.boss) : null;
+    if (clean && clean.complete && clean.naturalWidth && image.complete && image.naturalWidth) {
+        ctx.save();
+        ctx.globalAlpha = opacity;
+        if (fight.doing === 'winding') {
+            ctx.shadowColor = '#FF6D35';
+            ctx.shadowBlur = 12;
+        }
+        const placeNow = { x: x - place.width / 2, y, w: place.width, h: place.height };
+        ctx.transform(...hookPose(placeNow).matrix);
+        ctx.drawImage(clean, placeNow.x, placeNow.y, placeNow.w, placeNow.h);
+        ctx.restore();
+    } else if (image.complete && image.naturalWidth) {
         ctx.save();
         ctx.globalAlpha = opacity;
         // Winding up an attack, it glows: this is when it cannot sidestep

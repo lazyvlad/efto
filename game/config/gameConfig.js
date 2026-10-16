@@ -577,6 +577,19 @@ export const gameConfig = {
         arrowBundle: 'bronze_arrows', // The arrow bundle dropped during a fight (data/powerUpItems.js)
         arrowsEvery: 600,           // Steps between arrow bundles (10 seconds)
         potionEvery: 1200,          // Steps between health potions
+        // The rogue's ambush (systems/bossSystem.js): the ground where he stands is marked, this
+        // many of his widths wide, and it comes up out of it; then a backstab where he is, a mark
+        // this many widths wide. Each hits for the boss's heavy damage times "damage".
+        ambush: { width: 4, backstabWidth: 2.2, damage: 1.5 },
+        // The side charge: a dash across the ground (heavy damage times "damage": massive), then
+        // a strike where he is (times "strikeDamage")
+        sideCharge: { damage: 2.5, strikeDamage: 1.5 },
+        // Stitches' hook: where the hunter stands is marked, this many of his widths wide, and
+        // after markSeconds (always, however late in the fight) the hook flies there in flySteps.
+        // Caught in it, he is dragged in under the boss in pullSteps, held for holdSteps and hit
+        // for the boss's heavy damage times "damage".
+        hook: { width: 1.8, markSeconds: 0.5, flySteps: 8, pullSteps: 16, holdSteps: 24, damage: 1.2 },
+
         // Help that falls in a fight, now and then, to change how it goes: Haste, Power Word:
         // Shield, or Reverse Gravity (which sends what the boss throws flying up). Seconds
         // between them, somewhere in the range; one of the drops, by weight. Spells are from

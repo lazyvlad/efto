@@ -15,7 +15,9 @@
 //
 // Bosses do not all fight alike. Each has a "behaviour", which is the round of attacks it
 // works through (see "behaviours" below, and systems/bossSystem.js for what each attack does):
-//   thrower  - throws at the player, and now and then a whole row with one gap to stand in
+//   butcher  - throws at the player, now and then a whole row with one gap to stand in, and
+//              a hook: it marks where the player stands, and half a second later the hook
+//              flies there and drags them in under it
 //   assassin - throws fans of blades, and vanishes to come back somewhere else
 //   charger  - marks a lane down the field and rushes along it
 //   caster   - sends bolts that follow the player, and a curse that eats at their health
@@ -56,19 +58,19 @@ const roster = {
         { id: 'bazil-thredd', behaviour: 'cutthroat', nimble: true, name: 'Bazil Thredd', image: '03-bazil-thredd', attack: { name: 'Prison Shiv', image: '03-bazil-shiv', size: 1.2, spin: 0.22 } },
         { id: 'edwin-vancleef', behaviour: 'assassin', nimble: true, name: 'Edwin VanCleef', image: '04-edwin-vancleef', attack: { name: 'Defias Throwing Knife', image: '04-vancleef-knife', size: 1.2, spin: 0.22 } },
         { id: 'gath-ilzogg', behaviour: 'warlord', warrior: true, name: "Gath'Ilzogg", image: '05-gath-ilzogg', attack: { name: 'Blackrock War Axe', image: '05-gath-war-axe', size: 1.6, spin: 0.12 } },
-        { id: 'stitches', behaviour: 'thrower', name: 'Stitches', image: '06-stitches', attack: { name: 'Thrown Cleaver', image: '06-stitches-cleaver', size: 1.6, spin: 0.12 } },
+        { id: 'stitches', behaviour: 'butcher', name: 'Stitches', image: '06-stitches', attack: { name: 'Thrown Cleaver', image: '06-stitches-cleaver', size: 1.6, spin: 0.12 } },
         { id: 'chieftain-nekrosh', behaviour: 'brawler', warrior: true, name: "Chieftain Nek'rosh", image: '07-chieftain-nekrosh', attack: { name: 'Spiked Mace', image: '07-nekrosh-mace', size: 1.6, spin: 0.1 } },
         { id: 'fozruk', behaviour: 'bomber', name: 'Fozruk', image: '08-fozruk', attack: { name: 'Thrown Boulder', image: '08-fozruk-boulder', size: 1.9, spin: 0.05 } },
-        { id: 'king-bangalash', behaviour: 'charger', nimble: true, body: 0.54, name: 'King Bangalash', image: '09-king-bangalash', attack: { name: 'Tiger Claw Slash', image: '09-bangalash-claws', size: 2.2 } },
+        { id: 'king-bangalash', behaviour: 'prowler', nimble: true, body: 0.54, name: 'King Bangalash', image: '09-king-bangalash', attack: { name: 'Tiger Claw Slash', image: '09-bangalash-claws', size: 2.2 } },
         { id: 'vile-priestess-hexx', behaviour: 'hexer', name: 'Vile Priestess Hexx', image: '10-vile-priestess-hexx', storm: { name: 'Rain of Fire', image: '09-rain-of-fire', color: '255, 70, 20' }, attack: { name: 'Violet Curse Bolt', image: '10-hexx-curse', size: 1.4 } }
     ],
     horde: [
         { id: 'sarkoth', behaviour: 'caster', name: 'Sarkoth', image: '01-sarkoth', attack: { name: 'Venom Sting', image: '01-sarkoth-venom', size: 1.3 } },
         { id: 'zalazane', behaviour: 'caster', name: 'Zalazane', image: '02-zalazane', attack: { name: 'Voodoo Spirit Bolt', image: '02-zalazane-voodoo', size: 1.4 } },
         { id: 'taragaman', behaviour: 'warper', name: 'Taragaman the Hungerer', image: '03-taragaman', attack: { name: 'Demon Flame Bolt', image: '03-taragaman-flame', size: 1.4 } },
-        { id: 'echeyakee', behaviour: 'charger', nimble: true, name: 'Echeyakee', image: '04-echeyakee', attack: { name: 'Lion Claw Rake', image: '04-echeyakee-claws', size: 1.5 } },
+        { id: 'echeyakee', behaviour: 'prowler', nimble: true, name: 'Echeyakee', image: '04-echeyakee', attack: { name: 'Lion Claw Rake', image: '04-echeyakee-claws', size: 1.5 } },
         { id: 'gerenzo-wrenchwhistle', behaviour: 'bomber', name: 'Gerenzo Wrenchwhistle', image: '05-gerenzo-wrenchwhistle', attack: { name: 'Clockwork Bomb', image: '05-gerenzo-bomb', size: 1.5, spin: 0.06 } },
-        { id: 'shadumbra', behaviour: 'charger', nimble: true, body: 0.5, name: 'Shadumbra', image: '06-shadumbra', attack: { name: 'Shadow Claw Slash', image: '06-shadumbra-claws', size: 1.5 } },
+        { id: 'shadumbra', behaviour: 'prowler', nimble: true, body: 0.5, name: 'Shadumbra', image: '06-shadumbra', attack: { name: 'Shadow Claw Slash', image: '06-shadumbra-claws', size: 1.5 } },
         { id: 'arnak-grimtotem', behaviour: 'pounder', warrior: true, name: 'Arnak Grimtotem', image: '07-arnak-grimtotem', attack: { name: 'War Stomp Shockwave', image: '07-arnak-shockwave', size: 1.7 } },
         { id: 'big-samras', behaviour: 'charger', name: 'Big Samras', image: '08-big-samras', attack: { name: 'Heavy Bear Swipe', image: '08-samras-swipe', size: 1.6 } },
         { id: 'khan-dezhepah', behaviour: 'pounder', warrior: true, name: "Khan Dez'hepah", image: '09-khan-dezhepah', attack: { name: 'Thrown Centaur Spear', image: '09-khan-spear', size: 1.5 } },
@@ -78,8 +80,13 @@ const roster = {
 
 // The round of attacks each behaviour works through, over and over
 export const behaviours = {
-    thrower: ['throw', 'throw', 'throw', 'row'],
-    assassin: ['fan', 'fan', 'vanish'],
+    // Stitches: cleavers, and the hook that drags the hunter in under him
+    butcher: ['throw', 'hook', 'throw', 'row', 'hook'],
+    // Knives by the handful, and then the ambush: gone, up out of the ground where the hunter
+    // stands, and a backstab where he goes
+    assassin: ['fan', 'fan', 'ambush'],
+    // The big cats: no plain charge any more, but the ambush and the dash across the ground
+    prowler: ['throw', 'ambush', 'throw', 'sidecharge'],
     // Knives singly and by the handful, and then the riot: stones from both sides of the field
     cutthroat: ['throw', 'fan', 'throw', 'riot'],
     charger: ['throw', 'charge', 'throw', 'charge'],
@@ -96,7 +103,7 @@ export const behaviours = {
     // A brawler that calls on his pack, who come at the player from every side: the Alliance
     // side's first Upheaval
     packleader: ['throw', 'upheaval', 'throw', 'charge', 'row'],
-    warlord: ['fan', 'charge', 'throw', 'row'],
+    warlord: ['fan', 'charge', 'throw', 'row', 'sidecharge'],
     brawler: ['throw', 'throw', 'charge', 'row']
 };
 

@@ -94,6 +94,7 @@ async function playFight({ faction, zone, limitSeconds, autoshot, casual }) {
     const lab = window.__lab;
     const { spellSystem } = await import('./systems/spellSystem.js');
     const { gameClock } = await import('./utils/gameClock.js');
+    const { movementBounds } = await import('./utils/movement.js');
     lab.start(faction, zone);
 
     const gs = lab.gameState;
@@ -102,16 +103,29 @@ async function playFight({ faction, zone, limitSeconds, autoshot, casual }) {
     let taken = 0, hits = 0, lastHealth = null, start = null, end = null, upheavalHits = 0, upheavals = 0, inUpheaval = false;
     let arrowsSpent = 0, caught = 0, lastArrows = null, dcFrames = 0, frames = 0, shieldFrames = 0;
     let name = '', maxHealth = 0;
+    // The hits each kind of attack landed (casual: the ambush and side charge should land none)
+    const hitsBy = {};
 
     return await new Promise(resolve => {
         const t0 = performance.now();
+        let lastClock = null;
         function step() {
             frames++;
+            // How many of the game's steps passed since the last frame: the bot walks by game time,
+            // as a player does, not by frames (a busy browser draws fewer of them)
+            const clockNow = gameClock.now();
+            const stepsSince = lastClock === null ? 1 : Math.max(1, Math.min(6, (clockNow - lastClock) / (1000 / 60)));
+            lastClock = clockNow;
             const fight = window.__boss.fight;
             const p = lab.player;
             // Kept alive: what he loses is counted, then given back
             if (lastHealth === null) gs.maxHealth = 100000;
-            if (lastHealth !== null && gs.health < lastHealth) { taken += lastHealth - gs.health; hits++; }
+            if (lastHealth !== null && gs.health < lastHealth) {
+                taken += lastHealth - gs.health;
+                hits++;
+                const by = fight && fight.attack && fight.doing !== 'moving' ? fight.attack : 'other';
+                hitsBy[by] = (hitsBy[by] || 0) + 1;
+            }
             // What an Upheaval sent (it flies, it does not fall) that touched him, once each
             for (const thing of lab.fireballs || []) {
                 if (thing.flight && !thing.labCounted && thing.checkCollision(lab.player)) {
@@ -148,9 +162,35 @@ async function playFight({ faction, zone, limitSeconds, autoshot, casual }) {
                 // Where to stand: low on arrows with a bundle about, on it; else under the boss
                 const box = window.__boss.hitBox(lab.canvas);
                 const bundle = gs.arrowCount < 40 && lab.powerUps.find(item => /arrow/i.test(item.id || item.data?.id || item.name || ''));
-                const top = H - H * 0.3;
+                // As high as he may go now (utils/movement.js), as a player is held
+                const bounds = movementBounds(H, p, gs);
+                const top = bounds.minY;
+                // The ambush and the side charge, dodged as a player would: up into the room they
+                // open while the ground is the danger, aside out of a mark where he is
+                const data = fight.attackData;
+                const special = (fight.attack === 'ambush' || fight.attack === 'sidecharge') && fight.doing !== 'moving' && data;
+                const aside = special && data.zone && (data.phase === 'backMark' || (fight.attack === 'sidecharge' && data.phase === 'mark'));
+                // The hook's mark: out of it once he has seen it (a player's reaction, 0.2 s), and
+                // kept out of until the hook has gone by
+                const hookMark = fight.attack === 'hook' && fight.doing === 'acting' && data && ((data.phase === 'mark' && fight.doingSteps >= 12) || data.phase === 'fly');
                 let x, y;
-                if (bundle) {
+                if (gs.hooked) {
+                    // Dragged: nothing he does counts
+                    x = p.x;
+                    y = p.y;
+                } else if (casual && (aside || hookMark)) {
+                    // Out of the mark, to the side with more room, at his own speed
+                    const zone = data.zone;
+                    const leftOut = zone.x - p.width - 8;
+                    const rightOut = zone.x + zone.w + 8;
+                    const wanted = leftOut >= 0 && (leftOut > lab.canvas.logicalWidth - p.width - rightOut || rightOut > lab.canvas.logicalWidth - p.width) ? leftOut : rightOut;
+                    x = p.x + Math.max(-p.speed * stepsSince, Math.min(p.speed * stepsSince, wanted - p.x));
+                    y = p.y;
+                } else if (casual && special && data.phase !== 'home') {
+                    // Up into the room opened for it, at his own speed
+                    x = p.x;
+                    y = p.y + Math.max(-p.speed * stepsSince, Math.min(p.speed * stepsSince, top - p.y));
+                } else if (bundle) {
                     x = bundle.x + (bundle.width || 0) / 2 - p.width / 2;
                     y = Math.max(top, Math.min(H - p.height, bundle.y));
                 } else if (casual && fight.upheaval) {
@@ -158,14 +198,14 @@ async function playFight({ faction, zone, limitSeconds, autoshot, casual }) {
                     const wave = fight.upheaval.waves.find(each => fight.upheaval.steps >= each.markAt && fight.upheaval.steps < each.clearAt);
                     // Walked to at his own speed, as on a keyboard (with a mouse he is already there)
                     const wanted = wave ? (wave.gap.left + wave.gap.right) / 2 - p.width / 2 : p.x;
-                    x = p.x + Math.max(-p.speed, Math.min(p.speed, wanted - p.x));
+                    x = p.x + Math.max(-p.speed * stepsSince, Math.min(p.speed * stepsSince, wanted - p.x));
                     y = H - p.height;
                 } else {
                     x = fight.x - p.width / 2;
                     y = casual ? H - p.height : spellSystem.hasUnrestrictedMovement() && box ? box.y + box.height + 6 : top;
                 }
-                p.x = Math.max(0, Math.min(lab.canvas.logicalWidth - p.width, x));
-                p.y = Math.max(0, Math.min(H - p.height, y));
+                if (!gs.hooked) p.x = Math.max(0, Math.min(lab.canvas.logicalWidth - p.width, x));
+                if (!gs.hooked) p.y = spellSystem.hasUnrestrictedMovement() ? Math.max(0, Math.min(H - p.height, y)) : Math.max(bounds.minY, Math.min(bounds.maxY, y));
                 if (fight.phase === 'dying' || fight.health <= 0) return finish(true);
             } else if (start !== null) {
                 return finish(true);
@@ -182,7 +222,7 @@ async function playFight({ faction, zone, limitSeconds, autoshot, casual }) {
                 arrowsSpent, caught, taken: Math.round(taken), hits,
                 dragonCry: +(dcFrames / Math.max(1, frames)).toFixed(2),
                 shieldedSeconds: +(shieldFrames / 60).toFixed(1),
-                upheavals, upheavalHits,
+                upheavals, upheavalHits, hitsBy, special: gs.specialHits || {},
             });
         }
         requestAnimationFrame(step);
@@ -263,5 +303,7 @@ console.table(results.map(r => ({
     health: r.health, arrows: r.arrowsSpent, caught: r.caught, taken: r.taken, hits: r.hits,
     'dragon cry': r.dragonCry, shielded: `${r.shieldedSeconds}s`,
     ...(r.upheavals ? { upheavals: r.upheavals, 'upheaval hits': r.upheavalHits } : {}),
+    // What the ambush and the side charge themselves landed, by part (casual: none)
+    ...(casual || Object.keys(r.special || {}).length ? { 'special attacks landed': Object.entries(r.special || {}).map(([part, count]) => `${part} ${count}`).join(', ') || 'none' } : {}),
 })));
 if (outFile) fs.writeFileSync(outFile, JSON.stringify(results, null, 1));
