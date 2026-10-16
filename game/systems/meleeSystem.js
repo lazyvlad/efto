@@ -249,7 +249,9 @@ export function updateMelee(context) {
  */
 export function meleeTimer() {
     if (!look) return null;
-    return { weaponId: look.weaponId, ready: melee.readiness(), seconds: melee.cooldown / 1000 };
+    const family = meleeWeapons[look.weaponId].twoHanded ? 'two' : 'one';
+    // How ready, the seconds to go, and the weapon's own time between swings
+    return { weaponId: look.weaponId, ready: melee.readiness(), seconds: melee.cooldown / 1000, swing: gameConfig.melee.cooldown[family] };
 }
 
 // Whether he is fighting hand to hand now (and is drawn as such)

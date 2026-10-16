@@ -164,7 +164,7 @@ export class Player {
         const firstY = top + (room - rowHeight * 3 - gap * 2) / 2;
         const secondY = firstY + rowHeight + gap;
         const thirdY = secondY + rowHeight + gap;
-        const fontSize = Math.max(11, Math.round(this.width * 0.15));
+        const fontSize = Math.max(9, Math.round(this.width * 0.12));
         const icon = Math.round(fontSize * 1.25);
         const colors = fill <= 0.25 ? ['#ff8a7a', '#8e0c0c', '#ff8a7a'] : fill <= 0.6 ? ['#ffe680', '#b97800', '#ffd56a'] : ['#7dfa7d', '#0c7a0c', '#a8f5a8'];
         const number = (text, y, color) => {
@@ -240,32 +240,40 @@ export class Player {
             number(String(count), secondY + rowHeight / 2, count <= 0 ? '#ff7a6a' : low ? '#ffc85a' : '#f4ecd8');
         }
 
-        // The swing timer: his weapon, and a bar that fills as his next swing comes ready; full,
-        // it glows. Step in to strike when it is, and away while it fills again.
+        // The swing timer: a slim bar under the others, centred, that fills as his next swing
+        // comes ready (outlined in light when it is), his weapon beside it, and the seconds:
+        // to go while it fills, the weapon's own swing time once ready
         const melee = status && status.melee;
+        const swingHeight = Math.max(3, rowHeight * 0.5);
         if (melee) {
             const ready = melee.ready >= 1;
+            const swingWidth = width * 0.8;
+            const swingX = x + (width - swingWidth) / 2;
+            const swingY = thirdY + (rowHeight - swingHeight) / 2;
+            const small = Math.round(icon * 0.7);
             const weaponPicture = melee.icon ? assetManager.getImage(melee.icon) : null;
             if (weaponPicture && weaponPicture.complete && weaponPicture.naturalWidth) {
-                ctx.drawImage(weaponPicture, x - icon - 2, thirdY + rowHeight / 2 - icon / 2, icon, icon);
+                ctx.drawImage(weaponPicture, swingX - small - 2, swingY + swingHeight / 2 - small / 2, small, small);
             }
             ctx.fillStyle = 'rgba(12, 9, 6, 0.9)';
-            ctx.fillRect(x - 1, thirdY - 1, width + 2, rowHeight + 2);
+            ctx.fillRect(swingX - 1, swingY - 1, swingWidth + 2, swingHeight + 2);
             if (ready) {
                 const glow = 0.45 + 0.35 * Math.sin(performance.now() / 180);
                 ctx.strokeStyle = `rgba(150, 215, 255, ${glow})`;
-                ctx.lineWidth = 4;
-                ctx.strokeRect(x - 3, thirdY - 3, width + 6, rowHeight + 6);
+                ctx.lineWidth = 2;
+                ctx.strokeRect(swingX - 2, swingY - 2, swingWidth + 4, swingHeight + 4);
             }
             ctx.strokeStyle = ready ? '#9fd8ff' : '#5d6b7a';
             ctx.lineWidth = 1;
-            ctx.strokeRect(x - 1.5, thirdY - 1.5, width + 3, rowHeight + 3);
-            const swingGradient = ctx.createLinearGradient(0, thirdY, 0, thirdY + rowHeight);
+            ctx.strokeRect(swingX - 1.5, swingY - 1.5, swingWidth + 3, swingHeight + 3);
+            const swingGradient = ctx.createLinearGradient(0, swingY, 0, swingY + swingHeight);
             swingGradient.addColorStop(0, ready ? '#e8f6ff' : '#b8c6d4');
             swingGradient.addColorStop(1, ready ? '#5aa9e6' : '#55606c');
             ctx.fillStyle = swingGradient;
-            ctx.fillRect(x, thirdY, width * Math.max(0, Math.min(1, melee.ready)), rowHeight);
-            number(ready ? 'READY' : `${melee.seconds.toFixed(1)}s`, thirdY + rowHeight / 2, ready ? '#9fd8ff' : '#c9d3dc');
+            ctx.fillRect(swingX, swingY, swingWidth * Math.max(0, Math.min(1, melee.ready)), swingHeight);
+            // (Counting down, never 0.0s: that is "ready", shown by the swing time)
+            const seconds = ready ? (melee.swing || 0) : Math.max(0.1, melee.seconds);
+            number(`${seconds.toFixed(1)}s`, swingY + swingHeight / 2, ready ? '#9fd8ff' : '#c9d3dc');
         }
         ctx.restore();
 
