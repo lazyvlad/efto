@@ -153,3 +153,16 @@ test('taking any weapon off his back, it stays behind him until it has turned cl
         if (!pose.behind) assert.ok(pose.angle >= 65, `share ${share.toFixed(3)}: in front at ${pose.angle.toFixed(1)}°`);
     }
 });
+
+test('every weapon he fights with has a class with a damage, of its own hand', async () => {
+    const config = await readFile(new URL('../config/gameConfig.js', import.meta.url), 'utf8');
+    const line = config.match(/damage:\s*\{([^}]*dagger[^}]*)\}/);
+    assert.ok(line, 'melee.damage by class in gameConfig.js');
+    const damage = Object.fromEntries([...line[1].matchAll(/(\w+):\s*(\d+)/g)].map(([, kind, value]) => [kind, Number(value)]));
+    const twoHanded = new Set(['staff', 'polearm', 'greatsword', 'greataxe']);
+
+    for (const [id, weapon] of Object.entries(meleeWeapons)) {
+        assert.ok(damage[weapon.kind] > 0, `${id} has a class with a damage`);
+        assert.equal(twoHanded.has(weapon.kind), Boolean(weapon.twoHanded), `${id}: a ${weapon.kind} is ${weapon.twoHanded ? 'two' : 'one'}-handed`);
+    }
+});

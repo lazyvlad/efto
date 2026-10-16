@@ -630,8 +630,10 @@ export const gameConfig = {
         creatureReach: 0.75,
         ready: 1.2,                 // He takes his weapon in hand when something comes this near
         follow: 1,                  // A blow still lands on what he swung at if it is this near when it lands
-        cooldown: { one: 2, two: 3 },           // Seconds from one swing to the next: one-handed, two-handed
-        damage: { one: 14, two: 22 },           // A blow, before his attack power (+1% each), crits and armor
+        cooldown: { one: 1.4, two: 2.6 },       // Seconds from one swing to the next: one-handed, two-handed
+        // A blow, by the weapon's class (data/melee.js "kind"), before his attack power (+1% each),
+        // crits and armor. One-handed classes, then two-handed ones.
+        damage: { dagger: 9, sword: 11, axe: 12, mace: 13, staff: 18, polearm: 20, greatsword: 22, greataxe: 24 },
         pushback: 0.15,             // How much of its approach a creature struck loses: knocked back as by three arrows (a pounce is broken off)
     },
     

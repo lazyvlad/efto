@@ -188,9 +188,11 @@ function land(context) {
     }
     if (!hit) return;
 
-    const family = meleeWeapons[look.weaponId].twoHanded ? 'two' : 'one';
+    const weapon = meleeWeapons[look.weaponId];
+    // By its class; one without a class hits as a sword or a greatsword
+    const kind = rules.damage[weapon.kind] ? weapon.kind : weapon.twoHanded ? 'greatsword' : 'sword';
     const isCrit = Math.random() < Math.min(getCurrentTotalCritRating(gameState), gameState.critRatingCap);
-    const damage = Math.round(rules.damage[family] * (1 + (gameState.attackPower || 0) / 100) * (isCrit ? gameState.critMultiplier : 1));
+    const damage = Math.round(rules.damage[kind] * (1 + (gameState.attackPower || 0) / 100) * (isCrit ? gameState.critMultiplier : 1));
 
     if (hit.creature) {
         const creature = hit.creature;
