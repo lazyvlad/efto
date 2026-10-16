@@ -37,7 +37,7 @@ export const meleeWeapons = {
     'highperch-windglaive': { grip: [0.4924, 0.7538], support: [0.4924, 0.8912], height: 440, twoHanded: true },
     'magram-crescent-cleaver': { grip: [0.6395, 0.7538], support: [0.6395, 0.8912], height: 425, twoHanded: true },
     'hoggers-trophy-axe': { grip: [0.47, 0.76], support: [0.47, 0.87], height: 420, twoHanded: true },
-    'thunderfury': { grip: [0.49, 0.79], support: null, height: 440, twoHanded: false },
+    'thunderfury': { grip: [0.323, 0.79], support: null, height: 440, twoHanded: false },
     'cruel-barb': { grip: [0.5791, 0.8201], support: null, height: 300, twoHanded: false, style: 'short' },
     'abominations-hook': { grip: [0.622, 0.7158], support: null, height: 290, twoHanded: false },
     'embalmers-cleaver': { grip: [0.4985, 0.7457], support: null, height: 280, twoHanded: false },
