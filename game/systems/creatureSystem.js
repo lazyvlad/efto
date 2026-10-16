@@ -17,6 +17,7 @@ import { shieldBlocks } from '../utils/shield.js';
 import { getCurrentTotalCritRating } from './statEffectsSystem.js';
 import { trackActivity } from '../utils/gameUtils.js';
 import { playFireballImpactSound } from './audioSystem.js';
+import { readyImage } from '../utils/readyImage.js';
 
 let living = [];
 // Zone gear the site gave the game for creatures to carry, waiting for a creature to carry
@@ -28,11 +29,9 @@ const sheets = new Map();    // Their pictures, loaded when their zone is reache
 
 function sheetOf(id) {
     if (!sheets.has(id)) {
-        const image = new Image();
-        image.decoding = 'async';
-        // With the game's build, so a sheet painted again is fetched anew (as the hunter's clothes)
-        image.src = `${creatureImage(id)}?v=${GAME_VERSION}.${BUILD_TIMESTAMP}`;
-        sheets.set(id, image);
+        // With the game's build, so a sheet painted again is fetched anew (as the hunter's
+        // clothes); decoded before it is first drawn (utils/readyImage.js)
+        sheets.set(id, readyImage(`${creatureImage(id)}?v=${GAME_VERSION}.${BUILD_TIMESTAMP}`));
     }
     return sheets.get(id);
 }
@@ -305,7 +304,7 @@ export function drawCreatures(ctx, alpha = 1) {
             creature.x = creature.prevX + (x - creature.prevX) * alpha;
             creature.y = creature.prevY + (y - creature.prevY) * alpha;
         }
-        creature.draw(ctx, sheets.get(creature.id));
+        creature.draw(ctx, sheets.get(creature.id)?.source);
         creature.x = x;
         creature.y = y;
     }

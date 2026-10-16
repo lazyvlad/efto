@@ -346,7 +346,8 @@ export class Creature {
     }
 
     draw(ctx, sheet) {
-        if (!sheet || !sheet.complete || !sheet.naturalWidth || this.state === 'gone') return;
+        // A sheet decoded and ready (systems/creatureSystem.js), or nothing yet
+        if (!sheet || this.state === 'gone') return;
 
         const cell = CREATURE_SHEET.cell;
         const index = this.frame();
