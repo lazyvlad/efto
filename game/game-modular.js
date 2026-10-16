@@ -4113,7 +4113,7 @@ function createMobileIntegratedLayout(gameState, gameItems) {
             <div class="player-health-section">
                 <div id="healthBar" class="compact-health-bar">
                     <div class="player-portrait">
-                        <img src="${getPortraitUrl()}" alt="Player Portrait" onerror="this.onerror=null;this.src='assets/player/efto.png'">
+                        <img src="${getPortraitUrl()}" crossorigin="anonymous" alt="Player Portrait" onerror="this.onerror=null;this.src='assets/player/efto.png'">
                     </div>
                     <div class="health-bar-container">
                         <div class="health-background">

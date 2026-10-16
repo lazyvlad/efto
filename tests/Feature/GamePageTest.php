@@ -87,6 +87,35 @@ class GamePageTest extends TestCase
         $this->assertStringContainsString('<base href="'.asset('game').'/">', $html);
     }
 
+    public function test_the_built_game_takes_its_pictures_from_the_bucket_when_there_is_one(): void
+    {
+        config(['game.serve' => 'build', 'game.asset_url' => 'https://bucket.example/game']);
+
+        $html = $this->get(route('play'))->assertOk()->getContent();
+
+        // Its pictures and sounds from the bucket, asked for as cross-origin requests
+        $this->assertStringContainsString('<base href="https://bucket.example/game/">', $html);
+        $this->assertStringContainsString("i.crossOrigin='anonymous'", $html);
+        $this->assertDoesNotMatchRegularExpression('/<img\b(?![^>]*\bcrossorigin)/i', $html);
+        // Its icons and manifest, which are not uploaded, from here; its script from the site's build
+        $this->assertMatchesRegularExpression('#href="'.preg_quote(asset('game/favicon.ico'), '#').'(\?v=[^"]*)?"#', $html);
+        $this->assertMatchesRegularExpression('#href="'.preg_quote(asset('game/site.webmanifest'), '#').'(\?v=[^"]*)?"#', $html);
+        $this->assertStringContainsString('src="'.asset('build/'), $html);
+    }
+
+    public function test_the_unbuilt_game_never_takes_its_files_from_the_bucket(): void
+    {
+        config(['game.serve' => 'source', 'game.asset_url' => 'https://bucket.example/game']);
+
+        if (! is_file(public_path('game-src/index.html'))) {
+            $this->markTestSkipped('No development link to the unbuilt game here.');
+        }
+
+        $this->get(route('play'))->assertOk()
+            ->assertSee('<base href="'.asset('game-src').'/">', false)
+            ->assertDontSee('bucket.example', false);
+    }
+
     public function test_the_unbuilt_game_keeps_its_own_links(): void
     {
         config(['game.serve' => 'source']);

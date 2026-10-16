@@ -15,6 +15,11 @@ return [
 
     'serve' => env('GAME_SERVE', 'build'),
 
+    // Where the built game's pictures and sounds are served from instead of this server: the
+    // address of its folder in the S3 bucket they are uploaded to (scripts/upload-game-assets.sh),
+    // e.g. https://<bucket>.s3.eu-west-1.amazonaws.com/game. Empty: from this server.
+    'asset_url' => rtrim((string) env('GAME_ASSET_URL', ''), '/'),
+
     // Scores shown on the leaderboard
     'leaderboard_size' => 100,
 

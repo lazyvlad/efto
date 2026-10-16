@@ -167,8 +167,15 @@ class GameController extends Controller
             ],
         ];
 
-        // The game's own files are addressed relative to its folder
-        $head = '<base href="'.e(asset($folder)).'/">'."\n"
+        // The game's own files are addressed relative to its folder: the built game's in the S3
+        // bucket when there is one (config game.asset_url). Pictures from there are fetched as
+        // cross-origin requests the bucket allows (its CORS rules), or the game could not read
+        // their pixels (utils/hitMask.js) nor make its hunter's picture from them.
+        $assets = $folder === 'game' ? config('game.asset_url') : '';
+        $head = ($assets !== ''
+                ? '<base href="'.e($assets).'/">'."\n"
+                    .'    <script>'.self::CROSS_ORIGIN_PICTURES.'</script>'."\n"
+                : '<base href="'.e(asset($folder)).'/">'."\n")
             .'    <script>window.INPUT_BOOT = '
             .json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_SLASHES)
             .';</script>'."\n    "
@@ -178,11 +185,21 @@ class GameController extends Controller
             .($request->boolean('embedded') ? '' : "\n    ".trim(view('layouts.analytics')->render()));
 
         $html = preg_replace('/<head(\s[^>]*)?>/i', "$0\n    ".$head, $this->fingerprinted($folder, $this->hashed($folder, file_get_contents($indexPath))), 1);
+        if ($assets !== '') {
+            // The page's own pictures as well: a browser that cached one fetched without CORS
+            // would refuse it to the game's cross-origin request for the same address
+            $html = preg_replace('/<img\b(?![^>]*\bcrossorigin)/i', '<img crossorigin="anonymous"', $html);
+        }
 
         return response($html)
             ->header('Content-Type', 'text/html; charset=utf-8')
             ->header('Cache-Control', 'no-cache, no-store, must-revalidate');
     }
+
+    /** Every picture the game makes is asked for as a cross-origin request */
+    private const CROSS_ORIGIN_PICTURES = "(function(){var P=window.Image;function I(w,h){var i=new P(w,h);i.crossOrigin='anonymous';return i}"
+        ."I.prototype=P.prototype;window.Image=I;var make=document.createElement.bind(document);"
+        ."document.createElement=function(t,o){var e=make(t,o);if(String(t).toLowerCase()==='img')e.crossOrigin='anonymous';return e}})();";
 
     /** The game's files whose names never change, which its page links to */
     private const FIXED_NAMES = [
@@ -196,11 +213,16 @@ class GameController extends Controller
      */
     private function fingerprinted(string $folder, string $html): string
     {
+        // With its pictures in the S3 bucket the page's base is there: the icons and the
+        // manifest, which are not uploaded, are linked to here in full
+        $elsewhere = $folder === 'game' && config('game.asset_url') !== '';
         foreach (self::FIXED_NAMES as $name) {
             $version = Fingerprint::of(public_path($folder.'/'.$name));
+            $address = $elsewhere && ! str_starts_with($name, 'assets/') ? asset($folder.'/'.$name) : $name;
             if ($version !== '') {
-                $html = str_replace('"'.$name.'"', '"'.$name.'?v='.$version.'"', $html);
+                $address .= '?v='.$version;
             }
+            $html = str_replace('"'.$name.'"', '"'.$address.'"', $html);
         }
 
         return $html;
