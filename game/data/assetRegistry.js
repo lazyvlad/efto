@@ -45,7 +45,8 @@ export const assetRegistry = {
         reverseGravity: 'assets/powerups/reverse-gravity.webp',
         bronzeArrows: 'assets/powerups/bronze-arrows.webp',
         silverArrows: 'assets/powerups/silver-arrows.webp',
-        thoriumArrows: 'assets/powerups/thorium-arrows.webp'
+        thoriumArrows: 'assets/powerups/thorium-arrows.webp',
+        frostTrap: 'assets/powerups/frost-trap.webp'
     },
     
     // Buff and effect assets

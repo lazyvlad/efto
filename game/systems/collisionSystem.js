@@ -398,17 +398,24 @@ export function checkCollisions(context) {
     
     // Check power-up collisions
     powerUps.forEach((powerUp, powerUpIndex) => {
+        // One that could not be used falls on through him
+        if (powerUp.refused) return;
         if (powerUp.checkCollision && powerUp.checkCollision(player)) {
             // Track activity for hybrid progression
             trackActivity(gameState, 'powerUp', 1);
             
             // Apply power-up effect
             if (powerUp.applyEffect) {
-                powerUp.applyEffect(gameState, {
+                const taken = powerUp.applyEffect(gameState, {
                     fallingItems: fallingItems,
                     powerUps: powerUps,
                     fireballs: fireballs
                 });
+                if (taken === false) {
+                    powerUp.refused = true;
+                    addNotification(gameState, 'No room for more Frost Traps yet', 150, '#BFE8FF');
+                    return;
+                }
             }
             
             createCollectionParticles(powerUp.x + powerUp.width/2, powerUp.y + powerUp.height/2, particles);

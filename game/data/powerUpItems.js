@@ -3,6 +3,22 @@ import { assetRegistry } from './assetRegistry.js';
 
 export const powerUpItems = [
     {
+        // Three Frost Traps across the field, where the creatures come down (systems/frostTrapSystem.js)
+        id: "frost_trap",
+        name: "Frost Trap",
+        image: assetRegistry.powerups.frostTrap,
+        effect: "deploy_frost_traps",
+        duration: 0,
+        type: "utility",
+        color: "#BFE8FF",
+        sound: assetRegistry.audio.shieldCast,
+        description: "Sets three traps that slow the creatures that walk into them",
+        baseProbability: 0.12,
+        speedScaling: false,
+        // Only where there are creatures to catch
+        needsCreatures: true
+    },
+    {
         id: "mana_potion",
         name: "Mana Potion",
         image: assetRegistry.powerups.manaPotion,

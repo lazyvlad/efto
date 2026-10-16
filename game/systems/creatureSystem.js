@@ -17,6 +17,7 @@ import { shieldBlocks } from '../utils/shield.js';
 import { getCurrentTotalCritRating } from './statEffectsSystem.js';
 import { trackActivity } from '../utils/gameUtils.js';
 import { playFireballImpactSound } from './audioSystem.js';
+import { updateFrostTraps } from './frostTrapSystem.js';
 import { readyImage } from '../utils/readyImage.js';
 
 let living = [];
@@ -50,6 +51,12 @@ export function resetCreatures() {
  */
 export function carryForCreatures(item, dropId) {
     carried.push({ item, dropId });
+}
+
+/** Whether the zone being played has creatures of its own (Frost Traps fall only where it does) */
+export function zoneHasCreatures() {
+    const zone = currentZone();
+    return Boolean(zone && zoneCreatures[zone.id]);
 }
 
 export function creaturesAbout() {
@@ -251,8 +258,6 @@ export function updateCreatures(context) {
         }
     }
 
-    if (living.length === 0) return;
-
     // Slowed with the things that hurt (the spells that slow them), and held by Frost Nova
     const slowed = context.spellSystem ? context.spellSystem.getProjectileSpeedMultiplier() : 1;
     const field = {
@@ -261,7 +266,13 @@ export function updateCreatures(context) {
         height: canvas.logicalHeight,
         frozen: Boolean(gameState.freezeTimeActive),
         reversed: Boolean(gameState.reverseGravityActive),
+        chillMove: gameConfig.frostTrap.slow,
     };
+
+    // The Frost Traps first: a creature that reaches one this step is slowed in it
+    updateFrostTraps(delta, living, field);
+
+    if (living.length === 0) return;
 
     for (const creature of living) {
         // Struck down by his weapon since the last step: as if by an arrow
@@ -305,6 +316,18 @@ export function drawCreatures(ctx, alpha = 1) {
             creature.y = creature.prevY + (y - creature.prevY) * alpha;
         }
         creature.draw(ctx, sheets.get(creature.id)?.source);
+        // Chilled by a Frost Trap: a snowflake over it
+        if (creature.chill > 0 && creature.alive) {
+            const body = creature.core();
+            ctx.save();
+            ctx.font = `${Math.round(Math.max(14, body.width * 0.35))}px sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#d6f1ff';
+            ctx.shadowColor = '#4aa8ff';
+            ctx.shadowBlur = 6;
+            ctx.fillText('❄', body.x + body.width / 2, body.y - 6);
+            ctx.restore();
+        }
         creature.x = x;
         creature.y = y;
     }

@@ -2,6 +2,7 @@ import { gameConfig } from '../config/gameConfig.js';
 import { renderCanvasHud, hideMessagesAboveField } from './hudNotificationSystem.js';
 import { drawBoss } from './bossSystem.js';
 import { drawCreatures } from './creatureSystem.js';
+import { drawFrostTraps } from './frostTrapSystem.js';
 import { meleeTimer } from './meleeSystem.js';
 import { gearCatalog } from '../data/wearables.js';
 
@@ -165,6 +166,8 @@ function renderGame({
     };
     
     drawBoss(ctx, canvas, alpha);
+    // The Frost Traps lie under everything that moves
+    if (gameState.gameRunning) drawFrostTraps(ctx, { width: canvas.logicalWidth, height: canvas.logicalHeight, player: player.getBodyBounds() });
     drawCreatures(ctx, alpha);
     particles.forEach(particle => drawEntity(particle));
     fallingItems.forEach(item => drawEntity(item, gameConfig));

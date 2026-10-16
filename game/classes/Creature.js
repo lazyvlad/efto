@@ -99,6 +99,9 @@ export class Creature {
         this.prevX = this.x;
         this.prevY = this.y;
         const ms = delta * STEP_MS;
+        // A Frost Trap's chill (systems/frostTrapSystem.js) slows how it moves, not how it acts:
+        // its warning and the timing of its frames are as ever
+        const move = this.chill > 0 ? (field.chillMove ?? 0.5) : 1;
 
         if (this.hitMs > 0) this.hitMs = Math.max(0, this.hitMs - ms);
 
@@ -153,20 +156,23 @@ export class Creature {
 
         if (this.state === 'enter') {
             const to = this.yFor(0, field);
-            this.y = Math.min(to, this.y + Math.max(2, (to - this.y) * 0.05) * delta);
+            this.y = Math.min(to, this.y + Math.max(2, (to - this.y) * 0.05) * delta * move);
             if (this.y >= to) this.setState('stalk');
             return null;
         }
 
-        if (this.state === 'lunge') return this.updateLunge(delta, field);
+        // A pounce already in the air when the frost takes it lands (slowed, but never held)
+        if (this.state === 'lunge') return this.updateLunge(delta, field, Math.max(move, 0.5));
 
         // Back from a pounce, to where it keeps over him
         if (this.state === 'back') {
-            const t = Math.min(1, this.stateMs / 220);
+            this.backMs = (this.backMs || 0) + ms * Math.max(move, 0.5);
+            const t = Math.min(1, this.backMs / 220);
             const lunge = this.lunge;
             this.x = lunge.endX + (lunge.fromX - lunge.endX) * t;
             this.y = lunge.endY + (lunge.fromY - lunge.endY) * t;
             if (t >= 1) {
+                this.backMs = 0;
                 this.lunge = null;
                 this.biteIn = this.nextBite();
                 this.setState('close');
@@ -177,13 +183,13 @@ export class Creature {
         // Closing in, unless an arrow has just pushed it back; and coming down with it
         if (this.state === 'stalk') {
             if (this.stagger > 0) this.stagger -= delta;
-            else this.approach = Math.min(1, this.approach + delta / this.approachSteps);
+            else this.approach = Math.min(1, this.approach + delta * move / this.approachSteps);
         }
         const toY = this.yFor(this.approach, field);
-        this.y += Math.max(-6, Math.min(3, (toY - this.y) * 0.08)) * delta;
+        this.y += Math.max(-6, Math.min(3, (toY - this.y) * 0.08)) * delta * move;
 
         if (this.state === 'stalk') {
-            this.wander(delta, field, hisMiddle);
+            this.wander(delta * move, field, hisMiddle);
             if (this.approach >= 1) {
                 this.biteIn = this.nextBite() * 0.5;
                 this.setState('close');
@@ -191,11 +197,11 @@ export class Creature {
         } else if (this.state === 'close') {
             // On him: it keeps over him as he moves (no faster than it can), and pounces now and then
             const gap = hisMiddle - this.x;
-            const most = this.moveSpeed * 1.6 * delta;
+            const most = this.moveSpeed * 1.6 * delta * move;
             this.x += Math.max(-most, Math.min(most, gap));
             if (Math.abs(gap) > this.size * 0.05) this.facing = gap < 0 ? -1 : 1;
             if (this.stagger > 0) this.stagger -= delta;
-            else this.biteIn -= delta;
+            else if (move > 0) this.biteIn -= delta;    // Held in the frost, it does not pounce
             if (this.biteIn <= 0) {
                 // It marks where he is, and will lunge there whatever he does next
                 this.pounceAt = Math.max(this.size * 0.3, Math.min(field.width - this.size * 0.3, hisMiddle));
@@ -214,6 +220,7 @@ export class Creature {
                     toY: this.y + (him.y + body.height * 0.5) - (body.y + body.height),
                 };
                 this.bitten = false;
+                this.lungeMs = 0;
                 this.setState('lunge');
             }
         }
@@ -236,19 +243,22 @@ export class Creature {
         if (Math.abs(gap) > this.size * 0.05) this.facing = gap < 0 ? -1 : 1;
     }
 
-    updateLunge(delta, field) {
+    // Its flight takes the first attack frame's time (longer, chilled); the bite comes when it
+    // gets there, and it goes back once both the flight and the frames are done
+    updateLunge(delta, field, move = 1) {
         const total = sum(CREATURE_FRAMES.attack.ms);
-        const t = Math.min(1, this.stateMs / CREATURE_FRAMES.attack.ms[0]);
+        this.lungeMs = (this.lungeMs || 0) + delta * STEP_MS * move;
+        const t = Math.min(1, this.lungeMs / CREATURE_FRAMES.attack.ms[0]);
         const lunge = this.lunge;
         this.x = lunge.fromX + (lunge.toX - lunge.fromX) * t;
         this.y = lunge.fromY + (lunge.toY - lunge.fromY) * t;
 
         let bit = null;
-        if (!this.bitten && this.stateMs >= CREATURE_FRAMES.attack.ms[0]) {
+        if (!this.bitten && t >= 1) {
             this.bitten = true;
             if (overlaps(this.core(), field.player)) bit = 'bite';
         }
-        if (this.stateMs >= total) {
+        if (t >= 1 && this.stateMs >= total) {
             // Bitten or missed, it goes back to where it keeps over him, for the next
             lunge.endX = this.x;
             lunge.endY = this.y;
@@ -260,6 +270,8 @@ export class Creature {
     setState(state) {
         this.state = state;
         this.stateMs = 0;
+        this.lungeMs = 0;
+        this.backMs = 0;
     }
 
     /**

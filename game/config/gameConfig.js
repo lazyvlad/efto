@@ -600,6 +600,22 @@ export const gameConfig = {
     // now and then, until it is killed, by arrows or his weapon; then it leaves loot that hops
     // out of it and falls to be caught. Its bites never kill. None come during a boss fight
     // (those about stay).
+    // Frost Traps (systems/frostTrapSystem.js, the art agent's design): a pickup sets three
+    // across the field; a creature that touches one's circle opens a patch of frost that slows
+    // the creatures in it. Sizes are shares of the hunter's height.
+    frostTrap: {
+        perPickup: 3,
+        most: 6,                    // On the field at once, waiting or frosting
+        armingMs: 250,
+        trigger: 0.45,              // The rune circle that sets it off
+        field: 0.7,                 // The frost patch
+        fieldMs: 6000,
+        lingerSteps: 60,            // Chilled this long after the frost is gone
+        slow: 0,                    // How fast a chilled creature moves: 0 holds it where it is
+                                    // (no closing in, no new pounce); 0.5 would be half speed
+        device: 0.24,               // The trap drawn
+    },
+
     creatures: {
         enabled: true,
         firstAfter: 5,              // Seconds into a zone before its first creature

@@ -239,10 +239,19 @@ export class PowerUpItem extends FallingObject {
         }
     }
 
+    // False when it could not be used (Frost Traps with no room for three): it is not caught
     applyEffect(gameState, gameObjects = {}) {
+        if (this.data.effect === 'deploy_frost_traps') {
+            const set = gameState.deployFrostTraps ? gameState.deployFrostTraps() : false;
+            if (!set) return false;
+            playSoundEffect(this.data.sound, { key: 'powerup_frost_trap' });
+            addNotification(gameState, '❄ Frost Traps set: creatures that walk into them are slowed', 240, this.data.color);
+            return true;
+        }
         playSoundEffect(this.data.sound, { key: `powerup_${this.data.id || this.data.effect || 'generic'}` });
         
         this.applyEffectLogic(gameState, gameObjects);
+        return true;
     }
     
     applyEffectLogic(gameState, gameObjects = {}) {

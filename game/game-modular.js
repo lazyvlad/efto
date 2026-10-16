@@ -49,7 +49,8 @@ import { actionFor, keyName, resetKeys } from './utils/keybindings.js';
 import { say, preloadVoiceLines, resetVoiceLines, updateBanter, watchHealth, forgetHealth } from './systems/voiceSystem.js';
 import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss, updateCurse, curseState, dropSupplies, fightInProgress, strikeBoss, bossFightState } from './systems/bossSystem.js';
 import { BossProjectile } from './classes/BossProjectile.js';
-import { resetCreatures, updateCreatures, creaturesAbout, strikeCreatures, carryForCreatures } from './systems/creatureSystem.js';
+import { resetCreatures, updateCreatures, creaturesAbout, strikeCreatures, carryForCreatures, zoneHasCreatures } from './systems/creatureSystem.js';
+import { resetFrostTraps, deployFrostTraps } from './systems/frostTrapSystem.js';
 import { dressForMelee, updateMelee, drawMelee, resetMelee, meleeFramesSince } from './systems/meleeSystem.js';
 import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground, currentBackgroundImage, currentBackgroundName } from './systems/backgroundSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState, updateMouseLock } from './systems/inputSystem.js';
@@ -2040,6 +2041,7 @@ function startGame() {
     clearHudNotifications();
     fallingItems = [];
     resetCreatures();
+    resetFrostTraps();
     resetMelee();
     fireballs = [];
     powerUps = [];
@@ -2295,6 +2297,7 @@ function restartGame() {
     clearHudNotifications();
     fallingItems = [];
     resetCreatures();
+    resetFrostTraps();
     resetMelee();
     fireballs = [];
     powerUps = [];
@@ -2438,8 +2441,8 @@ function spawnPowerUps(deltaTimeMultiplier) {
     }
     
     if (shouldSpawnPowerUp(gameState)) {
-        // Get all available power-ups
-        let availablePowerUps = [...powerUpItems];
+        // Get all available power-ups (Frost Traps only where there are creatures to catch)
+        let availablePowerUps = powerUpItems.filter(powerUp => !powerUp.needsCreatures || zoneHasCreatures());
         
         // Handle cut_time power-up special logic (matching original)
         const cutTimePowerUp = powerUpItems.find(p => p.id === "time_cutter");
@@ -4737,6 +4740,12 @@ function emptyBags() {
         if (put > 0) refreshInventory();
         return put;
     };
+    // A Frost Trap pickup: three traps across the field, or none if there is no room for three
+    gameState.deployFrostTraps = () => deployFrostTraps({
+        width: canvas.logicalWidth || canvas.width,
+        height: canvas.logicalHeight || canvas.height,
+        player: player.getBodyBounds(),
+    });
 }
 
 // A hunter's part of what the site keeps for both ({ alliance, horde }); a page from before
