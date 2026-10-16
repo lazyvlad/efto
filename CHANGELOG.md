@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.5.6 - 2026-10-16
+
+### Changed
+- **Faster swings**: one-handed weapons swing every 1.4 seconds, two-handed every 2.6.
+- **Damage by weapon class**: daggers hit lightest and maces hardest of the one-handers;
+  staves, polearms, greatswords and greataxes, in that order, of the two-handers.
+- **A slimmer swing timer**: a thin bar centred under his health and arrows, counting down
+  its seconds and showing the weapon's swing time when ready; smaller numbers beside all three.
+
 ## 3.5.5 - 2026-10-16
 
 ### Fixed
