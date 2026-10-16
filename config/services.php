@@ -38,6 +38,10 @@ return [
         // A bot in the same server, allowed to add reactions in that channel: it reacts to each
         // post (a webhook cannot). Left empty, the posts go out without reactions.
         'bot_token' => env('DISCORD_BOT_TOKEN'),
+        // The bot's reactions on every post, in order: an emoji, or a server's own as "name:id"
+        'reactions' => array_values(array_filter(array_map('trim', explode(',', (string) env(
+            'DISCORD_REACTIONS', 'ogino:940682399086432336,idelazo:940679974803898388,🏹'
+        ))))),
     ],
 
     // Google Analytics: the measurement id ("G-..."). Left empty, visits are not counted.

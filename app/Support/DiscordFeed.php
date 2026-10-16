@@ -93,27 +93,14 @@ class DiscordFeed
     private const API = 'https://discord.com/api/v10';
 
     /**
-     * The reactions a post gets: the same few on every game, a trophy for a game won, a Boss
-     * Rush cleared or a place in the top ten, and a heart for epic or legendary loot.
+     * The reactions a post gets: the same on every game (services.discord.reactions), the
+     * server's own emojis as "name:id".
      *
      * @return array<int, string>
      */
     public static function reactions(Game $game): array
     {
-        $reactions = ['🔥', '👏', '🏹'];
-
-        $bosses = $game->bossDrops()->orderBy('dropped_at')->pluck('boss_id');
-        $last = $bosses->isNotEmpty() ? BossLoot::boss($bosses->last()) : null;
-        $won = $last !== null && $last['zone'] >= count(config('boss_loot.bosses.'.$last['faction'], []));
-        $top = ! $game->isOnlyBosses() && Score::rankOf($game->score, $game->version_rank) <= 10;
-        if ($won || $top) {
-            $reactions[] = '🏆';
-        }
-        if (collect(self::notableLoot($game))->contains(fn ($line) => str_starts_with($line, self::RARE['epic']) || str_starts_with($line, self::RARE['legendary']))) {
-            $reactions[] = '💜';
-        }
-
-        return $reactions;
+        return config('services.discord.reactions', []);
     }
 
     /**

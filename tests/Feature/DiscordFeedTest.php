@@ -66,12 +66,12 @@ class DiscordFeedTest extends TestCase
         config(['services.discord.bot_token' => 'bot-token']);
         $this->play();
 
-        // The same few on every game; this one is the top score, so a trophy too
+        // The same ones on every game, the server's own emojis by name and id
         $reacted = collect(Http::recorded())->map(fn ($pair) => $pair[0])
             ->filter(fn (Request $request) => $request->method() === 'PUT')
             ->map(fn (Request $request) => rawurldecode(explode('/', $request->url())[10]))
             ->values()->all();
-        $this->assertSame(['🔥', '👏', '🏹', '🏆'], $reacted);
+        $this->assertSame(['ogino:940682399086432336', 'idelazo:940679974803898388', '🏹'], $reacted);
         Http::assertSent(fn (Request $request) => $request->method() === 'PUT'
             && str_starts_with($request->url(), 'https://discord.com/api/v10/channels/111/messages/222/reactions/')
             && $request->header('Authorization') === ['Bot bot-token']);
