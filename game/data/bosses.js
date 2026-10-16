@@ -85,8 +85,9 @@ export const behaviours = {
     // Knives by the handful, and then the ambush: gone, up out of the ground where the hunter
     // stands, and a backstab where he goes
     assassin: ['fan', 'fan', 'ambush'],
-    // The big cats: no plain charge any more, but the ambush and the dash across the ground
-    prowler: ['throw', 'ambush', 'throw', 'sidecharge'],
+    // The big cats: no plain charge any more, but the ambush and the dash across the ground,
+    // each after a stretch of claws (the two take seconds each; a throw is over in a moment)
+    prowler: ['throw', 'throw', 'ambush', 'throw', 'row', 'throw', 'sidecharge'],
     // Knives singly and by the handful, and then the riot: stones from both sides of the field
     cutthroat: ['throw', 'fan', 'throw', 'riot'],
     charger: ['throw', 'charge', 'throw', 'charge'],

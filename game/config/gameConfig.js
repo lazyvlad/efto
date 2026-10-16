@@ -586,6 +586,9 @@ export const gameConfig = {
         // melee reach beside the lane for "splash" of its damage: meleeing a charging boss is
         // allowed, at a price.
         charge: { splash: 0.4 },
+        // The ambush and the side charge take the boss off the top for seconds; after one, it
+        // stays up there (throwing instead) at least this many seconds before the next
+        upBetweenSpecials: 7,
         // The side charge: a dash across the ground (heavy damage times "damage": massive), then
         // a strike where he is (times "strikeDamage")
         sideCharge: { damage: 2.5, strikeDamage: 1.5 },

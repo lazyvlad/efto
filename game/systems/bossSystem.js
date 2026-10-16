@@ -52,6 +52,8 @@ const WIND_UP = { throw: 24, row: 36, fan: 24, vanish: 18, charge: 54, bolt: 24,
 //           dashes over it; then it marks where he is and strikes there; then home.
 const AMBUSH = { vanish: 30, mark: 72, strike: 12, backMark: 48, back: 12, home: 30 };
 const SIDE = { dash: 36, mark: 48, strike: 12, home: 30 };
+// The attacks that take the boss off the top of the field for seconds
+const LONG_SPECIALS = ['ambush', 'sidecharge'];
 // The hook going back to the boss when it caught nothing
 const HOOK_REEL_STEPS = 10;
 
@@ -354,6 +356,7 @@ export function guardZone(gameState, canvas) {
         sinceAttack: 0,
         closeFor: 0,            // Steps the player has stayed within the boss's reach
         sinceVolley: 0,         // Steps since the last row it sent down outside its round
+        sinceSpecial: 0,        // Steps up top since its last ambush or side charge
         storm: null,            // The storm coming down: { left, right, steps }
         sinceStorm: Infinity,   // Steps since the last storm ended (the first comes at once)
         sweep: Math.random() * Math.PI * 2,     // Where it is in its sweep along the top
@@ -1066,6 +1069,12 @@ function windUp(context) {
 
     fight.attack = round[fight.nextAttack % round.length];
     fight.nextAttack++;
+    // An ambush or a side charge waits until the boss has been up top long enough since the
+    // last, to be shot at: a throw meanwhile, the special still next in its round
+    if (LONG_SPECIALS.includes(fight.attack) && fight.sinceSpecial < gameConfig.bosses.upBetweenSpecials * 60) {
+        fight.nextAttack--;
+        fight.attack = 'throw';
+    }
     fight.doing = 'winding';
     fight.doingSteps = 0;
     fight.attackData = null;
@@ -1801,6 +1810,8 @@ export function updateBoss(context) {
     }
 
     fight.doingSteps++;
+    if (LONG_SPECIALS.includes(fight.attack) && fight.doing !== 'moving') fight.sinceSpecial = 0;
+    else fight.sinceSpecial++;
     if (fight.doing === 'moving') {
         move(context);
         // Too close for too long, and it swipes; stepping back cools it down again
