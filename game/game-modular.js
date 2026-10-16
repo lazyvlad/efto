@@ -3112,9 +3112,11 @@ for (const item of gameItems) {
     }
 }
 
-// Debug mode: measurements of how the game runs, sent to the site (utils/perfProbe.js)
+// Measurements of how the game runs, sent to the site (utils/perfProbe.js): in debug mode, and
+// from a share of everyone's games
 startPerfProbe({
     canvas,
+    share: siteBoot ? siteBoot.perfShare : 0,
     send: body => {
         if (!(siteBoot && siteBoot.urls && siteBoot.urls.perf)) return;
         fetch(siteBoot.urls.perf, {

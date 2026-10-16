@@ -1,16 +1,22 @@
-// Debug mode: measuring how the game runs, in the player's own browser, and sending it to the
-// site to look at (Admin → Performance).
+// Measuring how the game runs, in the player's own browser, and sending it to the site to look
+// at (Admin → Performance). Two ways:
 //
-// Turned on by opening the game with ?debug=perf (kept in this browser), off with ?debug=off.
-// While on, a small badge shows the frame rate. Every frame the game says how long it took and
-// how much of it went to the game's logic, to drawing, and to drawing the hunter; every few
-// seconds of play a summary of those frames, with what was on screen and what was happening,
-// goes to the site (INPUT_BOOT.urls.perf). Off, it does nothing but answer "off".
+//   Debug mode   opening the game with ?debug=perf (kept in this browser; off with ?debug=off):
+//                a small badge shows the frame rate, and a summary goes every 5 seconds of play
+//   Sampled      for a share of everyone's page loads (INPUT_BOOT.perfShare, 1 in 20 as set),
+//                quietly: no badge, a summary every 30 seconds of play. So it is known how the
+//                game runs on the machines people really play on.
+//
+// Every frame the game says how long it took and how much of it went to the game's logic, to
+// drawing, and to drawing the hunter; each summary of those frames, with the device and what was
+// on screen and happening, goes to the site (INPUT_BOOT.urls.perf). Off, it does nothing but
+// answer "off".
 
 const STORAGE_KEY = 'input_debug_perf';
-const SAMPLE_SECONDS = 5;
+const SAMPLE_SECONDS = { debug: 5, sampled: 30 };
 
 let enabled = false;
+let source = null;          // 'debug' or 'sampled'
 let frames = [];            // [{ ms, update, render, hunter }] since the last sample
 let hunterMs = 0;           // Time spent drawing the hunter in the frame being drawn
 let mouseMoves = 0;         // Mouse reports since the last frame, and the time they took
@@ -54,22 +60,29 @@ function describeDevice() {
         window: `${window.innerWidth}x${window.innerHeight}`,
         cores: navigator.hardwareConcurrency || null,
         memory: navigator.deviceMemory || null,
+        // A touch screen (a phone or tablet, most often)
+        touch: (navigator.maxTouchPoints || 0) > 0,
     };
 }
 
 /**
- * Set the probe up. Does nothing (and costs nothing) unless debug mode is on.
- * @param {object} options  { canvas, send: (body) => void, describe: () => object }
+ * Set the probe up. Does nothing (and costs nothing) unless debug mode is on or this page load
+ * is one of those sampled.
+ * @param {object} options  { canvas, send: (body) => void, describe: () => object,
+ *                            share: the part of page loads sampled (0..1) }
  * @returns {boolean} Whether it is on
  */
 export function startPerfProbe(options) {
-    enabled = readSwitch();
+    source = readSwitch() ? 'debug' : (Math.random() < (Number(options.share) || 0) ? 'sampled' : null);
+    enabled = source !== null;
     if (!enabled) return false;
 
     send = options.send;
     describe = options.describe;
     device = describeDevice();
     session = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+    // Quietly, when sampled: nothing on screen
+    if (source === 'sampled') return true;
 
     badge = document.createElement('div');
     badge.setAttribute('aria-live', 'off');
@@ -106,7 +119,7 @@ export function noteFrame(frame) {
     if (frame.playing) {
         if (frames.length === 0) sampleStart = now;
         frames.push({ ms: frame.ms, update: frame.update, render: frame.render, hunter: hunterMs, mouse: mouseMoves, mouseMs });
-        if (now - sampleStart >= SAMPLE_SECONDS * 1000) flush(now);
+        if (now - sampleStart >= SAMPLE_SECONDS[source] * 1000) flush(now);
     } else if (frames.length > 0) {
         // Paused or over: what there is goes now
         flush(now);
@@ -148,6 +161,7 @@ function flush(now) {
         session,
         device,
         sample: {
+            source,
             seconds: round(total / 1000),
             frames: list.length,
             fps: round(1000 * list.length / total),

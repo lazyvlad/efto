@@ -18,4 +18,9 @@ return [
     // Scores shown on the leaderboard
     'leaderboard_size' => 100,
 
+    // How the game runs on players' machines (game/utils/perfProbe.js): the share of page loads
+    // that quietly send a summary every 30 seconds of play, and the days they are kept
+    'perf_share' => (float) env('GAME_PERF_SHARE', 0.05),
+    'perf_keep_days' => 30,
+
 ];

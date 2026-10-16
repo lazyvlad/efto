@@ -13,3 +13,11 @@ Artisan::command('input:prune-guests', function () {
 })->purpose('Let go of guest accounts not played for a week');
 
 \Illuminate\Support\Facades\Schedule::command('input:prune-guests')->daily();
+
+// How the game ran on players' machines is kept a month (App\Models\PerfSample)
+Artisan::command('input:prune-perf', function () {
+    $gone = \App\Models\PerfSample::where('created_at', '<', now()->subDays((int) config('game.perf_keep_days')))->delete();
+    $this->info($gone.' performance samples let go.');
+})->purpose('Let go of performance samples older than a month');
+
+\Illuminate\Support\Facades\Schedule::command('input:prune-perf')->daily();

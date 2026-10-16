@@ -138,6 +138,8 @@ class GameController extends Controller
             // Settings changed in the admin section, by their place in the game's gameConfig
             'settings' => (object) app(GameSettings::class)->forGame(),
             'csrfToken' => csrf_token(),
+            // The share of games that send how they run (utils/perfProbe.js)
+            'perfShare' => (float) config('game.perf_share'),
             // Framed by the landing page, whose header already has the account links
             'embedded' => $request->boolean('embedded'),
             'urls' => [
