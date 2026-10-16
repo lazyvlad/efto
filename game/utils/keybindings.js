@@ -21,7 +21,9 @@ export const ACTIONS = [
     { id: 'mana_potion', name: 'Drink a Mana Potion', key: 'KeyM' },
     { id: 'settings', name: 'Open and close Settings', key: 'KeyS' },
     { id: 'character', name: 'Open and close the character sheet', key: 'KeyC' },
-    { id: 'inventory', name: 'Open and close the inventory', key: 'KeyB' }
+    { id: 'inventory', name: 'Open and close the inventory', key: 'KeyB' },
+    { id: 'stats', name: 'Show and hide his stats in a game', key: 'KeyI' },
+    { id: 'gear', name: 'Show and hide what he wears in a game', key: 'KeyG' }
 ];
 
 const STORAGE_KEY = 'input_keybindings';

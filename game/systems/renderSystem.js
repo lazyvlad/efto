@@ -113,25 +113,19 @@ function renderGame({
         if (dodgeExpansion > 0) {
             // Fill the dodge area with a subtle background
             ctx.fillStyle = '#00FF88';
-            ctx.globalAlpha = 0.1;
+            ctx.globalAlpha = 0.05;
             ctx.fillRect(0, expandedBorderY, canvas.logicalWidth, dodgeExpansion);
             
             // Draw dodge area border (bright green)
+            // A faint line, nothing written across the field (the figure is in his stats)
             ctx.strokeStyle = '#00FF88';
-            ctx.globalAlpha = 0.8;
-            ctx.lineWidth = movableAreaConfig.borderWidth + 1;
+            ctx.globalAlpha = 0.3;
+            ctx.lineWidth = movableAreaConfig.borderWidth;
             
             ctx.beginPath();
             ctx.moveTo(0, expandedBorderY);
             ctx.lineTo(canvas.logicalWidth, expandedBorderY);
             ctx.stroke();
-            
-            // Add dodge label
-            ctx.fillStyle = '#00FF88';
-            ctx.globalAlpha = 1.0;
-            ctx.font = 'bold 16px Arial';
-            ctx.textAlign = 'left';
-            ctx.fillText(`💨 Dodge Area: +${Math.round(dodgeExpansion)}px`, 10, expandedBorderY - 5);
         }
         
         // Draw side borders for both areas

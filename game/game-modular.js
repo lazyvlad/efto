@@ -70,6 +70,7 @@ import { updateSpellBar, updateHealthBar } from './ui/statusBars.js';
 import { updateCanvasOverlayVisibility } from './ui/canvasOverlay.js';
 import { menuScreenManager } from './ui/menuScreenManager.js';
 import { showGuestSession } from './ui/guestSession.js';
+import { updateHudPanels, toggleStats, toggleGear, closePanels, noteFound, resetHudPanels } from './ui/hudPanels.js';
 import { applyPortrait, getAccountName, getGuestName, getPortraitUrl, isGuestAccount, renderAccountBar, siteBoot } from './ui/accountBar.js';
 import { initializeScreenNavigation, updateScreenNavigation } from './ui/screenNavigation.js';
 import { bindSettingsScreen, resetSettingsScreen, setSettingsBackLabel, updateSettingsScreen } from './ui/settingsScreen.js';
@@ -2042,6 +2043,7 @@ function startGame() {
     fallingItems = [];
     resetCreatures();
     resetFrostTraps();
+    resetHudPanels();
     resetMelee();
     fireballs = [];
     powerUps = [];
@@ -2298,6 +2300,7 @@ function restartGame() {
     fallingItems = [];
     resetCreatures();
     resetFrostTraps();
+    resetHudPanels();
     resetMelee();
     fireballs = [];
     powerUps = [];
@@ -3317,6 +3320,17 @@ function setupUIEventHandlers() {
         }
     });
     
+    // In a game, his stats (I unless changed) and what he wears (G) open over the field's edge
+    document.addEventListener('keydown', event => {
+        const typing = document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+        const action = actionFor(event.code);
+        if ((action !== 'stats' && action !== 'gear') || typing || event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
+        if (!gameState.gameRunning) return;
+        event.preventDefault();
+        if (action === 'stats') toggleStats();
+        else toggleGear();
+    });
+    
     document.getElementById('characterBtn')?.addEventListener('click', () => showCharacterSheet());
     document.getElementById('characterPauseBtn')?.addEventListener('click', () => showCharacterSheet());
     // Its key (C, unless the player changed it): opens it, and closes it again
@@ -4018,7 +4032,30 @@ function updateDOMItemsPanel(gameState, gameItems) {
     
     // Update dedicated dragonstalker progress panel
     updateDragonstalkerProgressPanel(gameState, gameItems);
+    
+    // The slim panels' own parts (ui/hudPanels.js); closed when a boss comes in
+    const room = bagRoom();
+    if (isBossFightActive() !== hudBossWas) {
+        hudBossWas = isBossFightActive();
+        if (hudBossWas) closePanels();
+    }
+    updateHudPanels({
+        level: gameConfig.levels.progressionType === 'xp' ? getLevelProgress(gameState).progress : 0,
+        coins: formatCoins(gameState.coins || 0),
+        bagsFull: room.used >= room.capacity,
+        bags: `${room.used}/${room.capacity}`,
+        statsKey: keyName('stats'),
+        gearKey: keyName('gear'),
+        set: hudSet,
+        worn: hudWorn,
+    });
 }
+
+// What the set chip shows (filled with the set panel): the set he wears most of, and how many
+// pieces he has on
+let hudSet = null;
+let hudWorn = 0;
+let hudBossWas = false;
 
 // Text put on the page only when it changes: setting it, even to what it was, makes the browser
 // lay the page out and paint it again (every tenth frame, for the panels below)
@@ -5012,6 +5049,11 @@ function onItemCollected(itemData, fallingItem = null) {
         stowCatch(itemData);
     }
     
+    // Worth seeing in the Found list: a piece of a set, gear he keeps, anything rare
+    const foundColor = { set_piece: '#C77DFF', epic: '#B048F8', special: '#3D9BFF', legendary: '#FF8000', zee_zgnan: '#FF8000' }[itemData.type]
+        || (isKeptGear(itemData.id) ? (BOSS_LOOT_COLORS[(gearCatalog()[itemData.id] || {}).rarity] || '#1EFF00') : null);
+    if (foundColor) noteFound(itemData.name, foundColor);
+    
     // A rare catch may draw a remark, Thunder Fury always its own
     if (itemData.id === 'ThunderFury') {
         say('thunderfury');
@@ -5105,6 +5147,10 @@ function updateDragonstalkerProgressPanel(gameState) {
     
     const items = SLOTS.map(slot => equipment[slot.id]).filter(Boolean).map(itemId => wearableById(itemId)).filter(Boolean);
     const counts = setsWorn(equipment, wearables());
+    // For the set chip: the set he wears most of
+    hudWorn = items.length;
+    const most = gameConfig.sets.filter(set => counts[set.id]).sort((a, b) => counts[b.id] - counts[a.id])[0];
+    hudSet = most ? { name: most.name.split(' ')[0], pieces: counts[most.id], of: piecesOf(gameItems, most.id).length, more: nextStep(most, counts[most.id]) } : null;
     
     // The heading: the saved set he has on, or what he wears
     const nameElement = document.getElementById('setPanelName');
@@ -5326,6 +5372,7 @@ function onBossDefeated(boss, fight = null, at = null) {
         if (at) popBossLoot(drop.item, at);
         
         const color = BOSS_LOOT_COLORS[drop.item.rarity] || '#FFD700';
+        noteFound(drop.item.name, color);
         // Kept short: the message bar cuts long lines off
         const message = drop.kept ? `${boss.name} dropped ${drop.item.name}` : `Loot: ${drop.item.name} - log in to keep it`;
         addNotification(gameState, message, 420, color);

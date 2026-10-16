@@ -108,6 +108,16 @@ export function addOrUpdateBuff(id, name, effect, timer, type = 'default') {
     });
 }
 
+// What has a timer running, for the row of them (ui/hudPanels.js): { id, name, effect, timer
+// (steps), type, iconSrc }
+export function getActiveBuffs() {
+    return Array.from(activeBuffs.values());
+}
+
+export function colorOfBuff(type) {
+    return colorForType(type);
+}
+
 export function removeBuffState(id) {
     activeBuffs.delete(id);
 }
@@ -401,10 +411,8 @@ function drawNotifications(ctx, canvas, uiScale) {
     const linesAbove = Math.min(maxVisible, Math.floor((roomAboveField(canvas) - 10) / ABOVE_LINE_HEIGHT));
     messagesAboveField = linesAbove >= 1;
 
-    const topItems = [
-        ...notifications.slice().reverse(),
-        ...Array.from(persistentNotifications.values())
-    ].slice(0, messagesAboveField ? linesAbove : maxVisible);
+    // Only what happens once: what has a timer is in the buffs, and is not said twice
+    const topItems = notifications.slice().reverse().slice(0, messagesAboveField ? linesAbove : maxVisible);
 
     showAboveField(messagesAboveField ? topItems : []);
     if (messagesAboveField || topItems.length === 0) return;
@@ -479,6 +487,8 @@ function topOfLeftButtons(canvas) {
 function drawBuffs(ctx, canvas, uiScale) {
     const buffs = Array.from(activeBuffs.values());
     if (buffs.length === 0) return;
+    // Where the panels are redesigned, the timers are a row of their own (ui/hudPanels.js)
+    if (document.body.classList.contains('hud-v2')) return;
 
     const isCompact = canvas.logicalWidth <= 768 || canvas.logicalHeight <= 520;
     const onPhone = canvas.deviceType === 'mobile';
