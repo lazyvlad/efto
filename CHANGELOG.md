@@ -1,5 +1,29 @@
 # Changelog
 
+## 3.4.0 - 2026-10-16
+
+### Added
+- **The Frost Trap**: a new power-up, falling where a zone has creatures. Caught, it sets three
+  traps across the field where the creatures come down. A creature that walks into one is held
+  in a patch of frost for six seconds (it cannot close in or pounce; a pounce already in the air
+  still lands). Untriggered traps stay for the whole game. At most six on the field: one that
+  cannot set all three falls on.
+- **Help in boss fights**: every 8 to 14 seconds of a fight, Haste, Power Word: Shield or Reverse
+  Gravity falls. Reverse Gravity sends what the boss throws flying up. The shield a fight drops
+  takes one hit and lasts two seconds.
+- **How the game runs on players' machines**: one game in twenty quietly sends a summary of its
+  frame rate and the device every 30 seconds of play; Admin → Performance gathers them by device.
+
+### Changed
+- **The in-game panels, redesigned**: a slim strip top left (name, level bar, score, chips for
+  coins and full bags), the set you wear most of top right, your stats on I and what you wear on
+  G, the last finds fading out under the top left, one row for everything with a timer, and
+  nothing written across the field. They sit beside the field, or just inside its corners, at
+  any window size.
+- **Set pieces only drop from bosses**: they no longer fall from the sky.
+- **Creature pictures are decoded before they are first drawn**, so a zone's first creature no
+  longer costs a stutter.
+
 ## 3.3.1 - 2026-10-15
 
 ### Fixed

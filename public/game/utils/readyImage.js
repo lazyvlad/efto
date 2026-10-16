@@ -1,0 +1,1 @@
+export function readyImage(e){const t={source:null,width:0,height:0},n=new Image;return n.decoding="async",n.onload=()=>{const e=e=>{t.source=e,t.width=n.naturalWidth,t.height=n.naturalHeight};"function"==typeof createImageBitmap?createImageBitmap(n).then(e,()=>e(n)):"function"==typeof n.decode?n.decode().then(()=>e(n),()=>e(n)):e(n)},n.src=e,t}
