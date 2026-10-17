@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.7.0 - 2026-10-17
+
+### Added
+- **The hunter steps as he walks**: his weight shifts, each boot or hoof lifts in turn and he
+  leans into the move; capes and tabards swing with his steps, the weapons he carries stay
+  straight. Players who ask their device for less motion see him still, as before.
+- **What's new for 3.7.0**: everything since 3.5.8, published as the deploy runs.
+
 ## 3.6.0 - 2026-10-17
 
 ### Added

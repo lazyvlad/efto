@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-17T06:05:31.682Z",
-  "buildTimestamp": 1792217131691,
+  "buildTime": "2026-10-17T07:44:00.781Z",
+  "buildTimestamp": 1792223040786,
   "mode": "production",
-  "gameVersion": "3.6.0",
-  "cacheHash": "t1asv2to",
+  "gameVersion": "3.7.0",
+  "cacheHash": "borvtdzd",
   "fileMap": {
-    "game-modular.js": "game-modular.t1asv2to.js"
+    "game-modular.js": "game-modular.borvtdzd.js"
   },
-  "buildSystemVersion": "3.6.0"
+  "buildSystemVersion": "3.7.0"
 }
