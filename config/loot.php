@@ -187,6 +187,17 @@ return [
         'essence-of-water', 'dark-rune', 'righteous-orb', 'fiery-core', 'lava-core',
     ],
 
+    // What a material costs to buy, in copper, into the bank of the hunter it is bought for
+    // (BagController::buyMaterial): five times what catching it would be worth, by its rarity
+    // (coins.by_type), the Black Lotus twice that again
+    'material_prices' => [
+        'runecloth' => 50, 'rugged-leather' => 50, 'light-feather' => 50, 'kingsblood' => 50,
+        'fadeleaf' => 50, 'arcane-crystal' => 50, 'sapphire-gem' => 50, 'pearl-gem' => 50,
+        'mithril-bar' => 125, 'thorium-bar' => 125, 'essence-of-water' => 125, 'dark-rune' => 125,
+        'righteous-orb' => 125,
+        'fiery-core' => 500, 'lava-core' => 500, 'black-lotuses' => 1000,
+    ],
+
     // The hunter's bags (bags in game/config/gameConfig.js has the same numbers). Everything
     // caught goes into them: a slot holds a stack of one kind. With no room left, what is
     // caught is sold on the spot for less, and a material sold that way is not kept. Bags are

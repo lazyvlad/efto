@@ -47,6 +47,34 @@ class BagController extends Controller
     }
 
     /**
+     * Buy so many of a material with coins (config loot.material_prices), into the bank of the
+     * hunter it is for: moved into the bags from there to craft with.
+     */
+    public function buyMaterial(Request $request): JsonResponse
+    {
+        $prices = config('loot.material_prices');
+        $data = $request->validate([
+            'item' => ['required', 'string', 'in:'.implode(',', array_keys($prices))],
+            'count' => ['required', 'integer', 'min:1', 'max:1000'],
+            'side' => ['sometimes', 'in:alliance,horde'],
+        ]);
+
+        $user = $request->user();
+        abort_unless($user->canUseRewards(), 422, $user->is_guest ? 'Sign up to spend coins.' : 'Activate your account to spend coins.');
+
+        $side = $data['side'] ?? 'alliance';
+        $count = (int) $data['count'];
+        $cost = $prices[$data['item']] * $count;
+        // Only taken if the purse still holds that much
+        $paid = User::whereKey($user->id)->where('coins', '>=', $cost)->decrement('coins', $cost);
+        abort_if($paid === 0, 422, 'Not enough coins.');
+
+        Bags::deposit($user->fresh(), $side, [$data['item'] => $count]);
+
+        return response()->json(self::kept($user, $side) + ['coins' => (int) $user->fresh()->coins]);
+    }
+
+    /**
      * Move a stack of something kept between the bank and the bags, between games.
      */
     public function move(Request $request): JsonResponse

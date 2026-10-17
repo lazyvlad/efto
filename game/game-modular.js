@@ -3325,6 +3325,8 @@ function setupUIEventHandlers() {
                 bagSlots: gameConfig.bags.bagSlots,
                 forSale: user && siteBoot.bagsForSale ? siteBoot.bagsForSale : null,
                 coins: user ? user.coins || 0 : null,
+                // Materials for coins (loot.material_prices on the site)
+                materialPrices: user && siteBoot.materialPrices ? siteBoot.materialPrices : null,
                 canSpend: Boolean(user && user.verified),
                 // A guest sells for coins he can spend once he signs up
                 canSell: Boolean(user && (user.verified || user.guest)),
@@ -3358,6 +3360,7 @@ function setupUIEventHandlers() {
             };
         },
         onBuyBag: buyBag,
+        onBuyMaterial: buyMaterial,
         onMove: moveKept,
         onSend: sendKept,
         onSendGear: sendGear,
@@ -4999,6 +5002,11 @@ async function postKept(url, body, failed) {
         const result = await response.json();
         if (!response.ok) return result.message || failed;
         
+        // The purse, after a purchase
+        if (result.coins !== undefined && siteBoot.user) {
+            siteBoot.user.coins = result.coins;
+            renderAccountBar();
+        }
         // Both hunters' bags and bank as they are now (a send changes the other's too)
         if (result.all) {
             siteBoot.user.bagContents = result.all.bags;
@@ -5014,6 +5022,13 @@ async function postKept(url, body, failed) {
     } catch (e) {
         return `${failed} No answer from the site.`;
     }
+}
+
+// Buy a material with coins, into this hunter's bank (loot.material_prices on the site)
+function buyMaterial(itemId, count) {
+    if (!hasBank() || !siteBoot.urls.materialsBuy) return Promise.resolve('Log in to buy materials.');
+    if (isPlaying()) return Promise.resolve('Materials are bought between games.');
+    return postKept(siteBoot.urls.materialsBuy, { item: itemId, count, side: currentSide() }, 'It could not be bought.');
 }
 
 function moveKept(itemId, count, to) {

@@ -18,7 +18,7 @@ import { gameItems } from '../data/gameItems.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { quiverText } from '../utils/quiver.js';
 import { MATERIALS, categoryOf } from '../data/materials.js';
-import { stacksOf, slotsUsed, roomFor as roomInBags } from '../utils/bags.js';
+import { stacksOf, stackOf, slotsUsed, roomFor as roomInBags } from '../utils/bags.js';
 import { craftedById, canMake } from '../data/crafting.js';
 import { formatCoins } from '../utils/coins.js';
 import { wearableById } from '../data/wearables.js';
@@ -543,7 +543,7 @@ function renderBags(main, state) {
         const size = state.bags[index];
         bags.append(make('span', size ? 'inventory-bag' : 'inventory-bag is-empty', size ? `Bag · ${size}` : 'Empty'));
     }
-    const vendor = make('button', 'inventory-bag inventory-vendor-btn', sideShows === 'vendor' ? 'The bank' : 'Bag vendor');
+    const vendor = make('button', 'inventory-bag inventory-vendor-btn', sideShows === 'vendor' ? 'The bank' : 'Vendor');
     vendor.type = 'button';
     vendor.addEventListener('click', () => {
         sideShows = sideShows === 'vendor' ? 'bank' : 'vendor';
@@ -757,6 +757,50 @@ function renderBagShop(side, state) {
     if (notice) box.append(make('p', 'inventory-text window-warning', notice));
     if (!state.canSpend) box.append(make('p', 'inventory-text', state.guest ? 'Sign up to spend coins: what you earn as a guest is kept for you.' : 'Activate your account to spend coins.'));
     box.append(make('p', 'inventory-text inventory-fine', 'Junk is sold for coins as a game ends. Materials stay in your bags. Gear is kept.'));
+    renderMaterialShop(side, state);
+}
+
+// Materials for coins, into this hunter's bank (from there into the bags, to craft with)
+function renderMaterialShop(side, state) {
+    const prices = state.materialPrices || {};
+    if (!state.forSale || state.playing || !Object.keys(prices).length) return;
+    const box = make('section', 'window-card inventory-side-card');
+    box.append(make('p', 'window-label', 'The trade goods vendor'), make('h3', 'inventory-side-title', 'Materials'));
+    box.append(make('p', 'inventory-text', 'What you buy goes into your bank. Move it into your bags to craft with it.'));
+    const list = make('div', 'inventory-list');
+    for (const [itemId, price] of Object.entries(prices)) {
+        const item = itemById(itemId);
+        const row = make('div', 'window-item inventory-vendor-row inventory-material-row');
+        const picture = make('img');
+        picture.src = item ? item.image : '';
+        picture.alt = '';
+        const text = make('span', 'window-item-text');
+        text.append(make('span', 'window-item-name', item ? item.name : itemId), make('span', 'window-item-note', `${formatCoins(price)} each · ${state.bank[itemId] || 0} in the bank`));
+        // How many: one, five or twenty, on a line of their own under its name
+        const buttons = make('span', 'inventory-material-buys');
+        row.append(picture, text, buttons);
+        for (const count of [1, 5, 20]) {
+            const buy = make('button', 'game-btn is-figures', count === 1 ? formatCoins(price) : `${count} · ${formatCoins(price * count)}`);
+            buy.type = 'button';
+            buy.disabled = !state.canSpend || busy || state.coins < price * count;
+            buy.title = state.coins < price * count ? 'Not enough coins' : `Buy ${count} ${item ? item.name : itemId}`;
+            buy.addEventListener('click', () => buyMaterial(itemId, count));
+            buttons.append(buy);
+        }
+        list.append(row);
+    }
+    box.append(list);
+    side.append(box);
+}
+
+// Buy a material, then say so and draw it again
+async function buyMaterial(itemId, count) {
+    if (busy) return;
+    busy = true;
+    const item = itemById(itemId);
+    notice = (await game.onBuyMaterial(itemId, count)) || `Bought ${count} ${item ? item.name : itemId}: in your bank.`;
+    busy = false;
+    render();
 }
 
 // "+7 armor, +5 health, carrying +2%"
@@ -1212,7 +1256,8 @@ function renderRecipe(main, state, recipe) {
         }
         words.append(make('p', 'inventory-text inventory-fine', 'His for good once made, bound to him. One to a hunter.'));
     } else {
-        words.append(make('p', 'inventory-text inventory-fine', `Goes into your bags; ${gameConfig.bags.stack} to a slot.`));
+        const many = recipe.makes > 1 ? `${recipe.makes} a making, into your bags` : 'Goes into your bags';
+        words.append(make('p', 'inventory-text inventory-fine', `${many}; ${stackOf(recipe.id, gameConfig.bags.stack)} to a slot.`));
     }
     head.append(picture, words);
     box.append(head);
@@ -1233,6 +1278,17 @@ function renderRecipe(main, state, recipe) {
             make('span', 'window-item-note', inBank ? `${inBank} more in the bank` : 'None in the bank')
         );
         row.append(reagentPicture, text, make('span', inBags >= each ? 'inventory-have is-enough' : 'inventory-have', `${inBags} in your bags`));
+        // Short of it, bags and bank together: bought, if it is for sale
+        const price = state.materialPrices && state.materialPrices[itemId];
+        const short = each * Math.max(1, makeCount) - inBags - inBank;
+        if (price && short > 0 && state.forSale && !state.playing) {
+            const buy = make('button', 'game-btn is-figures inventory-bank-btn', `Buy ${short} · ${formatCoins(price * short)}`);
+            buy.type = 'button';
+            buy.disabled = !state.canSpend || busy || state.coins < price * short;
+            buy.title = state.coins < price * short ? 'Not enough coins' : `Buy the ${short} you are short of, into your bank`;
+            buy.addEventListener('click', () => buyMaterial(itemId, short));
+            row.append(buy);
+        }
         const fits = Math.min(inBank, roomFor(itemId, state.contents, state.capacity));
         if (state.loggedIn && inBank > 0) {
             const fetch = make('button', 'game-btn inventory-bank-btn', fits > 0 ? 'To bags' : 'No room');

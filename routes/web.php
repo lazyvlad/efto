@@ -85,6 +85,7 @@ Route::middleware(['guest.hunter', 'auth'])->group(function () {
     // Debug mode's measurements from the game (game/utils/perfProbe.js)
     Route::post('/api/perf', [PerfController::class, 'store'])->middleware('throttle:60,1')->name('perf.store');
     Route::post('/api/bags/send', [BagController::class, 'send'])->middleware('throttle:60,1')->name('bags.send');
+    Route::post('/api/materials', [BagController::class, 'buyMaterial'])->middleware('throttle:60,1')->name('materials.buy');
     Route::post('/api/craft', [BagController::class, 'craft'])->middleware('throttle:60,1')->name('craft');
 });
 

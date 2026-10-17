@@ -188,6 +188,28 @@ class BagsTest extends TestCase
         $this->assertStringContainsString('"makes":{"arrows":50}', $this->get(route('play'))->getContent());
     }
 
+    public function test_materials_are_bought_with_coins_into_the_bank_of_the_hunter_they_are_for(): void
+    {
+        // Every material has its price, and nothing else is for sale
+        $this->assertEqualsCanonicalizing(config('loot.materials'), array_keys(config('loot.material_prices')));
+
+        $user = User::factory()->create();
+        $user->forceFill(['coins' => 1000])->save();
+        $this->actingAs($user)->postJson(route('materials.buy'), ['item' => 'kingsblood', 'count' => 4, 'side' => 'horde'])
+            ->assertOk()->assertJsonPath('coins', 800)->assertJsonPath('bank.kingsblood', 4);
+        $this->assertSame([], \App\Support\Bags::bank($user->fresh(), 'alliance'), 'the Alliance hunter has none of it');
+        // More than the purse holds: nothing taken, nothing given
+        $this->postJson(route('materials.buy'), ['item' => 'black-lotuses', 'count' => 1])->assertStatus(422);
+        $this->postJson(route('materials.buy'), ['item' => 'health-potion', 'count' => 1])->assertStatus(422);
+        $this->assertSame(800, $user->fresh()->coins);
+        // A guest earns coins but cannot spend them
+        $guest = User::factory()->create();
+        $guest->forceFill(['coins' => 1000, 'is_guest' => true, 'email_verified_at' => null])->save();
+        $this->actingAs($guest)->postJson(route('materials.buy'), ['item' => 'kingsblood', 'count' => 1])->assertStatus(422);
+        // The game is told the prices
+        $this->actingAs($user)->assertStringContainsString('"materialPrices":{"runecloth":50', $this->get(route('play'))->getContent());
+    }
+
     public function test_what_is_crafted_needs_room_in_the_bags(): void
     {
         $user = User::factory()->create();

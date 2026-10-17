@@ -1056,3 +1056,14 @@ button.inventory-carry-slot {
 .inventory-empty-bags {
     margin-top: 8px;
 }
+
+/* The trade goods vendor: a material's name and price, then how many to buy on a line of their own */
+.inventory-material-row {
+    flex-wrap: wrap;
+}
+.inventory-material-buys {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    justify-content: flex-end;
+}
