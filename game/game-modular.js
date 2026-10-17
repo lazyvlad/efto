@@ -1547,8 +1547,15 @@ function keepCarried() {
 function wearCaughtPiece(item) {
     const emptySlot = slotsFor(item).find(slotId => !gameState.equipment[slotId]);
     const slotId = item.set === gameState.wornSet ? (emptySlot || slotsFor(item)[0]) : emptySlot;
+    // Into an empty slot only if nothing else comes off for it: the off hand is empty beside a
+    // weapon held in both hands, and an off-hand caught must not take that weapon off him (a
+    // piece of the set he wears may take the place of what is in its own slot, as ever)
+    const wearing = Object.values(gameState.equipment);
+    const after = slotId ? Object.values(equip(gameState.equipment, slotId, item, wearables())) : [];
+    const replaced = slotId && slotId !== emptySlot ? gameState.equipment[slotId] : null;
+    const takesOff = wearing.some(itemId => itemId !== replaced && !after.includes(itemId));
     
-    if (slotId && !Object.values(gameState.equipment).includes(item.id)) {
+    if (slotId && !takesOff && !wearing.includes(item.id)) {
         setEquipment(equip(gameState.equipment, slotId, item, wearables()));
         // Say so, and where it can be changed
         const sheetKey = keyName('character') || 'C';
