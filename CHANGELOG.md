@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.8.1 - 2026-10-17
+
+### Fixed
+- **A boss's shield rings the whole boss** again, the violet bubble under its painted rings, rather
+  than a small shimmer over its middle; its breaking, rage, daze and vanishing are sized to it too.
+- **Hogger's Upheaval** opens its rift on the ground at his feet, not in his middle.
+
 ## 3.8.0 - 2026-10-17
 
 ### Added
