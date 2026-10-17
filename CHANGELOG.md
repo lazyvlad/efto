@@ -1,5 +1,26 @@
 # Changelog
 
+## 3.8.0 - 2026-10-17
+
+### Added
+- **The bosses' spells, painted**: the casters' bolts and curses, Rain of Fire and Blizzard, stomp
+  dust and hex rings, claw marks, bombs, the Upheaval's rift; the boss's shield, its breaking,
+  its fury, its daze and its vanishing.
+- **The hunter steps while fighting hand to hand**, and **holds his ranged weapon up as he
+  shoots**: every bow, crossbow, spear, harpoon, totem and throwing knife.
+- **Everything to the bank**: one button under the bags.
+- **What's new for 3.8.0**, published as the deploy runs.
+
+### Changed
+- **Power Word: Shield** that falls in a boss fight lasts 8 seconds (it was 2).
+- **Frost Traps** fall about one power-up in four where there are creatures (one in thirty).
+- **Catching Frost Nova** no longer costs health.
+- **The share card** says "A na mene li go davash?".
+
+### Fixed
+- **Gear caught in a game** stays in his 36 for the next game, instead of slipping into the bank.
+- **Leaving things in the bank** no longer takes off what he wears.
+
 ## 3.7.0 - 2026-10-17
 
 ### Added

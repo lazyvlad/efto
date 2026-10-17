@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-17T07:44:00.781Z",
-  "buildTimestamp": 1792223040786,
+  "buildTime": "2026-10-17T09:23:33.392Z",
+  "buildTimestamp": 1792229013397,
   "mode": "production",
-  "gameVersion": "3.7.0",
-  "cacheHash": "borvtdzd",
+  "gameVersion": "3.8.0",
+  "cacheHash": "vpa9z92c",
   "fileMap": {
-    "game-modular.js": "game-modular.borvtdzd.js"
+    "game-modular.js": "game-modular.vpa9z92c.js"
   },
-  "buildSystemVersion": "3.7.0"
+  "buildSystemVersion": "3.8.0"
 }
