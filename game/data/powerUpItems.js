@@ -13,7 +13,8 @@ export const powerUpItems = [
         color: "#BFE8FF",
         sound: assetRegistry.audio.shieldCast,
         description: "Sets three traps that slow the creatures that walk into them",
-        baseProbability: 0.12,
+        // About one power-up in four where there are creatures: roughly one a minute
+        baseProbability: 1.0,
         speedScaling: false,
         // Only where there are creatures to catch
         needsCreatures: true
