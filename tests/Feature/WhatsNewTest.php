@@ -219,4 +219,22 @@ class WhatsNewTest extends TestCase
         $migration->down();
         $this->assertSame(0, \App\Models\NewsPost::count());
     }
+
+    public function test_the_deploy_publishes_the_3_9_0_post_once(): void
+    {
+        $this->app->instance('publish-whats-new', true);
+        $migration = require base_path('database/migrations/2026_10_17_200000_publish_whats_new_3_9_0.php');
+
+        \App\Models\NewsPost::create(['title' => 'Draft', 'version' => '3.9.0', 'body' => 'Draft text']);
+        $migration->up();
+        $migration->up();
+
+        $post = \App\Models\NewsPost::sole();
+        $this->assertTrue($post->isPublished());
+        $this->assertSame('Your pet bites back, and the vendor sells materials', $post->title);
+        $this->get(route('whats-new'))->assertOk()->assertSee('Your pet bites back')->assertSee('New recipes');
+
+        $migration->down();
+        $this->assertSame(0, \App\Models\NewsPost::count());
+    }
 }
