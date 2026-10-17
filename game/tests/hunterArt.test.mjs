@@ -23,6 +23,8 @@ test('both hunters have a body, a face to keep, and every picture they are drawn
         for (const parts of Object.values(looks)) {
             for (const part of parts || []) {
                 if (!(await exists(part.layer))) missing.push(part.layer);
+                // And its picture to fight in, where it has one of its own
+                if (part.meleeLayer && !(await exists(part.meleeLayer))) missing.push(part.meleeLayer);
             }
         }
     }

@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 // Loaded through data: URLs, as in gameClock.test.mjs
 const asUrl = source => `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
 const motion = await import(asUrl(await readFile(new URL('../utils/meleeMotion.js', import.meta.url))));
-const { meleeRigs, meleeWeapons, meleeBodies, meleeArmor, meleeArtPath, meleeWeaponImage } = await import(asUrl(await readFile(new URL('../data/melee.js', import.meta.url))));
+const { meleeRigs, meleeWeapons, meleeBodies, meleeArmor, meleeArtPath, meleeWeaponImage, meleeRest } = await import(asUrl(await readFile(new URL('../data/melee.js', import.meta.url))));
 const { MeleeState, SWING, DRAW_MS, CLEAR_MS, armsFor, swingPose, drawPose, readyPose } = motion;
 
 // Steps of game time (60 a second) until something happens
@@ -152,6 +152,26 @@ test('taking any weapon off his back, it stays behind him until it has turned cl
         const pose = drawPose(share);
         if (!pose.behind) assert.ok(pose.angle >= 65, `share ${share.toFixed(3)}: in front at ${pose.angle.toFixed(1)}°`);
     }
+});
+
+test('a weapon hung blade down or at his hip is taken from where it rests, behind him half the way', () => {
+    assert.ok(Object.keys(meleeRest).length >= 9);
+    for (const [weaponId, sides] of Object.entries(meleeRest)) {
+        assert.ok(meleeWeapons[weaponId], `${weaponId} is fought with`);
+        for (const [side, rest] of Object.entries(sides)) {
+            assert.ok(meleeRigs[side], side);
+            const start = drawPose(0, null, null, rest), end = drawPose(1, null, null, rest);
+            assert.deepEqual([start.x, start.y, start.angle], [rest.x, rest.y, rest.angle], weaponId);
+            assert.deepEqual([end.x, end.y, end.angle], [readyPose().x, readyPose().y, readyPose().angle], weaponId);
+            assert.equal(drawPose(0.4, null, null, rest).behind, true);
+            assert.equal(drawPose(0.5, null, null, rest).behind, false);
+        }
+    }
+});
+
+test("Thick Bear Fur has melee art on the Horde hunter, who wears it: it no longer keeps him from fighting", () => {
+    const fur = meleeArmor['thick-bear-fur'].horde;
+    assert.deepEqual(fur.parts.map(part => part[1]).sort(), ['left-upper', 'right-upper', 'torso']);
 });
 
 test('every weapon he fights with has a class with a damage, of its own hand', async () => {

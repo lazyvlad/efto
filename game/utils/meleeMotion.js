@@ -60,15 +60,18 @@ export function swingPose(ms, family = 'two', style = null, anchor = null) {
     return pose;
 }
 
-// Taking the weapon off his back (share 0 -> 1; backwards to put it away): behind him at first
-export function drawPose(share, style = null, anchor = null) {
+// Taking the weapon off his back (share 0 -> 1; backwards to put it away): behind him at first.
+// "resting": where it rests, for a weapon hung blade down or at his hip (data/melee.js
+// meleeRest), behind him for the first half of the way
+export function drawPose(share, style = null, anchor = null, resting = null) {
     const t = smooth(share);
     const ready = readyPose(style, anchor);
-    const angle = mix(ON_BACK.angle, ready.angle, t);
+    const from = resting || ON_BACK;
+    const angle = mix(from.angle, ready.angle, t);
     // Behind him until it has turned clear of his face (and the tauren's horns), however broad
     // (a short blade comes out to his side, at a lower angle: behind him until half way)
     const clear = style === 'short' && anchor ? share >= 0.5 : angle >= 65;
-    return { x: mix(ON_BACK.x, ready.x, t), y: mix(ON_BACK.y, ready.y, t), angle, behind: share < 0.45 || !clear, helping: share };
+    return { x: mix(from.x, ready.x, t), y: mix(from.y, ready.y, t), angle, behind: share < 0.45 || (!resting && !clear), helping: share };
 }
 
 export function readyPose(style = null, anchor = null) {
@@ -225,10 +228,11 @@ export class MeleeState {
 
     // What he looks like now (null: as ever, his bow and all)
     // anchor: his weapon-hand shoulder, for a short blade (see SHORT)
-    pose(anchor = null) {
+    // resting: where the weapon rests on him, if not on his back pointing up (drawPose)
+    pose(anchor = null, resting = null) {
         switch (this.state) {
-            case 'draw': return drawPose(this.ms / DRAW_MS, this.style, anchor);
-            case 'sheathe': return drawPose(1 - this.ms / SHEATHE_MS, this.style, anchor);
+            case 'draw': return drawPose(this.ms / DRAW_MS, this.style, anchor, resting);
+            case 'sheathe': return drawPose(1 - this.ms / SHEATHE_MS, this.style, anchor, resting);
             case 'guard': return readyPose(this.style, anchor);
             case 'attack': return swingPose(this.ms, this.family === 'two' ? 'two' : 'one', this.style, anchor);
             default: return null;

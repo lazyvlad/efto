@@ -91,6 +91,17 @@ export const meleeBodies = {
 // relaxed hand), or nothing ("static-shoulder", over the roots of the arms). Any other item is
 // drawn as it always is, still, in its place among the rest.
 export const meleeArmor = {
+    // Thick Bear Fur (a Horde shirt): the fur over his torso and its short caps over his upper
+    // arms, the bare biceps under them. Under a chest only the torso shows (meleeSystem.js)
+    'thick-bear-fur': {
+        horde: {
+            parts: [
+                ["horde/thick-bear-fur/torso.webp", "torso", "torso", 5, [200, 165, 585, 450]],
+                ["horde/thick-bear-fur/left-upper.webp", "left-upper", "upper-overlay", 5, [215, 261, 321, 408]],
+                ["horde/thick-bear-fur/right-upper.webp", "right-upper", "upper-overlay", 5, [497, 272, 641, 413]],
+            ],
+        },
+    },
     'giantstalker-chest': {
         alliance: {
             sleeves: { 'left-upper': ["alliance/giantstalker-chest/left-upper-sleeve.webp", [233, 241, 311, 344]], 'left-forearm': ["alliance/giantstalker-chest/left-forearm-sleeve.webp", [244, 310, 349, 428]], 'right-upper': ["alliance/giantstalker-chest/right-upper-sleeve.webp", [464, 251, 564, 357]], 'right-forearm': ["alliance/giantstalker-chest/right-forearm-sleeve.webp", [518, 330, 654, 404]] },
@@ -423,6 +434,21 @@ export const meleeArmor = {
 };
 
 export const meleeAliases = {"dragonstalker-helmet": "ds_helm", "dragonstalker-shoulders": "ds_shoulders", "dragonstalker-chest": "ds_chest", "dragonstalker-bracers": "ds_bracers", "dragonstalker-gloves": "ds_gloves", "dragonstalker-belt": "ds_belt", "dragonstalker-leggings": "ds_legs", "dragonstalker-boots": "ds_boots"};
+
+// Where a weapon rests on him when it is not on his back pointing up, as most are: hung blade
+// down on his back, or in a sheath at his hip (art-workbench/equipment-repairs). His hand takes
+// it from there and puts it back there (utils/meleeMotion.js drawPose). By weapon, then side.
+export const meleeRest = {
+    'brutality_blade': { alliance: { x: 590, y: 270, angle: 215 }, horde: { x: 613, y: 229, angle: 200 } },
+    'maladath': { alliance: { x: 590, y: 270, angle: 215 }, horde: { x: 613, y: 229, angle: 200 } },
+    'cruel-barb': { alliance: { x: 300, y: 412, angle: 198 } },
+    'embalmers-cleaver': { alliance: { x: 590, y: 270, angle: 215 } },
+    'nekroshs-spiked-mace': { alliance: { x: 590, y: 270, angle: 215 } },
+    'vilebranch-soul-dagger': { alliance: { x: 300, y: 412, angle: 198 } },
+    'cursed-felblade': { horde: { x: 613, y: 229, angle: 200 } },
+    'ripsaw': { horde: { x: 613, y: 229, angle: 200 } },
+    'jangthraze-the-protector': { horde: { x: 613, y: 229, angle: 200 } },
+};
 
 export function meleeArtPath(file) {
     return `assets/player/combat/armor/${file}`;

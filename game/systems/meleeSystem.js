@@ -14,7 +14,7 @@
 import { gameConfig } from '../config/gameConfig.js';
 import { CombatText } from '../classes/CombatText.js';
 import { Particle } from '../classes/Particle.js';
-import { meleeRigs, meleeWeapons, meleeBodies, meleeArmor, meleeAliases, meleeArtPath, meleeWeaponImage } from '../data/melee.js';
+import { meleeRigs, meleeWeapons, meleeBodies, meleeArmor, meleeAliases, meleeArtPath, meleeWeaponImage, meleeRest } from '../data/melee.js';
 import { hunterArt } from '../data/hunterArt.js';
 import { MeleeState, armsFor } from '../utils/meleeMotion.js';
 import { meleePlates, loadLook } from '../utils/hunterLooks.js';
@@ -84,7 +84,14 @@ export function meleeWeaponFor(side, equipment) {
 function partsFor(side, equipment) {
     const bare = meleeBodies[side];
     const worn = [...new Set(Object.values(equipment).filter(Boolean).map(resolve))]
-        .map(itemId => meleeArmor[itemId] && meleeArmor[itemId][side])
+        .map(itemId => {
+            const entry = meleeArmor[itemId] && meleeArmor[itemId][side];
+            // Thick Bear Fur under a chest: the chest's sleeves cover its caps, only the fur's torso shows
+            if (itemId === 'thick-bear-fur' && entry && equipment.chest && seenOn(side, equipment.chest)) {
+                return { ...entry, parts: entry.parts.filter(part => part[1] === 'torso') };
+            }
+            return entry;
+        })
         .filter(Boolean);
     const sleeves = Object.assign({}, ...worn.map(art => art.sleeves || {}));
     const all = worn.flatMap(art => art.parts).sort((a, b) => a[3] - b[3]);
@@ -314,7 +321,8 @@ function segment(ctx, part, fromA, fromB, toA, toB) {
 export function drawMelee(ctx, bounds, posed = null) {
     // A pose may be asked for (to look at one), else he is drawn as he is now
     if (!look || (!posed && melee.state === 'ranged')) return false;
-    const pose = posed || melee.pose(meleeRigs[look.side].right.shoulder);
+    const resting = meleeRest[look.weaponId] && meleeRest[look.weaponId][look.side];
+    const pose = posed || melee.pose(meleeRigs[look.side].right.shoulder, resting || null);
     const rig = meleeRigs[look.side];
     const weapon = meleeWeapons[look.weaponId];
     const { plates, limbs, hands, cuffs } = look;
@@ -363,7 +371,6 @@ export function drawMelee(ctx, bounds, posed = null) {
     }
     put(ctx, plates.front, 0, 0, 800, 800);
     if (!at.behind) drawWeapon();
-
     // The fists on the handle, turned with it; a free left hand relaxed at the end of its arm;
     // and over each hand what is worn on it
     for (const side of ['left', 'right']) {
