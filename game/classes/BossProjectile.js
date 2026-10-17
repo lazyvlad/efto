@@ -3,6 +3,7 @@ import { DamageProjectile } from './DamageProjectile.js';
 import { drawAura } from '../utils/glow.js';
 import { playFireballImpactSound } from '../systems/audioSystem.js';
 import { flyStep } from '../utils/upheaval.js';
+import { drawEffect, burst, readyEffect } from '../systems/bossEffects.js';
 
 const pictures = new Map();
 
@@ -53,6 +54,14 @@ export class BossProjectile extends DamageProjectile {
         // of the ground, or flies in from a side, stops over its column and drops through it
         // ({ vx, vy, gravity, stopX }), until it is off the field
         this.flight = attack.flight ? { ...attack.flight } : null;
+        // A caster's bolt (or a curse) is painted as a spell, flickering as it flies, and bursts
+        // where it lands (data/bossEffects.js bossCasts); otherwise its picture
+        this.look = attack.look || null;
+        this.cast = typeof performance !== 'undefined' ? performance.now() : 0;
+        if (this.look) {
+            readyEffect(this.look.flight);
+            readyEffect(this.look.impact);
+        }
     }
 
     update(deltaTimeMultiplier, canvas, gameState) {
@@ -102,6 +111,9 @@ export class BossProjectile extends DamageProjectile {
             drawAura(ctx, centerX, centerY, this.width * aura.radius, aura.harmfulColor, aura.opacity * pulse);
         }
 
+        // A spell: its painted flight, pointing the way it goes, while its sheet is there
+        if (this.look && drawEffect(ctx, this.look.flight, performance.now() - this.cast, centerX, centerY, this.width * 2.6, { rotation: this.rotation })) return;
+
         if (!this.picture.complete || !this.picture.naturalWidth) return;
 
         // The picture's longest side spans the hit box, plus a little: the box is the solid core
@@ -122,5 +134,7 @@ export class BossProjectile extends DamageProjectile {
     // a row or a fan landing at once is heard once
     playImpactSound() {
         playFireballImpactSound();
+        // A spell bursts where it landed
+        if (this.look) burst(this.look.impact, this.x + this.width / 2, this.y + this.height / 2, this.width * 2.6);
     }
 }

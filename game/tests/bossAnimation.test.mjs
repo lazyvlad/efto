@@ -97,3 +97,18 @@ test('the painted boss stands where its one picture stood, its height the pictur
     assert.ok(Math.abs(cell.y + anim.pivot[1] * cell.size - 210) < 1e-9);
     assert.ok(Math.abs(cell.size - 320 * anim.scale) < 1e-9);
 });
+
+test('every painted spell the fights name is on a sheet that is there', async () => {
+    const effects = await import(asUrl(await readFile(new URL('../data/bossEffects.js', import.meta.url))));
+    for (const file of Object.values(effects.bossEffectSheets)) assert.ok((await stat(new URL(`../${file}`, import.meta.url))).size > 0, file);
+    const named = [...Object.values(effects.bossCasts).flatMap(look => Object.values(look)), ...Object.values(effects.CURSE_LOOK),
+        ...Object.values(effects.stormLooks).flatMap(look => Object.values(look)),
+        'physical:stomp', 'arcane:hex', 'physical:claw', 'physical:explosion', 'physical:rock-impact', 'fire-gravity:upheaval',
+        'status:shield', 'status:enrage', 'status:daze', 'arcane:shield-break', 'vanish:disappear', 'vanish:reappear'];
+    for (const name of named) {
+        assert.equal(effects.bossEffects[name]?.length, 4, name);
+        assert.ok(effects.bossEffectSheets[name.split(':')[0]], name);
+    }
+    // The casters' bosses are bosses
+    for (const id of Object.keys(effects.bossCasts)) assert.ok(bosses.some(boss => boss.id === id), id);
+});

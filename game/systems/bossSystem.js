@@ -32,6 +32,8 @@ import { arrowDamage, damageAfterArmor, armorReduction } from '../utils/stats.js
 import { shieldBlocks } from '../utils/shield.js';
 import { getCurrentTotalCritRating } from './statEffectsSystem.js';
 import { bossAnimation, bossPose, cellPlace, cellSource, hookHandOn } from './bossAnimation.js';
+import { drawEffect, burst, readyEffect, resetBursts } from './bossEffects.js';
+import { bossCasts, CURSE_LOOK, stormLooks } from '../data/bossEffects.js';
 
 const INTRO_STEPS = 120;
 // In a boss fight (the one boss and nothing else) it is there almost at once
@@ -200,6 +202,7 @@ function rules() {
  */
 export function resetBosses(side, startingLevel = 1) {
     fight = null;
+    resetBursts();
     curse = null;
     faction = side;
     defeated = [];
@@ -305,8 +308,8 @@ export function randomBossAttack(level) {
     const here = bossForZone(faction, zoneForLevel(level, levelsPerZone()));
     if (!here) return null;
 
-    const { attack } = bosses[Math.floor(Math.random() * bosses.length)];
-    return { ...attack, damage: bossStats(here, rules()).damage, speed: ATTACK_SPEED };
+    const { attack, id } = bosses[Math.floor(Math.random() * bosses.length)];
+    return { ...attack, look: bossCasts[id] || null, damage: bossStats(here, rules()).damage, speed: ATTACK_SPEED };
 }
 
 /**
@@ -416,6 +419,8 @@ function enrage() {
 function currentAttack(extra = {}) {
     return {
         ...fight.boss.attack,
+        // A caster's bolts, and anyone's curse, are painted spells (data/bossEffects.js)
+        look: extra.onPlayerHit ? CURSE_LOOK : (bossCasts[fight.boss.id] || null),
         damage: Math.round(fight.stats.damage * enrage()),
         speed: ATTACK_SPEED,
         attackerLevel: fight.stats.level,
@@ -974,6 +979,16 @@ function updateStorm(context) {
             hurtPlayer(context, Math.max(1, Math.round(stats.damage * settings.damage * enrage())), { quiet: falling > 0 });
         }
     }
+    // Where it lands, painted: bursts of fire or ice, and frost hanging after a Blizzard
+    const look = stormLooks[boss.storm.name];
+    if (look && falling % 7 === 0) {
+        const floor = canvas.logicalHeight * (1 - gameConfig.player.movableArea.heightPercent);
+        const size = canvas.logicalHeight * 0.1;
+        burst(look.impact, storm.left + size / 2 + Math.random() * Math.max(1, storm.right - storm.left - size), floor + Math.random() * (canvas.logicalHeight - floor), size);
+        if (look.lingering && falling % 21 === 0) {
+            burst(look.lingering, storm.left + Math.random() * (storm.right - storm.left), canvas.logicalHeight - size * 0.6, size * 1.4);
+        }
+    }
     // Sparks where it lands
     if (falling % 4 === 0) {
         const floorTop = canvas.logicalHeight * (1 - gameConfig.player.movableArea.heightPercent);
@@ -1130,6 +1145,8 @@ function strike(context) {
             break;
         case 'upheaval':
             startUpheaval(context);
+            // A rift opens under the boss as it begins (painted, for the look only)
+            burst('fire-gravity:upheaval', fight.x, layout(canvas, fight.boss).top + layout(canvas, fight.boss).height * 0.6, layout(canvas, fight.boss).height * 1.4);
             addNotification(context.gameState, `${fight.boss.name} ${fight.boss.upheaval || 'turns gravity over'}! Danger from every side`, 300, '#C77DFF');
             playScreamSound();
             break;
@@ -1140,6 +1157,7 @@ function strike(context) {
         case 'swipe':
             if (withinReach(context)) {
                 hurtPlayer(context, Math.round(fight.stats.damage * gameConfig.bosses.melee.damage * enrage()));
+                burst('physical:claw', body.centerX, body.centerY, body.height * 0.9);
                 for (let i = 0; i < 24; i++) {
                     particles.push(new Particle(body.centerX + (Math.random() - 0.5) * body.width * 2, body.centerY + (Math.random() - 0.5) * body.height, '#FF4500'));
                 }
@@ -1171,6 +1189,13 @@ function strike(context) {
         case 'hex': {
             const safe = body.centerX > fight.attackData.left && body.centerX < fight.attackData.right;
             if (!safe) hurtPlayer(context, heavyDamage());
+            // Dust (a stomp) or violet rings (a hex) along the ground struck, none in the safe patch
+            const look = fight.attack === 'stomp' ? 'physical:stomp' : 'arcane:hex';
+            const apart = body.height * 0.55;
+            for (let x = apart / 2; x < canvas.logicalWidth; x += apart) {
+                if (x > fight.attackData.left - apart / 2 && x < fight.attackData.right + apart / 2) continue;
+                burst(look, x, body.y + body.height * 0.92, body.height * 0.75);
+            }
             // Dust along the ground that was struck
             for (let i = 0; i < 40; i++) {
                 const x = Math.random() * canvas.logicalWidth;
@@ -1745,6 +1770,8 @@ function updateBombs(context) {
         bomb.steps++;
         if (bomb.steps < BOMB_FLIGHT_STEPS + BOMB_FUSE_STEPS) return true;
 
+        // Fozruk's stone breaks apart; Gerenzo's bomb goes up in flames (painted, for the look only)
+        burst(fight.boss.id === 'fozruk' ? 'physical:rock-impact' : 'physical:explosion', bomb.x, bomb.y, bomb.radius * 2.6);
         if (player.isHitBy({ x: bomb.x, y: bomb.y, radius: bomb.radius })) {
             hurtPlayer(context, heavyDamage());
         } else {
@@ -2197,9 +2224,25 @@ export function drawBoss(ctx, canvas, alpha = 1) {
         ctx.restore();
     }
 
-    // The shield: a violet bubble around the boss
-    if (fight.shielded && fight.hidden < 0.5) {
-        const centerY = y + place.height / 2;
+    // What it was last drawn as: its shield broken, or it vanishing or coming back, bursts
+    const centerY = y + place.height / 2;
+    if (seenStatus.fight !== fight) seenStatus = { fight, shielded: fight.shielded, hidden: fight.hidden };
+    if (seenStatus.shielded && !fight.shielded && fight.phase === 'fight') burst('arcane:shield-break', x, centerY, place.height * 1.3);
+    if (seenStatus.hidden < 0.05 && fight.hidden >= 0.05) burst('vanish:disappear', x, centerY, place.height * 1.1);
+    if (seenStatus.hidden >= 0.5 && fight.hidden < 0.5) burst('vanish:reappear', x, centerY, place.height * 1.1);
+    seenStatus.shielded = fight.shielded;
+    seenStatus.hidden = fight.hidden;
+    const since = fight.steps * 1000 / 60;
+    if (fight.phase === 'fight' && fight.hidden < 0.5) {
+        // Enraged, a red fury about it; dazed by Thunderfury, stars over its head
+        if (fight.enraged) drawEffect(ctx, 'status:enrage', since, x, centerY, place.height * 1.2, { alpha: 0.75 * opacity });
+        if (fight.dazedSteps > 0) drawEffect(ctx, 'status:daze', since, x, y + place.height * 0.08, place.height * 0.55, { alpha: opacity });
+    }
+
+    // The shield: painted, flickering round it; a violet bubble until its picture is there
+    if (fight.shielded && fight.hidden < 0.5 && drawEffect(ctx, 'status:shield', since, x, centerY, place.height * 1.35, { alpha: 0.9 })) {
+        // Drawn
+    } else if (fight.shielded && fight.hidden < 0.5) {
         const pulse = 0.85 + Math.sin(fight.steps * 0.12) * 0.15;
         const bubble = ctx.createRadialGradient(x, centerY, place.height * 0.2, x, centerY, place.height * 0.62);
         bubble.addColorStop(0, 'rgba(176, 72, 248, 0)');
@@ -2219,3 +2262,6 @@ export function drawBoss(ctx, canvas, alpha = 1) {
 
     if (fight.phase !== 'dying') drawHealthBar(ctx, canvas, place);
 }
+
+// The fight drawBoss last drew, and how: for the bursts as its shield breaks and it vanishes
+let seenStatus = { fight: null, shielded: false, hidden: 0 };

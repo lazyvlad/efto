@@ -1,0 +1,59 @@
+// The spells and blows of the boss fights, painted (art-workbench/boss-animations/effects):
+// seven sheets of 256px cells, four to a row, each row a four-frame effect shown a tenth of a
+// second a frame. systems/bossEffects.js draws them; none of them hurts anyone or times anything.
+
+export const BOSS_EFFECT_CELL = 256;
+export const BOSS_EFFECT_MS = 100;
+
+export const bossEffectSheets = {
+    'arcane': 'assets/bosses/effects/arcane.webp',
+    'fire-gravity': 'assets/bosses/effects/fire-gravity.webp',
+    'frost': 'assets/bosses/effects/frost.webp',
+    'physical': 'assets/bosses/effects/physical.webp',
+    'status': 'assets/bosses/effects/status.webp',
+    'vanish': 'assets/bosses/effects/vanish.webp',
+    'venom-spirit': 'assets/bosses/effects/venom-spirit.webp',
+};
+
+// Each effect, "sheet:name", and its frames on the sheet
+export const bossEffects = {
+    'arcane:bolt': [0, 1, 2, 3],
+    'arcane:curse': [4, 5, 6, 7],
+    'arcane:hex': [8, 9, 10, 11],
+    'arcane:shield-break': [12, 13, 14, 15],
+    'fire-gravity:fire-bolt': [0, 1, 2, 3],
+    'fire-gravity:fire-rain': [4, 5, 6, 7],
+    'fire-gravity:fire-impact': [8, 9, 10, 11],
+    'fire-gravity:upheaval': [12, 13, 14, 15],
+    'frost:ice-flight': [0, 1, 2, 3],
+    'frost:ice-impact': [4, 5, 6, 7],
+    'frost:frost-vapour': [8, 9, 10, 11],
+    'physical:stomp': [0, 1, 2, 3],
+    'physical:claw': [4, 5, 6, 7],
+    'physical:explosion': [8, 9, 10, 11],
+    'physical:rock-impact': [12, 13, 14, 15],
+    'status:shield': [0, 1, 2, 3],
+    'status:enrage': [4, 5, 6, 7],
+    'status:daze': [8, 9, 10, 11],
+    'vanish:disappear': [0, 1, 2, 3],
+    'vanish:reappear': [4, 5, 6, 7],
+    'venom-spirit:venom-flight': [0, 1, 2, 3],
+    'venom-spirit:spirit-flight': [4, 5, 6, 7],
+    'venom-spirit:venom-impact': [8, 9, 10, 11],
+};
+
+// What a caster's bolts look like in flight and where they land, by boss. Thrown weapons and
+// stones keep their own pictures. A curse, whoever casts it, is the violet curse.
+export const bossCasts = {
+    'sarkoth': { flight: 'venom-spirit:venom-flight', impact: 'venom-spirit:venom-impact' },
+    'zalazane': { flight: 'venom-spirit:spirit-flight', impact: 'arcane:curse' },
+    'taragaman': { flight: 'fire-gravity:fire-bolt', impact: 'fire-gravity:fire-impact' },
+    'vile-priestess-hexx': { flight: 'arcane:bolt', impact: 'arcane:curse' },
+};
+export const CURSE_LOOK = { flight: 'arcane:curse', impact: 'arcane:curse' };
+
+// What a storm does where it lands, by the storm's name (its falling painting is its own)
+export const stormLooks = {
+    'Rain of Fire': { impact: 'fire-gravity:fire-impact' },
+    'Blizzard': { impact: 'frost:ice-impact', lingering: 'frost:frost-vapour' },
+};

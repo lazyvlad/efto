@@ -2,6 +2,7 @@ import { movementBounds } from '../utils/movement.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { renderCanvasHud, hideMessagesAboveField } from './hudNotificationSystem.js';
 import { drawBoss, drawBossHook } from './bossSystem.js';
+import { drawBursts } from './bossEffects.js';
 import { drawCreatures } from './creatureSystem.js';
 import { drawFrostTraps } from './frostTrapSystem.js';
 import { meleeTimer } from './meleeSystem.js';
@@ -147,6 +148,8 @@ function renderGame({
         { health: gameState.health, arrows: gameState.arrowCount, capacity: gameState.quiverCapacity, slotSize: gameConfig.quiver.slotSize, melee: meleeStatus() });
     // A boss's hook and chain go over the hunter they catch
     drawBossHook(ctx, canvas, alpha);
+    // The bosses' painted bursts: where spells landed, stomps fell, bombs went up
+    drawBursts(ctx);
     
     // Update DOM-based items panel (throttled for performance)
     // Only update every 10 frames to reduce DOM manipulation overhead
