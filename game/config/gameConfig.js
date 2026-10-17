@@ -606,9 +606,9 @@ export const gameConfig = {
         help: {
             every: [8, 14],
             drops: { speedboost: 1, power_word_shield_projectile: 1, reverse_gravity: 1 },
-            // The shield a fight drops is a short one: it takes one hit, for a moment, so it
-            // cannot carry him through the boss's charges and stomps
-            shield: { charges: 1, steps: 120 },
+            // The shield a fight drops takes one hit, so it cannot carry him through the boss's
+            // charges and stomps; it lasts long enough (8 seconds) to be there when one comes
+            shield: { charges: 1, steps: 480 },
         },
         
         // In normal play, the chance per step that one of the bosses' attacks falls as a hazard
