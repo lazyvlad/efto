@@ -182,4 +182,23 @@ class WhatsNewTest extends TestCase
         $migration->down();
         $this->assertSame(0, \App\Models\NewsPost::count());
     }
+
+    public function test_the_deploy_publishes_the_3_7_0_post_once(): void
+    {
+        $this->app->instance('publish-whats-new', true);
+        $migration = require base_path('database/migrations/2026_10_17_150000_publish_whats_new_3_7_0.php');
+
+        // A draft of it already there is published as written, not added again
+        \App\Models\NewsPost::create(['title' => 'Draft', 'version' => '3.7.0', 'body' => 'Draft text']);
+        $migration->up();
+        $migration->up();
+
+        $post = \App\Models\NewsPost::sole();
+        $this->assertTrue($post->isPublished());
+        $this->assertSame('The bosses come alive', $post->title);
+        $this->get(route('whats-new'))->assertOk()->assertSee('Every zone has its own creatures')->assertSee('Your hunter on the move');
+
+        $migration->down();
+        $this->assertSame(0, \App\Models\NewsPost::count());
+    }
 }
