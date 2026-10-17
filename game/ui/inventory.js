@@ -1290,17 +1290,19 @@ function renderRecipe(main, state, recipe) {
     all.type = 'button';
     all.disabled = most < 1;
     all.addEventListener('click', () => { makeCount = most; render(); });
-    const makeIt = make('button', 'game-btn is-primary inventory-make-btn', `Make ${makeCount}`);
+    const each = recipe.makes || 1;
+    const makeIt = make('button', 'game-btn is-primary inventory-make-btn', each > 1 ? `Make ${makeCount * each}` : `Make ${makeCount}`);
     makeIt.type = 'button';
     makeIt.disabled = !state.loggedIn || state.playing || busy || most < 1;
-    makeIt.title = !state.loggedIn ? 'Log in to craft' : state.playing ? 'Crafting is done between games' : most < 1 ? 'Not enough in your bags' : `Make ${makeCount} ${item.name}`;
+    makeIt.title = !state.loggedIn ? 'Log in to craft' : state.playing ? 'Crafting is done between games' : most < 1 ? 'Not enough in your bags' : `Make ${makeCount * each} ${item.name}`;
     makeIt.addEventListener('click', async () => {
         if (busy) return;
         busy = true;
         notice = (await game.onCraft(recipe.id, makeCount)) || '';
         busy = false;
         if (!notice) {
-            notice = `Made ${makeCount} ${item.name}${makeCount === 1 ? '' : 's'}: in your bags.`;
+            const made = makeCount * each;
+            notice = `Made ${made} ${item.name}${made === 1 || item.name.endsWith('s') ? '' : 's'}: in your bags.`;
             makeCount = 1;
         }
         render();

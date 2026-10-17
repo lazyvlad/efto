@@ -22,10 +22,12 @@ export function isCrafted(id) {
     return craftedById(id) !== null;
 }
 
-// Every recipe: [{ id (what it makes), item, needs: { materialId: count } }]
+// Every recipe: [{ id (what it makes), item, needs: { materialId: count }, makes }], "makes"
+// being how many one making of it makes (arrows come by the bundle)
 export function recipes() {
     const all = (siteBoot && siteBoot.crafting && siteBoot.crafting.recipes) || {};
-    return Object.entries(all).map(([id, needs]) => ({ id, item: craftedById(id), needs }));
+    const makes = (siteBoot && siteBoot.crafting && siteBoot.crafting.makes) || {};
+    return Object.entries(all).map(([id, needs]) => ({ id, item: craftedById(id), needs, makes: makes[id] || 1 }));
 }
 
 // How many of a recipe can be made from these contents: the scarcest reagent decides

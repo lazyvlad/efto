@@ -393,6 +393,8 @@ export const gameConfig = {
         'health-potion': { heal: 40, cooldown: 20 },
         // Time runs at this share of its speed for so many seconds; one at a time
         'mana-potion': { slow: 0.5, seconds: 10, cooldown: 0 },
+        // Haste, as the one that falls (powerUps.haste); one at a time
+        'haste-potion': { haste: true, cooldown: 0 },
     },
 
     // === QUIVER ===

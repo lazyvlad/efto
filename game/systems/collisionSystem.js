@@ -240,9 +240,12 @@ export function checkCollisions(context) {
         if (projectile.checkCollision && projectile.checkCollision(player)) {
             // Apply projectile effects
             if (projectile.data) {
-                if (projectile.data.effects === "speed_increase") {
-                    // Haste: the hunter moves and shoots faster for a while (a second one starts
-                    // the time again); nothing else in the game speeds up
+                if (projectile.data.effects === "speed_increase" && gameState.hasteTimer > 0 && gameState.keepInBags && gameState.keepInBags('haste-potion', 1)) {
+                    // Already hasted: kept in the bags as a Haste Potion for later (J drinks one)
+                    addNotification(gameState, '⚡ Haste Potion: into your bags', 150, '#FF6B35');
+                } else if (projectile.data.effects === "speed_increase") {
+                    // Haste: the hunter moves and shoots faster for a while; nothing else in the
+                    // game speeds up
                     gameState.hasteTimer = gameConfig.powerUps.haste.duration;
                     addNotification(gameState, `⚡ Haste: he moves and shoots faster for ${Math.round(gameConfig.powerUps.haste.duration / 60)}s`, 180, '#FF6B35');
                 } else if (projectile.data.effects === "freeze_time") {

@@ -134,7 +134,7 @@ class GameController extends Controller
             // Bags that can be bought: size in slots => price in copper
             'bagsForSale' => (object) config('loot.bags.for_sale'),
             // What can be crafted, from what (config/crafting.php)
-            'crafting' => ['items' => (object) config('crafting.items'), 'recipes' => (object) config('crafting.recipes')],
+            'crafting' => ['items' => (object) config('crafting.items'), 'recipes' => (object) config('crafting.recipes'), 'makes' => (object) config('crafting.makes', [])],
             // Settings changed in the admin section, by their place in the game's gameConfig
             'settings' => (object) app(GameSettings::class)->forGame(),
             'csrfToken' => csrf_token(),

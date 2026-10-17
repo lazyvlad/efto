@@ -3319,7 +3319,7 @@ function setupUIEventHandlers() {
                 overflow: playing ? gameState.bags.overflow : {},
                 recipes: recipes(),
                 potion: { id: POTION, ...gameConfig.potions[POTION], key: keyName('potion') },
-                potionKeys: { 'health-potion': keyName('potion'), 'mana-potion': keyName('mana_potion') },
+                potionKeys: { 'health-potion': keyName('potion'), 'mana-potion': keyName('mana_potion'), 'haste-potion': keyName('haste_potion') },
                 capacity: bagCapacity(gameConfig.bags, user && user.bags ? user.bags : []),
                 bags: user && user.bags ? user.bags : [],
                 bagSlots: gameConfig.bags.bagSlots,
@@ -3422,6 +3422,7 @@ function setupUIEventHandlers() {
         if (typing || event.repeat) return;
         if (action === 'potion') drinkPotion('health-potion');
         if (action === 'mana_potion') drinkPotion('mana-potion');
+        if (action === 'haste_potion') drinkPotion('haste-potion');
     });
     for (const { id, slot } of POTIONS) {
         document.getElementById(slot)?.addEventListener('pointerdown', event => {
@@ -4906,6 +4907,7 @@ const POTION = 'health-potion';
 const POTIONS = [
     { id: 'health-potion', slot: 'spell-potion' },
     { id: 'mana-potion', slot: 'spell-mana-potion' },
+    { id: 'haste-potion', slot: 'spell-haste-potion' },
 ];
 
 function drinkPotion(itemId = POTION) {
@@ -4924,6 +4926,10 @@ function drinkPotion(itemId = POTION) {
         addNotification(gameState, 'Time is already slowed', 120, '#4169E1');
         return;
     }
+    if (rules.haste && gameState.hasteTimer > 0) {
+        addNotification(gameState, 'He is already hasted', 120, '#FF6B35');
+        return;
+    }
     
     gameState.bags.contents[itemId] = have - 1;
     if (gameState.bags.contents[itemId] === 0) delete gameState.bags.contents[itemId];
@@ -4938,6 +4944,10 @@ function drinkPotion(itemId = POTION) {
         gameState.timeSlowTimer = rules.seconds * 60;
         gameState.timeSlowMultiplier = rules.slow;
         addNotification(gameState, `🔵 Time Slow ${Math.round((1 - rules.slow) * 100)}% for ${rules.seconds}s`, 180, '#4169E1');
+    }
+    if (rules.haste) {
+        gameState.hasteTimer = gameConfig.powerUps.haste.duration;
+        addNotification(gameState, `⚡ Haste: he moves and shoots faster for ${Math.round(gameConfig.powerUps.haste.duration / 60)}s`, 180, '#FF6B35');
     }
     refreshInventory();
 }

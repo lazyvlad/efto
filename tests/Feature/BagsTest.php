@@ -172,6 +172,22 @@ class BagsTest extends TestCase
         $this->postJson(route('bags.send'), ['item' => 'bread', 'count' => 1, 'side' => 'alliance'])->assertStatus(422);
     }
 
+    public function test_arrows_are_made_by_the_bundle_and_haste_potions_one_at_a_time(): void
+    {
+        $user = User::factory()->create();
+        $user->forceFill(['bag_contents' => ['light-feather' => 3, 'rugged-leather' => 2, 'fadeleaf' => 1, 'essence-of-water' => 1]])->save();
+
+        // Two bundles of arrows take two of each and make a hundred, in one slot (arrows stack by 200)
+        $this->actingAs($user)->postJson(route('craft'), ['recipe' => 'arrows', 'count' => 3])->assertStatus(422);
+        $this->postJson(route('craft'), ['recipe' => 'arrows', 'count' => 2])
+            ->assertOk()->assertJsonPath('bags.arrows', 100)->assertJsonPath('bags.light-feather', 1)
+            ->assertJsonMissingPath('bags.rugged-leather');
+        $this->postJson(route('craft'), ['recipe' => 'haste-potion', 'count' => 1])
+            ->assertOk()->assertJsonPath('bags.haste-potion', 1);
+        // The game is told how many a making makes
+        $this->assertStringContainsString('"makes":{"arrows":50}', $this->get(route('play'))->getContent());
+    }
+
     public function test_what_is_crafted_needs_room_in_the_bags(): void
     {
         $user = User::factory()->create();

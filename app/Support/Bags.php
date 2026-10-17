@@ -393,7 +393,9 @@ class Bags
             return null;
         }
 
-        $contents = self::plus(array_filter($contents), [$recipeId => $count]);
+        // A recipe may make more than one at a time (arrows, by the bundle)
+        $made = $count * (int) config("crafting.makes.{$recipeId}", 1);
+        $contents = self::plus(array_filter($contents), [$recipeId => $made]);
         if (self::slotsUsed($contents) > self::capacity($user, $side)) {
             return 'There is no room in your bags for what it makes.';
         }
