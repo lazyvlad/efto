@@ -4,6 +4,7 @@ import { assetManager } from '../utils/AssetManager.js';
 import { assetRegistry } from '../data/assetRegistry.js';
 import { responsiveScaler } from '../utils/gameUtils.js';
 import { CharacterAnimator } from './CharacterAnimator.js';
+import { STRIDE, stepState, advanceStep, stepPose } from '../utils/locomotion.js';
 import { characterFor } from '../data/playerCharacters.js';
 import { maskOfPicture, maskHitsRect, maskHitsCircle } from '../utils/hitMask.js';
 import { perfProbeOn, noteHunterDraw } from '../utils/perfProbe.js';
@@ -38,6 +39,10 @@ export class Player {
         // The character's picture, and what brings it to life once it has loaded. The animation
         // only draws: position and collisions are this class's and the input system's.
         this.lastX = this.x;
+        // How he is stepping (utils/locomotion.js): his own, so a change of clothes (a new
+        // picture, a new animator) never restarts it
+        this.step = stepState();
+        this.reducedMotion = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         this.setCharacter(null);
     }
     
@@ -47,6 +52,7 @@ export class Player {
         if (this.character === character) return;
         
         this.character = character;
+        this.side = STRIDE[faction] ? faction : 'alliance';
         this.image = assetManager.getImage(character.image);
         this.animator = null;
     }
@@ -87,17 +93,49 @@ export class Player {
     // frame with the time passed, in 60ths of a second.
     updateTimers(deltaTimeMultiplier) {
         if (!this.animator && this.areImagesLoaded()) {
-            this.animator = new CharacterAnimator(this.image, this.character.rig);
+            this.animator = new CharacterAnimator(this.image, this.character.rig, STRIDE[this.side]);
         }
         
         const seconds = deltaTimeMultiplier / 60;
-        if (!this.animator || seconds <= 0) return;
+        if (seconds <= 0) return;
         
-        // How fast he is moving sideways, from how far he has come since the last frame.
-        // Crossing half the play field in a second counts as flat out.
-        const velocityX = (this.x - this.lastX) / seconds;
+        // How far he has come sideways since the last frame steps him on, whether or not his
+        // picture is ready. Crossing three tenths of the play field in a second counts as flat
+        // out (an ordinary walk after the pointer shows his whole step); a
+        // jump of more than a quarter of it at once (put back in place, the field resized) is
+        // no step at all.
+        let moved = this.x - this.lastX;
         this.lastX = this.x;
-        this.animator.update(seconds, velocityX, this.canvasWidth * 0.5);
+        if (Math.abs(moved) > this.canvasWidth * 0.25) moved = 0;
+        const figureHeight = this.figureHeight();
+        advanceStep(this.step, seconds, moved, this.canvasWidth * 0.3, figureHeight / this.character.heightInPicture);
+        
+        if (!this.animator) return;
+        this.animator.setStep(stepPose(this.step, this.reducedMotion));
+        this.animator.update(seconds);
+    }
+    
+    // His lean and the dip of his step, for what draws him other than the animator (fighting
+    // hand to hand): around the middle of his feet
+    stepRoot() {
+        const pose = stepPose(this.step, this.reducedMotion);
+        return { lean: pose.lean, bob: pose.bob };
+    }
+    
+    // Fighting hand to hand he is drawn in parts (systems/meleeSystem.js), leaning and dipping
+    // with his step as the animator draws him otherwise (his legs do not step meanwhile). False
+    // when he is not fighting.
+    drawsMelee(ctx, figureHeight) {
+        const { lean, bob } = this.stepRoot();
+        const height = figureHeight / this.character.heightInPicture;
+        const footX = this.x + this.width / 2, footY = this.y + figureHeight;
+        ctx.save();
+        ctx.translate(footX, footY + bob * height);
+        ctx.rotate(lean);
+        ctx.translate(-footX, -footY);
+        const drawn = this.drawMelee(ctx, this.pictureBounds());
+        ctx.restore();
+        return drawn;
     }
     
     /**
@@ -127,7 +165,7 @@ export class Player {
         
         // He stands in the middle of the player's box, his feet just above the health bar
         // Fighting hand to hand he is drawn in parts, his arms swinging (systems/meleeSystem.js)
-        if (this.drawMelee && this.animator && this.drawMelee(ctx, this.pictureBounds())) {
+        if (this.drawMelee && this.animator && this.drawsMelee(ctx, figureHeight)) {
             // Drawn
         } else if (this.animator) {
             const startedAt = perfProbeOn() ? performance.now() : 0;

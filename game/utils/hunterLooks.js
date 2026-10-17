@@ -13,6 +13,7 @@
 
 import { hunterArt } from '../data/hunterArt.js';
 import { GAME_VERSION, BUILD_TIMESTAMP } from '../config/gameVersion.js';
+import { ownerOf } from './locomotion.js';
 
 const images = new Map();       // path -> Promise of a loaded image
 const made = new Map();         // "side|item,item" -> Promise of a canvas
@@ -64,17 +65,19 @@ function restore(context, image, shapes, except = []) {
     context.restore();
 }
 
-// What is drawn for an outfit, in the order it is drawn
+// What is drawn for an outfit, in the order it is drawn; each part says how it moves as he
+// steps (utils/locomotion.js ownerOf), by the slot it is worn in
 function layersFor(side, equipment) {
-    const ids = [...new Set(Object.values(equipment || {}).filter(Boolean).map(id => hunterArt.aliases[id] || id))];
-    return ids.flatMap(itemId => (hunterArt.items[itemId] && hunterArt.items[itemId][side]) || [])
-        .map(part => ({ ...part }))
+    const owners = new Map();
+    for (const [slot, id] of Object.entries(equipment || {})) if (id) owners.set(hunterArt.aliases[id] || id, ownerOf(slot));
+    const ids = [...owners.keys()];
+    return ids.flatMap(itemId => ((hunterArt.items[itemId] && hunterArt.items[itemId][side]) || []).map(part => ({ ...part, owner: owners.get(itemId) })))
         .sort((a, b) => a.order - b.order || (a.stack || 0) - (b.stack || 0) || a.layer.localeCompare(b.layer));
 }
 
 async function compose(side, layers) {
     const body = hunterArt.characters[side];
-    const [base, face, ...pictures] = await Promise.all([
+    const [base, facePicture, ...pictures] = await Promise.all([
         load(body.base),
         load(body.faceSource),
         // A picture that will not load is left out rather than leaving him undressed
@@ -82,23 +85,61 @@ async function compose(side, layers) {
     ]);
 
     const size = hunterArt.canvas;
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const context = canvas.getContext('2d');
+    const blank = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        return canvas;
+    };
 
-    layers.forEach((part, index) => { if (part.order < 0 && pictures[index]) context.drawImage(pictures[index], 0, 0, size, size); });
-    context.drawImage(base, 0, 0, size, size);
-    layers.forEach((part, index) => { if (part.order >= 0 && pictures[index]) context.drawImage(pictures[index], 0, 0, size, size); });
-
-    // The face as the body has it
-    if (body.headClear) {
-        restore(context, base, body.headClear);
-    } else if (layers.length) {
-        restore(context, base, body.earProtection);
-        restore(context, face, [body.faceLock], body.earProtection || []);
+    // In the order drawn: behind him, his body, over him. Next to each other, what moves alike
+    // is drawn on one picture (a "run"), for him to step in (classes/CharacterAnimator.js)
+    const drawn = [
+        ...layers.map((part, index) => ({ part, picture: pictures[index] })).filter(({ part, picture }) => part.order < 0 && picture),
+        { part: { owner: 'body' }, picture: base },
+        ...layers.map((part, index) => ({ part, picture: pictures[index] })).filter(({ part, picture }) => part.order >= 0 && picture),
+    ];
+    const runs = [];
+    for (const { part, picture } of drawn) {
+        if (!runs.length || runs[runs.length - 1].owner !== part.owner) runs.push({ owner: part.owner, canvas: blank() });
+        runs[runs.length - 1].canvas.getContext('2d').drawImage(picture, 0, 0, size, size);
     }
+
+    // The face as the body has it: over everything, on the top run, and nothing of any run
+    // below it showing through
+    const face = context => {
+        if (body.headClear) {
+            restore(context, base, body.headClear);
+        } else if (layers.length) {
+            restore(context, base, body.earProtection);
+            restore(context, facePicture, [body.faceLock], body.earProtection || []);
+        }
+    };
+    const head = body.headClear || (layers.length ? [...(body.earProtection || []), body.faceLock] : []);
+    runs.slice(0, -1).forEach(run => clear(run.canvas.getContext('2d'), head));
+    face(runs[runs.length - 1].canvas.getContext('2d'));
+
+    // And the whole of him on one picture, for what shows him standing still
+    const canvas = blank();
+    const context = canvas.getContext('2d');
+    for (const run of runs) context.drawImage(run.canvas, 0, 0);
+    canvas.runs = runs;
     return canvas;
+}
+
+// Clear what is inside the shapes
+function clear(context, shapes) {
+    if (!shapes || !shapes.length) return;
+    const size = hunterArt.canvas;
+    context.save();
+    context.beginPath();
+    for (const shape of shapes) {
+        shape.forEach(([x, y], index) => (index ? context.lineTo(x * size, y * size) : context.moveTo(x * size, y * size)));
+        context.closePath();
+    }
+    context.clip();
+    context.clearRect(0, 0, size, size);
+    context.restore();
 }
 
 /**

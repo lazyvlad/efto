@@ -16,7 +16,12 @@
 // were added here.
 //
 // It only draws. Where the player is, what they collide with and when things happen stay with
-// the game: tell it what happened (collect, hit, shoot) and how fast the character is moving.
+// the game: tell it what happened (collect, hit, shoot), and how he is stepping (setStep: his
+// step is the player's own, utils/locomotion.js, so changing clothes never restarts it).
+//
+// A dressed hunter's picture comes in runs of layers that move alike (utils/hunterLooks.js):
+// his body steps with his legs, what he carries stays rigid, his cape and tabard swing softly.
+// Each run is laid over the grid and drawn in turn, in the order the picture was put together.
 
 const COLUMNS = 24;
 const ROWS = 30;
@@ -33,6 +38,8 @@ const COLLECT_SECONDS = 0.42;
 const HIT_SECONDS = 0.28;
 const SHOOT_SECONDS = 0.2;
 
+import { legShift } from '../utils/locomotion.js';
+
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 // 0 below "from", 1 above "to", a smooth step in between
 const ramp = (from, to, value) => {
@@ -41,6 +48,38 @@ const ramp = (from, to, value) => {
 };
 // 1 at "center", falling off to either side
 const around = (value, center, width) => Math.exp(-(((value - center) / width) ** 2));
+
+// Which cells of the grid a picture has paint in, and those next to them: one flag per cell,
+// row by row (null: all of them, when the picture cannot be read)
+function paintedCells(picture) {
+    const size = 160;
+    try {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const context = canvas.getContext('2d', { willReadFrequently: true });
+        context.drawImage(picture, 0, 0, size, size);
+        const alpha = context.getImageData(0, 0, size, size).data;
+        const painted = new Uint8Array(COLUMNS * ROWS);
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                if (alpha[(y * size + x) * 4 + 3] > 2) painted[Math.floor(y * ROWS / size) * COLUMNS + Math.floor(x * COLUMNS / size)] = 1;
+            }
+        }
+        const cells = new Uint8Array(COLUMNS * ROWS);
+        for (let row = 0; row < ROWS; row++) {
+            for (let column = 0; column < COLUMNS; column++) {
+                if (!painted[row * COLUMNS + column]) continue;
+                for (let r = Math.max(0, row - 1); r <= Math.min(ROWS - 1, row + 1); r++) {
+                    for (let c = Math.max(0, column - 1); c <= Math.min(COLUMNS - 1, column + 1); c++) cells[r * COLUMNS + c] = 1;
+                }
+            }
+        }
+        return cells;
+    } catch (error) {
+        return null;
+    }
+}
 
 const VERTEX_SHADER = `
     attribute vec2 a_position;
@@ -68,13 +107,15 @@ export class CharacterAnimator {
      * @param {HTMLImageElement} image  The character's picture, already loaded
      * @param {object}           rig    Where the parts of that picture are (data/playerCharacters.js)
      */
-    constructor(image, rig) {
+    constructor(image, rig, stride = null) {
         this.image = image;
         this.rig = rig;
+        // How his legs step (utils/locomotion.js STRIDE), and his step now (setStep)
+        this.stride = stride;
+        this.step = null;
+        // The runs of the picture (a plain picture is one run: his body)
+        this.runs = (image.runs && image.runs.length ? image.runs : [{ owner: 'body', canvas: image }]).map(run => ({ ...run, texture: null }));
         this.time = 0;
-        this.gait = 0;          // How far through the stride
-        this.move = 0;          // 0 standing still .. 1 at full speed
-        this.lean = 0;          // -1 leaning left .. 1 leaning right
         this.collectTime = 0;   // Seconds left of each reaction
         this.hitTime = 0;
         this.shootTime = 0;
@@ -111,21 +152,19 @@ export class CharacterAnimator {
         this.shootTime = SHOOT_SECONDS;
     }
 
+    // How he is stepping now (utils/locomotion.js stepPose)
+    setStep(step) {
+        this.step = step;
+    }
+
     /**
      * Advance the animation.
      * @param {number} seconds     Time since the last call
-     * @param {number} velocityX   Sideways speed, in the canvas's units per second
-     * @param {number} fullSpeed   The speed that counts as moving flat out
      */
-    update(seconds, velocityX, fullSpeed) {
+    update(seconds) {
         const dt = clamp(Number.isFinite(seconds) ? seconds : 0, 0, 0.05);
-        const speed = Number.isFinite(velocityX) ? velocityX / Math.max(1, fullSpeed) : 0;
-        const ease = 1 - Math.exp(-dt * 12);
 
         this.time += dt;
-        this.move += (clamp(Math.abs(speed), 0, 1) - this.move) * ease;
-        this.lean += (clamp(speed, -1, 1) - this.lean) * ease;
-        this.gait += dt * (7 + 5 * this.move);
         this.collectTime = Math.max(0, this.collectTime - dt);
         this.hitTime = Math.max(0, this.hitTime - dt);
         this.shootTime = Math.max(0, this.shootTime - dt);
@@ -133,8 +172,9 @@ export class CharacterAnimator {
 
     // How far each motion has got, as the amounts the grid is shifted by
     pose() {
+        const step = this.step || { amount: 0, direction: 0, left: 0, right: 0, slide: 0, bob: 0, lean: 0 };
         if (this.reducedMotion) {
-            return { breath: 0, bob: 0, lean: 0, step: 0, move: 0, lift: 0, recoil: 0, brace: 0, sway: 0 };
+            return { breath: 0, bob: 0, lean: 0, step, lift: 0, recoil: 0, brace: 0, sway: 0 };
         }
 
         // A reaction rises and falls once over its time
@@ -143,10 +183,9 @@ export class CharacterAnimator {
 
         return {
             breath: breathing * 0.0025,
-            bob: breathing * 0.0018 - Math.abs(Math.sin(this.gait)) * this.move * 0.003,
-            lean: this.lean * 0.035,
-            step: Math.sin(this.gait),
-            move: this.move,
+            bob: breathing * 0.0018 + step.bob,
+            lean: step.lean,
+            step,
             lift: swell(this.collectTime, COLLECT_SECONDS),
             recoil: swell(this.hitTime, HIT_SECONDS),
             brace: swell(this.shootTime, SHOOT_SECONDS),
@@ -154,9 +193,10 @@ export class CharacterAnimator {
         };
     }
 
-    // Where the point (u, v) of the picture is drawn in this pose (0..1 across and down)
-    deform(u, v, pose) {
-        const { foot, chest, arms, legs, gear } = this.rig;
+    // Where the point (u, v) of the picture is drawn in this pose (0..1 across and down), for a
+    // run moved as its owner is (body, carry or cloth)
+    deform(u, v, pose, owner = 'body') {
+        const { foot, chest, arms, gear } = this.rig;
         let x = u;
         let y = v;
 
@@ -175,13 +215,13 @@ export class CharacterAnimator {
         y -= (leftArm + rightArm) * armsUp * 0.030;
         x += (rightArm - leftArm) * pose.lift * 0.008;
 
-        // The legs lift in turn as the character moves
-        const legBand = ramp(legs.from[0], legs.from[1], v);
-        const leftLeg = around(u, legs.left.at, legs.left.width) * legBand;
-        const rightLeg = around(u, legs.right.at, legs.right.width) * legBand;
-        y -= Math.max(0, pose.step) * pose.move * leftLeg * 0.009;
-        y -= Math.max(0, -pose.step) * pose.move * rightLeg * 0.009;
-        x += pose.step * pose.move * (leftLeg - rightLeg) * 0.004;
+        // The legs step in turn as he moves; what he carries does not bend with them, his cape
+        // and tabard swing with both (utils/locomotion.js)
+        if (this.stride) {
+            const [dx, dy] = legShift(u, v, pose.step, this.stride, owner);
+            x += dx;
+            y += dy;
+        }
 
         // What is carried on the back sways
         x += (1 - ramp(gear.u[0], gear.u[1], u)) * (1 - ramp(gear.v[0], gear.v[1], v)) * pose.sway;
@@ -234,15 +274,22 @@ export class CharacterAnimator {
                 }
             }
 
+            // The triangles of each run: only over the cells it has paint in (and one round them,
+            // for what moves), so a run with little in it costs little to draw
             const triangles = [];
-            for (let row = 0; row < ROWS; row++) {
-                for (let column = 0; column < COLUMNS; column++) {
-                    const topLeft = row * (COLUMNS + 1) + column;
-                    const bottomLeft = topLeft + COLUMNS + 1;
-                    triangles.push(topLeft, bottomLeft, topLeft + 1, topLeft + 1, bottomLeft, bottomLeft + 1);
+            for (const run of this.runs) {
+                const cells = paintedCells(run.canvas);
+                run.first = triangles.length;
+                for (let row = 0; row < ROWS; row++) {
+                    for (let column = 0; column < COLUMNS; column++) {
+                        if (cells && !cells[row * COLUMNS + column]) continue;
+                        const topLeft = row * (COLUMNS + 1) + column;
+                        const bottomLeft = topLeft + COLUMNS + 1;
+                        triangles.push(topLeft, bottomLeft, topLeft + 1, topLeft + 1, bottomLeft, bottomLeft + 1);
+                    }
                 }
+                run.count = triangles.length - run.first;
             }
-            this.triangleCount = triangles.length;
 
             this.positionBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
@@ -260,14 +307,17 @@ export class CharacterAnimator {
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
             gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(triangles), gl.STATIC_DRAW);
 
-            gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+            // A texture for each run of the picture; draw() fits them to the canvas
             gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.image);
-            this.textureSize = 0;       // The picture as it came; draw() fits it to the canvas
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            for (const run of this.runs) {
+                run.texture = gl.createTexture();
+                gl.bindTexture(gl.TEXTURE_2D, run.texture);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            }
+            this.textureSize = 0;
 
             this.hitUniform = gl.getUniformLocation(program, 'u_hit');
             gl.enable(gl.BLEND);
@@ -282,7 +332,7 @@ export class CharacterAnimator {
         }
     }
 
-    // Make the canvas this many pixels a side, and hand WebGL the picture shrunk to match
+    // Make the canvas this many pixels a side, and hand WebGL each run shrunk to match
     resize(size) {
         const gl = this.gl;
 
@@ -292,17 +342,21 @@ export class CharacterAnimator {
         }
         gl.viewport(0, 0, size, size);
 
-        let picture = this.image;
-        if (size < Math.max((this.image.naturalWidth || this.image.width), (this.image.naturalHeight || this.image.height))) {
-            picture = document.createElement('canvas');
-            picture.width = size;
-            picture.height = size;
-            const shrink = picture.getContext('2d');
-            shrink.imageSmoothingEnabled = true;
-            shrink.imageSmoothingQuality = 'high';
-            shrink.drawImage(this.image, 0, 0, size, size);
+        for (const run of this.runs) {
+            const image = run.canvas;
+            let picture = image;
+            if (size < Math.max((image.naturalWidth || image.width), (image.naturalHeight || image.height))) {
+                picture = document.createElement('canvas');
+                picture.width = size;
+                picture.height = size;
+                const shrink = picture.getContext('2d');
+                shrink.imageSmoothingEnabled = true;
+                shrink.imageSmoothingQuality = 'high';
+                shrink.drawImage(image, 0, 0, size, size);
+            }
+            gl.bindTexture(gl.TEXTURE_2D, run.texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, picture);
         }
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, picture);
         this.textureSize = size;
     }
 
@@ -331,17 +385,25 @@ export class CharacterAnimator {
             const size = Math.max(SMALLEST, Math.min(LARGEST, Math.ceil(needed / SIZE_STEP) * SIZE_STEP));
             if (this.canvas.width !== size || this.textureSize !== size) this.resize(size);
 
-            for (let index = 0; index < this.uvs.length; index += 2) {
-                const [x, y] = this.deform(this.uvs[index], this.uvs[index + 1], pose);
-                this.vertices[index] = x;
-                this.vertices[index + 1] = y;
-            }
-
             gl.clear(gl.COLOR_BUFFER_BIT);
             gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
-            gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.vertices);
             gl.uniform1f(this.hitUniform, this.hitTime > 0 ? Math.sin(this.hitTime * 70) * 0.5 + 0.5 : 0);
-            gl.drawElements(gl.TRIANGLES, this.triangleCount, gl.UNSIGNED_SHORT, 0);
+            // Each run in turn, moved as its owner is (the grid is worked out once per kind)
+            let shaped = null;
+            for (const run of this.runs) {
+                if (shaped !== run.owner) {
+                    for (let index = 0; index < this.uvs.length; index += 2) {
+                        const [x, y] = this.deform(this.uvs[index], this.uvs[index + 1], pose, run.owner);
+                        this.vertices[index] = x;
+                        this.vertices[index + 1] = y;
+                    }
+                    gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.vertices);
+                    shaped = run.owner;
+                }
+                if (!run.count) continue;
+                gl.bindTexture(gl.TEXTURE_2D, run.texture);
+                gl.drawElements(gl.TRIANGLES, run.count, gl.UNSIGNED_SHORT, run.first * 2);
+            }
 
             ctx.drawImage(this.canvas, left, top, width, height);
         } else {
