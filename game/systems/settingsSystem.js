@@ -12,6 +12,7 @@ const defaultSettings = {
         effectsVolume: 80      // Sound effects volume (0-100)
     },
     gameplay: {
+        petStance: 'defensive',         // defensive: the pet fetches and bites what falls at him; aggressive: creatures first
     },
     ui: {
         handedness: 'right',            // right: move with the right hand, shoot with the left; left: the other way round

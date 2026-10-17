@@ -674,7 +674,18 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     // The pet keeps at the hunter's side and goes after an item now and then. After the items
     // and projectiles have moved, so it can see how fast each one is falling.
     if (player.pet) {
-        player.pet.update(player, fallingItems, fireballs, canvas, gameConfig.pet);
+        player.pet.update(player, fallingItems, fireballs, canvas, gameConfig.pet, creaturesAbout(), getSettings().gameplay?.petStance || 'defensive');
+        
+        // A creature it went for is bitten: a share of its health, and knocked back
+        const mauled = player.pet.takeMauled();
+        if (mauled && mauled.alive) {
+            const hunt = gameConfig.pet.hunt;
+            const damage = Math.max(1, Math.ceil(mauled.maxHealth * hunt.share));
+            const body = mauled.core();
+            if (mauled.takeHit(damage, hunt.pushback, gameConfig.creatures.pushback.stagger)) mauled.felled = true;   // Its points and loot with the next step
+            combatTexts.push(new CombatText(body.x + body.width / 2, body.y, `Chomp! ${damage}`, '#9FE870', false));
+            playSnapSound();
+        }
         
         // What it bit is gone from the air
         const bitten = player.pet.takeBitten();

@@ -311,6 +311,11 @@ export const gameConfig = {
         speed: 0.012,               // How fast it runs, as a share of the field's width per step
         height: 0.52,               // How tall it is drawn, against the hunter
         length: 0.8,                // The most room it takes lengthways, against the hunter's height
+        // Set to aggressive (the settings: "Your pet"), it goes for the creatures first: a bite
+        // takes "share" of a creature's health and "pushback" of its approach (as an arrow
+        // does), and it rests "rest" steps between bites; it leaps at one this high ("reach",
+        // against the hunter's height: they come down from the top, it meets them half way)
+        hunt: { share: 0.35, pushback: 0.05, rest: 45, reach: 1.6 },
     },
 
     // === HUNTER SETS ===

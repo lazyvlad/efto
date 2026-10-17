@@ -129,6 +129,7 @@ export function updateSettingsScreen() {
     }
 
     setValue('handedness', settings.ui?.handedness || 'right');
+    setValue('petStance', settings.gameplay?.petStance || 'defensive');
     setChecked('lockMouseToggle', settings.ui?.lockMouse !== false);
     setValue('playerPanelStyle', settings.ui?.playerPanelStyle || 'auto');
     setValue('dragonstalkerPanelStyle', settings.ui?.dragonstalkerPanelStyle || 'auto');
@@ -176,6 +177,7 @@ export function bindSettingsScreen() {
     });
 
     bindSelect('handedness', 'ui', 'handedness', 'Handedness');
+    bindSelect('petStance', 'gameplay', 'petStance', 'Your pet');
     bindSelect('playerPanelStyle', 'ui', 'playerPanelStyle', 'Player panel style');
     bindSelect('dragonstalkerPanelStyle', 'ui', 'dragonstalkerPanelStyle', 'Dragonstalker panel style');
     bindRange('panelOpacity', 'panelOpacityValue', 'ui', 'panelOpacity');

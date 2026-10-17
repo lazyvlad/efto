@@ -52,6 +52,7 @@ export class Pet {
         this.facing = 1;            // 1 facing right, -1 facing left
         this.moving = false;
         this.fetched = null;        // The item it has just fetched, until the game has been told
+        this.mauled = null;         // The creature it has just bitten, until the game has been told
     }
 
     // Where it sits: at the hunter's side, on the left unless there is no room there
@@ -67,8 +68,11 @@ export class Pet {
      * @param {object[]} projectiles   Everything else falling: what hurts, and the helpful spells
      * @param {object}   canvas        The game canvas (for its width)
      * @param {object}   rules         "pet" in config/gameConfig.js
+     * @param {object[]} [creatures]   The zone's creatures about (systems/creatureSystem.js)
+     * @param {string}   [stance]      'aggressive': it goes for any creature about first;
+     *                                 'defensive' (as ever): only items and what would hurt him
      */
-    update(player, fallingItems, projectiles, canvas, rules) {
+    update(player, fallingItems, projectiles, canvas, rules, creatures = [], stance = 'defensive') {
         const home = this.home(player);
         if (this.x === null) this.x = home;
 
@@ -83,7 +87,12 @@ export class Pet {
         if (this.state === 'home') {
             // Keeps up with the hunter, a little behind
             this.x += (home - this.x) * 0.2;
-            if (this.rest <= 0) {
+            // Set on creatures, it goes for the nearest one about, whatever else is falling
+            const prey = stance === 'aggressive' && this.rest <= 0 ? this.prey(creatures) : null;
+            if (prey) {
+                this.target = prey;
+                this.state = 'hunting';
+            } else if (this.rest <= 0) {
                 // An item when it is time for one; otherwise, or with none worth the run,
                 // something that would hurt him
                 const item = this.fetchIn <= 0 ? this.pick(player, fallingItems, ground, speed, true) : null;
@@ -106,6 +115,27 @@ export class Pet {
                 this.rest = rules.lookAgain;
             } else {
                 this.runTowards(this.target.x + this.target.width / 2, speed);
+            }
+        } else if (this.state === 'hunting') {
+            const prey = this.target;
+            if (!prey.alive || prey.state === 'enter') {
+                // Felled, or gone: back to his side
+                this.target = null;
+                this.state = 'returning';
+                this.rest = rules.lookAgain;
+            } else {
+                // Under it, and up at it when it is low enough to reach
+                const body = prey.core();
+                this.runTowards(body.x + body.width / 2, speed);
+                const near = Math.abs(body.x + body.width / 2 - this.x) < player.width * 0.6;
+                const low = body.y + body.height >= ground - player.figureHeight() * rules.hunt.reach;
+                if (near && low) {
+                    this.mauled = prey;
+                    this.leap = LEAP_STEPS;
+                    this.target = null;
+                    this.state = 'returning';
+                    this.rest = rules.hunt.rest;
+                }
             }
         } else if (this.state === 'attacking') {
             const target = this.target;
@@ -142,6 +172,17 @@ export class Pet {
             // At rest it looks towards the hunter
             this.facing = this.x < player.x + player.width / 2 ? 1 : -1;
         }
+    }
+
+    // The creature to go for: the nearest to the ground of those about
+    prey(creatures) {
+        let best = null;
+        for (const creature of creatures) {
+            if (!creature.alive || creature.state === 'enter') continue;
+            const bottom = creature.core().y + creature.core().height;
+            if (!best || bottom > best.bottom) best = { creature, bottom };
+        }
+        return best ? best.creature : null;
     }
 
     runTowards(x, speed) {
@@ -203,6 +244,13 @@ export class Pet {
         const projectile = this.bitten;
         this.bitten = null;
         return projectile;
+    }
+
+    // The creature just bitten, once: for the game to hurt it
+    takeMauled() {
+        const creature = this.mauled;
+        this.mauled = null;
+        return creature;
     }
 
     // The item just fetched, once: for the game to say so
