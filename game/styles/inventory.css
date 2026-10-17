@@ -1051,3 +1051,8 @@ button.inventory-carry-slot {
     flex: none;
     margin-bottom: 14px;
 }
+
+/* Under the bags: everything in them to the bank at once */
+.inventory-empty-bags {
+    margin-top: 8px;
+}

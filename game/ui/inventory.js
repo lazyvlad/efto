@@ -310,6 +310,22 @@ async function move(itemId, count, to) {
     render();
 }
 
+// All that is in the bags to the bank: each stack, then each piece of gear kept there
+async function emptyBags(state) {
+    if (busy) return;
+    busy = true;
+    let problem = '';
+    for (const [itemId, count] of Object.entries(state.contents)) {
+        if (count > 0) problem = (await game.onMove(itemId, count, 'bank')) || problem;
+    }
+    for (const itemId of [...(state.bagged || [])]) problem = game.onMoveGear(itemId, 'bank') || problem;
+    busy = false;
+    pickedStack = null;
+    gearPick = null;
+    notice = problem || 'Your bags are empty: everything is in the bank.';
+    render();
+}
+
 // Slots free in the bags between games: what is in them and the gear kept there take the rest
 function freeSlots(state) {
     return Math.max(0, state.capacity - slotsUsed(state.contents, gameConfig.bags.stack) - (state.bagged || []).length);
@@ -506,6 +522,15 @@ function renderBags(main, state) {
         grid.append(slotOf(stacks[index] || null, state));
     }
     box.append(grid);
+    // Everything in them to the bank at once, between games: the stacks and the gear kept there
+    if (!state.playing && state.loggedIn && used > 0) {
+        const empty = make('button', 'game-btn inventory-empty-bags', 'Everything to the bank');
+        empty.type = 'button';
+        empty.disabled = busy;
+        empty.title = 'Move all that is in your bags to the bank';
+        empty.addEventListener('click', () => emptyBags(state));
+        box.append(empty);
+    }
     if (gearPick && gearPick.from === 'bags') box.append(gearBar(state));
 
     // A kind picked: what can be done with it
