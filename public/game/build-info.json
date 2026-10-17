@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-16T23:36:18.814Z",
-  "buildTimestamp": 1792193778820,
+  "buildTime": "2026-10-17T04:46:25.016Z",
+  "buildTimestamp": 1792212385022,
   "mode": "production",
-  "gameVersion": "3.5.9",
-  "cacheHash": "wi3irvmi",
+  "gameVersion": "3.5.10",
+  "cacheHash": "zar7tjvh",
   "fileMap": {
-    "game-modular.js": "game-modular.wi3irvmi.js"
+    "game-modular.js": "game-modular.zar7tjvh.js"
   },
-  "buildSystemVersion": "3.5.9"
+  "buildSystemVersion": "3.5.10"
 }

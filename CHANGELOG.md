@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.5.10 - 2026-10-17
+
+### Changed
+- **Every zone's own creatures**: the last 33 are painted, so each zone has its own two in
+  place of the stand-ins: Defias in Stormwind and Westfall, murlocs in the Wetlands, worgen in
+  Duskwood, harpies at Sun Rock, centaurs and naga in Desolace, ogres in Tanaris and more.
+- **More loot from the first three bosses**: in a normal game each also drops two pieces of its
+  zone's green and blue gear besides its own item, pieces the hunter does not have yet first, so
+  a few runs dress him well enough to go on.
+
 ## 3.5.9 - 2026-10-17
 
 ### Changed
