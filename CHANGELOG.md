@@ -1,5 +1,22 @@
 # Changelog
 
+## 3.6.0 - 2026-10-17
+
+### Added
+- **The bosses move**: every boss is painted in its own poses: it idles, winds up, throws,
+  charges, vanishes, dashes, stomps, calls its storm, flinches when hit and collapses when it
+  falls, in step with what it is doing. Stitches throws his hook from his own hand. The fights
+  themselves are unchanged.
+- **Off-hands in a fight**: what the hunter has in his off hand, he now holds up as a guard
+  while he swings.
+
+### Changed
+- **Gear in a fight**: belts and tabards stay whole as he swings; Thick Bear Fur no longer keeps
+  the Horde hunter from fighting hand to hand; nine weapons hang blade down on his back or at
+  his hip, and he draws them from there.
+- **For admins**: starting further in, a boss fight on its own and Boss Rush cost nothing, so
+  everything opened for testing can be played at once.
+
 ## 3.5.10 - 2026-10-17
 
 ### Changed
