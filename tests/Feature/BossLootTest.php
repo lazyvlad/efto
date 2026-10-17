@@ -256,6 +256,29 @@ class BossLootTest extends TestCase
         $this->assertStringContainsString('"skip":null', $this->get(route('play'))->getContent());
     }
 
+    public function test_an_admin_unlocked_by_unlock_everything_skips_fights_alone_and_rushes_for_nothing(): void
+    {
+        $admin = User::factory()->create();
+        $admin->forceFill(['is_admin' => true, 'coins' => 0])->save();
+        \App\Support\Grants::everything($admin);
+
+        // Told so, the game offers every zone at no price
+        $html = $this->actingAs($admin)->get(route('play'))->getContent();
+        $this->assertStringContainsString('"skip":{"costPerZone":0,"unlocked":{"alliance":10,"horde":10}}', $html);
+        $this->assertStringContainsString('"rush":{"fee":0}', $html);
+
+        $this->postJson(route('games.open'), ['faction' => 'alliance', 'startZone' => 10])->assertOk();
+        $this->postJson(route('games.open'), ['faction' => 'horde', 'startZone' => 7, 'mode' => 'boss_fight'])->assertOk();
+        $this->postJson(route('games.open'), ['faction' => 'horde', 'mode' => 'boss_rush'])->assertOk();
+        $this->assertSame(0, $admin->fresh()->coins);
+
+        // A player opened as far still pays
+        $player = User::factory()->create();
+        $player->forceFill(['coins' => 0])->save();
+        \App\Support\Grants::everything($player);
+        $this->actingAs($player)->postJson(route('games.open'), ['faction' => 'alliance', 'startZone' => 10])->assertStatus(422);
+    }
+
     public function test_a_boss_may_drop_the_large_quiver_once_for_a_player(): void
     {
         // From the first boss on, for this test (it drops from the fourth zone's)

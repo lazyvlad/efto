@@ -121,14 +121,14 @@ class GameController extends Controller
             'guestMerge' => $guestMerge,
             // Skipping ahead: the price per zone and the furthest zone open to the player on each side
             'skip' => $user?->canUseRewards() ? [
-                'costPerZone' => (int) config('boss_loot.skip_cost_per_zone'),
+                'costPerZone' => BossLoot::skipCostPerZone($user),
                 'unlocked' => [
                     'alliance' => BossLoot::unlockedZone($user, 'alliance'),
                     'horde' => BossLoot::unlockedZone($user, 'horde'),
                 ],
             ] : null,
             // Boss Rush: what a logged-in player pays to enter
-            'rush' => $user?->canUseRewards() ? ['fee' => (int) config('boss_loot.rush.entry_fee')] : null,
+            'rush' => $user?->canUseRewards() ? ['fee' => BossLoot::rushFee($user)] : null,
             // Everything that can be worn besides the sets: where, what it gives, what it sells for
             'gear' => (object) Gear::catalog(),
             // Bags that can be bought: size in slots => price in copper

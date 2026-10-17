@@ -50,9 +50,24 @@ class BossLoot
     /**
      * What starting a game in this zone costs, in copper.
      */
-    public static function skipCost(int $zone): int
+    public static function skipCost(int $zone, ?User $user = null): int
     {
-        return max(0, $zone - 1) * (int) config('boss_loot.skip_cost_per_zone');
+        return max(0, $zone - 1) * self::skipCostPerZone($user);
+    }
+
+    /**
+     * What skipping one zone costs the player: nothing for an admin, who opens zones and bosses
+     * to test them (admin "Unlock everything") without having to fill his purse as well.
+     */
+    public static function skipCostPerZone(?User $user = null): int
+    {
+        return $user?->is_admin ? 0 : (int) config('boss_loot.skip_cost_per_zone');
+    }
+
+    /** What entering Boss Rush costs the player: nothing for an admin, as skipping */
+    public static function rushFee(?User $user = null): int
+    {
+        return $user?->is_admin ? 0 : (int) config('boss_loot.rush.entry_fee');
     }
 
     /**

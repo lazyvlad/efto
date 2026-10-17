@@ -65,9 +65,12 @@ class GameRecordController extends Controller
             abort_unless($user->canUseRewards(), 422, $user->is_guest ? 'Sign up to spend coins.' : 'Activate your account to spend coins.');
             abort_if((int) ($data['startZone'] ?? 1) > 1, 422, 'Boss Rush starts with the first boss.');
 
-            $fee = (int) config('boss_loot.rush.entry_fee');
-            $paid = User::whereKey($user->id)->where('coins', '>=', $fee)->decrement('coins', $fee);
-            abort_if($paid === 0, 422, 'Not enough coins.');
+            // Only taken if the purse still holds that much (an admin pays nothing: nothing taken)
+            $fee = BossLoot::rushFee($user);
+            if ($fee > 0) {
+                $paid = User::whereKey($user->id)->where('coins', '>=', $fee)->decrement('coins', $fee);
+                abort_if($paid === 0, 422, 'Not enough coins.');
+            }
         }
 
         // A boss fight is the boss of the zone the game starts in, alone: only a boss the
@@ -91,10 +94,12 @@ class GameRecordController extends Controller
             abort_unless($user->canUseRewards(), 422, $user->is_guest ? 'Sign up to spend coins.' : 'Activate your account to spend coins.');
             abort_if($startZone > BossLoot::unlockedZone($user, $data['faction']), 422, 'Defeat the earlier bosses first.');
 
-            // Only taken if the purse still holds that much
-            $cost = BossLoot::skipCost($startZone);
-            $paid = User::whereKey($user->id)->where('coins', '>=', $cost)->decrement('coins', $cost);
-            abort_if($paid === 0, 422, 'Not enough coins.');
+            // Only taken if the purse still holds that much (an admin pays nothing: nothing taken)
+            $cost = BossLoot::skipCost($startZone, $user);
+            if ($cost > 0) {
+                $paid = User::whereKey($user->id)->where('coins', '>=', $cost)->decrement('coins', $cost);
+                abort_if($paid === 0, 422, 'Not enough coins.');
+            }
         }
 
         $game = Game::create([
