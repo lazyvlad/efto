@@ -193,8 +193,8 @@ export async function meleePlates(side, equipment, art) {
     const bodyLayers = [
         // A piece may have a picture of its own for melee, whole under the moving arms (the
         // standing one leaves room for the open hand)
-        ...layersFor(side, still).filter(part => part.order >= 0).map(part => ({ path: part.meleeLayer || part.layer, order: part.order })),
-        ...art.torso,
+        ...layersFor(side, still).filter(part => part.order >= 0).map(part => ({ path: part.meleeLayer || part.layer, order: part.order, owner: part.owner })),
+        ...art.torso.map(part => ({ ...part, owner: 'body' })),
     ].sort((a, b) => a.order - b.order);
     const frontLayers = [...art.front].sort((a, b) => a.order - b.order);
 
@@ -215,18 +215,38 @@ export async function meleePlates(side, equipment, art) {
     };
     const stack = (context, list) => list.forEach(path => pictureOf(path) && context.drawImage(pictureOf(path), 0, 0, size, size));
 
+    // Next to each other, what moves alike as he steps on one picture (a "run", as compose
+    // makes them), and the plate itself all of them in order
+    const runsOf = list => {
+        const runs = [];
+        for (const { owner, picture } of list) {
+            if (!picture) continue;
+            if (!runs.length || runs[runs.length - 1].owner !== owner) runs.push({ owner, canvas: plate(() => {}) });
+            runs[runs.length - 1].canvas.getContext('2d').drawImage(picture, 0, 0, size, size);
+        }
+        return runs;
+    };
+    const flat = runs => {
+        const canvas = plate(context => runs.forEach(run => context.drawImage(run.canvas, 0, 0)));
+        canvas.runs = runs;
+        return canvas;
+    };
+    const rearRuns = runsOf(rearLayers.map(part => ({ owner: part.owner, picture: pictureOf(part.layer) })));
+    const bodyRuns = runsOf([{ owner: 'body', picture: body }, ...bodyLayers.map(part => ({ owner: part.owner, picture: pictureOf(part.path) }))]);
+    // His face as ever, on the top run, nothing of a run below showing through
+    const head = character.headClear || [...(character.earProtection || []), character.faceLock];
+    bodyRuns.slice(0, -1).forEach(run => clear(run.canvas.getContext('2d'), head));
+    const top = bodyRuns[bodyRuns.length - 1].canvas.getContext('2d');
+    if (character.headClear) {
+        restore(top, base, character.headClear);
+    } else {
+        restore(top, base, character.earProtection);
+        restore(top, face, [character.faceLock], character.earProtection || []);
+    }
+
     return {
-        rear: plate(context => stack(context, rearLayers.map(part => part.layer))),
-        body: plate(context => {
-            context.drawImage(body, 0, 0, size, size);
-            stack(context, bodyLayers.map(part => part.path));
-            if (character.headClear) {
-                restore(context, base, character.headClear);
-            } else {
-                restore(context, base, character.earProtection);
-                restore(context, face, [character.faceLock], character.earProtection || []);
-            }
-        }),
+        rear: flat(rearRuns),
+        body: flat(bodyRuns),
         front: plate(context => stack(context, frontLayers.map(part => part.path))),
     };
 }

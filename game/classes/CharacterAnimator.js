@@ -107,7 +107,13 @@ export class CharacterAnimator {
      * @param {HTMLImageElement} image  The character's picture, already loaded
      * @param {object}           rig    Where the parts of that picture are (data/playerCharacters.js)
      */
-    constructor(image, rig, stride = null) {
+    /**
+     * @param {object}  [stride]   How his legs step (utils/locomotion.js STRIDE)
+     * @param {object}  [options]  { legsOnly: only his legs step, nothing else of him moves (the
+     *                             fighting hunter's still pictures: his lean is put on outside) }
+     */
+    constructor(image, rig, stride = null, options = {}) {
+        this.legsOnly = Boolean(options.legsOnly);
         this.image = image;
         this.rig = rig;
         // How his legs step (utils/locomotion.js STRIDE), and his step now (setStep)
@@ -173,6 +179,9 @@ export class CharacterAnimator {
     // How far each motion has got, as the amounts the grid is shifted by
     pose() {
         const step = this.step || { amount: 0, direction: 0, left: 0, right: 0, slide: 0, bob: 0, lean: 0 };
+        if (this.legsOnly) {
+            return { breath: 0, bob: 0, lean: 0, step: this.reducedMotion ? { ...step, amount: 0 } : step, lift: 0, recoil: 0, brace: 0, sway: 0 };
+        }
         if (this.reducedMotion) {
             return { breath: 0, bob: 0, lean: 0, step, lift: 0, recoil: 0, brace: 0, sway: 0 };
         }
@@ -274,23 +283,6 @@ export class CharacterAnimator {
                 }
             }
 
-            // The triangles of each run: only over the cells it has paint in (and one round them,
-            // for what moves), so a run with little in it costs little to draw
-            const triangles = [];
-            for (const run of this.runs) {
-                const cells = paintedCells(run.canvas);
-                run.first = triangles.length;
-                for (let row = 0; row < ROWS; row++) {
-                    for (let column = 0; column < COLUMNS; column++) {
-                        if (cells && !cells[row * COLUMNS + column]) continue;
-                        const topLeft = row * (COLUMNS + 1) + column;
-                        const bottomLeft = topLeft + COLUMNS + 1;
-                        triangles.push(topLeft, bottomLeft, topLeft + 1, topLeft + 1, bottomLeft, bottomLeft + 1);
-                    }
-                }
-                run.count = triangles.length - run.first;
-            }
-
             this.positionBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, this.vertices.byteLength, gl.DYNAMIC_DRAW);
@@ -304,20 +296,9 @@ export class CharacterAnimator {
             gl.enableVertexAttribArray(uv);
             gl.vertexAttribPointer(uv, 2, gl.FLOAT, false, 0, 0);
 
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
-            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(triangles), gl.STATIC_DRAW);
-
-            // A texture for each run of the picture; draw() fits them to the canvas
+            this.indexBuffer = gl.createBuffer();
             gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-            for (const run of this.runs) {
-                run.texture = gl.createTexture();
-                gl.bindTexture(gl.TEXTURE_2D, run.texture);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            }
-            this.textureSize = 0;
+            this.buildRuns(gl);
 
             this.hitUniform = gl.getUniformLocation(program, 'u_hit');
             gl.enable(gl.BLEND);
@@ -330,6 +311,48 @@ export class CharacterAnimator {
             console.warn('Player animation falls back to the plain picture:', error);
             this.gl = null;
         }
+    }
+
+    // The triangles and a texture for each run of the picture: the triangles only over the cells
+    // it has paint in (and one round them, for what moves), so a run with little in it costs
+    // little to draw. draw() fits the textures to the canvas.
+    buildRuns(gl) {
+        const triangles = [];
+        for (const run of this.runs) {
+            const cells = paintedCells(run.canvas);
+            run.first = triangles.length;
+            for (let row = 0; row < ROWS; row++) {
+                for (let column = 0; column < COLUMNS; column++) {
+                    if (cells && !cells[row * COLUMNS + column]) continue;
+                    const topLeft = row * (COLUMNS + 1) + column;
+                    const bottomLeft = topLeft + COLUMNS + 1;
+                    triangles.push(topLeft, bottomLeft, topLeft + 1, topLeft + 1, bottomLeft, bottomLeft + 1);
+                }
+            }
+            run.count = triangles.length - run.first;
+            run.texture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, run.texture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        }
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(triangles), gl.STATIC_DRAW);
+        this.textureSize = 0;
+    }
+
+    /**
+     * Another picture to bring to life (another outfit), on the same canvas and WebGL: what
+     * draws a fresh picture often keeps one animator rather than making one each time.
+     */
+    setPicture(image) {
+        if (image === this.image) return;
+        const gl = this.gl;
+        if (gl) for (const run of this.runs) if (run.texture) gl.deleteTexture(run.texture);
+        this.image = image;
+        this.runs = (image.runs && image.runs.length ? image.runs : [{ owner: 'body', canvas: image }]).map(run => ({ ...run, texture: null }));
+        if (gl) this.buildRuns(gl);
     }
 
     // Make the canvas this many pixels a side, and hand WebGL each run shrunk to match
@@ -381,7 +404,9 @@ export class CharacterAnimator {
             const gl = this.gl;
 
             // Only as big as it needs to be for the size it is drawn at
-            const needed = Math.max(width, height) * (ctx.canvas.dpr || 1);
+            // (by what one unit of the canvas is on the screen, however it is scaled)
+            const transform = ctx.getTransform ? ctx.getTransform() : null;
+            const needed = Math.max(width, height) * (transform ? Math.hypot(transform.a, transform.b) : (ctx.canvas.dpr || 1));
             const size = Math.max(SMALLEST, Math.min(LARGEST, Math.ceil(needed / SIZE_STEP) * SIZE_STEP));
             if (this.canvas.width !== size || this.textureSize !== size) this.resize(size);
 

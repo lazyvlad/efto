@@ -123,8 +123,8 @@ export class Player {
     }
     
     // Fighting hand to hand he is drawn in parts (systems/meleeSystem.js), leaning and dipping
-    // with his step as the animator draws him otherwise (his legs do not step meanwhile). False
-    // when he is not fighting.
+    // with his step as the animator draws him otherwise, his legs stepping. False when he is
+    // not fighting.
     drawsMelee(ctx, figureHeight) {
         const { lean, bob } = this.stepRoot();
         const height = figureHeight / this.character.heightInPicture;
@@ -133,7 +133,7 @@ export class Player {
         ctx.translate(footX, footY + bob * height);
         ctx.rotate(lean);
         ctx.translate(-footX, -footY);
-        const drawn = this.drawMelee(ctx, this.pictureBounds());
+        const drawn = this.drawMelee(ctx, this.pictureBounds(), null, stepPose(this.step, this.reducedMotion));
         ctx.restore();
         return drawn;
     }

@@ -17,6 +17,9 @@ import { Particle } from '../classes/Particle.js';
 import { meleeRigs, meleeWeapons, meleeBodies, meleeArmor, meleeAliases, meleeArtPath, meleeWeaponImage, meleeRest, meleeOffhands } from '../data/melee.js';
 import { hunterArt } from '../data/hunterArt.js';
 import { MeleeState, armsFor, offhandArm } from '../utils/meleeMotion.js';
+import { CharacterAnimator } from '../classes/CharacterAnimator.js';
+import { characterFor } from '../data/playerCharacters.js';
+import { STRIDE } from '../utils/locomotion.js';
 import { meleePlates, loadLook } from '../utils/hunterLooks.js';
 import { bossMeleeBox, meleeStrikeBoss } from './bossSystem.js';
 import { getCurrentTotalCritRating } from './statEffectsSystem.js';
@@ -329,7 +332,29 @@ function segment(ctx, part, fromA, fromB, toA, toB) {
  * @param {object} bounds  Where his usual picture is drawn (Player.pictureBounds)
  * @param {object} [posed] A pose of utils/meleeMotion.js to draw instead of his own (to look at)
  */
-export function drawMelee(ctx, bounds, posed = null) {
+// His legs step as he fights too: the plates behind him and of his body are drawn through these
+// (only the legs move; his lean is put on by Player.drawsMelee), kept for the next outfit
+const steppers = { rear: null, body: null };
+
+function plate(ctx, which, picture, side, step) {
+    if (!step) {
+        put(ctx, picture, 0, 0, 800, 800);
+        return;
+    }
+    const rig = characterFor(side).rig;
+    let stepper = steppers[which];
+    if (!stepper) stepper = steppers[which] = new CharacterAnimator(picture, rig, STRIDE[side], { legsOnly: true });
+    stepper.setPicture(picture);
+    stepper.rig = rig;
+    stepper.stride = STRIDE[side];
+    stepper.setStep(step);
+    stepper.draw(ctx, rig.foot.u * 800, rig.foot.v * 800, 800);
+}
+
+/**
+ * @param {object} [step]  How he is stepping (utils/locomotion.js stepPose), for his legs
+ */
+export function drawMelee(ctx, bounds, posed = null, step = null) {
     // A pose may be asked for (to look at one), else he is drawn as he is now
     if (!look || (!posed && melee.state === 'ranged')) return false;
     const resting = meleeRest[look.weaponId] && meleeRest[look.weaponId][look.side];
@@ -366,9 +391,10 @@ export function drawMelee(ctx, bounds, posed = null) {
     }
     ctx.imageSmoothingEnabled = true;
 
-    put(ctx, plates.rear, 0, 0, 800, 800);
+    // His legs step, if he is stepping
+    plate(ctx, 'rear', plates.rear, look.side, step);
     if (at.behind) drawWeapon();
-    put(ctx, plates.body, 0, 0, 800, 800);
+    plate(ctx, 'body', plates.body, look.side, step);
     // The sleeves, upper arms then forearms, and what is worn over each, bracers and all
     const bone = (side, part, layer) => {
         const arm = rig[side];
