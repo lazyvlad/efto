@@ -648,11 +648,6 @@
         font-size: 14px;
     }
 
-    /* Both characters wear the same; on a phone the one played is shown */
-    #sheetSides {
-        display: none;
-    }
-
     .sheet-body {
         flex-direction: column;
         gap: 10px;

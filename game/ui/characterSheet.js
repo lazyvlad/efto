@@ -19,6 +19,7 @@ import { askConfirm, askText } from './gameDialog.js';
 import { hasLooks } from '../utils/hunterLooks.js';
 import { getSettings, updateSetting } from '../systems/settingsSystem.js';
 import { petFor } from '../data/pets.js';
+import { formatCoins } from '../utils/coins.js';
 
 // What the pet does in each of its stances ("petStance" in Settings, Your pet)
 const PET_STANCES = {
@@ -74,7 +75,7 @@ export function isCharacterSheetOpen() {
  *        Returns why it could not be, in words, or ''.
  * @param {Function} options.onHide - (itemId, hide) leave a piece worn out of the hunter's
  *        picture, or draw it again (the state's hidden is a Set of the ids not drawn)
- * @param {Function} options.onOpenInventory - () open the inventory in its place
+ * @param {Function} options.onOpenInventory - (tab) open the inventory in its place, on that tab
  * @param {Function} options.onShowSide - (side) between games: dress and play that side's hunter
  * @param {Function} options.onCloseAll - () close the sheet and every menu, and go on with the
  *        game if one is under way (Back, the sheet's other way out, goes to where it was opened)
@@ -93,7 +94,10 @@ export function initializeCharacterSheet(options) {
     if (!sheet) return;
 
     element('characterSheetClose').addEventListener('click', closeCharacterSheet);
-    element('sheetInventory').addEventListener('click', () => game.onOpenInventory());
+    // The bar's other tabs are the inventory's
+    sheet.querySelectorAll('[data-hunter-tab]').forEach(button => {
+        if (button.dataset.hunterTab !== 'character') button.addEventListener('click', () => game.onOpenInventory(button.dataset.hunterTab));
+    });
     element('characterSheetCloseAll').addEventListener('click', () => game.onCloseAll());
     // The pet's stance: kept in Settings, and taken up by the pet as soon as the game goes on
     sheet.querySelectorAll('.sheet-pet-stances [data-stance]').forEach(button => {
@@ -185,6 +189,15 @@ function renderHeading(state) {
         button.classList.toggle('is-on', shown);
         button.setAttribute('aria-pressed', String(shown));
     });
+
+    element('sheetPlaying').hidden = !state.playing;
+    element('sheetBackWhere').textContent = state.backWhere || '';
+    // What the player has to spend (one purse, both hunters'); a guest has none
+    const purse = element('sheetPurse');
+    purse.hidden = state.coins === null || state.coins === undefined;
+    purse.textContent = '';
+    if (!purse.hidden) purse.append('Purse ', make('strong', '', formatCoins(state.coins)));
+    purse.title = 'One purse for both hunters';
 
     element('sheetName').textContent = state.name || 'Hunter';
     element('sheetSubtitle').textContent = state.playing ? `${side} hunter \u00b7 Level ${state.level}` : `${side} hunter`;

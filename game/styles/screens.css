@@ -182,33 +182,62 @@
     max-height: 94vh;
 }
 
-/* The bar along their top: the medallion, the four tabs, and the ways back */
-#pauseMenu .screen-navigation {
+/* The same box as the hunter's window (character-sheet.css, inventory.css): the same edge,
+   so the bar's Back and Close are where they are there. The screen itself does
+   not scroll: the part under the bar does (ui/screenNavigation.js builds the two). */
+#pauseMenu .has-window-frame {
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+#pauseMenu .window-frame {
+    height: 100%;
+    box-sizing: border-box;
+    /* 2px less than the hunter's window: its gold trim (wow-theme.css) is 2px wider */
+    padding: 18px 22px;
     display: flex;
-    align-items: center;
-    gap: 22px;
-    margin: 0 0 18px;
-    padding: 0 0 14px;
-    background: none;
+    flex-direction: column;
+    gap: 16px;
+}
+
+#pauseMenu .window-scroll {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+#pauseMenu .window-scroll > .screen-content {
+    height: auto !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+}
+
+#pauseMenu .window-bar-who h2 {
+    margin: 0;
+    padding: 0;
+    font-size: 24px;
+    letter-spacing: 0.3em;
+    text-align: center;
     border: 0;
-    border-bottom: 1px solid #3d3219;
-    box-shadow: none;
+    background: none;
 }
 
-#pauseMenu .screen-nav-tab {
-    padding: 9px 20px;
+#pauseMenu .window-bar-who h2::before,
+#pauseMenu .window-bar-who h2::after {
+    display: none;
+}
+
+#pauseMenu .window-bar .game-btn.window-bar-back,
+#pauseMenu .window-bar .game-btn.window-bar-close {
+    font-size: 17px;
+    border-color: #c9a94f;
+}
+
+#pauseMenu .window-bar .window-bar-tabs .game-btn {
     font-size: 16px;
-}
-
-#pauseMenu .screen-nav-side {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-#pauseMenu .screen-nav-side .game-btn {
-    padding: 9px 18px;
 }
 
 /* ----- The end of a game ----- */
@@ -528,8 +557,7 @@
     }
 
     .pause-window-top .window-logo,
-    .game-over-top .window-logo,
-    #pauseMenu .screen-navigation .window-logo {
+    .game-over-top .window-logo {
         display: none;
     }
 
@@ -564,31 +592,43 @@
         min-height: 44px;
     }
 
-    #pauseMenu .screen-navigation {
-        flex-wrap: wrap;
-        gap: 8px;
+    #pauseMenu .window-bar .game-btn.window-bar-back,
+    #pauseMenu .window-bar .game-btn.window-bar-close {
+        font-size: 15px;
     }
 
-    #pauseMenu .screen-nav-tabs {
-        order: 2;
-        width: 100%;
+    #pauseMenu .window-bar .window-bar-tabs .game-btn {
+        font-size: 14px;
     }
 
-    #pauseMenu .screen-nav-tab {
-        flex: 1 1 0;
-        min-height: 44px;
-        padding: 4px;
-        font-size: 13px;
+    #pauseMenu .window-frame {
+        padding: 8px 10px 10px;
+        gap: 10px;
     }
 
-    #pauseMenu .screen-nav-side {
-        width: 100%;
+    #pauseMenu .window-bar-who h2 {
+        font-size: 17px;
     }
 
-    #pauseMenu .screen-nav-side .game-btn {
-        flex: 1 1 0;
-        min-height: 44px;
+    /* On a phone the window is the whole screen, as the hunter's is */
+    #pauseMenu #pauseMenuContent #settingsScreen,
+    #pauseMenu #pauseMenuContent #howToPlay,
+    #pauseMenu #pauseMenuContent #highScoresScreen,
+    #pauseMenu #pauseMenuContent #itemBonusesScreen,
+    #pauseMenu #settingsScreen,
+    #pauseMenu #howToPlay,
+    #pauseMenu #highScoresScreen,
+    #pauseMenu #itemBonusesScreen {
+        inset: 0 !important;
+        width: 100% !important;
+        max-width: none !important;
+        height: 100% !important;
+        max-height: none !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        transform: none !important;
     }
+
 
     #pauseMenu #gameOver.game-over {
         padding: 10px 12px 12px;

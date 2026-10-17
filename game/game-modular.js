@@ -1765,15 +1765,8 @@ function closeWindowsAndResume() {
 function showInventory(onTab = null) {
     // Before the first game what is owned has not been put on yet: what is worn is shown
     // in the gear list, and selling must not save an empty hunter over the one chosen
-    if (!gameState.gameRunning && !gameState.showingPauseMenu) restoreEquipment();
-
-    const fromPlay = gameState.gameRunning && !gameState.showingPauseMenu && gameState.currentScreen === 'game';
-    if (fromPlay) showPauseMenu();
-    
-    openInventory(() => {
-        // Not when it was left for the character sheet, which then has the game paused
-        if (fromPlay && gameState.showingPauseMenu && !isCharacterSheetOpen()) hidePauseMenu();
-    }, onTab);
+    enterHunterWindow();
+    openInventory(leaveHunterWindow, onTab);
     // Opened from the character sheet: in its place
     if (isCharacterSheetOpen()) closeCharacterSheet();
 }
@@ -1829,17 +1822,35 @@ async function sellGear(itemId, count) {
 // Open the character sheet. Over the starting window it shows what a game will start in. In
 // a game the game is paused while it is open, and goes on when it is closed, unless it was
 // opened from the pause menu, which it then goes back to.
-function showCharacterSheet() {
+// The hunter's window is the character sheet and the inventory: its tabs go from one to the
+// other, and its Back goes to where the window was first opened from, whichever tab it is on.
+// 'game' (opened in play: the game goes on), 'pause' or 'map'.
+let hunterWindowFrom = 'map';
+
+// Opening the hunter's window from outside it: remember where from, and pause a game in play
+function enterHunterWindow() {
+    if (isCharacterSheetOpen() || isInventoryOpen()) return;
     // Before the first game what is owned has not been put on yet
     if (!gameState.gameRunning && !gameState.showingPauseMenu) restoreEquipment();
-    
     const fromPlay = gameState.gameRunning && !gameState.showingPauseMenu && gameState.currentScreen === 'game';
+    hunterWindowFrom = fromPlay ? 'game' : (gameState.showingPauseMenu ? 'pause' : 'map');
     if (fromPlay) showPauseMenu();
-    
-    openCharacterSheet(() => {
-        // Not when it was left for the inventory, which then has the game paused
-        if (fromPlay && gameState.showingPauseMenu && !isInventoryOpen()) hidePauseMenu();
-    });
+}
+
+// Where Back goes, in words, under it
+function hunterBackWhere() {
+    return { game: 'to the game', pause: 'to the pause menu', map: 'to the map' }[hunterWindowFrom];
+}
+
+// Leaving the hunter's window (not for its other tab): back into a game it was opened in
+function leaveHunterWindow() {
+    if (isCharacterSheetOpen() || isInventoryOpen()) return;
+    if (hunterWindowFrom === 'game' && gameState.showingPauseMenu) hidePauseMenu();
+}
+
+function showCharacterSheet() {
+    enterHunterWindow();
+    openCharacterSheet(leaveHunterWindow);
     // The key of the sheet closes the inventory first
     if (isInventoryOpen()) closeInventory();
 }
@@ -2742,8 +2753,23 @@ function getCurrentScreenNavigationState() {
     return { screen: gameState.currentScreen === 'game' ? 'game' : 'menu' };
 }
 
+// Where the Back of the game's window goes, in words under it
 function getBackLabelForSource() {
-    return 'Back';
+    return { game: 'to the game', pause: 'to the pause menu', menu: 'to the map', gameOver: 'to the end of the game' }[screensBackTarget()] || 'to the map';
+}
+
+// Where the Back of the game's window goes: where its first tab was opened from
+function screensBackTarget() {
+    const sourceOf = state => state[`${state.screen}Source`];
+    const first = screenNavigationHistory[0];
+    const current = getCurrentScreenNavigationState();
+    // The first tab opened remembers where it was opened from
+    const opened = first
+        ? (NAVIGABLE_SCREENS.has(first.screen) ? sourceOf(first) : first.screen)
+        : sourceOf(current);
+    // Opened from the game's own button in play ("desktop"): back to the game
+    const back = opened === 'desktop' ? 'game' : opened;
+    return back && !NAVIGABLE_SCREENS.has(back) ? back : (gameState.showingPauseMenu ? 'pause' : 'menu');
 }
 
 function rememberCurrentScreenForNavigation(fromScreen = null) {
@@ -2812,18 +2838,9 @@ function restoreScreenNavigationState(state) {
 // to where it was opened from (the pause menu, the map, the end of a game), however many tabs
 // were gone through on the way, as the character sheet's and the inventory's Back do
 function navigateBackFromScreen() {
-    const sourceOf = state => state[`${state.screen}Source`];
-    const first = screenNavigationHistory[0];
-    const current = getCurrentScreenNavigationState();
-    // The first tab opened remembers where it was opened from
-    const opened = first
-        ? (NAVIGABLE_SCREENS.has(first.screen) ? sourceOf(first) : first.screen)
-        : sourceOf(current);
-    
+    const back = screensBackTarget();
     screenNavigationHistory.length = 0;
-    // Opened from the game's own button in play ("desktop"): back to the game
-    const back = opened === 'desktop' ? 'game' : opened;
-    restoreScreenNavigationState(back && !NAVIGABLE_SCREENS.has(back) ? back : (gameState.showingPauseMenu ? 'pause' : 'menu'));
+    restoreScreenNavigationState(back);
     updateCanvasOverlay();
 }
 
@@ -3244,6 +3261,8 @@ function setupUIEventHandlers() {
     // back what the player wants on
     initializeCharacterSheet({
         getState: () => ({
+            backWhere: hunterBackWhere(),
+            coins: siteBoot && siteBoot.user ? siteBoot.user.coins || 0 : null,
             equipment: gameState.equipment,
             owned: availablePieces(),
             // In a game: how much of what is owned was left in the bank
@@ -3294,7 +3313,7 @@ function setupUIEventHandlers() {
             setHidden(itemId, hide);
             refreshCharacterSheet();
         },
-        onOpenInventory: () => showInventory(),
+        onOpenInventory: tab => showInventory(tab),
         // Between games the sheet's Alliance and Horde dress (and play) that side's hunter: the
         // map moves to where that side starts
         onShowSide: showSide,
@@ -3326,6 +3345,7 @@ function setupUIEventHandlers() {
                 bagSlots: gameConfig.bags.bagSlots,
                 forSale: user && siteBoot.bagsForSale ? siteBoot.bagsForSale : null,
                 coins: user ? user.coins || 0 : null,
+                backWhere: hunterBackWhere(),
                 // Materials for coins (loot.material_prices on the site)
                 materialPrices: user && siteBoot.materialPrices ? siteBoot.materialPrices : null,
                 canSpend: Boolean(user && user.verified),

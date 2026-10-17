@@ -175,8 +175,10 @@ function render() {
     const subtitle = element('inventorySubtitle');
     subtitle.textContent = state.playing ? `${sideName} hunter \u00b7 Level ${state.level}` : `${sideName} hunter`;
     subtitle.dataset.side = faction;
-    element('inventoryTitle').textContent = `${state.name || 'Hunter'}'s inventory`;
+    element('inventoryTitle').textContent = state.name || 'Hunter';
     element('inventorySides').hidden = state.playing;
+    element('inventoryPlaying').hidden = !state.playing;
+    element('inventoryBackWhere').textContent = state.backWhere || '';
     document.querySelectorAll('#inventorySides .inventory-side-btn').forEach(button => {
         const shown = button.dataset.side === faction;
         button.classList.toggle('is-on', shown);

@@ -52,26 +52,56 @@ const TAB_LABELS = {
     settings: 'Settings'
 };
 
-// The bar along the top of these screens, like the top row of the inventory: the medallion,
-// the four screens as joined tabs (the one shown in blue), and the ways back. The end of a
-// game has a top row of its own and none of this.
+// The short names of the tabs, for a phone
+const TAB_SHORT = {
+    howToPlay: 'How to play',
+    itemBonuses: 'Loot',
+    highScores: 'Scores',
+    settings: 'Settings'
+};
+
+// The bar along the top of these screens, the same as the hunter's window has (game-window.css):
+// Back top left, Close top right, the four screens as joined tabs under it (the one shown in
+// blue). The end of a game has a top row of its own and none of this.
 function createNavigationElement(screenKey) {
     const config = SCREEN_CONFIG[screenKey];
-    const nav = document.createElement('div');
-    nav.className = 'screen-navigation';
+    const nav = document.createElement('header');
+    nav.className = 'window-bar screen-window-bar';
     nav.dataset.screenNavigation = screenKey;
 
-    const logo = document.createElement('img');
-    logo.className = 'window-logo';
-    // The same address as the page's own logos, which the site stamps with the file's
-    // fingerprint so a new logo is never kept from an older copy
-    logo.src = document.querySelector('img.window-logo')?.getAttribute('src') || 'assets/ui/input-logo.webp';
-    logo.alt = '';
-    logo.width = 1200;
-    logo.height = 891;
+    const backButton = document.createElement('button');
+    backButton.type = 'button';
+    backButton.className = 'game-btn window-bar-back';
+    backButton.dataset.screenNavBack = screenKey;
+    backButton.title = 'Back to where you were';
+    const backText = document.createElement('span');
+    backText.textContent = '\u2039 Back';
+    const where = document.createElement('span');
+    where.className = 'window-bar-where';
+    where.dataset.screenNavWhere = '';
+    backButton.append(backText, where);
+    backButton.addEventListener('click', () => navigationCallbacks.onBack(screenKey));
 
-    const tabs = document.createElement('div');
-    tabs.className = 'joined-buttons screen-nav-tabs';
+    const who = document.createElement('div');
+    who.className = 'window-bar-who';
+    const kicker = document.createElement('p');
+    kicker.className = 'window-label';
+    kicker.dataset.screenNavKicker = '';
+    const title = document.createElement('h2');
+    title.textContent = 'I N P U T';
+    who.append(kicker, title);
+
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'game-btn window-bar-close';
+    closeButton.dataset.screenNavClose = screenKey;
+    closeButton.textContent = 'Close \u00d7';
+    closeButton.setAttribute('aria-label', `Close ${config.title}`);
+    closeButton.title = 'Close and carry on';
+    closeButton.addEventListener('click', () => navigationCallbacks.onClose(screenKey));
+
+    const tabs = document.createElement('nav');
+    tabs.className = 'joined-buttons window-bar-tabs';
     tabs.setAttribute('role', 'tablist');
     tabs.setAttribute('aria-label', 'Screens');
 
@@ -82,62 +112,48 @@ function createNavigationElement(screenKey) {
         tab.dataset.screenNavTarget = option;
         tab.setAttribute('role', 'tab');
         tab.setAttribute('aria-selected', String(option === screenKey));
-        tab.textContent = TAB_LABELS[option];
+        const long = document.createElement('span');
+        long.className = 'tab-long';
+        long.textContent = TAB_LABELS[option];
+        const short = document.createElement('span');
+        short.className = 'tab-short';
+        short.textContent = TAB_SHORT[option];
+        tab.append(long, short);
         if (option !== screenKey) tab.addEventListener('click', () => navigationCallbacks.onNavigate(option, screenKey));
         tabs.append(tab);
     });
 
-    const side = document.createElement('div');
-    side.className = 'screen-nav-side';
-
-    const backButton = document.createElement('button');
-    backButton.type = 'button';
-    backButton.className = 'game-btn screen-nav-back';
-    backButton.dataset.screenNavBack = screenKey;
-    backButton.textContent = 'Back';
-    backButton.addEventListener('click', () => navigationCallbacks.onBack(screenKey));
-
-    const closeButton = document.createElement('button');
-    closeButton.type = 'button';
-    closeButton.className = 'game-btn screen-nav-close';
-    closeButton.dataset.screenNavClose = screenKey;
-    closeButton.textContent = 'Close';
-    closeButton.setAttribute('aria-label', `Close ${config.title}`);
-    closeButton.title = 'Close and resume';
-    closeButton.addEventListener('click', () => navigationCallbacks.onClose(screenKey));
-
-    side.append(backButton, closeButton);
-    nav.append(logo, tabs, side);
+    nav.append(backButton, who, closeButton, tabs);
     return nav;
 }
 
-function getNavigationHost(screenKey) {
-    const container = byId(SCREEN_CONFIG[screenKey].containerId);
-    if (!container) {
-        return null;
-    }
-
-    return container.querySelector('.screen-content') || container;
-}
-
+// A screen as a window: its bar on top, and everything it had under it, in a part of its own
+// that scrolls. Built once; what was in the screen keeps its ids and what listens to it.
 function ensureNavigation(screenKey) {
     // The end of a game has its own top row
     if (!TABS.includes(screenKey)) {
         return null;
     }
 
-    const host = getNavigationHost(screenKey);
-    if (!host) {
+    const screen = byId(SCREEN_CONFIG[screenKey].containerId);
+    if (!screen) {
         return null;
     }
 
-    const existing = host.querySelector(`.screen-navigation[data-screen-navigation="${screenKey}"]`);
+    const existing = screen.querySelector(`[data-screen-navigation="${screenKey}"]`);
     if (existing) {
         return existing;
     }
 
     const nav = createNavigationElement(screenKey);
-    host.prepend(nav);
+    const frame = document.createElement('div');
+    frame.className = 'window-frame';
+    const scroll = document.createElement('div');
+    scroll.className = 'window-scroll';
+    scroll.append(...screen.childNodes);
+    frame.append(nav, scroll);
+    screen.append(frame);
+    screen.classList.add('has-window-frame');
     return nav;
 }
 
@@ -160,15 +176,20 @@ export function initializeScreenNavigation(callbacks) {
     hideLegacyBackButtons();
 }
 
-export function updateScreenNavigation(screenKey, { backLabel = 'Back' } = {}) {
+// Say under Back where it goes ("to the pause menu"), and above the name what the game is doing
+export function updateScreenNavigation(screenKey, { backLabel = '' } = {}) {
     const nav = ensureNavigation(screenKey);
     if (!nav) {
         return;
     }
 
-    const backButton = nav.querySelector('[data-screen-nav-back]');
-    if (backButton) {
-        backButton.textContent = backLabel;
+    const where = nav.querySelector('[data-screen-nav-where]');
+    if (where) {
+        where.textContent = backLabel === 'Back' ? '' : backLabel;
+    }
+    const kicker = nav.querySelector('[data-screen-nav-kicker]');
+    if (kicker) {
+        kicker.textContent = backLabel === 'to the map' ? 'Before a game' : (backLabel === 'to the end of the game' ? 'The game is over' : 'Paused');
     }
 }
 
