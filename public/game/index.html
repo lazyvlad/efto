@@ -52,24 +52,24 @@
     <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
-    <link rel="stylesheet" href="styles/base.css?v=3.9.0">
-    <link rel="stylesheet" href="styles/ui-components.css?v=3.9.0">
-    <link rel="stylesheet" href="styles/settings.css?v=3.9.0">
-    <link rel="stylesheet" href="styles/notifications.css?v=3.9.0">
-    <link rel="stylesheet" href="styles/game-panels.css?v=3.9.0">
-    <link rel="stylesheet" href="styles/spell-bar.css?v=3.9.0">
-    <link rel="stylesheet" href="styles/how-to-play.css?v=3.9.0">
-    <link rel="stylesheet" href="styles/mobile.css?v=3.9.0">
-    <link rel="stylesheet" href="styles/wow-theme.css?v=3.9.0">
-    <link rel="stylesheet" href="styles/game-window.css?v=3.9.0">
-    <link rel="stylesheet" href="styles/character-sheet.css?v=3.9.0">
-    <link rel="stylesheet" href="styles/inventory.css?v=3.9.0">
-    <link rel="stylesheet" href="styles/screens.css?v=3.9.0">
+    <link rel="stylesheet" href="styles/base.css?v=3.10.0">
+    <link rel="stylesheet" href="styles/ui-components.css?v=3.10.0">
+    <link rel="stylesheet" href="styles/settings.css?v=3.10.0">
+    <link rel="stylesheet" href="styles/notifications.css?v=3.10.0">
+    <link rel="stylesheet" href="styles/game-panels.css?v=3.10.0">
+    <link rel="stylesheet" href="styles/spell-bar.css?v=3.10.0">
+    <link rel="stylesheet" href="styles/how-to-play.css?v=3.10.0">
+    <link rel="stylesheet" href="styles/mobile.css?v=3.10.0">
+    <link rel="stylesheet" href="styles/wow-theme.css?v=3.10.0">
+    <link rel="stylesheet" href="styles/game-window.css?v=3.10.0">
+    <link rel="stylesheet" href="styles/character-sheet.css?v=3.10.0">
+    <link rel="stylesheet" href="styles/inventory.css?v=3.10.0">
+    <link rel="stylesheet" href="styles/screens.css?v=3.10.0">
     <!-- The in-game panels, slim (ui/hudPanels.js): last, over the per-device rules -->
-    <link rel="stylesheet" href="styles/hud.css?v=3.9.0">
-    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=3.9.0"> -->
+    <link rel="stylesheet" href="styles/hud.css?v=3.10.0">
+    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=3.10.0"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
-  <!-- Built: 2026-10-17T11:30:40.937Z | Version: 3.9.0 | Mode: Production -->
+  <!-- Built: 2026-10-17T18:02:08.599Z | Version: 3.10.0 | Mode: Production -->
 </head>
 <body>
     <!-- The background: two layers that fade from one picture to the next (backgroundSystem.js) -->
@@ -222,7 +222,7 @@
                 <!-- The hunter in the place he is in, with his slots around him: eight left,
                      eight right, three below -->
                 <div class="sheet-stage" id="sheetStage">
-                    <div class="sheet-figure"><img id="sheetFigure" alt=""></div>
+                    <div class="sheet-figure"><img id="sheetFigure" alt=""><img id="sheetPetFigure" class="sheet-pet-figure" alt=""></div>
                     <div class="sheet-slots sheet-slots-left" id="sheetSlots-left"></div>
                     <div class="sheet-slots sheet-slots-right" id="sheetSlots-right"></div>
                     <div class="sheet-slots sheet-slots-bottom" id="sheetSlots-bottom"></div>
@@ -238,6 +238,19 @@
                         <div id="sheetStats" class="sheet-stats"></div>
                         <p id="sheetBonuses" class="sheet-bonuses window-reward"></p>
                         <p id="sheetFullBags" class="sheet-fullbags"></p>
+                    </section>
+                    <!-- His pet, and how it fights: changed here in a game too -->
+                    <section class="window-card sheet-pet">
+                        <div class="window-card-title">
+                            <h3>Your pet</h3>
+                            <span id="sheetPetName" class="window-label"></span>
+                        </div>
+                        <div class="joined-buttons sheet-pet-stances" role="group" aria-label="How your pet fights">
+                            <button type="button" class="game-btn" data-stance="defensive">Defensive</button>
+                            <button type="button" class="game-btn" data-stance="aggressive">Aggressive</button>
+                        </div>
+                        <p id="sheetPetSays" class="sheet-pet-says"></p>
+                        <p id="sheetPetNote" class="sheet-pet-note"></p>
                     </section>
                     <!-- The sets the player saved (each hunter his own): put on in one press -->
                     <div id="sheetOutfits" class="sheet-outfits" role="group" aria-label="Your sets"></div>
@@ -424,9 +437,10 @@
                     
                     <!-- Which key does what (utils/keybindings.js); filled in by ui/keyBindingsScreen.js -->
                     <div class="key-bindings desktop-only">
-                        <p class="section-description">Keys: click one, then press the key you want there. Esc leaves it as it is.</p>
+                        <p class="section-description">Start from one of two layouts, then change any key: click it, then press the key you want there. Esc leaves it as it is.</p>
+                        <div id="keyLayouts" class="joined-buttons key-layouts" role="group" aria-label="Keys to start from"></div>
                         <div id="keyBindingsList" class="key-bindings-list"></div>
-                        <button type="button" id="resetKeysBtn" class="menu-btn secondary key-bindings-reset">Usual keys</button>
+                        <button type="button" id="resetKeysBtn" class="menu-btn secondary key-bindings-reset">Back to the layout's keys</button>
                     </div>
                     
                     <div class="setting-item desktop-only">
@@ -556,7 +570,7 @@
                     <h3>Controls</h3>
                     <p><strong>Desktop:</strong> Mouse to move your character</p>
                     <p><strong>Mobile:</strong> Touch screen to move your character</p>
-                    <p><strong>Your pet:</strong> every 20 seconds it fetches one item you were not going to reach, and in between it bites harmful projectiles out of the air</p>
+                    <p><strong>Your pet:</strong> every 20 seconds it fetches one item you were not going to reach, and in between it bites harmful projectiles out of the air. Set to aggressive (on the character sheet, in Settings, or with <span data-key-of="pet_stance">P</span> in a game) it goes for the creatures first</p>
                     <p><strong>ESC:</strong> Pause game. While you play the mouse is kept inside the game; Esc lets it go (this can be turned off in Settings)</p>
                     <p><strong><span data-key-of="settings">S</span>:</strong> Open/close settings</p>
                 </div>
@@ -669,7 +683,7 @@
                     <p>• Use Zandalari spell for +20% points and to slow down all falling objects</p>
                     <p>• Collect Speed Boost projectiles to increase game speed and scoring</p>
                     <p>• Thunder Fury automatically collects all items on screen AND increases crit chance</p>
-                    <p>• Save sets of your own on the character sheet, and wear the one that suits the moment: press <span data-key-of="set_1">1</span>, <span data-key-of="set_2">2</span>, <span data-key-of="set_3">3</span> or <span data-key-of="set_4">4</span> to change it (or tap the set panel while paused)</p>
+                    <p>• Save sets of your own on the character sheet, and wear the one that suits the moment: each has its key (1 to 4 in the usual keys; with the shots on 1, 2 and 3, T goes through the first three), or tap the set panel while paused</p>
                     <p>• Higher game speeds = more items = higher scores</p>
                 </div>
             </div>
@@ -898,7 +912,7 @@
         </div>
         
         <!-- The player's saved sets (each hunter his own): press one, or its key, to wear it. The
-             one on is lit. Made by refreshSetSwitch in game-modular.f6qxneu3.js; hidden with none saved. -->
+             one on is lit. Made by refreshSetSwitch in game-modular.elxc6uaa.js; hidden with none saved. -->
         <div class="set-switch" id="setSwitch" role="group" aria-label="Wear one of your sets" hidden></div>
 
         <div class="dragonstalker-items-list" id="dragonstalkerItemsList">
@@ -908,7 +922,7 @@
     </div>
 
     <!-- Game Script -->
-    <script type="module" src="game-modular.f6qxneu3.js?v=3.9.0"></script>
+    <script type="module" src="game-modular.elxc6uaa.js?v=3.10.0"></script>
     
 
 

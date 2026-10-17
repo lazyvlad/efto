@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.10.0 - 2026-10-17
+
+### Added
+- **Your pet on the character sheet**: Defensive or Aggressive, changed in a game too (the sheet
+  pauses it), with the pet beside the hunter, at a run when aggressive. **P** switches it in play.
+- **A second key layout** (Settings, Controls): Autoshot on 1, Multishot on 2, Arcane Shot on 3,
+  and T wearing the next of the first three saved sets. Keys can still be changed over either
+  layout, and an action can be left with no key.
+- **What's new for 3.10.0**, published as the deploy runs.
+
 ## 3.9.0 - 2026-10-17
 
 ### Added
