@@ -1509,6 +1509,7 @@ function carryCaught(itemId) {
             : freeBagSlots();
         if (hasBank() && !bagged.includes(itemId) && free > 0) {
             gameState.bagged = [...bagged, itemId];
+            keepCarried();
             if (isPlaying()) gameState.bagCapacity -= 1;
             addNotification(gameState, `${name}: his ${gameConfig.bags.carry} are full, so it went into a bag (one slot)`, 300, '#E6B0FF');
             refreshInventory();
@@ -1520,8 +1521,19 @@ function carryCaught(itemId) {
         return false;
     }
     gameState.carried = [...gameState.carried, itemId];
+    keepCarried();
     refreshInventory();
     return true;
+}
+
+// What he carries and keeps in his bags, as the next game starts with it (restoreEquipment reads
+// it back): what was caught goes along to the next game, and is not left out of his 36 when it
+// is next saved. The site has it already (it puts what is caught in his 36 itself).
+function keepCarried() {
+    if (!(siteBoot && siteBoot.user)) return;
+    const side = currentSide();
+    siteBoot.user.carried = { alliance: chosenCarried('alliance'), horde: chosenCarried('horde'), [side]: [...gameState.carried] };
+    siteBoot.user.bagGear = { alliance: chosenBagGear('alliance'), horde: chosenBagGear('horde'), [side]: [...(gameState.bagged || [])] };
 }
 
 function wearCaughtPiece(item) {
