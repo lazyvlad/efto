@@ -65,6 +65,13 @@ function restore(context, image, shapes, except = []) {
     context.restore();
 }
 
+// A few garment openings need the original neck rather than the plain base's crew neck.
+// Apply with that garment, so later tabards and necklaces keep their normal occlusion.
+function restoreNeck(context, facePicture, character, path) {
+    const shapes = character.neckRestores && character.neckRestores[path];
+    if (shapes) restore(context, facePicture, shapes);
+}
+
 // What is drawn for an outfit, in the order it is drawn; each part says how it moves as he
 // steps (utils/locomotion.js ownerOf), by the slot it is worn in
 function layersFor(side, equipment) {
@@ -102,7 +109,9 @@ async function compose(side, layers) {
     const runs = [];
     for (const { part, picture } of drawn) {
         if (!runs.length || runs[runs.length - 1].owner !== part.owner) runs.push({ owner: part.owner, canvas: blank() });
-        runs[runs.length - 1].canvas.getContext('2d').drawImage(picture, 0, 0, size, size);
+        const context = runs[runs.length - 1].canvas.getContext('2d');
+        context.drawImage(picture, 0, 0, size, size);
+        restoreNeck(context, facePicture, body, part.layer);
     }
 
     // The face as the body has it: over everything, on the top run, and nothing of any run
@@ -223,10 +232,12 @@ export async function meleePlates(side, equipment, art) {
     // makes them), and the plate itself all of them in order
     const runsOf = list => {
         const runs = [];
-        for (const { owner, picture } of list) {
+        for (const { owner, picture, path } of list) {
             if (!picture) continue;
             if (!runs.length || runs[runs.length - 1].owner !== owner) runs.push({ owner, canvas: plate(() => {}) });
-            runs[runs.length - 1].canvas.getContext('2d').drawImage(picture, 0, 0, size, size);
+            const context = runs[runs.length - 1].canvas.getContext('2d');
+            context.drawImage(picture, 0, 0, size, size);
+            restoreNeck(context, face, character, path);
         }
         return runs;
     };
@@ -236,7 +247,7 @@ export async function meleePlates(side, equipment, art) {
         return canvas;
     };
     const rearRuns = runsOf(rearLayers.map(part => ({ owner: part.owner, picture: pictureOf(part.layer) })));
-    const bodyRuns = runsOf([{ owner: 'body', picture: body }, ...bodyLayers.map(part => ({ owner: part.owner, picture: pictureOf(part.path) }))]);
+    const bodyRuns = runsOf([{ owner: 'body', picture: body }, ...bodyLayers.map(part => ({ owner: part.owner, picture: pictureOf(part.path), path: part.path }))]);
     // His face as ever, on the top run, nothing of a run below showing through
     const head = character.headClear || [...(character.earProtection || []), character.faceLock];
     bodyRuns.slice(0, -1).forEach(run => clear(run.canvas.getContext('2d'), head));
