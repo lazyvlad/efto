@@ -74,6 +74,24 @@ export function drawPose(share, style = null, anchor = null, resting = null) {
     return { x: mix(from.x, ready.x, t), y: mix(from.y, ready.y, t), angle, behind: share < 0.45 || (!resting && !clear), helping: share };
 }
 
+// An off-hand held as a guard, in his left fist, while his right swings (the art agent's
+// attachment study): low across his body, pointing up and out
+const OFFHAND_GUARD = { x: 335, y: 390, angle: -72 };
+
+/**
+ * His left arm holding an off-hand as a guard: where the fist is, which way the off-hand
+ * points (radians), and the arm, solved as armsFor solves one.
+ */
+export function offhandArm(rig) {
+    const arm = rig.left;
+    const angle = OFFHAND_GUARD.angle * Math.PI / 180;
+    const grip = [OFFHAND_GUARD.x + rig.offset[0], OFFHAND_GUARD.y + rig.offset[1]];
+    const toWrist = rotate([arm.wrist[0] - arm.grip[0], arm.wrist[1] - arm.grip[1]], angle);
+    const wrist = [grip[0] + toWrist[0], grip[1] + toWrist[1]];
+    const solved = solveArm(arm.shoulder, wrist, length(arm.shoulder, arm.elbow), length(arm.elbow, arm.wrist), arm.bend);
+    return { ...solved, grip, holds: true, angle };
+}
+
 export function readyPose(style = null, anchor = null) {
     return style === 'short' && anchor ? fromShoulder(SHORT.ready, anchor) : { ...READY };
 }

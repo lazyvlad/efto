@@ -6,8 +6,8 @@ import { readFile } from 'node:fs/promises';
 // Loaded through data: URLs, as in gameClock.test.mjs
 const asUrl = source => `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
 const motion = await import(asUrl(await readFile(new URL('../utils/meleeMotion.js', import.meta.url))));
-const { meleeRigs, meleeWeapons, meleeBodies, meleeArmor, meleeArtPath, meleeWeaponImage, meleeRest } = await import(asUrl(await readFile(new URL('../data/melee.js', import.meta.url))));
-const { MeleeState, SWING, DRAW_MS, CLEAR_MS, armsFor, swingPose, drawPose, readyPose } = motion;
+const { meleeRigs, meleeWeapons, meleeBodies, meleeArmor, meleeArtPath, meleeWeaponImage, meleeRest, meleeOffhands } = await import(asUrl(await readFile(new URL('../data/melee.js', import.meta.url))));
+const { MeleeState, SWING, DRAW_MS, CLEAR_MS, armsFor, swingPose, drawPose, readyPose, offhandArm } = motion;
 
 // Steps of game time (60 a second) until something happens
 function run(melee, steps, inReach = true) {
@@ -152,6 +152,22 @@ test('taking any weapon off his back, it stays behind him until it has turned cl
         const pose = drawPose(share);
         if (!pose.behind) assert.ok(pose.angle >= 65, `share ${share.toFixed(3)}: in front at ${pose.angle.toFixed(1)}°`);
     }
+});
+
+test('every off-hand of the site is held in his left fist as he fights, its whole picture there', async () => {
+    const { access } = await import('node:fs/promises');
+    const gear = await readFile(new URL('../../config/gear.php', import.meta.url), 'utf8');
+    const offhands = new Set([...gear.matchAll(/'([a-z0-9_-]+)' => (?:\[[^\[\]]*'slot' => 'offhand'|'offhand')/g)].map(m => m[1]));
+    offhands.delete('offhand');
+    assert.ok(offhands.size >= 14, `found ${offhands.size}`);
+    for (const id of offhands) {
+        const held = meleeOffhands[id];
+        assert.ok(held, `${id} can be held`);
+        assert.ok(held.grip.every(share => share > 0 && share < 1) && held.height > 100, id);
+        await access(new URL(`../${meleeWeaponImage(id)}`, import.meta.url));
+    }
+    // Both hunters' left hands reach it, without stretching
+    for (const [side, rig] of Object.entries(meleeRigs)) assert.ok(offhandArm(rig).short < 2, `${side}: ${offhandArm(rig).short.toFixed(1)}px short`);
 });
 
 test('a weapon hung blade down or at his hip is taken from where it rests, behind him half the way', () => {

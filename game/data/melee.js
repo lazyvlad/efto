@@ -435,6 +435,28 @@ export const meleeArmor = {
 
 export const meleeAliases = {"dragonstalker-helmet": "ds_helm", "dragonstalker-shoulders": "ds_shoulders", "dragonstalker-chest": "ds_chest", "dragonstalker-bracers": "ds_bracers", "dragonstalker-gloves": "ds_gloves", "dragonstalker-belt": "ds_belt", "dragonstalker-leggings": "ds_legs", "dragonstalker-boots": "ds_boots"};
 
+// What he holds in his other hand as he fights, if it is in the off hand: held up in his left
+// fist as a guard while he swings with his right (utils/meleeMotion.js offhandArm), only with
+// a one-handed weapon. Each a whole picture (meleeWeaponImage), its grip as a share of it and
+// how tall it is drawn, from the art agent's measurements (art-workbench/hunter-melee/
+// other-weapons, zone-items).
+export const meleeOffhands = {
+    'stockade-shiv': { grip: [0.6261, 0.7332], height: 155 },
+    'stitches-femur': { grip: [0.7155, 0.7021], height: 175 },
+    'dragonmaw-shinbone': { grip: [0.414, 0.6905], height: 180 },
+    'rod-of-order': { grip: [0.4988, 0.7206], height: 215 },
+    'scorpid-stinger': { grip: [0.3726, 0.7327], height: 185 },
+    'wrenchwhistles-spanner': { grip: [0.3372, 0.6628], height: 180 },
+    'grimtotem-war-totem': { grip: [0.5, 0.6794], height: 220 },
+    'dalrends': { grip: [0.503, 0.7794], height: 300 },
+    'riverpaw-skinning-knife': { grip: [0.6115, 0.813], height: 180 },
+    'razormane-thornknife': { grip: [0.5121, 0.813], height: 195 },
+    'raven-hill-watchknife': { grip: [0.6554, 0.813], height: 175 },
+    'vilebranch-ritual-knife': { grip: [0.4967, 0.813], height: 185 },
+    'windshear-ratchet-pick': { grip: [0.6036, 0.7929], height: 190 },
+    'wastewander-glass-shiv': { grip: [0.508, 0.813], height: 180 },
+};
+
 // Where a weapon rests on him when it is not on his back pointing up, as most are: hung blade
 // down on his back, or in a sheath at his hip (art-workbench/equipment-repairs). His hand takes
 // it from there and puts it back there (utils/meleeMotion.js drawPose). By weapon, then side.

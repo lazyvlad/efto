@@ -14,9 +14,9 @@
 import { gameConfig } from '../config/gameConfig.js';
 import { CombatText } from '../classes/CombatText.js';
 import { Particle } from '../classes/Particle.js';
-import { meleeRigs, meleeWeapons, meleeBodies, meleeArmor, meleeAliases, meleeArtPath, meleeWeaponImage, meleeRest } from '../data/melee.js';
+import { meleeRigs, meleeWeapons, meleeBodies, meleeArmor, meleeAliases, meleeArtPath, meleeWeaponImage, meleeRest, meleeOffhands } from '../data/melee.js';
 import { hunterArt } from '../data/hunterArt.js';
-import { MeleeState, armsFor } from '../utils/meleeMotion.js';
+import { MeleeState, armsFor, offhandArm } from '../utils/meleeMotion.js';
 import { meleePlates, loadLook } from '../utils/hunterLooks.js';
 import { bossMeleeBox, meleeStrikeBoss } from './bossSystem.js';
 import { getCurrentTotalCritRating } from './statEffectsSystem.js';
@@ -129,11 +129,22 @@ export function dressForMelee(side, equipment) {
         all(parts.cuffs.left),
         all(parts.cuffs.right),
         weaponPicture(meleeWeapons[weaponId].art || weaponId),
-    ]).then(([plates, limbs, hands, leftCuffs, rightCuffs, weapon]) => {
-        if (outfitKey === key) look = { side, weaponId, plates, limbs, hands, cuffs: { left: leftCuffs, right: rightCuffs }, weapon };
+        // What is in his off hand, held as a guard: only beside a one-handed weapon, and if its
+        // picture will not load he fights without it
+        offhandFor(weaponId, equipment) ? weaponPicture(offhandFor(weaponId, equipment)).catch(() => null) : null,
+    ]).then(([plates, limbs, hands, leftCuffs, rightCuffs, weapon, offhand]) => {
+        if (outfitKey === key) look = { side, weaponId, plates, limbs, hands, cuffs: { left: leftCuffs, right: rightCuffs }, weapon,
+            offhand: offhand ? { id: offhandFor(weaponId, equipment), picture: offhand } : null };
     }).catch(() => {
         // A picture missing: he keeps to his bow
     });
+}
+
+// The off-hand he holds as he fights with a weapon: one there is a whole picture of, beside a
+// one-handed weapon; or null
+function offhandFor(weaponId, equipment) {
+    const offhandId = equipment && equipment.offhand && resolve(equipment.offhand);
+    return offhandId && meleeOffhands[offhandId] && !meleeWeapons[weaponId].twoHanded && !meleeWeapons[weaponId].support ? offhandId : null;
 }
 
 export function resetMelee() {
@@ -327,6 +338,8 @@ export function drawMelee(ctx, bounds, posed = null) {
     const weapon = meleeWeapons[look.weaponId];
     const { plates, limbs, hands, cuffs } = look;
     const at = armsFor(rig, weapon, pose);
+    // His left fist holds the off-hand, if he has one in hand
+    if (look.offhand) at.arms.left = offhandArm(rig);
     if (!posed) framesDrawn++;
 
     const drawWeapon = () => {
@@ -371,6 +384,17 @@ export function drawMelee(ctx, bounds, posed = null) {
     }
     put(ctx, plates.front, 0, 0, 800, 800);
     if (!at.behind) drawWeapon();
+    // The off-hand, in front of him, under his fist
+    if (look.offhand) {
+        const held = meleeOffhands[look.offhand.id], picture = look.offhand.picture, left = at.arms.left;
+        const height = held.height, width = picture.naturalWidth * height / picture.naturalHeight;
+        ctx.save();
+        ctx.translate(left.grip[0], left.grip[1]);
+        ctx.rotate(left.angle);
+        put(ctx, picture, -held.grip[0] * width, -held.grip[1] * height, width, height);
+        ctx.restore();
+    }
+
     // The fists on the handle, turned with it; a free left hand relaxed at the end of its arm;
     // and over each hand what is worn on it
     for (const side of ['left', 'right']) {
@@ -380,7 +404,8 @@ export function drawMelee(ctx, bounds, posed = null) {
         if (solved.holds) {
             ctx.save();
             ctx.translate(solved.grip[0], solved.grip[1]);
-            ctx.rotate(at.angle);
+            // Each fist turned with what it holds: the weapon, or the off-hand
+            ctx.rotate(solved.angle !== undefined ? solved.angle : at.angle);
             for (const layer of onHand) put(ctx, layer.canvas, layer.left - arm.grip[0], layer.top - arm.grip[1], layer.canvas.width, layer.canvas.height);
             ctx.restore();
         } else if (arm.relaxed) {
