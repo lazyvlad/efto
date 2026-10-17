@@ -149,7 +149,7 @@ export async function resetSettingsScreen() {
     });
     if (!sure) return;
     resetSettings();
-    resetKeys();
+    resetKeys('usual');
     updateSettingsScreen();
 }
 

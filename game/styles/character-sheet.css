@@ -112,6 +112,19 @@
     filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.55));
 }
 
+/* His pet by his feet: sitting, or off at a run when it goes for the creatures */
+.sheet-figure .sheet-pet-figure {
+    position: absolute;
+    left: 78%;
+    bottom: 1%;
+    height: 27%;
+    filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.55));
+}
+
+.sheet-figure .sheet-pet-figure:not([src]) {
+    display: none;
+}
+
 .sheet-slots {
     position: absolute;
     display: flex;
@@ -332,6 +345,34 @@
 .sheet-fullbags {
     margin-top: 4px;
     color: #b9ad92;
+}
+
+/* His pet: the two ways it fights, joined, the one it does lit */
+.sheet-pet {
+    flex: none;
+    border-color: #c9a94f;
+}
+
+.sheet-pet-stances {
+    margin-top: 10px;
+}
+
+.sheet-pet-stances .game-btn {
+    flex: 1;
+}
+
+.sheet-pet-says {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #f4ecd8;
+}
+
+.sheet-pet-note {
+    margin: 4px 0 0;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #a89a78;
 }
 
 /* The sets the player saved: the set, put on in one press, and under it what can be done with
@@ -624,6 +665,7 @@
     }
 
     .sheet-side > .window-card:first-child { order: 1; }
+    .sheet-pet { order: 1; }
     .sheet-stage { order: 2; }
     .sheet-outfits { order: 3; }
     .sheet-slot-panel { order: 5; }
@@ -695,6 +737,21 @@
 
     .sheet-figure img {
         height: 92%;
+    }
+
+    .sheet-figure .sheet-pet-figure {
+        left: 58%;
+        bottom: 4%;
+        height: 32%;
+    }
+
+    .sheet-pet-stances .game-btn {
+        min-height: 44px;
+    }
+
+    /* No keyboard to change it with */
+    .sheet-pet-note {
+        display: none;
     }
 
     .sheet-slots {
@@ -784,6 +841,7 @@
     }
 
     .sheet-side > .window-card:first-child,
+    .sheet-pet,
     .sheet-outfits,
     .sheet-slot-panel {
         grid-column: 2;

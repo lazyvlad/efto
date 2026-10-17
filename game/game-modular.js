@@ -1700,9 +1700,10 @@ function deleteOutfit(index) {
     keepOutfits(outfits().filter((outfit, at) => at !== index));
 }
 
-// In play: the next saved set in order, for the tap on the set panel
-function wearNextOutfit() {
-    const list = outfitsForSheet();
+// In play: the next saved set in order, for the tap on the set panel, or the next of the first
+// three for its key (T in the layout with the shots on 1, 2, 3)
+function wearNextOutfit(among = MOST_OUTFITS) {
+    const list = outfitsForSheet().slice(0, among);
     if (list.length === 0) return;
     const on = list.findIndex(outfit => outfit.isOn);
     wearOutfit((on + 1) % list.length, true);
@@ -3443,6 +3444,26 @@ function setupUIEventHandlers() {
         if (index < 0 || typing || !gameState.gameRunning || !outfits()[index]) return;
         
         wearOutfit(index, true);
+    });
+    document.addEventListener('keydown', event => {
+        const typing = document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+        if (actionFor(event.code) !== 'next_set' || typing || event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
+        if (gameState.currentScreen !== 'game' || !gameState.gameRunning) return;
+        event.preventDefault();
+        wearNextOutfit(3);
+    });
+    
+    // The pet, defensive or aggressive: its key (P unless the player changed it) in a game, or
+    // its switch on the character sheet and in Settings
+    document.addEventListener('keydown', event => {
+        const typing = document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+        if (actionFor(event.code) !== 'pet_stance' || typing || event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
+        if (gameState.currentScreen !== 'game' || !gameState.gameRunning) return;
+        event.preventDefault();
+        const stance = (getSettings().gameplay?.petStance || 'defensive') === 'aggressive' ? 'defensive' : 'aggressive';
+        updateSetting('gameplay', 'petStance', stance);
+        const pet = player.pet?.kind?.name || 'Your pet';
+        addNotification(gameState, stance === 'aggressive' ? `${pet}: aggressive, it goes for the creatures` : `${pet}: defensive, it stays by him`, 180, '#ffd100');
     });
     const setPanelHeader = document.querySelector('#dragonstalkerProgressPanel .dragonstalker-panel-header');
     if (setPanelHeader) {
@@ -5233,9 +5254,10 @@ function updateDragonstalkerProgressPanel(gameState) {
     const nameElement = document.getElementById('setPanelName');
     if (nameElement) nameElement.textContent = outfit ? outfit.name : 'What he wears';
     const saved = outfits().length;
-    panel.title = saved > 0
-        ? `Press ${OUTFIT_KEYS.slice(0, saved).map(keyName).join(', ')} to wear one of your sets`
-        : 'Save sets on the character sheet to change them here';
+    const setKeys = OUTFIT_KEYS.slice(0, saved).map(keyName).filter(Boolean);
+    const nextKey = keyName('next_set');
+    panel.title = saved === 0 ? 'Save sets on the character sheet to change them here'
+        : [setKeys.length ? `Press ${setKeys.join(', ')} to wear one of your sets` : '', nextKey ? `${nextKey} wears the next of the first three` : ''].filter(Boolean).join('; ') || 'Tap here to wear the next of your sets';
     const progressText = document.getElementById('dragonstalkerProgressText');
     if (progressText) progressText.textContent = `${items.length} on`;
     // A button for each saved set, the one on lit

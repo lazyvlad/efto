@@ -17,6 +17,14 @@ import { bonusText } from '../utils/sets.js';
 import { keyName } from '../utils/keybindings.js';
 import { askConfirm, askText } from './gameDialog.js';
 import { hasLooks } from '../utils/hunterLooks.js';
+import { getSettings, updateSetting } from '../systems/settingsSystem.js';
+import { petFor } from '../data/pets.js';
+
+// What the pet does in each of its stances ("petStance" in Settings, Your pet)
+const PET_STANCES = {
+    defensive: 'Stays by him: fetches what he would miss and bites what is thrown at him.',
+    aggressive: 'Goes for the creatures on the field first. With none about, it fetches and guards as before.'
+};
 
 // The keys that wear the saved sets in play, in order (utils/keybindings.js)
 const OUTFIT_KEYS = ['set_1', 'set_2', 'set_3', 'set_4'];
@@ -87,6 +95,13 @@ export function initializeCharacterSheet(options) {
     element('characterSheetClose').addEventListener('click', closeCharacterSheet);
     element('sheetInventory').addEventListener('click', () => game.onOpenInventory());
     element('characterSheetCloseAll').addEventListener('click', () => game.onCloseAll());
+    // The pet's stance: kept in Settings, and taken up by the pet as soon as the game goes on
+    sheet.querySelectorAll('.sheet-pet-stances [data-stance]').forEach(button => {
+        button.addEventListener('click', () => {
+            updateSetting('gameplay', 'petStance', button.dataset.stance);
+            render();
+        });
+    });
     sheet.querySelectorAll('.sheet-side-btn').forEach(button => {
         button.addEventListener('click', () => {
             game.onShowSide(button.dataset.side);
@@ -151,6 +166,7 @@ function render() {
     renderHeading(state);
     renderSlots(state);
     renderStats(state);
+    renderPet(state);
     renderOutfits(state);
     renderSlotItems(state);
 
@@ -270,6 +286,29 @@ function renderStats(state) {
     // What things caught with the bags full sell for: better with gear that helps carrying
     element('sheetFullBags').textContent = `Full bags: what does not fit sells for ${percent(1 - state.fullBagLoss)}`
         + (state.totals.carrying ? ` (your gear takes ${percent(state.totals.carrying)} off the loss)` : '');
+}
+
+// His pet: which it is, how it fights, and the switch between the two. On the stage it sits by
+// him, or is off at a run when it goes for the creatures.
+function renderPet(state) {
+    const pet = petFor(state.faction || 'alliance');
+    const stance = getSettings().gameplay?.petStance === 'aggressive' ? 'aggressive' : 'defensive';
+
+    element('sheetPetName').textContent = pet.name;
+    document.querySelectorAll('#characterSheet .sheet-pet-stances [data-stance]').forEach(button => {
+        const on = button.dataset.stance === stance;
+        button.classList.toggle('is-on', on);
+        button.setAttribute('aria-pressed', String(on));
+    });
+    element('sheetPetSays').textContent = PET_STANCES[stance];
+    const key = keyName('pet_stance');
+    element('sheetPetNote').textContent = `${key ? `${key} changes it in a game · ` : ''}also in Settings`;
+
+    const figure = element('sheetPetFigure');
+    const picture = stance === 'aggressive' ? pet.run : pet.sit;
+    if (figure.getAttribute('src') !== picture) figure.src = picture;
+    figure.alt = pet.name;
+    figure.classList.toggle('is-running', stance === 'aggressive');
 }
 
 // The sets the player saved (each hunter his own): each put on in one press, or in play by its

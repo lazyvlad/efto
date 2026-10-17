@@ -5,14 +5,20 @@
 // the buttons of the spell bar, the keys named in How to Play. The bindings themselves are
 // utils/keybindings.js.
 
-import { ACTIONS, keyName, setKey, resetKeys, canBind, onKeysChanged } from '../utils/keybindings.js';
+import { ACTIONS, LAYOUTS, keyName, setKey, resetKeys, canBind, onKeysChanged, currentLayout } from '../utils/keybindings.js';
 
 let waitingFor = null;      // The action a key is being chosen for: { id, button }
 
 // Write the keys in use wherever the page names one
 function showKeys() {
     document.querySelectorAll('[data-key-of]').forEach(element => {
-        element.textContent = keyName(element.dataset.keyOf);
+        // In the list of keys an action with none says so; elsewhere it shows nothing
+        element.textContent = keyName(element.dataset.keyOf) || (element.classList.contains('key-binding-key') ? 'None' : '');
+    });
+    document.querySelectorAll('#keyLayouts [data-layout]').forEach(button => {
+        const on = button.dataset.layout === currentLayout();
+        button.classList.toggle('is-on', on);
+        button.setAttribute('aria-pressed', String(on));
     });
 }
 
@@ -45,6 +51,23 @@ function onKeyDown(event) {
 }
 
 export function initializeKeyBindings() {
+    // The layouts to start from: picking one puts its keys in place of all the others
+    const layouts = document.getElementById('keyLayouts');
+    if (layouts) {
+        for (const layout of LAYOUTS) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'game-btn';
+            button.dataset.layout = layout.id;
+            button.textContent = layout.name;
+            button.addEventListener('click', () => {
+                stopWaiting();
+                resetKeys(layout.id);
+            });
+            layouts.append(button);
+        }
+    }
+
     const list = document.getElementById('keyBindingsList');
     if (list) {
         for (const action of ACTIONS) {

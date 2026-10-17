@@ -6,6 +6,10 @@
 //
 // The actions and their usual keys are listed here; a player's changes are kept in the
 // browser. Esc (pause) is not in the list: the browser itself uses it to let the mouse go.
+//
+// There are two layouts to start from (LAYOUTS): the usual keys, and one with the shots on 1, 2
+// and 3, where T goes through the first three saved sets in place of their own keys. The
+// player's changes are kept over the layout picked. An action may be left with no key.
 
 export const ACTIONS = [
     { id: 'autoshot', name: 'Autoshot', key: 'KeyE' },
@@ -17,6 +21,8 @@ export const ACTIONS = [
     { id: 'set_2', name: 'Wear your second saved set', key: 'Digit2' },
     { id: 'set_3', name: 'Wear your third saved set', key: 'Digit3' },
     { id: 'set_4', name: 'Wear your fourth saved set', key: 'Digit4' },
+    { id: 'next_set', name: 'Wear the next of your first three sets', key: null },
+    { id: 'pet_stance', name: 'Your pet: defensive or aggressive', key: 'KeyP' },
     { id: 'potion', name: 'Drink a Health Potion', key: 'KeyH' },
     { id: 'mana_potion', name: 'Drink a Mana Potion', key: 'KeyM' },
     { id: 'haste_potion', name: 'Drink a Haste Potion', key: 'KeyJ' },
@@ -25,6 +31,16 @@ export const ACTIONS = [
     { id: 'inventory', name: 'Open and close the inventory', key: 'KeyB' },
     { id: 'stats', name: 'Show and hide his stats in a game', key: 'KeyI' },
     { id: 'gear', name: 'Show and hide what he wears in a game', key: 'KeyG' }
+];
+
+// The layouts: each action's key in it, the usual keys where it says nothing
+export const LAYOUTS = [
+    { id: 'usual', name: 'The usual keys', keys: {} },
+    {
+        id: 'numbers',
+        name: 'Shots on 1, 2, 3 · T changes the set',
+        keys: { autoshot: 'Digit1', multishot: 'Digit2', arcane_shot: 'Digit3', next_set: 'KeyT', set_1: null, set_2: null, set_3: null }
+    }
 ];
 
 const STORAGE_KEY = 'input_keybindings';
@@ -52,19 +68,39 @@ export function canBind(code) {
     return Boolean(code) && !RESERVED.test(code);
 }
 
-// The keys in use, { action: code }: the usual ones with the player's changes over them.
-// Changes naming a key that cannot be bound, or an action that is no more, are left out.
-export function mergeBindings(changes = {}) {
+const layoutOf = id => LAYOUTS.find(layout => layout.id === id) || LAYOUTS[0];
+
+// The keys of a layout, { action: code or null }
+export function layoutKeys(layoutId) {
+    const layout = layoutOf(layoutId);
     const keys = {};
+    for (const action of ACTIONS) keys[action.id] = action.id in layout.keys ? layout.keys[action.id] : action.key;
+    return keys;
+}
+
+// The keys in use, { action: code or null }: the layout's with the player's changes over them.
+// Changes naming a key that cannot be bound, or an action that is no more, are left out; a
+// change to null leaves the action without a key.
+export function mergeBindings(changes = {}, layoutId = 'usual') {
+    const keys = layoutKeys(layoutId);
     for (const action of ACTIONS) {
-        const chosen = changes ? changes[action.id] : null;
-        keys[action.id] = canBind(chosen) ? chosen : action.key;
+        if (!changes || !Object.prototype.hasOwnProperty.call(changes, action.id)) continue;
+        const chosen = changes[action.id];
+        if (chosen === null || canBind(chosen)) keys[action.id] = chosen;
+    }
+    // A key given to two actions (a change over a layout that has it too): the change keeps it
+    for (const id of Object.keys(keys)) {
+        const code = keys[id];
+        if (!code || !changes || changes[id] !== code) continue;
+        for (const other of Object.keys(keys)) {
+            if (other !== id && keys[other] === code && changes[other] !== code) keys[other] = null;
+        }
     }
     return keys;
 }
 
 // Give an action a key. If another action had that key, the two change places, so no key
-// ever does two things and no action is left without one.
+// ever does two things (the other is left with no key if this one had none).
 export function assignKey(keys, actionId, code) {
     if (!canBind(code) || !(actionId in keys)) return keys;
 
@@ -77,25 +113,32 @@ export function assignKey(keys, actionId, code) {
 
 // ----- The bindings in use -----
 
+// What is kept: { layout, changes }. (Kept before there were layouts: the changes alone, over
+// the usual keys.)
 function stored() {
     try {
-        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        const kept = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        if (kept && typeof kept.layout === 'string' && kept.changes) return { layout: layoutOf(kept.layout).id, changes: kept.changes };
+        return { layout: 'usual', changes: kept };
     } catch (e) {
-        return {};
+        return { layout: 'usual', changes: {} };
     }
 }
 
-let current = typeof localStorage === 'undefined' ? mergeBindings() : mergeBindings(stored());
+const kept = typeof localStorage === 'undefined' ? { layout: 'usual', changes: {} } : stored();
+let layoutId = kept.layout;
+let current = mergeBindings(kept.changes, layoutId);
 const listeners = new Set();
 
 function changed() {
     try {
-        // Only what differs from the usual keys is kept
+        // Only what differs from the layout's keys is kept
+        const base = layoutKeys(layoutId);
         const changes = {};
         for (const action of ACTIONS) {
-            if (current[action.id] !== action.key) changes[action.id] = current[action.id];
+            if (current[action.id] !== base[action.id]) changes[action.id] = current[action.id];
         }
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(changes));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({ layout: layoutId, changes }));
     } catch (e) {
         // Storage unavailable: the change lasts for this visit
     }
@@ -104,6 +147,7 @@ function changed() {
 
 // The action a pressed key stands for (from a keyboard event's code), or null
 export function actionFor(code) {
+    if (!code) return null;
     return Object.keys(current).find(id => current[id] === code) || null;
 }
 
@@ -121,9 +165,16 @@ export function setKey(actionId, code) {
     changed();
 }
 
-export function resetKeys() {
-    current = mergeBindings();
+// Back to the keys of a layout: the one in use, unless another is named
+export function resetKeys(layout = layoutId) {
+    layoutId = layoutOf(layout).id;
+    current = mergeBindings({}, layoutId);
     changed();
+}
+
+// The layout the keys started from
+export function currentLayout() {
+    return layoutId;
 }
 
 // Call back whenever the bindings change (to redraw the keys shown on screen)

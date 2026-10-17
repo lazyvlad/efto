@@ -5,13 +5,35 @@ import { readFile } from 'node:fs/promises';
 
 // Loaded through a data: URL, as in gameClock.test.mjs
 const source = await readFile(new URL('../utils/keybindings.js', import.meta.url));
-const { ACTIONS, keyLabel, canBind, mergeBindings, assignKey } = await import(`data:text/javascript;base64,${source.toString('base64')}`);
+const { ACTIONS, LAYOUTS, keyLabel, canBind, mergeBindings, assignKey, layoutKeys } = await import(`data:text/javascript;base64,${source.toString('base64')}`);
 
-test('every action has a key of its own to start with', () => {
-    const keys = ACTIONS.map(action => action.key);
-    assert.equal(new Set(keys).size, keys.length);
-    assert.ok(keys.every(canBind));
+test('in every layout no key does two things, and the shots and the pet have keys', () => {
+    for (const layout of LAYOUTS) {
+        const keys = Object.values(layoutKeys(layout.id)).filter(Boolean);
+        assert.equal(new Set(keys).size, keys.length, layout.id);
+        assert.ok(keys.every(canBind), layout.id);
+        for (const action of ['autoshot', 'multishot', 'arcane_shot', 'pet_stance']) assert.ok(layoutKeys(layout.id)[action], `${layout.id} ${action}`);
+    }
     assert.equal(mergeBindings().autoshot, 'KeyE');
+});
+
+test('the numbers layout: the shots on 1, 2, 3 and T going through the sets', () => {
+    const keys = mergeBindings({}, 'numbers');
+    assert.deepEqual([keys.autoshot, keys.multishot, keys.arcane_shot, keys.next_set], ['Digit1', 'Digit2', 'Digit3', 'KeyT']);
+    assert.equal(keys.set_1, null);
+    assert.equal(keys.set_4, 'Digit4');
+    // A change goes over it, and a change to no key stays
+    const changed = mergeBindings({ set_1: 'KeyE', next_set: null }, 'numbers');
+    assert.equal(changed.set_1, 'KeyE');
+    assert.equal(changed.next_set, null);
+    // A layout that is no more is the usual one
+    assert.equal(mergeBindings({}, 'gone').autoshot, 'KeyE');
+});
+
+test('a change onto a key the layout gives another action leaves that one without it', () => {
+    const keys = mergeBindings({ set_1: 'KeyT' }, 'usual');
+    assert.equal(keys.set_1, 'KeyT');
+    assert.equal(keys.arcane_shot, null);
 });
 
 test('keys read as they are printed on the keyboard', () => {
@@ -41,7 +63,8 @@ test('giving an action a key another action has makes the two change places', ()
     const keys = assignKey(mergeBindings(), 'autoshot', 'KeyR');
     assert.equal(keys.autoshot, 'KeyR');
     assert.equal(keys.multishot, 'KeyE');
-    assert.equal(new Set(Object.values(keys)).size, ACTIONS.length);
+    const bound = Object.values(keys).filter(Boolean);
+    assert.equal(new Set(bound).size, bound.length);
 
     // A free key just moves; a reserved one changes nothing
     assert.equal(assignKey(keys, 'dragon_cry', 'KeyF').dragon_cry, 'KeyF');
