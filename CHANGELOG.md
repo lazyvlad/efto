@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.8.2 - 2026-10-17
+
+### Fixed
+- **A caught off-hand no longer takes off a two-handed weapon**: a piece caught in a game goes on
+  only if nothing he wears comes off for it (a Walking Stick had ended up in place of Hogger's
+  Trophy Axe).
+
 ## 3.8.1 - 2026-10-17
 
 ### Fixed
