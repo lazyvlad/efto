@@ -254,32 +254,6 @@ export function checkCollisions(context) {
                     const freezeSeconds = Math.round((projectile.freezeDuration || gameConfig.powerUps.freezeTime.duration) / 60);
                     addNotification(gameState, `❄️ Harmful projectiles frozen ${freezeSeconds}s`, 120, '#87CEEB');
                     
-                    // Special case: Frost Nova damages player despite beneficial effect
-                    if (projectile.data.id === "frost_nova" && projectile.data.damage > 0) {
-                        // Check dodge first, then shield
-                        if (shouldDodge()) {
-                            // Player dodged the Frost Nova damage
-                            showDodgeText(player.x + player.width/2, player.y);
-                            trackDodge(projectile.data.damage); // Track HP saved from dodging Frost Nova
-                        } else if (shieldBlocks(gameState)) {
-                            // Shield blocks the damage (only if dodge failed)
-                            combatTexts.push(new CombatText(player.x + player.width/2, player.y, 'BLOCKED', '#FFD700', false));
-                        } else {
-                            // Track damage for hybrid progression
-                            // His armor takes its share off the hit (utils/stats.js)
-                            const taken = damageAfterArmor(projectile.data.damage, gameState.armor || 0, gameConfig.stats);
-                            trackActivity(gameState, 'damage', taken);
-                            
-                            gameState.health = Math.max(0, gameState.health - taken);
-                            combatTexts.push(new CombatText(player.x + player.width/2, player.y, `-${taken}`, '#00BFFF', false));
-                            
-                            // Trigger player impact reaction
-                            if (player.onHit) {
-                                player.onHit();
-                            }
-                        }
-                    }
-                    
                     createCollectionParticles(projectile.x + projectile.width/2, projectile.y + projectile.height/2, particles);
                     fireballs.splice(projectileIndex, 1);
                     return;

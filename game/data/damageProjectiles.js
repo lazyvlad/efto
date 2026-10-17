@@ -49,12 +49,12 @@ export const damageProjectiles = [
         shieldDurationOptions: [180, 300, 600] // 3, 5, or 10 seconds at 60fps
     },
     
-    // Frost Nova projectile - Same effects as Power Word Shield but with damage
+    // Frost Nova: freezes what is falling, as Power Word: Shield does; catching it does not hurt
     { 
         id: "frost_nova", 
         name: "Frost Nova", 
         image: assetRegistry.powerups.frostNova, 
-        damage: 2, // 2 HP damage despite beneficial effect
+        damage: 0,
         type: "common", 
         baseProbability: 0.015, // Same spawn rate as power word shield
         sound: assetRegistry.audio.shieldCast,
