@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.9.0 - 2026-10-17
+
+### Added
+- **The pet can be set to aggressive** (settings, "Your pet"): it goes for the creatures first,
+  biting a third of a creature's health at a time; defensive, it fetches and bites as before.
+- **Materials for coins**: the Vendor sells every crafting material, into the bank, and a recipe
+  short of something can buy what is missing.
+- **Arrows crafted by the bundle** (50 from a Light Feather and a Rugged Leather), and **Haste
+  Potions** to craft, keep and drink (J); Haste caught while hasted is kept as one.
+- **What's new for 3.9.0**, published as the deploy runs.
+
+### Fixed
+- **The Alliance hunter's neck** shows in his pajama top again (the art agent's correction).
+
 ## 3.8.2 - 2026-10-17
 
 ### Fixed

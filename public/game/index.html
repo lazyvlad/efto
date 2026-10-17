@@ -52,24 +52,24 @@
     <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
-    <link rel="stylesheet" href="styles/base.css?v=3.8.2">
-    <link rel="stylesheet" href="styles/ui-components.css?v=3.8.2">
-    <link rel="stylesheet" href="styles/settings.css?v=3.8.2">
-    <link rel="stylesheet" href="styles/notifications.css?v=3.8.2">
-    <link rel="stylesheet" href="styles/game-panels.css?v=3.8.2">
-    <link rel="stylesheet" href="styles/spell-bar.css?v=3.8.2">
-    <link rel="stylesheet" href="styles/how-to-play.css?v=3.8.2">
-    <link rel="stylesheet" href="styles/mobile.css?v=3.8.2">
-    <link rel="stylesheet" href="styles/wow-theme.css?v=3.8.2">
-    <link rel="stylesheet" href="styles/game-window.css?v=3.8.2">
-    <link rel="stylesheet" href="styles/character-sheet.css?v=3.8.2">
-    <link rel="stylesheet" href="styles/inventory.css?v=3.8.2">
-    <link rel="stylesheet" href="styles/screens.css?v=3.8.2">
+    <link rel="stylesheet" href="styles/base.css?v=3.9.0">
+    <link rel="stylesheet" href="styles/ui-components.css?v=3.9.0">
+    <link rel="stylesheet" href="styles/settings.css?v=3.9.0">
+    <link rel="stylesheet" href="styles/notifications.css?v=3.9.0">
+    <link rel="stylesheet" href="styles/game-panels.css?v=3.9.0">
+    <link rel="stylesheet" href="styles/spell-bar.css?v=3.9.0">
+    <link rel="stylesheet" href="styles/how-to-play.css?v=3.9.0">
+    <link rel="stylesheet" href="styles/mobile.css?v=3.9.0">
+    <link rel="stylesheet" href="styles/wow-theme.css?v=3.9.0">
+    <link rel="stylesheet" href="styles/game-window.css?v=3.9.0">
+    <link rel="stylesheet" href="styles/character-sheet.css?v=3.9.0">
+    <link rel="stylesheet" href="styles/inventory.css?v=3.9.0">
+    <link rel="stylesheet" href="styles/screens.css?v=3.9.0">
     <!-- The in-game panels, slim (ui/hudPanels.js): last, over the per-device rules -->
-    <link rel="stylesheet" href="styles/hud.css?v=3.8.2">
-    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=3.8.2"> -->
+    <link rel="stylesheet" href="styles/hud.css?v=3.9.0">
+    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=3.9.0"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
-  <!-- Built: 2026-10-17T10:02:23.582Z | Version: 3.8.2 | Mode: Production -->
+  <!-- Built: 2026-10-17T11:30:40.937Z | Version: 3.9.0 | Mode: Production -->
 </head>
 <body>
     <!-- The background: two layers that fade from one picture to the next (backgroundSystem.js) -->
@@ -144,6 +144,18 @@
                     <div class="spell-count" id="spell-mana-potion-count"></div>
                     <div class="spell-timer" id="spell-mana-potion-timer"></div>
                     <div class="spell-cooldown-overlay" id="spell-mana-potion-cooldown"></div>
+                </div>
+
+                <!-- A Haste Potion from the bags: Haste for a while (hidden while there are none) -->
+                <div class="spell-slot spell-potion" id="spell-haste-potion" role="button" tabindex="-1" hidden>
+                    <div class="spell-icon">
+                        <img src="assets/powerups/speed-boost.png" alt="Haste Potion" class="spell-image">
+                    </div>
+                    <div class="spell-key" data-key-of="haste_potion">J</div>
+                    <div class="spell-name">Haste</div>
+                    <div class="spell-count" id="spell-haste-potion-count"></div>
+                    <div class="spell-timer" id="spell-haste-potion-timer"></div>
+                    <div class="spell-cooldown-overlay" id="spell-haste-potion-cooldown"></div>
                 </div>
             </div>
             <div class="spell-group spell-group-shoot">
@@ -381,6 +393,21 @@
         <div id="settingsScreen" class="screen" style="display: none;">
             <div class="screen-content settings-expanded">
                 <h2>Game Settings</h2>
+                
+                <!-- The pet -->
+                <div class="settings-section">
+                    <h3>Your pet</h3>
+                    <p class="section-description">Defensive, it fetches loot and bites what falls at you. Aggressive, it goes for the creatures first whenever there are any, and otherwise does the same.</p>
+                    
+                    <div class="setting-item">
+                        <label for="petStance">How it fights:</label>
+                        <select id="petStance" class="setting-select">
+                            <option value="defensive">Defensive (fetches loot, bites what falls at you)</option>
+                            <option value="aggressive">Aggressive (goes for the creatures first)</option>
+                        </select>
+                    </div>
+                    
+                </div>
                 
                 <!-- Controls Settings Section -->
                 <div class="settings-section">
@@ -871,7 +898,7 @@
         </div>
         
         <!-- The player's saved sets (each hunter his own): press one, or its key, to wear it. The
-             one on is lit. Made by refreshSetSwitch in game-modular.9n9dnot0.js; hidden with none saved. -->
+             one on is lit. Made by refreshSetSwitch in game-modular.f6qxneu3.js; hidden with none saved. -->
         <div class="set-switch" id="setSwitch" role="group" aria-label="Wear one of your sets" hidden></div>
 
         <div class="dragonstalker-items-list" id="dragonstalkerItemsList">
@@ -881,7 +908,7 @@
     </div>
 
     <!-- Game Script -->
-    <script type="module" src="game-modular.9n9dnot0.js?v=3.8.2"></script>
+    <script type="module" src="game-modular.f6qxneu3.js?v=3.9.0"></script>
     
 
 
