@@ -179,13 +179,17 @@ export function hasLooks(itemId) {
  * @param {string} side
  * @param {Object} equipment   { slotId: itemId }
  * @param {object} art         { body: path, torso: [{ path, order }], front: [{ path, order }],
- *                             moving: itemId => true for what is drawn in moving parts instead }
+ *                             moving: itemId => true for what is drawn in moving parts instead,
+ *                             held: the slots of what he holds (his weapons, unless said) }
  * @returns {Promise<{rear: HTMLCanvasElement, body: HTMLCanvasElement, front: HTMLCanvasElement}>}
  */
 export async function meleePlates(side, equipment, art) {
     const character = hunterArt.characters[side];
     const size = hunterArt.canvas;
-    const held = slot => slot === 'mainhand' || slot === 'offhand';
+    // What he holds is drawn in his hands, not on him: his weapons as he fights, his ranged
+    // weapon as he shoots ("held": the slots, art.held)
+    const holding = art.held || ['mainhand', 'offhand'];
+    const held = slot => holding.includes(slot);
     const worn = Object.fromEntries(Object.entries(equipment || {}).filter(([slot, itemId]) => itemId && !held(slot)));
     const rearLayers = layersFor(side, worn).filter(part => part.order < 0);
     const still = Object.fromEntries(Object.entries(worn).filter(([, itemId]) => !art.moving(hunterArt.aliases[itemId] || itemId)));

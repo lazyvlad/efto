@@ -51,7 +51,7 @@ import { resetBosses, isBossFightActive, guardZone, randomBossAttack, updateBoss
 import { BossProjectile } from './classes/BossProjectile.js';
 import { resetCreatures, updateCreatures, creaturesAbout, strikeCreatures, carryForCreatures, zoneHasCreatures } from './systems/creatureSystem.js';
 import { resetFrostTraps, deployFrostTraps } from './systems/frostTrapSystem.js';
-import { dressForMelee, updateMelee, drawMelee, resetMelee, meleeFramesSince } from './systems/meleeSystem.js';
+import { dressForMelee, updateMelee, drawMelee, drawRanged, resetMelee, meleeFramesSince } from './systems/meleeSystem.js';
 import { getFaction, setFaction, showBackgroundForLevel, showStartingBackground, currentBackgroundImage, currentBackgroundName } from './systems/backgroundSystem.js';
 import { initializeInputSystem, updatePlayerPosition, resetInputState, updateMouseLock } from './systems/inputSystem.js';
 // drawSettings removed - now using HTML+CSS guide
@@ -303,6 +303,7 @@ async function init() {
     
     player = new Player(canvasWidth, canvasHeight);
     player.drawMelee = drawMelee;
+    player.drawRanged = drawRanged;
     gameState.player = player;
     updateLoadingProgress(0.8);
     

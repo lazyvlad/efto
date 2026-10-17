@@ -92,6 +92,49 @@ export function offhandArm(rig) {
     return { ...solved, grip, holds: true, angle };
 }
 
+// His ranged weapon held up to shoot (the art agent's ready studies): a bow out at his left,
+// a crossbow levelled across him, a spear, harpoon, totem or knife up in his right hand
+const RANGED_READY = {
+    bow: { x: 315, y: 330, angle: -12 },
+    crossbow: { x: 490, y: 395, angle: -8 },
+    other: { x: 470, y: 320, angle: 25 },
+};
+// With a bow in his left fist, his right hand is at the string, this far behind the grip
+const STRING_PULL = 70;
+
+/**
+ * His arms holding his ranged weapon up: where its grip is, which way it points, and each arm,
+ * solved as armsFor solves them. The hand the weapon is in holds it at its grip; the other
+ * steadies it at "support" if it has one, is at the string of a bow, or rests.
+ * @param {object} held   data/melee.js meleeRanged entry
+ * @param {number} width  How wide the weapon's picture is drawn (its height is held.height)
+ */
+export function rangedArms(rig, held, width) {
+    const ready = RANGED_READY[held.kind] || RANGED_READY.other;
+    const angle = ready.angle * Math.PI / 180;
+    const main = [ready.x + rig.offset[0], ready.y + rig.offset[1]];
+    const offset = support => rotate([(support[0] - held.grip[0]) * width, (support[1] - held.grip[1]) * held.height], angle);
+    let other = null;
+    if (held.support) {
+        const d = offset(held.support);
+        other = [main[0] + d[0], main[1] + d[1]];
+    } else if (held.kind === 'bow') {
+        // Back from the bow towards him, square to it: drawing the string
+        const d = rotate([STRING_PULL, 0], angle);
+        other = [main[0] + d[0], main[1] + d[1]];
+    }
+    const arms = {};
+    for (const side of ['left', 'right']) {
+        const arm = rig[side];
+        const grip = side === held.hand ? main : other;
+        const holds = Boolean(grip);
+        const toWrist = rotate([arm.wrist[0] - arm.grip[0], arm.wrist[1] - arm.grip[1]], angle);
+        const wrist = holds ? [grip[0] + toWrist[0], grip[1] + toWrist[1]] : arm.wrist.slice();
+        arms[side] = { ...solveArm(arm.shoulder, wrist, length(arm.shoulder, arm.elbow), length(arm.elbow, arm.wrist), arm.bend), grip, holds, angle };
+    }
+    return { angle, main, arms, behind: false };
+}
+
 export function readyPose(style = null, anchor = null) {
     return style === 'short' && anchor ? fromShoulder(SHORT.ready, anchor) : { ...READY };
 }

@@ -14,9 +14,9 @@
 import { gameConfig } from '../config/gameConfig.js';
 import { CombatText } from '../classes/CombatText.js';
 import { Particle } from '../classes/Particle.js';
-import { meleeRigs, meleeWeapons, meleeBodies, meleeArmor, meleeAliases, meleeArtPath, meleeWeaponImage, meleeRest, meleeOffhands } from '../data/melee.js';
+import { meleeRigs, meleeWeapons, meleeBodies, meleeArmor, meleeAliases, meleeArtPath, meleeWeaponImage, meleeRest, meleeOffhands, meleeRanged } from '../data/melee.js';
 import { hunterArt } from '../data/hunterArt.js';
-import { MeleeState, armsFor, offhandArm } from '../utils/meleeMotion.js';
+import { MeleeState, armsFor, offhandArm, rangedArms } from '../utils/meleeMotion.js';
 import { CharacterAnimator } from '../classes/CharacterAnimator.js';
 import { characterFor } from '../data/playerCharacters.js';
 import { STRIDE } from '../utils/locomotion.js';
@@ -73,12 +73,24 @@ function seenOn(side, itemId) {
  */
 export function meleeWeaponFor(side, equipment) {
     const weaponId = equipment && equipment.mainhand;
-    if (!weaponId || !meleeWeapons[weaponId] || !meleeRigs[side] || !meleeBodies[side]) return null;
-    for (const slot of ARM_SLOTS) {
-        const itemId = equipment[slot];
-        if (itemId && seenOn(side, itemId) && !(meleeArmor[resolve(itemId)] && meleeArmor[resolve(itemId)][side])) return null;
-    }
+    if (!weaponId || !meleeWeapons[weaponId] || !armsMove(side, equipment)) return null;
     return weaponId;
+}
+
+// Whether his arms can be drawn moving, dressed as he is: nothing on them without melee art
+function armsMove(side, equipment) {
+    if (!meleeRigs[side] || !meleeBodies[side]) return false;
+    for (const slot of ARM_SLOTS) {
+        const itemId = equipment && equipment[slot];
+        if (itemId && seenOn(side, itemId) && !(meleeArmor[resolve(itemId)] && meleeArmor[resolve(itemId)][side])) return false;
+    }
+    return true;
+}
+
+/** The ranged weapon he can be drawn holding up as he shoots, dressed as he is; or null */
+export function rangedFor(side, equipment) {
+    const id = equipment && equipment.ranged && resolve(equipment.ranged);
+    return id && meleeRanged[id] && armsMove(side, equipment) ? id : null;
 }
 
 // The moving parts of an outfit: per bone, the sleeve (a chest's, or the bare one) and what is
@@ -115,6 +127,7 @@ function partsFor(side, equipment) {
  * What he wears changed (or a game began): the pictures to fight in, made now, not mid-swing.
  */
 export function dressForMelee(side, equipment) {
+    dressForRanged(side, equipment);
     const weaponId = meleeWeaponFor(side, equipment);
     const key = weaponId ? `${side}|${JSON.stringify(equipment)}` : '';
     if (key === outfitKey) return;
@@ -140,6 +153,33 @@ export function dressForMelee(side, equipment) {
             offhand: offhand ? { id: offhandFor(weaponId, equipment), picture: offhand } : null };
     }).catch(() => {
         // A picture missing: he keeps to his bow
+    });
+}
+
+// Holding his ranged weapon up as he shoots: the plates without it (it is in his hands), his arms
+let rangedLook = null;      // { side, id, plates, limbs, hands, cuffs, picture } once all have loaded
+let rangedKey = '';
+function dressForRanged(side, equipment) {
+    const id = rangedFor(side, equipment);
+    const key = id ? `${side}|${JSON.stringify(equipment)}` : '';
+    if (key === rangedKey) return;
+    rangedKey = key;
+    rangedLook = null;
+    if (!id) return;
+
+    const parts = partsFor(side, equipment);
+    const all = list => Promise.all(list.map(piece));
+    Promise.all([
+        meleePlates(side, equipment, { body: meleeArtPath(meleeBodies[side].body[0]), torso: parts.torso, front: parts.front, moving: parts.moving, held: ['ranged'] }),
+        Promise.all(Object.entries(parts.limbs).map(([bone, list]) => all(list).then(cut => [bone, cut]))).then(Object.fromEntries),
+        Promise.all(Object.entries(parts.hands).map(([hand, art]) => piece(art).then(cut => [hand, cut]))).then(Object.fromEntries),
+        all(parts.cuffs.left),
+        all(parts.cuffs.right),
+        weaponPicture(id),
+    ]).then(([plates, limbs, hands, leftCuffs, rightCuffs, picture]) => {
+        if (rangedKey === key) rangedLook = { side, id, plates, limbs, hands, cuffs: { left: leftCuffs, right: rightCuffs }, picture };
+    }).catch(() => {
+        // A picture missing: he shoots as ever
     });
 }
 
@@ -334,7 +374,7 @@ function segment(ctx, part, fromA, fromB, toA, toB) {
  */
 // His legs step as he fights too: the plates behind him and of his body are drawn through these
 // (only the legs move; his lean is put on by Player.drawsMelee), kept for the next outfit
-const steppers = { rear: null, body: null };
+const steppers = {};
 
 function plate(ctx, which, picture, side, step) {
     if (!step) {
@@ -361,21 +401,46 @@ export function drawMelee(ctx, bounds, posed = null, step = null) {
     const pose = posed || melee.pose(meleeRigs[look.side].right.shoulder, resting || null);
     const rig = meleeRigs[look.side];
     const weapon = meleeWeapons[look.weaponId];
-    const { plates, limbs, hands, cuffs } = look;
     const at = armsFor(rig, weapon, pose);
-    // His left fist holds the off-hand, if he has one in hand
-    if (look.offhand) at.arms.left = offhandArm(rig);
+    const props = [{ picture: look.weapon, grip: weapon.grip, height: weapon.height, place: at.main, angle: at.angle, behind: at.behind }];
+    // His left fist holds the off-hand, if he has one in hand: in front of him, under his fist
+    if (look.offhand) {
+        at.arms.left = offhandArm(rig);
+        const held = meleeOffhands[look.offhand.id];
+        props.push({ picture: look.offhand.picture, grip: held.grip, height: held.height, place: at.arms.left.grip, angle: at.arms.left.angle, behind: false });
+    }
     if (!posed) framesDrawn++;
+    drawPosed(ctx, bounds, look, rig, at, props, step, ['rear', 'body']);
+    return true;
+}
 
-    const drawWeapon = () => {
-        const picture = look.weapon;
-        const scale = weapon.height / picture.naturalHeight;
+/**
+ * Draw him holding his ranged weapon up, as he shoots, in place of his usual picture (his legs
+ * stepping, if he is). False when there is no picture of him holding it.
+ */
+export function drawRanged(ctx, bounds, step = null) {
+    if (!rangedLook) return false;
+    const rig = meleeRigs[rangedLook.side];
+    const held = meleeRanged[rangedLook.id];
+    const picture = rangedLook.picture;
+    const width = picture.naturalWidth * held.height / picture.naturalHeight;
+    const at = rangedArms(rig, held, width);
+    drawPosed(ctx, bounds, rangedLook, rig, at, [{ picture, grip: held.grip, height: held.height, place: at.main, angle: at.angle, behind: false }], step, ['rangedRear', 'rangedBody']);
+    return true;
+}
+
+// Him in still plates and moving arms, holding what he holds ("props": each a picture, its grip,
+// how tall, where its grip is, which way it points, and whether behind him), his legs stepping
+// through the plates of "steppers"
+function drawPosed(ctx, bounds, dressed, rig, at, props, step, steppers) {
+    const { plates, limbs, hands, cuffs } = dressed;
+    const drawProp = prop => {
+        const scale = prop.height / prop.picture.naturalHeight;
+        const width = prop.picture.naturalWidth * scale;
         ctx.save();
-        ctx.translate(at.main[0], at.main[1]);
-        ctx.rotate(at.angle);
-        const width = picture.naturalWidth * scale;
-        const height = picture.naturalHeight * scale;
-        put(ctx, picture, -weapon.grip[0] * width, -weapon.grip[1] * height, width, height);
+        ctx.translate(prop.place[0], prop.place[1]);
+        ctx.rotate(prop.angle);
+        put(ctx, prop.picture, -prop.grip[0] * width, -prop.grip[1] * prop.height, width, prop.height);
         ctx.restore();
     };
 
@@ -384,17 +449,17 @@ export function drawMelee(ctx, bounds, posed = null, step = null) {
     ctx.scale(bounds.width / 800, bounds.height / 800);
     // How big a picture pixel is on the screen: a new size (or outfit) and they are shrunk anew
     const onScreen = Math.round(ctx.getTransform().a * 100) / 100;
-    if (onScreen !== shrunkAt || shrunk.look !== look) {
+    if (onScreen !== shrunkAt || shrunk.look !== dressed) {
         shrunkAt = onScreen;
         shrunk = new Map();
-        shrunk.look = look;
+        shrunk.look = dressed;
     }
     ctx.imageSmoothingEnabled = true;
 
     // His legs step, if he is stepping
-    plate(ctx, 'rear', plates.rear, look.side, step);
-    if (at.behind) drawWeapon();
-    plate(ctx, 'body', plates.body, look.side, step);
+    plate(ctx, steppers[0], plates.rear, dressed.side, step);
+    props.filter(prop => prop.behind).forEach(drawProp);
+    plate(ctx, steppers[1], plates.body, dressed.side, step);
     // The sleeves, upper arms then forearms, and what is worn over each, bracers and all
     const bone = (side, part, layer) => {
         const arm = rig[side];
@@ -409,20 +474,10 @@ export function drawMelee(ctx, bounds, posed = null, step = null) {
         for (const side of ['left', 'right']) limbs[`${side}-${part}`].slice(1).forEach(layer => bone(side, part, layer));
     }
     put(ctx, plates.front, 0, 0, 800, 800);
-    if (!at.behind) drawWeapon();
-    // The off-hand, in front of him, under his fist
-    if (look.offhand) {
-        const held = meleeOffhands[look.offhand.id], picture = look.offhand.picture, left = at.arms.left;
-        const height = held.height, width = picture.naturalWidth * height / picture.naturalHeight;
-        ctx.save();
-        ctx.translate(left.grip[0], left.grip[1]);
-        ctx.rotate(left.angle);
-        put(ctx, picture, -held.grip[0] * width, -held.grip[1] * height, width, height);
-        ctx.restore();
-    }
+    props.filter(prop => !prop.behind).forEach(drawProp);
 
-    // The fists on the handle, turned with it; a free left hand relaxed at the end of its arm;
-    // and over each hand what is worn on it
+    // The fists on what they hold, turned with it; a free left hand relaxed at the end of its
+    // arm; and over each hand what is worn on it
     for (const side of ['left', 'right']) {
         const arm = rig[side];
         const solved = at.arms[side];
@@ -430,7 +485,6 @@ export function drawMelee(ctx, bounds, posed = null, step = null) {
         if (solved.holds) {
             ctx.save();
             ctx.translate(solved.grip[0], solved.grip[1]);
-            // Each fist turned with what it holds: the weapon, or the off-hand
             ctx.rotate(solved.angle !== undefined ? solved.angle : at.angle);
             for (const layer of onHand) put(ctx, layer.canvas, layer.left - arm.grip[0], layer.top - arm.grip[1], layer.canvas.width, layer.canvas.height);
             ctx.restore();
@@ -444,5 +498,4 @@ export function drawMelee(ctx, bounds, posed = null, step = null) {
         }
     }
     ctx.restore();
-    return true;
 }

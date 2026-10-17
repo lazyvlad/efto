@@ -457,6 +457,27 @@ export const meleeOffhands = {
     'wastewander-glass-shiv': { grip: [0.508, 0.813], height: 180 },
 };
 
+// His ranged weapon, held up as he shoots (systems/meleeSystem.js drawRanged): a bow in his
+// left fist, the rest in his right, a crossbow, spear or harpoon steadied with the other hand
+// ("support", as a share of its picture like "grip"). From the art agent's whole pictures and
+// measured grips (art-workbench/hunter-melee/other-weapons, zone-items). Drawn only: arrows,
+// damage and timing are the bow's as ever.
+export const meleeRanged = {
+    'padfoots-throwing-dagger': { kind: 'throwing', hand: 'right', grip: [0.5063, 0.7356], support: null, height: 185 },
+    'centaur-war-spear': { kind: 'spear', hand: 'right', grip: [0.3665, 0.6277], support: [0.3447, 0.7725], height: 400 },
+    'ashjrethul': { kind: 'crossbow', hand: 'right', grip: [0.6041, 0.8058], support: [0.5541, 0.5327], height: 300 },
+    'westfall-field-repeater': { kind: 'crossbow', hand: 'right', grip: [0.524, 0.7538], support: [0.5067, 0.5095], height: 310 },
+    'ratchet-deck-crossbow': { kind: 'crossbow', hand: 'right', grip: [0.5005, 0.7538], support: [0.5005, 0.5095], height: 320 },
+    'menethil-marsh-harpoon': { kind: 'spear', hand: 'right', grip: [0.6284, 0.6861], support: [0.6284, 0.8225], height: 425 },
+    'stranglethorn-trackers-bow': { kind: 'bow', hand: 'left', grip: [0.473, 0.5487], support: null, height: 385 },
+    'satyrwood-longbow': { kind: 'bow', hand: 'left', grip: [0.3861, 0.5191], support: null, height: 380 },
+    'hillsbrad-poachers-bow': { kind: 'bow', hand: 'left', grip: [0.3302, 0.5], support: null, height: 390 },
+    'northshire-vineyard-bow': { kind: 'bow', hand: 'left', grip: [0.3075, 0.5], support: null, height: 370 },
+    'trialhunters-shortbow': { kind: 'bow', hand: 'left', grip: [0.2701, 0.5], support: null, height: 360 },
+    'starter-alliance-bow': { kind: 'bow', hand: 'left', grip: [0.5147, 0.5453], support: null, height: 360 },
+    'starter-horde-totem': { kind: 'totem', hand: 'right', grip: [0.5864, 0.6891], support: null, height: 290 },
+};
+
 // Where a weapon rests on him when it is not on his back pointing up, as most are: hung blade
 // down on his back, or in a sheath at his hip (art-workbench/equipment-repairs). His hand takes
 // it from there and puts it back there (utils/meleeMotion.js drawPose). By weapon, then side.

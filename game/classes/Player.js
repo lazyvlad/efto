@@ -15,7 +15,9 @@ import { perfProbeOn, noteHunterDraw } from '../utils/perfProbe.js';
 export const FIGURE_HEIGHT_TO_WIDTH = 1.88;
 // Under the feet, inside the player's box, is room for his health and his quiver, a row each:
 // this much of the box's width, top to bottom.
-const HEALTH_BAR_ROOM = 0.48;     // Under his feet: health, arrows, and the swing timer
+const HEALTH_BAR_ROOM = 0.48;
+// How long he holds his ranged weapon up after a shot (systems/meleeSystem.js drawRanged)
+const AIM_SECONDS = 0.5;     // Under his feet: health, arrows, and the swing timer
 
 // Player Class - Encapsulates all player functionality
 export class Player {
@@ -75,9 +77,11 @@ export class Player {
         this.animator?.collect();
     }
     
-    // He loosed an arrow: he braces
+    // He loosed an arrow: he braces, his ranged weapon up for a moment (longer while he keeps
+    // shooting)
     onShoot() {
         this.animator?.shoot();
+        this.aiming = AIM_SECONDS;
     }
     
     // Set pieces and the tier weapons are caught like anything else
@@ -95,9 +99,10 @@ export class Player {
         if (!this.animator && this.areImagesLoaded()) {
             this.animator = new CharacterAnimator(this.image, this.character.rig, STRIDE[this.side]);
         }
-        
+
         const seconds = deltaTimeMultiplier / 60;
         if (seconds <= 0) return;
+        this.aiming = Math.max(0, (this.aiming || 0) - seconds);
         
         // How far he has come sideways since the last frame steps him on, whether or not his
         // picture is ready. Crossing three tenths of the play field in a second counts as flat
@@ -125,7 +130,7 @@ export class Player {
     // Fighting hand to hand he is drawn in parts (systems/meleeSystem.js), leaning and dipping
     // with his step as the animator draws him otherwise, his legs stepping. False when he is
     // not fighting.
-    drawsMelee(ctx, figureHeight) {
+    drawsMelee(ctx, figureHeight, draw = (...args) => this.drawMelee(...args)) {
         const { lean, bob } = this.stepRoot();
         const height = figureHeight / this.character.heightInPicture;
         const footX = this.x + this.width / 2, footY = this.y + figureHeight;
@@ -133,7 +138,7 @@ export class Player {
         ctx.translate(footX, footY + bob * height);
         ctx.rotate(lean);
         ctx.translate(-footX, -footY);
-        const drawn = this.drawMelee(ctx, this.pictureBounds(), null, stepPose(this.step, this.reducedMotion));
+        const drawn = draw(ctx, this.pictureBounds(), null, stepPose(this.step, this.reducedMotion));
         ctx.restore();
         return drawn;
     }
@@ -167,6 +172,8 @@ export class Player {
         // Fighting hand to hand he is drawn in parts, his arms swinging (systems/meleeSystem.js)
         if (this.drawMelee && this.animator && this.drawsMelee(ctx, figureHeight)) {
             // Drawn
+        } else if (this.aiming > 0 && this.drawRanged && this.animator && this.drawsMelee(ctx, figureHeight, this.drawRanged)) {
+            // Holding his ranged weapon up as he shoots, drawn as he is fighting
         } else if (this.animator) {
             const startedAt = perfProbeOn() ? performance.now() : 0;
             this.animator.draw(ctx, this.x + this.width / 2, this.y + figureHeight, figureHeight / this.character.heightInPicture);
