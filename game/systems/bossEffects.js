@@ -7,7 +7,7 @@
 // Bursts play once on the clock of the display, a tenth of a second a frame; held effects
 // (a bolt in flight, the shield) loop.
 
-import { bossEffects, bossEffectSheets, BOSS_EFFECT_CELL, BOSS_EFFECT_MS } from '../data/bossEffects.js';
+import { bossEffects, bossEffectSheets, bossEffectBounds, BOSS_EFFECT_CELL, BOSS_EFFECT_MS } from '../data/bossEffects.js';
 
 const sheets = new Map();
 let bursts = [];
@@ -35,9 +35,11 @@ export function readyEffect(name) {
  * @param {string} name    "sheet:effect" (data/bossEffects.js)
  * @param {number} ms      How far into it; looped, or held on its last frame
  * @param {number} size    How wide (and tall) its cell is drawn
+ * @param {object} [fit]   { width, height }: drawn so what is painted of it (not its cell) is
+ *                         this wide and tall, its middle on (x, y); "size" is then not used
  * @returns {boolean}      Whether it was drawn (false while its sheet loads)
  */
-export function drawEffect(ctx, name, ms, x, y, size, { rotation = 0, alpha = 1, loop = true } = {}) {
+export function drawEffect(ctx, name, ms, x, y, size, { rotation = 0, alpha = 1, loop = true, fit = null } = {}) {
     const frames = bossEffects[name];
     const image = frames && sheet(name);
     if (!image) return false;
@@ -47,16 +49,24 @@ export function drawEffect(ctx, name, ms, x, y, size, { rotation = 0, alpha = 1,
     ctx.globalAlpha *= alpha;
     ctx.translate(x, y);
     if (rotation) ctx.rotate(rotation);
-    ctx.drawImage(image, (frame % 4) * BOSS_EFFECT_CELL, Math.floor(frame / 4) * BOSS_EFFECT_CELL, BOSS_EFFECT_CELL, BOSS_EFFECT_CELL, -size / 2, -size / 2, size, size);
+    // The cell's size and where its middle is drawn: by the cell, or by what is painted in it
+    let width = size, height = size, middle = [0.5, 0.5];
+    const painted = fit && bossEffectBounds[name];
+    if (painted) {
+        width = fit.width / (painted[2] - painted[0]);
+        height = fit.height / (painted[3] - painted[1]);
+        middle = [(painted[0] + painted[2]) / 2, (painted[1] + painted[3]) / 2];
+    }
+    ctx.drawImage(image, (frame % 4) * BOSS_EFFECT_CELL, Math.floor(frame / 4) * BOSS_EFFECT_CELL, BOSS_EFFECT_CELL, BOSS_EFFECT_CELL, -middle[0] * width, -middle[1] * height, width, height);
     ctx.restore();
     return true;
 }
 
 /** A burst, played once where something landed */
-export function burst(name, x, y, size, { rotation = 0 } = {}) {
+export function burst(name, x, y, size, { rotation = 0, fit = null } = {}) {
     if (!bossEffects[name]) return;
     sheet(name);
-    bursts.push({ name, x, y, size, rotation, ms: 0 });
+    bursts.push({ name, x, y, size, rotation, fit, ms: 0 });
     // A storm or a volley must not pile up more than can be seen
     if (bursts.length > 40) bursts.shift();
 }
@@ -70,7 +80,7 @@ export function drawBursts(ctx) {
     bursts = bursts.filter(each => {
         each.ms += passed;
         if (each.ms >= length) return false;
-        drawEffect(ctx, each.name, each.ms, each.x, each.y, each.size, { rotation: each.rotation, loop: false, alpha: 1 - Math.max(0, each.ms - length * 0.75) / (length * 0.25) });
+        drawEffect(ctx, each.name, each.ms, each.x, each.y, each.size, { rotation: each.rotation, fit: each.fit, loop: false, alpha: 1 - Math.max(0, each.ms - length * 0.75) / (length * 0.25) });
         return true;
     });
 }

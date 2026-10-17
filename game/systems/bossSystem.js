@@ -1145,8 +1145,11 @@ function strike(context) {
             break;
         case 'upheaval':
             startUpheaval(context);
-            // A rift opens under the boss as it begins (painted, for the look only)
-            burst('fire-gravity:upheaval', fight.x, layout(canvas, fight.boss).top + layout(canvas, fight.boss).height * 0.6, layout(canvas, fight.boss).height * 1.4);
+            // A rift opens at the boss's feet as it begins (painted, for the look only)
+            {
+                const place = layout(canvas, fight.boss);
+                burst('fire-gravity:upheaval', fight.x, place.top + fight.drop + place.height * 0.95, 0, { fit: { width: place.width * 1.2, height: place.height * 0.45 } });
+            }
             addNotification(context.gameState, `${fight.boss.name} ${fight.boss.upheaval || 'turns gravity over'}! Danger from every side`, 300, '#C77DFF');
             playScreamSound();
             break;
@@ -2227,22 +2230,23 @@ export function drawBoss(ctx, canvas, alpha = 1) {
     // What it was last drawn as: its shield broken, or it vanishing or coming back, bursts
     const centerY = y + place.height / 2;
     if (seenStatus.fight !== fight) seenStatus = { fight, shielded: fight.shielded, hidden: fight.hidden };
-    if (seenStatus.shielded && !fight.shielded && fight.phase === 'fight') burst('arcane:shield-break', x, centerY, place.height * 1.3);
-    if (seenStatus.hidden < 0.05 && fight.hidden >= 0.05) burst('vanish:disappear', x, centerY, place.height * 1.1);
-    if (seenStatus.hidden >= 0.5 && fight.hidden < 0.5) burst('vanish:reappear', x, centerY, place.height * 1.1);
+    // Each sized by what is painted of it, round the whole boss
+    const round = (width, height) => ({ fit: { width: place.width * width, height: place.height * height } });
+    if (seenStatus.shielded && !fight.shielded && fight.phase === 'fight') burst('arcane:shield-break', x, centerY, 0, round(1.2, 1.15));
+    if (seenStatus.hidden < 0.05 && fight.hidden >= 0.05) burst('vanish:disappear', x, centerY, 0, round(0.9, 0.95));
+    if (seenStatus.hidden >= 0.5 && fight.hidden < 0.5) burst('vanish:reappear', x, centerY, 0, round(0.9, 0.95));
     seenStatus.shielded = fight.shielded;
     seenStatus.hidden = fight.hidden;
     const since = fight.steps * 1000 / 60;
     if (fight.phase === 'fight' && fight.hidden < 0.5) {
         // Enraged, a red fury about it; dazed by Thunderfury, stars over its head
-        if (fight.enraged) drawEffect(ctx, 'status:enrage', since, x, centerY, place.height * 1.2, { alpha: 0.75 * opacity });
-        if (fight.dazedSteps > 0) drawEffect(ctx, 'status:daze', since, x, y + place.height * 0.08, place.height * 0.55, { alpha: opacity });
+        if (fight.enraged) drawEffect(ctx, 'status:enrage', since, x, centerY, 0, { alpha: 0.75 * opacity, ...round(1.05, 1.0) });
+        if (fight.dazedSteps > 0) drawEffect(ctx, 'status:daze', since, x, y + place.height * 0.06, 0, { alpha: opacity, fit: { width: place.width * 0.45, height: place.height * 0.22 } });
     }
 
-    // The shield: painted, flickering round it; a violet bubble until its picture is there
-    if (fight.shielded && fight.hidden < 0.5 && drawEffect(ctx, 'status:shield', since, x, centerY, place.height * 1.35, { alpha: 0.9 })) {
-        // Drawn
-    } else if (fight.shielded && fight.hidden < 0.5) {
+    // The shield: the violet bubble round the whole of it, and its painted shimmer round that
+    if (fight.shielded && fight.hidden < 0.5) drawEffect(ctx, 'status:shield', since, x, centerY, 0, { alpha: 0.85, ...round(1.2, 1.25) });
+    if (fight.shielded && fight.hidden < 0.5) {
         const pulse = 0.85 + Math.sin(fight.steps * 0.12) * 0.15;
         const bubble = ctx.createRadialGradient(x, centerY, place.height * 0.2, x, centerY, place.height * 0.62);
         bubble.addColorStop(0, 'rgba(176, 72, 248, 0)');
