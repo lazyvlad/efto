@@ -82,6 +82,16 @@ return [
         'makes' => 'thunderfury',
     ],
 
+    // The early bosses drop more: in a normal game, a boss of these zones drops this many of its
+    // zone's own green and blue gear (config/gear.php "zone_items") besides its item, so that
+    // a few runs dress a hunter well enough to go on. Each is a piece his side's hunter does not
+    // have yet (any once he has them all; never the same one twice in a kill), of a rarity by
+    // these chances where he lacks one of it. They are his as the gear his creatures carry is.
+    'extras' => [
+        'zones' => [1 => 2, 2 => 2, 3 => 2],
+        'chances' => ['uncommon' => 0.85, 'rare' => 0.15],
+    ],
+
     // Boss Rush: a game of nothing but the bosses of one side, back to back. For logged-in
     // players, who pay this much copper to enter. The bosses pay and drop as they always do,
     // but the game stays off the leaderboard. They fall faster than in a normal game, so a

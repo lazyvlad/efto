@@ -23,6 +23,10 @@ class Game extends Model
 
     public const NORMAL = 'normal';
 
+    // The chunk a boss's extra drops are recorded under (boss_loot.extras): never one the game
+    // asks for, so they are never offered to it again
+    public const BOSS_CHUNK = 65535;
+
     public const BOSS_RUSH = 'boss_rush';
 
     // One boss and nothing else: the boss of the zone the game starts in

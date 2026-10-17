@@ -107,6 +107,57 @@ class BossLoot
     }
 
     /**
+     * The zone's gear an early boss drops besides its item, in a normal game (boss_loot.extras):
+     * by item id, none the same, nor the item it dropped. Each a piece his side's hunter lacks
+     * (any once he has them all), of the rarity rolled where there is one of it.
+     *
+     * @return array<int, string>
+     */
+    public static function rollExtras(?User $user, array $boss, string $mode, string $itemId): array
+    {
+        $count = (int) config("boss_loot.extras.zones.{$boss['zone']}", 0);
+        if ($count === 0 || $mode !== \App\Models\Game::NORMAL) {
+            return [];
+        }
+
+        $catalog = Gear::catalog();
+        $zoneItems = array_filter(config("gear.zone_items.{$boss['faction']}.{$boss['zone']}", []),
+            fn ($item, $id) => isset($catalog[$id]) && $id !== $itemId, ARRAY_FILTER_USE_BOTH);
+        $owned = $user ? Gear::owned($user, $boss['faction']) : [];
+        $chances = config('boss_loot.extras.chances');
+
+        $chosen = [];
+        for ($i = 0; $i < $count; $i++) {
+            $left = array_diff_key($zoneItems, array_flip($chosen));
+            if ($left === []) {
+                break;
+            }
+            // What he lacks comes first; among it, the rarity rolled if there is one of it
+            $lacking = array_diff_key($left, $owned) ?: $left;
+            $rarity = self::pick($chances);
+            $ofRarity = array_filter($lacking, fn ($item) => $item['rarity'] === $rarity) ?: $lacking;
+            $ids = array_keys($ofRarity);
+            $chosen[] = $ids[random_int(0, count($ids) - 1)];
+        }
+
+        return $chosen;
+    }
+
+    /** A name, by the chances given (adding up to 1) */
+    private static function pick(array $chances): string
+    {
+        $at = random_int(0, PHP_INT_MAX - 1) / PHP_INT_MAX;
+        foreach ($chances as $name => $chance) {
+            if ($at < $chance) {
+                return $name;
+            }
+            $at -= $chance;
+        }
+
+        return array_key_last($chances);
+    }
+
+    /**
      * Whether this kill also drops the large quiver. Only for a hunter who does not have it:
      * each finds his own, from his side's bosses.
      */
@@ -213,6 +264,12 @@ class BossLoot
             if (isset($items[$itemId])) {
                 return ['id' => $itemId, 'name' => Gear::catalog()[$itemId]['name'] ?? $itemId, 'rarity' => $rarity];
             }
+        }
+
+        // The zone's gear (boss_loot.extras)
+        $zoneItem = Gear::zoneItems()[$itemId] ?? null;
+        if ($zoneItem) {
+            return ['id' => $itemId, 'name' => $zoneItem['name'], 'rarity' => $zoneItem['rarity']];
         }
 
         return null;

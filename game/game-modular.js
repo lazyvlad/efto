@@ -5366,6 +5366,27 @@ function onBossDefeated(boss, fight = null, at = null) {
                 : `Loot: ${piece.name} - log in to keep it`, 480, '#C77DFF');
             combatTexts.push(new CombatText((canvas.logicalWidth || canvas.width) / 2, player.y - 70, piece.name, '#C77DFF', true));
         }
+        // An early boss's zone gear besides its item: his as the item is, and it pops out too
+        (drop.extras || []).forEach((extra, i) => {
+            if (drop.kept && siteBoot && siteBoot.user && isKeptGear(extra.id)) {
+                const gear = accountGear(boss.faction);
+                gear[extra.id] = (gear[extra.id] || 0) + 1;
+                carryCaught(extra.id);
+            }
+            gameState.bossLoot.push({ boss, item: extra, kept: drop.kept, timesFound: null });
+            itemsListCache.needsUpdate = true;
+            if (!gameState.gameRunning) return;
+            if (at) popBossLoot(extra, at);
+            const color = BOSS_LOOT_COLORS[extra.rarity] || '#1EFF00';
+            noteFound(extra.name, color);
+            // Under the item's floating text, one line each
+            combatTexts.push(new CombatText((canvas.logicalWidth || canvas.width) / 2, player.y - 160 - 30 * i, extra.name, color, true));
+        });
+        if (drop.extras && drop.extras.length && gameState.gameRunning) {
+            addNotification(gameState, drop.kept
+                ? `${boss.name} also dropped ${drop.extras.map(extra => extra.name).join(' and ')}`
+                : `Loot: ${drop.extras.length} more pieces - log in to keep them`, 480, '#1EFF00');
+        }
         if (!drop.item) return;
         // Kept: its side's hunter owns it from now on
         if (drop.kept && siteBoot && siteBoot.user && isKeptGear(drop.item.id)) {

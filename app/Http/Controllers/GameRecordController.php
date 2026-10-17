@@ -199,6 +199,7 @@ class GameRecordController extends Controller
             $quiver = BossLoot::rollQuiver($game->user, $boss['faction'], $boss['zone']);
             $setPiece = BossLoot::rollSetPiece($game->user, $boss);
             $bag = BossLoot::rollBag($game->user, $boss);
+            $extras = BossLoot::rollExtras($game->user, $boss, $game->mode, $item['id']);
 
             try {
                 $drop = $game->bossDrops()->create([
@@ -209,15 +210,28 @@ class GameRecordController extends Controller
                     'quiver' => $quiver,
                     'set_piece' => $setPiece,
                     'bag' => $bag,
+                    'extras' => $extras ?: null,
                     'dropped_at' => now(),
                 ] + $this->fightRecord($data['fight'] ?? null));
+
+                // The zone's gear besides: the game's own, as what its creatures carry, caught
+                // at once; under a chunk the game never asks for, so never offered again
+                foreach ($extras as $extra) {
+                    $game->drops()->create([
+                        'item_id' => $extra,
+                        'chunk' => Game::BOSS_CHUNK,
+                        'at_seconds' => (int) $game->secondsSinceStart(),
+                        'falls' => false,
+                        'claimed_at' => now(),
+                    ]);
+                }
 
                 if ($quiver) {
                     $game->user->forceFill(['quiver' => true])->save();
                 }
                 // His now: it goes with him, while there is room in his 36
                 if ($game->user) {
-                    Gear::carryCaught($game->user, $boss['faction'], array_filter([$item['id'], $setPiece]));
+                    Gear::carryCaught($game->user, $boss['faction'], array_filter([$item['id'], $setPiece, ...$extras]));
                 }
                 // A bag goes on at once
                 if ($bag !== null) {
@@ -238,6 +252,8 @@ class GameRecordController extends Controller
         return response()->json([
             'boss' => $boss['id'],
             'item' => BossLoot::item($boss, $drop->item_id),
+            // The zone's gear an early boss dropped besides (boss_loot.extras)
+            'extras' => array_values(array_filter(array_map(fn ($id) => BossLoot::item($boss, $id), $drop->extras ?? []))),
             'kept' => $drop->user_id !== null,
             // The large quiver came with it (once in an account's life)
             'quiver' => $drop->quiver ? config('boss_loot.quiver.name') : null,
