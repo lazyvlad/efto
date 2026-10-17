@@ -31,6 +31,7 @@ import { planUpheaval } from '../utils/upheaval.js';
 import { arrowDamage, damageAfterArmor, armorReduction } from '../utils/stats.js';
 import { shieldBlocks } from '../utils/shield.js';
 import { getCurrentTotalCritRating } from './statEffectsSystem.js';
+import { bossAnimation, bossPose, cellPlace, cellSource, hookHandOn } from './bossAnimation.js';
 
 const INTRO_STEPS = 120;
 // In a boss fight (the one boss and nothing else) it is there almost at once
@@ -1061,6 +1062,12 @@ function frenzy() {
     return full > 0 ? 1 + (weakened - 1) / full * fight.stats.frenzy : 1;
 }
 
+// How many steps the wind-up under way lasts: the heavy attacks stand longer; enraged, all shorter
+function windUpSteps(rage = enrage()) {
+    const heavy = fight.attack === 'charge' || fight.attack === 'sidecharge' || GROUND_STRIKES[fight.attack] || fight.attack === 'swipe' || fight.attack === 'upheaval';
+    return WIND_UP[fight.attack] * (heavy ? fight.stats.heavyWindUp : fight.stats.windUp) / Math.sqrt(rage);
+}
+
 // Begin winding up the next attack in the boss's round
 function windUp(context) {
     const { canvas, player } = context;
@@ -1543,10 +1550,64 @@ function drawHookMark(ctx, zone) {
     ctx.restore();
 }
 
+// Stitches painted: his hand and fingers on the pose drawn this frame (drawBoss), for his hook
+let paintedHook = null;
+
+// The chain from his painted hand to the hook (hanging from it, with no head given), the hook,
+// and his fingers over the chain
+function drawHookFrom(ctx, bossWidth, hand, head, opacity) {
+    const chain = load(HOOK_ART.chain), hook = load(HOOK_ART.hook), grip = paintedHook && paintedHook.grip;
+    if (!chain.complete || !chain.naturalWidth || !hook.complete || !hook.naturalWidth) return;
+    const end = head || { x: hand.x, y: hand.y + bossWidth * HOOK_ART.dangle };
+    const dx = end.x - hand.x, dy = end.y - hand.y;
+    const length = Math.hypot(dx, dy);
+    const angle = Math.atan2(dy, dx) - Math.PI / 2;
+    const width = Math.max(3, bossWidth * HOOK_ART.chainWidth);
+    ctx.save();
+    ctx.globalAlpha = opacity;
+    if (length > 0.5) {
+        const period = width * 160 / 64;
+        ctx.save();
+        ctx.translate(hand.x, hand.y);
+        ctx.rotate(angle);
+        ctx.beginPath();
+        ctx.rect(-width / 2, 0, width, length);
+        ctx.clip();
+        for (let y = 0; y < length; y += period) ctx.drawImage(chain, -width / 2, y, width, period);
+        ctx.restore();
+    }
+    const scale = bossWidth * HOOK_ART.hookSize / 320;
+    ctx.save();
+    ctx.translate(end.x, end.y);
+    ctx.rotate(angle);
+    ctx.drawImage(hook, -HOOK_ART.eye[0] * scale, -HOOK_ART.eye[1] * scale, 192 * scale, 320 * scale);
+    ctx.restore();
+    if (grip && grip.complete && grip.naturalWidth) {
+        const cap = hand.cap;
+        ctx.drawImage(grip, cap.sx, cap.sy, cap.sw, cap.sh, cap.x, cap.y, cap.w, cap.h);
+    }
+    ctx.restore();
+}
+
 // The chain from his hand to the hook, the hook, and his fingers over the chain. Drawn over the
 // hunter (systems/renderSystem.js), so a caught hunter has the hook in him, not behind him.
 export function drawBossHook(ctx, canvas, alpha = 1) {
     if (!hooking() || fight.hidden > 0.5) return;
+    if (paintedHook) {
+        // Painted: from the hand on the pose drawn. Where the hook is in flight goes by its own
+        // path (actHook), measured from that hand
+        const data = fight.attackData, hand = paintedHook.hand;
+        let head = data && data.head ? data.head : null;
+        if (data && data.phase === 'fly' && data.to) {
+            const t = Math.min(1, fight.doingSteps / gameConfig.bosses.hook.flySteps);
+            head = { x: hand.x + (data.to.x - hand.x) * t, y: hand.y + (data.to.y - hand.y) * t };
+        } else if (data && data.phase === 'reel' && data.from) {
+            const t = Math.min(1, fight.doingSteps / HOOK_REEL_STEPS);
+            head = { x: data.from.x + (hand.x - data.from.x) * t, y: data.from.y + (hand.y - data.from.y) * t };
+        }
+        drawHookFrom(ctx, layout(canvas, fight.boss).width, hand, head, paintedHook.opacity);
+        return;
+    }
     const chain = load(HOOK_ART.chain), hook = load(HOOK_ART.hook), grip = load(HOOK_ART.grip);
     if (!chain.complete || !chain.naturalWidth || !hook.complete || !hook.naturalWidth) return;
     const place = drawnPlace(canvas, alpha);
@@ -1840,8 +1901,7 @@ export function updateBoss(context) {
         // Before a side charge it leaves the top for the edge it will come from: gone from there
         // while he rises into the room it opens, so it is no target for him up close
         if (fight.attack === 'sidecharge') fight.hidden = Math.min(1, fight.doingSteps / 12);
-        const share = fight.attack === 'charge' || fight.attack === 'sidecharge' || GROUND_STRIKES[fight.attack] || fight.attack === 'swipe' || fight.attack === 'upheaval' ? stats.heavyWindUp : stats.windUp;
-        if (fight.doingSteps >= WIND_UP[fight.attack] * share / Math.sqrt(rage)) strike(context);
+        if (fight.doingSteps >= windUpSteps(rage)) strike(context);
     } else {
         act(context);
     }
@@ -2063,6 +2123,11 @@ export function drawBoss(ctx, canvas, alpha = 1) {
 
     const image = picture(fight.boss);
     const place = layout(canvas, fight.boss);
+    // Its painted poses, once both sheets are loaded (the one picture until then)
+    const anim = bossAnimation(fight.boss);
+    const sheets = anim ? { core: load(anim.sheets.core), special: load(anim.sheets.special) } : null;
+    const painted = Boolean(sheets && Object.values(sheets).every(sheet => sheet.complete && sheet.naturalWidth));
+    paintedHook = null;
     const x = fight.prevX + (fight.x - fight.prevX) * alpha;
     let y = place.top + fight.prevDrop + (fight.drop - fight.prevDrop) * alpha;
     let opacity = 1 - fight.hidden;
@@ -2072,16 +2137,19 @@ export function drawBoss(ctx, canvas, alpha = 1) {
         const progress = Math.min(1, fight.steps / fight.introSteps);
         y = place.top - (1 - progress) * (place.top + place.height);
     } else if (fight.phase === 'dying') {
-        // Sinks and fades
+        // Sinks and fades; painted, it collapses where it stands and fades at the end
         const progress = Math.min(1, fight.steps / DYING_STEPS);
-        y = place.top + progress * place.height * 0.25;
-        opacity = 1 - progress;
+        if (painted) opacity = Math.min(1, (1 - progress) / 0.4);
+        else {
+            y = place.top + progress * place.height * 0.25;
+            opacity = 1 - progress;
+        }
     }
 
     if (fight.phase === 'fight') drawWarnings(ctx, canvas, place);
 
     // Throwing his hook he is drawn without the one painted in his hand, and leans into it
-    const clean = hooking() ? load(HOOK_ART.boss) : null;
+    const clean = hooking() && !painted ? load(HOOK_ART.boss) : null;
     if (clean && clean.complete && clean.naturalWidth && image.complete && image.naturalWidth) {
         ctx.save();
         ctx.globalAlpha = opacity;
@@ -2093,6 +2161,28 @@ export function drawBoss(ctx, canvas, alpha = 1) {
         ctx.transform(...hookPose(placeNow).matrix);
         ctx.drawImage(clean, placeNow.x, placeNow.y, placeNow.w, placeNow.h);
         ctx.restore();
+    } else if (painted) {
+        const pose = bossPose(fight, fight.doing === 'winding' ? windUpSteps() : 0);
+        const cell = cellPlace(anim, { x: x - place.width / 2, y, w: place.width, h: place.height });
+        const source = cellSource(pose.frame);
+        ctx.save();
+        ctx.globalAlpha = opacity;
+        if (fight.phase === 'fight' && fight.doing === 'winding') {
+            ctx.shadowColor = '#FF5A2A';
+            ctx.shadowBlur = 18 + Math.sin(fight.steps * 0.5) * 8;
+        }
+        if (pose.mirror) {
+            ctx.translate(cell.x * 2 + cell.size, 0);
+            ctx.scale(-1, 1);
+        }
+        ctx.drawImage(sheets[pose.sheet], source.sx, source.sy, source.size, source.size, cell.x, cell.y, cell.size, cell.size);
+        ctx.restore();
+        // Stitches: his hook from his painted hand; hanging from it while he does nothing else
+        const hand = anim.hook && fight.phase !== 'dying' ? hookHandOn(anim, pose, cell) : null;
+        if (hand) {
+            paintedHook = { hand, grip: load(anim.hook.grips[pose.sheet]), opacity };
+            if (!hooking()) drawHookFrom(ctx, place.width, hand, null, opacity);
+        }
     } else if (image.complete && image.naturalWidth) {
         ctx.save();
         ctx.globalAlpha = opacity;
