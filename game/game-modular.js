@@ -1252,6 +1252,7 @@ function carryMany(itemIds, take) {
     const limit = gameConfig.bags.carry;
     let carried = [...gameState.carried];
     let moved = 0;
+    let keptOn = 0;
     
     if (take) {
         const owned = forSide(ownedPieces());
@@ -1264,7 +1265,11 @@ function carryMany(itemIds, take) {
             }
         }
     } else {
-        const leaving = new Set(itemIds);
+        // What he wears stays on him: it is taken off on its own, never by leaving things in the
+        // bank (picking all of "with your hunter" picks what he wears too)
+        const worn = new Set(Object.values(gameState.equipment));
+        const leaving = new Set(itemIds.filter(itemId => !worn.has(itemId)));
+        keptOn = itemIds.length - leaving.size;
         moved = carried.filter(itemId => leaving.has(itemId)).length;
         carried = carried.filter(itemId => !leaving.has(itemId));
     }
@@ -1275,6 +1280,9 @@ function carryMany(itemIds, take) {
     refreshSetBonus();
     saveEquipment();
     
+    if (!take && keptOn > 0) {
+        return `${keptOn === 1 ? 'What he wears stays' : `The ${keptOn} pieces he wears stay`} on him: take ${keptOn === 1 ? 'it' : 'them'} off first to leave ${keptOn === 1 ? 'it' : 'them'} in the bank.`;
+    }
     if (take && moved < itemIds.length) {
         return moved === 0
             ? `Your hunter already carries ${limit} things. Leave something first.`
