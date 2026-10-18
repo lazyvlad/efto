@@ -1,5 +1,17 @@
 # Changelog
 
+## 3.10.2 - 2026-10-18
+
+### Changed
+- **The character sheet's cards fold** (What he has, Your pet, Your sets, The slot picked),
+  remembered in the browser; the pet's starts folded, its stance in its title. Picking a slot
+  opens its list, which has several times the room, a gold scrollbar and "More below".
+- **Strongest first**: a slot's list and the inventory's Gear lists by item power (attack power
+  2, health 1, armor 1/2, a per cent of crit or dodge 10, of carrying 2), then item level.
+- **The purse and the side switch** sit above the name in the hunter's bar; the row under the
+  tabs is gone.
+- **What's new for 3.10.2**, published as the deploy runs.
+
 ## 3.10.1 - 2026-10-18
 
 ### Changed

@@ -1,6 +1,6 @@
 {
   "name": "input-game",
-  "version": "3.10.1",
+  "version": "3.10.2",
   "description": "I N P U T - the game front-end and its build",
   "main": "game-modular.js",
   "scripts": {

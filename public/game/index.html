@@ -52,24 +52,24 @@
     <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
-    <link rel="stylesheet" href="styles/base.css?v=3.10.1">
-    <link rel="stylesheet" href="styles/ui-components.css?v=3.10.1">
-    <link rel="stylesheet" href="styles/settings.css?v=3.10.1">
-    <link rel="stylesheet" href="styles/notifications.css?v=3.10.1">
-    <link rel="stylesheet" href="styles/game-panels.css?v=3.10.1">
-    <link rel="stylesheet" href="styles/spell-bar.css?v=3.10.1">
-    <link rel="stylesheet" href="styles/how-to-play.css?v=3.10.1">
-    <link rel="stylesheet" href="styles/mobile.css?v=3.10.1">
-    <link rel="stylesheet" href="styles/wow-theme.css?v=3.10.1">
-    <link rel="stylesheet" href="styles/game-window.css?v=3.10.1">
-    <link rel="stylesheet" href="styles/character-sheet.css?v=3.10.1">
-    <link rel="stylesheet" href="styles/inventory.css?v=3.10.1">
-    <link rel="stylesheet" href="styles/screens.css?v=3.10.1">
+    <link rel="stylesheet" href="styles/base.css?v=3.10.2">
+    <link rel="stylesheet" href="styles/ui-components.css?v=3.10.2">
+    <link rel="stylesheet" href="styles/settings.css?v=3.10.2">
+    <link rel="stylesheet" href="styles/notifications.css?v=3.10.2">
+    <link rel="stylesheet" href="styles/game-panels.css?v=3.10.2">
+    <link rel="stylesheet" href="styles/spell-bar.css?v=3.10.2">
+    <link rel="stylesheet" href="styles/how-to-play.css?v=3.10.2">
+    <link rel="stylesheet" href="styles/mobile.css?v=3.10.2">
+    <link rel="stylesheet" href="styles/wow-theme.css?v=3.10.2">
+    <link rel="stylesheet" href="styles/game-window.css?v=3.10.2">
+    <link rel="stylesheet" href="styles/character-sheet.css?v=3.10.2">
+    <link rel="stylesheet" href="styles/inventory.css?v=3.10.2">
+    <link rel="stylesheet" href="styles/screens.css?v=3.10.2">
     <!-- The in-game panels, slim (ui/hudPanels.js): last, over the per-device rules -->
-    <link rel="stylesheet" href="styles/hud.css?v=3.10.1">
-    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=3.10.1"> -->
+    <link rel="stylesheet" href="styles/hud.css?v=3.10.2">
+    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=3.10.2"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
-  <!-- Built: 2026-10-18T00:18:38.611Z | Version: 3.10.1 | Mode: Production -->
+  <!-- Built: 2026-10-18T07:43:43.277Z | Version: 3.10.2 | Mode: Production -->
 </head>
 <body>
     <!-- The background: two layers that fade from one picture to the next (backgroundSystem.js) -->
@@ -203,8 +203,17 @@
                  hunter's four tabs under it. Character is this sheet; the others, the inventory. -->
             <header class="window-bar">
                 <button type="button" id="characterSheetClose" class="game-btn window-bar-back" title="Back to where you were"><span>&lsaquo; Back</span><span id="sheetBackWhere" class="window-bar-where"></span></button>
+                <!-- Who: above the name his side (between games the switch between the two hunters)
+                     and the purse -->
                 <div class="window-bar-who">
-                    <p id="sheetSubtitle" class="window-label side-label"></p>
+                    <div class="window-bar-kicker">
+                        <div class="joined-buttons" id="sheetSides" role="group" aria-label="Character shown">
+                            <button type="button" class="game-btn sheet-side-btn" data-side="alliance">Alliance</button>
+                            <button type="button" class="game-btn sheet-side-btn" data-side="horde">Horde</button>
+                        </div>
+                        <p id="sheetSubtitle" class="window-label side-label"></p>
+                        <span id="sheetPurse" class="window-purse" hidden></span>
+                    </div>
                     <h2 id="sheetName">Hunter</h2>
                 </div>
                 <button type="button" id="characterSheetCloseAll" class="game-btn window-bar-close" title="Close and carry on">Close &times;</button>
@@ -215,15 +224,6 @@
                     <button type="button" class="game-btn" data-hunter-tab="crafting" role="tab" aria-selected="false">Crafting</button>
                 </nav>
             </header>
-            <div class="window-strip">
-                <!-- Which character is shown, before a game; in a game it is the one being played -->
-                <div class="joined-buttons" id="sheetSides" role="group" aria-label="Character shown">
-                    <button type="button" class="game-btn sheet-side-btn" data-side="alliance">Alliance</button>
-                    <button type="button" class="game-btn sheet-side-btn" data-side="horde">Horde</button>
-                </div>
-                <span id="sheetPlaying" class="window-strip-note" hidden>In a game: the hunter you play</span>
-                <span id="sheetPurse" class="inventory-purse window-purse" hidden></span>
-            </div>
 
             <div class="sheet-body">
                 <!-- The hunter in the place he is in, with his slots around him: eight left,
@@ -237,8 +237,9 @@
 
                 <!-- What it all gives, the three sets, and the slot that is picked -->
                 <aside class="sheet-side">
-                    <section class="window-card">
-                        <div class="window-card-title">
+                    <!-- Each card folds up to its title (ui/characterSheet.js, "folds") -->
+                    <section class="window-card sheet-fold" data-fold="stats">
+                        <div class="window-card-title fold-head">
                             <h3>What he has</h3>
                             <span id="sheetCarrying" class="window-label"></span>
                         </div>
@@ -247,24 +248,31 @@
                         <p id="sheetFullBags" class="sheet-fullbags"></p>
                     </section>
                     <!-- His pet, and how it fights: changed here in a game too -->
-                    <section class="window-card sheet-pet">
-                        <div class="window-card-title">
+                    <section class="window-card sheet-pet sheet-fold" data-fold="pet">
+                        <!-- Folded: its name and how it fights, in the title -->
+                        <div class="window-card-title fold-head">
                             <h3>Your pet</h3>
                             <span id="sheetPetName" class="window-label"></span>
                         </div>
-                        <div class="joined-buttons sheet-pet-stances" role="group" aria-label="How your pet fights">
-                            <button type="button" class="game-btn" data-stance="defensive">Defensive</button>
-                            <button type="button" class="game-btn" data-stance="aggressive">Aggressive</button>
+                        <div class="sheet-pet-top">
+                            <div class="joined-buttons sheet-pet-stances" role="group" aria-label="How your pet fights">
+                                <button type="button" class="game-btn" data-stance="defensive">Defensive</button>
+                                <button type="button" class="game-btn" data-stance="aggressive">Aggressive</button>
+                            </div>
                         </div>
                         <p id="sheetPetSays" class="sheet-pet-says"></p>
                         <p id="sheetPetNote" class="sheet-pet-note"></p>
                     </section>
                     <!-- The sets the player saved (each hunter his own): put on in one press -->
-                    <div id="sheetOutfits" class="sheet-outfits" role="group" aria-label="Your sets"></div>
-                    <section class="window-card sheet-slot-panel">
-                        <p class="window-label">The slot picked</p>
-                        <h3 id="sheetSlotName">Head</h3>
+                    <div id="sheetOutfits" class="sheet-outfits sheet-fold" data-fold="sets" role="group" aria-label="Your sets"></div>
+                    <section class="window-card sheet-slot-panel sheet-fold" data-fold="slot">
+                        <div class="fold-head">
+                            <p class="window-label">The slot picked</p>
+                            <h3 id="sheetSlotName">Head</h3>
+                        </div>
                         <div id="sheetItems" class="sheet-items"></div>
+                        <!-- Shown while the list goes on below what is in sight -->
+                        <div id="sheetItemsMore" class="sheet-items-more" aria-hidden="true">More below &#9662;</div>
                     </section>
                 </aside>
             </div>
@@ -280,7 +288,14 @@
                 <button type="button" id="inventoryClose" class="game-btn window-bar-back" title="Back to where you were"><span>&lsaquo; Back</span><span id="inventoryBackWhere" class="window-bar-where"></span></button>
                 <!-- Whose it is: each hunter has his own bags, bank and gear -->
                 <div class="window-bar-who">
-                    <p id="inventorySubtitle" class="window-label side-label"></p>
+                    <div class="window-bar-kicker">
+                        <div class="joined-buttons" id="inventorySides" role="group" aria-label="Hunter shown">
+                            <button type="button" class="game-btn inventory-side-btn" data-side="alliance">Alliance</button>
+                            <button type="button" class="game-btn inventory-side-btn" data-side="horde">Horde</button>
+                        </div>
+                        <p id="inventorySubtitle" class="window-label side-label"></p>
+                        <span id="inventoryPurse" class="window-purse" hidden></span>
+                    </div>
                     <h2 id="inventoryTitle">Inventory</h2>
                 </div>
                 <button type="button" id="inventoryCloseAll" class="game-btn window-bar-close" title="Close and carry on">Close &times;</button>
@@ -291,15 +306,6 @@
                     <button type="button" class="game-btn inventory-tab" data-tab="crafting" role="tab">Crafting</button>
                 </nav>
             </header>
-            <div class="window-strip">
-                <!-- Which hunter's, before a game; in a game it is the one being played -->
-                <div class="joined-buttons" id="inventorySides" role="group" aria-label="Hunter shown">
-                    <button type="button" class="game-btn inventory-side-btn" data-side="alliance">Alliance</button>
-                    <button type="button" class="game-btn inventory-side-btn" data-side="horde">Horde</button>
-                </div>
-                <span id="inventoryPlaying" class="window-strip-note" hidden>In a game: the hunter you play</span>
-                <span id="inventoryPurse" class="inventory-purse window-purse" hidden></span>
-            </div>
             <div class="inventory-body" id="inventoryBody"></div>
         </div>
     </div>
@@ -920,7 +926,7 @@
         </div>
         
         <!-- The player's saved sets (each hunter his own): press one, or its key, to wear it. The
-             one on is lit. Made by refreshSetSwitch in game-modular.usi3z7ja.js; hidden with none saved. -->
+             one on is lit. Made by refreshSetSwitch in game-modular.r5yt5eyr.js; hidden with none saved. -->
         <div class="set-switch" id="setSwitch" role="group" aria-label="Wear one of your sets" hidden></div>
 
         <div class="dragonstalker-items-list" id="dragonstalkerItemsList">
@@ -930,7 +936,7 @@
     </div>
 
     <!-- Game Script -->
-    <script type="module" src="game-modular.usi3z7ja.js?v=3.10.1"></script>
+    <script type="module" src="game-modular.r5yt5eyr.js?v=3.10.2"></script>
     
 
 
