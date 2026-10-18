@@ -203,6 +203,10 @@
     object-fit: contain;
 }
 
+.sheet-slot-label .slot-short {
+    display: none;
+}
+
 .sheet-slot-label {
     font-size: 12px;
     letter-spacing: 0.1em;
@@ -685,7 +689,7 @@
     }
 
     .sheet-stat-value {
-        font-size: 15px;
+        font-size: 14px;
     }
 
     .sheet-stat-note {
@@ -795,6 +799,30 @@
 
     .sheet-slot.is-filled .sheet-slot-label {
         display: none;
+    }
+
+    /* The short name, which fits the square */
+    .sheet-slot-label .slot-long {
+        display: none;
+    }
+
+    .sheet-slot-label .slot-short {
+        display: inline;
+        white-space: nowrap;
+    }
+
+    /* "What he has" on one line, what he carries under it if there is no room beside it */
+    .character-sheet .window-card-title {
+        flex-wrap: wrap;
+        row-gap: 2px;
+    }
+
+    .character-sheet .window-card-title h3 {
+        white-space: nowrap;
+    }
+
+    .sheet-stat-value {
+        white-space: nowrap;
     }
 
     .sheet-outfit-action {

@@ -253,7 +253,9 @@ function renderSlots(state) {
                 icon.append(picture);
             }
             if (unseen) icon.append(unseenMark());
-            button.append(icon, make('span', 'sheet-slot-label', slot.label));
+            const label = make('span', 'sheet-slot-label');
+            label.append(make('span', 'slot-long', slot.label), make('span', 'slot-short', slot.short || slot.label));
+            button.append(icon, label);
 
             button.addEventListener('click', () => {
                 selectedSlot = slot.id;

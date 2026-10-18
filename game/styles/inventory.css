@@ -726,8 +726,8 @@ button.inventory-slot:hover {
 }
 
 .inventory-have {
-    flex: none;
-    font-size: 14px;
+    display: block;
+    font-size: 13px;
     color: #ffb3a8;
 }
 

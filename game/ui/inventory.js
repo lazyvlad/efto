@@ -1245,7 +1245,10 @@ function renderRecipe(main, state, recipe) {
     words.append(make('h3', 'inventory-recipe-name', item.name));
     if (potion) {
         const does = make('p', 'inventory-text');
-        does.append('Drink in a fight: ', make('strong', 'inventory-heal', `+${potion.heal} health`), '. Press ', make('span', 'inventory-key', potion.key), `, one every ${potion.cooldown} seconds.`);
+        // Its key, or on a touch screen its slot on the spell bar
+        const touch = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+        if (touch) does.append('Drink in a fight: ', make('strong', 'inventory-heal', `+${potion.heal} health`), `. Tap its slot on the spell bar, one every ${potion.cooldown} seconds.`);
+        else does.append('Drink in a fight: ', make('strong', 'inventory-heal', `+${potion.heal} health`), '. Press ', make('span', 'inventory-key', potion.key), `, one every ${potion.cooldown} seconds.`);
         words.append(does);
     }
     // A piece of gear: what it gives and does; it is his once made, not the bags'
@@ -1275,11 +1278,14 @@ function renderRecipe(main, state, recipe) {
         reagentPicture.src = reagent ? reagent.image : '';
         reagentPicture.alt = '';
         const text = make('span', 'window-item-text');
+        // Its name, then what there is of it: in the bags (lit when enough), and in the bank. One
+        // under the other, so the row keeps its width for the buttons on a phone
         text.append(
             make('span', 'window-item-name inventory-plain-name', `${each} × ${reagent ? reagent.name : itemId}`),
+            make('span', inBags >= each ? 'inventory-have is-enough' : 'inventory-have', `${inBags} in your bags`),
             make('span', 'window-item-note', inBank ? `${inBank} more in the bank` : 'None in the bank')
         );
-        row.append(reagentPicture, text, make('span', inBags >= each ? 'inventory-have is-enough' : 'inventory-have', `${inBags} in your bags`));
+        row.append(reagentPicture, text);
         // Short of it, bags and bank together: bought, if it is for sale
         const price = state.materialPrices && state.materialPrices[itemId];
         const short = each * Math.max(1, makeCount) - inBags - inBank;

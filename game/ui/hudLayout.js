@@ -11,15 +11,17 @@ const PLACES = ['spells-sides', 'spells-below'];
 
 /**
  * Work out the layout for a field of this size, centred in the window.
- * @returns {{scale: number, place: string, columns: boolean, lift: number, shrink: number}|null} null on a phone held upright
+ * @returns {{scale: number, place: string, columns: boolean, lift: number, shrink: number}}
  */
 export function planHud(viewport, field) {
     const scale = hudScale(field.height);
 
     if (window.matchMedia(TOUCH_LAYOUT).matches) {
-        // The touch buttons have their own places (styles/spell-bar.css). Held upright the
-        // panels have their own too; held sideways they are scaled like a small window's.
-        return viewport.width > viewport.height ? { scale, place: 'touch', columns: false, lift: 0, shrink: 0 } : null;
+        // The touch buttons have their own places (styles/spell-bar.css). The slim panels are
+        // scaled like a small window's; held upright, small enough for the two of them to fit
+        // side by side across the screen
+        const across = viewport.width > viewport.height ? scale : Math.min(scale, (viewport.width - PANEL_MARGIN * 3) / UPRIGHT_PANELS_WIDTH);
+        return { scale: across, place: 'touch', columns: false, lift: 0, shrink: 0 };
     }
 
     return { scale, ...placeSpellBar(viewport, field, scale) };
@@ -30,6 +32,9 @@ export function planHud(viewport, field) {
 // page: the slim panels' own (330 and about 260 page pixels before scaling).
 const PANEL_HEIGHT = 104;
 const PANEL_MARGIN = 6;
+// The two slim panels side by side, in page pixels before scaling: the hunter's and the chip
+// of what he wears
+const UPRIGHT_PANELS_WIDTH = 330 + 170;
 
 function placePanels(plan, viewport, field) {
     const root = document.documentElement.style;
@@ -57,10 +62,11 @@ export function applyHud(plan, viewport, field) {
     body.classList.remove(...PLACES, 'spells-columns', 'hud-compact');
     // The panels are scaled; the spell bar is scaled and placed only with a keyboard
     body.classList.toggle('hud-scaled', plan !== null);
-    // The slim panels (ui/hudPanels.js, styles/hud.css): wherever the panels are scaled; a phone
-    // held upright keeps its own layout
+    // The slim panels (ui/hudPanels.js, styles/hud.css): wherever the panels are scaled
     body.classList.toggle('hud-v2', plan !== null);
     body.classList.toggle('hud-desktop', plan !== null && !touch);
+    // A phone held upright: the panels are scaled to fit across it (planHud)
+    body.classList.toggle('hud-upright', touch && viewport.height > viewport.width);
 
     if (!plan) {
         root.setProperty('--ui-scale', '1');

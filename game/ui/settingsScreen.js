@@ -137,6 +137,52 @@ export function updateSettingsScreen() {
     const panelOpacity = settings.ui?.panelOpacity || 80;
     setValue('panelOpacity', panelOpacity);
     setText('panelOpacityValue', `${panelOpacity}%`);
+
+    SWITCHED.forEach(showSwitch);
+}
+
+// The choices of a few words, shown as joined buttons in place of their drop-down lists (which
+// cut their words short on a phone). The list stays, hidden, and keeps the value: a press sets
+// it and tells it changed, as picking from it would.
+const SWITCHED = ['petStance', 'handedness', 'playerPanelStyle', 'dragonstalkerPanelStyle'];
+
+function switchOf(select) {
+    let holder = select.nextElementSibling;
+    if (holder && holder.classList.contains('setting-switch')) return holder;
+
+    holder = document.createElement('div');
+    holder.className = 'joined-buttons setting-switch';
+    holder.setAttribute('role', 'group');
+    for (const option of select.options) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'game-btn';
+        button.dataset.value = option.value;
+        // "Defensive (fetches loot, bites what falls at you)": the words before the brackets,
+        // the rest when pointed at
+        button.textContent = option.textContent.replace(/\s*\(.*\)\s*$/, '');
+        button.title = option.textContent;
+        button.addEventListener('click', () => {
+            if (select.value === option.value) return;
+            select.value = option.value;
+            select.dispatchEvent(new Event('change'));
+            showSwitch(select.id);
+        });
+        holder.append(button);
+    }
+    select.hidden = true;
+    select.after(holder);
+    return holder;
+}
+
+function showSwitch(id) {
+    const select = byId(id);
+    if (!select) return;
+    switchOf(select).querySelectorAll('[data-value]').forEach(button => {
+        const on = button.dataset.value === select.value;
+        button.classList.toggle('is-on', on);
+        button.setAttribute('aria-pressed', String(on));
+    });
 }
 
 // Every setting and key back to how it came: asked first, in the game's own window

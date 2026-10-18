@@ -9,10 +9,11 @@
 // stats, and each set gives the step of its bonus that the pieces of it being worn reach.
 // The numbers themselves are the sets' in config/gameConfig.js.
 
+// short: the name written inside a slot's square on a phone, where the whole one does not fit
 export const SLOTS = [
     { id: 'head', label: 'Head', column: 'left' },
     { id: 'neck', label: 'Neck', column: 'left' },
-    { id: 'shoulder', label: 'Shoulders', column: 'left' },
+    { id: 'shoulder', label: 'Shoulders', short: 'Shldr', column: 'left' },
     { id: 'back', label: 'Back', column: 'left' },
     { id: 'chest', label: 'Chest', column: 'left' },
     { id: 'shirt', label: 'Shirt', column: 'left' },
@@ -24,10 +25,10 @@ export const SLOTS = [
     { id: 'feet', label: 'Feet', column: 'right' },
     { id: 'finger1', label: 'Ring 1', column: 'right' },
     { id: 'finger2', label: 'Ring 2', column: 'right' },
-    { id: 'trinket1', label: 'Trinket 1', column: 'right' },
-    { id: 'trinket2', label: 'Trinket 2', column: 'right' },
-    { id: 'mainhand', label: 'Main Hand', column: 'bottom' },
-    { id: 'offhand', label: 'Off Hand', column: 'bottom' },
+    { id: 'trinket1', label: 'Trinket 1', short: 'Trnkt 1', column: 'right' },
+    { id: 'trinket2', label: 'Trinket 2', short: 'Trnkt 2', column: 'right' },
+    { id: 'mainhand', label: 'Main Hand', short: 'Main', column: 'bottom' },
+    { id: 'offhand', label: 'Off Hand', short: 'Off', column: 'bottom' },
     { id: 'ranged', label: 'Ranged', column: 'bottom' },
     { id: 'quiver', label: 'Quiver', column: 'bottom' },
 ];

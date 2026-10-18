@@ -1,6 +1,6 @@
 /* The in-game panels, slim (ui/hudPanels.js; the INPUT Screens canvas, "The in-game panels").
-   Wherever the panels are scaled with the field (body.hud-v2: a keyboard, or a phone held
-   sideways); a phone held upright keeps its own layout (mobile.css). Loaded last, and as heavy
+   Wherever the panels are scaled with the field (body.hud-v2): with a keyboard, and on a phone
+   held either way (held upright, small enough for both to fit across it: body.hud-upright). Loaded last, and as heavy
    as the per-device rules it has to outrank (wow-theme.css, game-panels.css, mobile.css). */
 
 /* ----- Top left: who he is, his level, the score; chips under it ----- */
@@ -311,4 +311,14 @@ html body.hud-v2 .hud-buffs.is-below {
 
 .hud-buff-time.is-ending {
     color: #ff6b6b;
+}
+
+/* ----- A phone held upright: already scaled to fit side by side, so as wide as they are, and
+   as tall as what is in them (mobile.css gives the old panels a height of their own) ----- */
+
+html body.hud-v2.hud-upright #itemsCollectionPanel#itemsCollectionPanel,
+html body.hud-v2.hud-upright #dragonstalkerProgressPanel#dragonstalkerProgressPanel {
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
 }

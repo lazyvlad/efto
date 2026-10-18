@@ -305,8 +305,7 @@ export function setupHighDPICanvas({ canvas, ctx, responsiveScaler, refreshPanel
         // The interface is scaled to the field and the spell buttons found a place off it
         // where there is one (ui/hudLayout.js). Under the field, the field moves up for them.
         const viewport = { width: viewportWidth, height: viewportHeight };
-        const hud = isMobilePortrait ? null
-            : planHud(viewport, { left: leftOffset, top: topOffset, width: displayWidth, height: displayHeight });
+        const hud = planHud(viewport, { left: leftOffset, top: topOffset, width: displayWidth, height: displayHeight });
         if (hud) {
             if (hud.shrink > 0) {
                 // No room to spare for the buttons: the field gives up their height

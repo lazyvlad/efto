@@ -352,11 +352,17 @@
     text-shadow: 0 1px 3px #000;
 }
 
+.game-over-heading {
+    z-index: 2;
+}
+
+/* As tall as there is room for between the line under the title and the score: never over the
+   line (the 110px is the title and its line) */
 .game-over-figure-art {
     position: absolute;
     left: 50%;
     bottom: 22%;
-    height: 50%;
+    height: min(50%, calc(78% - 110px));
     width: auto;
     transform: translateX(-50%);
     filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.6));
@@ -688,7 +694,7 @@
 
     .game-over-figure-art {
         bottom: 26%;
-        height: 52%;
+        height: min(52%, calc(74% - 80px));
     }
 
     .game-over-plate {
@@ -800,5 +806,136 @@
         min-height: 44px;
         border-left: 1px solid #8f7a45;
         border-radius: 4px;
+    }
+}
+
+/* ----- On a phone the pause window and the end of a game are the whole screen, as every other
+   window is, over the panels of the game (mobile.css left room above them for the old panels) */
+@media (max-width: 760px), (max-height: 520px) {
+    #pauseMenu {
+        z-index: 1001 !important;
+    }
+
+    #pauseMenu #pauseMenuContent.pause-content:not(.start-map-open),
+    #pauseMenu #gameOver {
+        top: 0 !important;
+        left: 0 !important;
+        transform: none !important;
+        width: 100% !important;
+        max-width: none !important;
+        height: 100% !important;
+        max-height: none !important;
+        border-radius: 0 !important;
+    }
+}
+
+/* A phone held sideways: the pause window in two columns, so nothing needs a scroll: where the
+   game stands and the way back into it on the left, the windows and the ways out on the right */
+@media (max-height: 520px) and (min-width: 600px) {
+    /* The game shows it with display: block on the element: the grid has to outrank that */
+    #pauseMenu #pauseGameContent.pause-window[style*="block"] {
+        display: grid !important;
+    }
+
+    #pauseMenu #pauseGameContent.pause-window {
+        width: 100%;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        column-gap: 18px;
+        row-gap: 8px;
+        align-content: start;
+    }
+
+    .pause-window-top { grid-column: 1; grid-row: 1; }
+    .pause-status { grid-column: 1; grid-row: 2; }
+    #pauseMenu #pauseGameContent .pause-continue { grid-column: 1; grid-row: 3; }
+    .pause-group:nth-of-type(1) { grid-column: 2; grid-row: 1; }
+    .pause-group:nth-of-type(2) { grid-column: 2; grid-row: 2; }
+    .pause-window-end { grid-column: 2; grid-row: 3; }
+
+    #pauseMenu#pauseMenu .pause-window-title {
+        font-size: 18px;
+    }
+
+    .pause-status {
+        margin-top: 0;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .pause-status-cell {
+        padding: 4px 8px;
+    }
+
+    #pauseMenu #pauseGameContent .pause-continue {
+        margin-top: 0;
+        min-height: 48px;
+        font-size: 19px;
+    }
+
+    .pause-group {
+        margin-top: 0;
+    }
+
+    .pause-group .window-label {
+        margin-bottom: 4px;
+    }
+
+    .pause-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    #pauseMenu .pause-grid .game-btn {
+        min-height: 44px;
+        font-size: 14px;
+    }
+
+    .pause-window-end {
+        margin-top: 0;
+        padding-top: 8px;
+    }
+
+    #pauseMenu .pause-window-end .pause-hint {
+        display: none;
+    }
+}
+
+/* Settings: a choice of a few words as joined buttons (ui/settingsScreen.js), the one chosen lit */
+#pauseMenu .setting-switch {
+    flex: none;
+    display: flex;
+}
+
+#pauseMenu .setting-switch .game-btn {
+    min-height: 40px;
+    margin: 0;
+    padding: 0 16px;
+    font-size: 15px;
+    white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+    /* Its name over it, the buttons the whole width */
+    #pauseMenu .setting-item:has(> .setting-switch) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    #pauseMenu .setting-switch {
+        width: 100%;
+    }
+
+    #pauseMenu .setting-switch .game-btn {
+        flex: 1 1 0;
+        min-height: 44px;
+        padding: 0 6px;
+    }
+}
+
+/* No mouse to keep and no keyboard to bind on a touch screen */
+@media (hover: none) and (pointer: coarse) {
+    #pauseMenu .desktop-only {
+        display: none !important;
     }
 }
