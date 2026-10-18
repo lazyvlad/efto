@@ -44,6 +44,7 @@ The first bosses now drop a full set of armor: Trailhide, eight pieces of worn l
 - **Green and blue**: each piece drops as a green, or more rarely as a stronger blue "Fine" one.
 - **Where**: the first boss of each side, Garrick Padfoot in Northshire Abbey and Sarkoth in the Valley of Trials, as one of their two extra drops. Pieces you do not have yet come first, so a few runs fill out the set.
 - **Not instead of anything**: the zone's creatures and sky drop its ring, neck, trinket, cloak and bow as often as before.
+- **On the items page**: every piece, with its stats, under "Armor of the early zones".
 
 ## Coming
 - Two more sets are being painted, for the second and third zones.

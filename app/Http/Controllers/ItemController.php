@@ -89,7 +89,12 @@ class ItemController extends Controller
 
         // Each zone's own gear, by side and zone
         $zoneGear = [];
+        $armorIds = array_merge(...array_map('array_keys', array_values(config('gear.zone_armor', [])) ?: [[]]));
         foreach (Gear::zoneItems() as $itemId => $item) {
+            // The armor sets have their own list below: only the bosses drop them
+            if (in_array($itemId, $armorIds, true)) {
+                continue;
+            }
             // Gear both sides' zones carry is listed under each
             foreach ($item['sides'] as $side) {
                 $zoneGear[$side][$item['zone']]['name'] = $item['zoneNames'][$side];
@@ -114,7 +119,29 @@ class ItemController extends Controller
             $sold[] = ['type' => $type, 'coins' => Coins::format((int) config("loot.coins.$type", 0)), 'items' => $groupItems];
         }
 
+        // The early zones' armor sets (config/gear.php "zone_armor"): both sides', each zone's
+        // set with the bosses whose extra drops they are
+        $zoneArmor = [];
+        $extraZones = config('boss_loot.extras.zones', []);
+        foreach (config('gear.zone_armor', []) as $zone => $pool) {
+            $bossNames = [];
+            foreach (Gear::SIDES as $side) {
+                $bossId = array_keys(config("boss_loot.bosses.$side", []))[$zone - 1] ?? null;
+                if ($bossId) {
+                    $bossNames[] = __(':boss in :place', ['boss' => config("boss_loot.bosses.$side.$bossId.name"), 'place' => Gear::zoneName($side, (int) $zone)]);
+                }
+            }
+            $zoneArmor[] = [
+                'zone' => (int) $zone,
+                'bosses' => $bossNames,
+                'extras' => (int) ($extraZones[$zone] ?? 0),
+                'items' => array_map(fn ($itemId) => self::gearRow($itemId, $gear[$itemId]) + ['name' => $gear[$itemId]['name'], 'image' => asset('game/'.$gear[$itemId]['image']), 'rarity' => $gear[$itemId]['rarity']],
+                    array_values(array_filter(array_keys($pool), fn ($itemId) => isset($gear[$itemId])))),
+            ];
+        }
+
         return view('items', [
+            'zoneArmor' => $zoneArmor,
             'sets' => $sets,
             'bosses' => $bosses,
             'falling' => $falling,

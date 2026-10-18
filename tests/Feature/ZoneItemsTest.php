@@ -122,6 +122,7 @@ class ZoneItemsTest extends TestCase
         $this->assertSame(['attackPower' => 1, 'armor' => 3], $catalog['trailhide-gloves']['stats']);
 
         // The items page lists it under both sides
-        $this->get(route('items'))->assertOk()->assertSee('Fine Trailhide Jerkin');
+        $this->get(route('items'))->assertOk()->assertSee('Fine Trailhide Jerkin')
+            ->assertSee('Armor of the early zones')->assertSee('dropped by Garrick Padfoot in Northshire Abbey or Sarkoth in Valley of Trials');
     }
 }

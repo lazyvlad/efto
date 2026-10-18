@@ -59,6 +59,10 @@
                     <a href="#sets">{{ __('Hunter sets') }}</a>
                     <a href="#bosses">{{ __('Boss loot') }}</a>
                     <a href="#falling">{{ __('Weapons & jewellery') }}</a>
+                    <a href="#zone-gear">{{ __('Gear of the zones') }}</a>
+                    @if ($zoneArmor)
+                        <a href="#zone-armor">{{ __('Armor sets') }}</a>
+                    @endif
                     <a href="#materials">{{ __('Materials') }}</a>
                     <a href="#sold">{{ __('Sold for coins') }}</a>
                 </nav>
@@ -198,6 +202,32 @@
                     @endforeach
                 @endforeach
             </section>
+
+            {{-- The early zones' armor sets: only their bosses drop them --}}
+            @if ($zoneArmor)
+                <section id="zone-armor" class="scroll-mt-20 space-y-3">
+                    <div>
+                        <p class="game-label">{{ __('Kept on your account, and worn by either hunter') }}</p>
+                        <h3 class="game-heading text-2xl">{{ __('Armor of the early zones') }}</h3>
+                        <p class="mt-1 text-sm text-gray-600">{{ __('A set of armor for each of the first zones, every piece a green or, more rarely, a stronger blue. Only the zone\'s boss drops it, as one of its extra drops, the pieces you do not have yet first. Its creatures and sky do not.') }}</p>
+                    </div>
+                    @foreach ($zoneArmor as $set)
+                        <p class="text-sm text-gray-900">{{ __('Zone :zone · dropped by :bosses', ['zone' => $set['zone'], 'bosses' => implode(__(' or '), $set['bosses'])]) }}</p>
+                        <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            @foreach ($set['items'] as $item)
+                                <li class="game-item min-w-0" data-rarity="{{ $item['rarity'] }}">
+                                    <img src="{{ $item['image'] }}" alt="" loading="lazy" class="h-11 w-11 shrink-0 object-contain">
+                                    <span class="min-w-0">
+                                        <span class="block truncate rarity-{{ $item['rarity'] }}" title="{{ $item['name'] }}">{{ $item['name'] }}</span>
+                                        <span class="block text-xs text-gray-500">{{ __('item level :level', ['level' => $item['itemLevel']]) }} · {{ $item['worn'] }}</span>
+                                        <span class="block text-xs text-gray-900">{{ $item['stats'] }}</span>
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endforeach
+                </section>
+            @endif
 
             {{-- The crafting materials --}}
             <section id="materials" class="scroll-mt-20 space-y-3">
