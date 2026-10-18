@@ -854,7 +854,7 @@ function renderGear(main, side, state) {
     // list in one go, from the bar over the lists or by dragging it across with a mouse
     // Each list grouped by kind (head, chest, rings, weapons...), in the character sheet's order;
     // its entries in that order too, so a run picked with Shift is the run that is seen
-    const grouped = entries => groupByKind(entries);
+    const grouped = entries => groupByKind(entries, entry => entry.item, gameConfig.sets);
     const lists = [
         { key: 'carried', title: 'With your hunter', label: `${state.inHis36} of ${state.carryLimit} carried, besides what he wears`, groups: grouped(owned.filter(entry => carried.has(entry.item.id))) },
         { key: 'bank', title: 'In the bank', label: '', groups: grouped(owned.filter(entry => !carried.has(entry.item.id))) },

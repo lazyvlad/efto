@@ -12,7 +12,7 @@ import { wearables, wearableById } from '../data/wearables.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { quiverText } from '../utils/quiver.js';
 import { playerCharacters } from '../data/playerCharacters.js';
-import { SLOTS, itemsForSlot, itemStats } from '../utils/gear.js';
+import { SLOTS, itemsForSlot, itemStats, byPower } from '../utils/gear.js';
 import { bonusText } from '../utils/sets.js';
 import { keyName } from '../utils/keybindings.js';
 import { askConfirm, askText } from './gameDialog.js';
@@ -491,7 +491,8 @@ function renderOutfits(state) {
 function renderSlotItems(state) {
     const slot = SLOTS.find(candidate => candidate.id === selectedSlot) || SLOTS[0];
     const wornId = state.equipment[slot.id];
-    const choices = itemsForSlot(slot.id, wearables(), state.owned);
+    // The strongest first (utils/gear.js, itemPower)
+    const choices = itemsForSlot(slot.id, wearables(), state.owned).sort(byPower(gameConfig.sets));
 
     element('sheetSlotName').textContent = slot.label;
 

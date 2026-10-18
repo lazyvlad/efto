@@ -95,14 +95,35 @@ export function gearGroup(item) {
     return index === -1 ? { ...OTHER, order: GROUPS.length } : { ...GROUPS[index], order: index };
 }
 
+// What a stat is worth in an item's power: a point of attack power twice a point of health,
+// a point of armor half of one; a per cent of crit or dodge ten, of carrying two
+const POWER_OF = { attackPower: 2, health: 1, armor: 0.5, crit: 10, dodge: 10, carrying: 2 };
+
+/**
+ * How strong an item is, to put the strongest first: its stats (a set piece's, its set's per
+ * piece), each by what it is worth (POWER_OF). Equal ones: the higher item level first.
+ */
+export function itemPower(item, sets = []) {
+    const stats = itemStats(item, sets);
+    return Object.entries(POWER_OF).reduce((sum, [stat, worth]) => sum + (stats[stat] || 0) * worth, 0);
+}
+
+// Strongest first; equal ones by item level, then by name
+export function byPower(sets = [], itemOf = item => item) {
+    return (a, b) => itemPower(itemOf(b), sets) - itemPower(itemOf(a), sets)
+        || (itemOf(b).itemLevel || 0) - (itemOf(a).itemLevel || 0)
+        || (itemOf(a).name || '').localeCompare(itemOf(b).name || '');
+}
+
 /**
  * Items (or anything holding one as .item) in groups by kind, in the sheet's order, each
- * group by name: [{ key, label, entries }].
+ * group strongest first: [{ key, label, entries }].
  */
-export function groupByKind(entries, itemOf = entry => entry.item) {
+export function groupByKind(entries, itemOf = entry => entry.item, sets = []) {
     const groups = new Map();
+    const strongest = byPower(sets, itemOf);
     const sorted = [...entries].sort((a, b) => gearGroup(itemOf(a)).order - gearGroup(itemOf(b)).order
-        || (itemOf(a).name || '').localeCompare(itemOf(b).name || ''));
+        || strongest(a, b));
     for (const entry of sorted) {
         const group = gearGroup(itemOf(entry));
         if (!groups.has(group.key)) groups.set(group.key, { key: group.key, label: group.label, entries: [] });

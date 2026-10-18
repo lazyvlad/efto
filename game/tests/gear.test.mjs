@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 
 // Loaded through a data: URL, as in gameClock.test.mjs
 const source = await readFile(new URL('../utils/gear.js', import.meta.url));
-const { SLOTS, slotsFor, fits, itemsForSlot, validEquipment, equip, equipSet, setsWorn, mainSet, gearTotals, itemStats, carriedOf, fitsCarried, inHis36, gearGroup, groupByKind } =
+const { SLOTS, slotsFor, fits, itemsForSlot, validEquipment, equip, equipSet, setsWorn, mainSet, gearTotals, itemStats, carriedOf, fitsCarried, inHis36, gearGroup, groupByKind, itemPower, byPower } =
     await import(`data:text/javascript;base64,${source.toString('base64')}`);
 
 const sets = [
@@ -189,4 +189,21 @@ test('gear is grouped by kind, in the character sheet\'s order, each kind by nam
     assert.deepEqual(groups[1].entries.map(entry => entry.item.id), ['ring-a', 'ring-b']);
     assert.equal(gearGroup({ slot: 'belt' }).label, 'Waist');
     assert.equal(gearGroup({ slot: 'mainhand', twoHanded: true }).key, 'two-handed');
+});
+
+test('the strongest first: stats by what they are worth, then item level, then name', () => {
+    const weak = { id: 'weak', name: 'Weak', slot: 'legs', stats: { armor: 4 } };
+    const strong = { id: 'strong', name: 'Strong', slot: 'legs', stats: { attackPower: 8, health: 3 } };
+    const crit = { id: 'crit', name: 'Crit', slot: 'legs', stats: { crit: 2 } };
+    const piece = { id: 'piece', name: 'Piece', slot: 'legs', set: 'crypt' };
+    const twin = { id: 'twin', name: 'Twin', slot: 'legs', stats: { armor: 4 }, itemLevel: 20 };
+    // 8*2 + 3 = 19; crit 2% = 20; the set piece 5 + 8/2 + 6*2 = 21
+    assert.equal(itemPower(strong), 19);
+    assert.equal(itemPower(crit), 20);
+    assert.equal(itemPower(piece, sets), 21);
+    const order = [weak, strong, crit, piece, twin].sort(byPower(sets)).map(item => item.id);
+    assert.deepEqual(order, ['piece', 'crit', 'strong', 'twin', 'weak']);
+    // In the inventory's groups too
+    const groups = groupByKind([weak, strong].map(item => ({ item })), entry => entry.item, sets);
+    assert.deepEqual(groups[0].entries.map(entry => entry.item.id), ['strong', 'weak']);
 });
