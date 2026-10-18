@@ -1,11 +1,11 @@
 {
-  "buildTime": "2026-10-18T13:56:59.486Z",
-  "buildTimestamp": 1792331819491,
+  "buildTime": "2026-10-18T14:12:55.271Z",
+  "buildTimestamp": 1792332775277,
   "mode": "production",
-  "gameVersion": "3.10.6",
-  "cacheHash": "36zwqawc",
+  "gameVersion": "3.10.7",
+  "cacheHash": "nogcfrt2",
   "fileMap": {
-    "game-modular.js": "game-modular.36zwqawc.js"
+    "game-modular.js": "game-modular.nogcfrt2.js"
   },
-  "buildSystemVersion": "3.10.6"
+  "buildSystemVersion": "3.10.7"
 }

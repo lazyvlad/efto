@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.10.7 - 2026-10-18
+
+### Changed
+- **How to play, rewritten** for the game as it is now (zones and bosses, shots and spells, the
+  pet, potions, what falls, gear, bags, bank and crafting, coins), with the player's own keys,
+  and without the keyboard-only parts on a touch screen.
+- **What's new for 3.10.7**, published as the deploy runs.
+
 ## 3.10.6 - 2026-10-18
 
 ### Changed
