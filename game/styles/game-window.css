@@ -430,26 +430,40 @@
     white-space: nowrap;
 }
 
-/* Under the bar, in the hunter's window: which hunter (between games) and the purse */
-.window-strip {
-    flex: none;
-    min-height: 36px;
+/* Above the name in the hunter's window: his side and level (in a game) or the switch between
+   the two hunters (between games), and the purse (one, both hunters') */
+.window-bar-kicker {
+    min-height: 18px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: center;
+    gap: 10px;
 }
 
-.window-strip-note {
-    font-size: 13px;
-    color: #a89a78;
+.window-bar-kicker [hidden] {
+    display: none !important;
 }
 
-.window-strip-note[hidden] {
-    display: none;
+.window-bar .window-bar-kicker .joined-buttons .game-btn {
+    height: 22px;
+    min-height: 0;
+    margin: 0;
+    padding: 0 10px;
+    font-size: 12px;
 }
 
-.window-strip .window-purse {
-    margin: 0 0 0 auto;
+.window-purse {
+    padding: 1px 8px;
+    font-size: 12px;
+    color: #cfc4ad;
+    white-space: nowrap;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid #5d4c25;
+    border-radius: 4px;
+}
+
+.window-purse strong {
+    color: #ffd100;
 }
 
 /* The short names of tabs, for a phone */
@@ -495,13 +509,19 @@
         display: inline;
     }
 
-    .window-strip {
-        min-height: 34px;
-        gap: 8px;
+    .window-bar-kicker {
+        gap: 6px;
     }
 
-    .window-strip-note {
-        display: none;
+    .window-bar .window-bar-kicker .joined-buttons .game-btn {
+        height: 20px;
+        padding: 0 7px;
+        font-size: 11px;
+    }
+
+    .window-purse {
+        padding: 0 5px;
+        font-size: 10px;
     }
 }
 

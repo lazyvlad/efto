@@ -357,8 +357,42 @@
     border-color: #c9a94f;
 }
 
+/* "What he has" on one line, what he carries under it if there is no room beside it */
+.character-sheet .window-card-title {
+    flex-wrap: wrap;
+    row-gap: 2px;
+}
+
+.character-sheet .window-card-title h3 {
+    white-space: nowrap;
+}
+
+.sheet-pet-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.sheet-pet-who {
+    min-width: 0;
+}
+
+.sheet-pet-who h3 {
+    white-space: nowrap;
+}
+
+.sheet-pet-who .window-label {
+    display: block;
+}
+
 .sheet-pet-stances {
-    margin-top: 10px;
+    flex: none;
+}
+
+.sheet-pet-stances .game-btn {
+    padding: 6px 12px;
+    font-size: 14px;
 }
 
 .sheet-pet-stances .game-btn {
@@ -366,7 +400,7 @@
 }
 
 .sheet-pet-says {
-    margin: 8px 0 0;
+    margin: 6px 0 0;
     font-size: 13px;
     line-height: 1.4;
     color: #f4ecd8;
@@ -505,6 +539,59 @@
 .sheet-slot-panel h3 {
     margin-top: -4px;
     font-size: 22px;
+}
+
+/* The list scrolls in its card: a gold scrollbar, as the game's other windows have, and under
+   it a fade with "More below" while more is out of sight (ui/characterSheet.js) */
+.sheet-slot-panel {
+    position: relative;
+}
+
+.sheet-items-more {
+    position: absolute;
+    left: 1px;
+    right: 1px;
+    bottom: 1px;
+    height: 46px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 6px;
+    box-sizing: border-box;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: #ffd100;
+    text-shadow: 0 1px 2px #000;
+    background: linear-gradient(180deg, rgba(12, 10, 8, 0) 0%, rgba(12, 10, 8, 0.95) 70%);
+    border-radius: 0 0 6px 6px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.sheet-slot-panel.has-more-below .sheet-items-more {
+    opacity: 1;
+}
+
+.sheet-items,
+.inventory-body * {
+    scrollbar-color: #8a6a22 #0c0a08;
+    scrollbar-width: thin;
+}
+
+.sheet-items::-webkit-scrollbar {
+    width: 10px;
+}
+
+.sheet-items::-webkit-scrollbar-track {
+    background: #0c0a08;
+    border-left: 1px solid #2c2413;
+}
+
+.sheet-items::-webkit-scrollbar-thumb {
+    background: linear-gradient(90deg, #6b4f16, #d8b95a 45%, #8a6a22);
+    border: 1px solid #000;
+    border-radius: 3px;
 }
 
 .sheet-items {
@@ -744,8 +831,21 @@
         height: 32%;
     }
 
+    .sheet-pet-top {
+        flex-wrap: wrap;
+    }
+
+    .sheet-pet-stances {
+        flex: 1 1 100%;
+    }
+
     .sheet-pet-stances .game-btn {
         min-height: 44px;
+        font-size: 15px;
+    }
+
+    .sheet-items-more {
+        display: none;
     }
 
     /* No keyboard to change it with */
@@ -808,16 +908,6 @@
 
     .sheet-slot-label .slot-short {
         display: inline;
-        white-space: nowrap;
-    }
-
-    /* "What he has" on one line, what he carries under it if there is no room beside it */
-    .character-sheet .window-card-title {
-        flex-wrap: wrap;
-        row-gap: 2px;
-    }
-
-    .character-sheet .window-card-title h3 {
         white-space: nowrap;
     }
 

@@ -202,8 +202,17 @@
                  hunter's four tabs under it. Character is this sheet; the others, the inventory. -->
             <header class="window-bar">
                 <button type="button" id="characterSheetClose" class="game-btn window-bar-back" title="Back to where you were"><span>&lsaquo; Back</span><span id="sheetBackWhere" class="window-bar-where"></span></button>
+                <!-- Who: above the name his side (between games the switch between the two hunters)
+                     and the purse -->
                 <div class="window-bar-who">
-                    <p id="sheetSubtitle" class="window-label side-label"></p>
+                    <div class="window-bar-kicker">
+                        <div class="joined-buttons" id="sheetSides" role="group" aria-label="Character shown">
+                            <button type="button" class="game-btn sheet-side-btn" data-side="alliance">Alliance</button>
+                            <button type="button" class="game-btn sheet-side-btn" data-side="horde">Horde</button>
+                        </div>
+                        <p id="sheetSubtitle" class="window-label side-label"></p>
+                        <span id="sheetPurse" class="window-purse" hidden></span>
+                    </div>
                     <h2 id="sheetName">Hunter</h2>
                 </div>
                 <button type="button" id="characterSheetCloseAll" class="game-btn window-bar-close" title="Close and carry on">Close &times;</button>
@@ -214,15 +223,6 @@
                     <button type="button" class="game-btn" data-hunter-tab="crafting" role="tab" aria-selected="false">Crafting</button>
                 </nav>
             </header>
-            <div class="window-strip">
-                <!-- Which character is shown, before a game; in a game it is the one being played -->
-                <div class="joined-buttons" id="sheetSides" role="group" aria-label="Character shown">
-                    <button type="button" class="game-btn sheet-side-btn" data-side="alliance">Alliance</button>
-                    <button type="button" class="game-btn sheet-side-btn" data-side="horde">Horde</button>
-                </div>
-                <span id="sheetPlaying" class="window-strip-note" hidden>In a game: the hunter you play</span>
-                <span id="sheetPurse" class="inventory-purse window-purse" hidden></span>
-            </div>
 
             <div class="sheet-body">
                 <!-- The hunter in the place he is in, with his slots around him: eight left,
@@ -247,13 +247,16 @@
                     </section>
                     <!-- His pet, and how it fights: changed here in a game too -->
                     <section class="window-card sheet-pet">
-                        <div class="window-card-title">
-                            <h3>Your pet</h3>
-                            <span id="sheetPetName" class="window-label"></span>
-                        </div>
-                        <div class="joined-buttons sheet-pet-stances" role="group" aria-label="How your pet fights">
-                            <button type="button" class="game-btn" data-stance="defensive">Defensive</button>
-                            <button type="button" class="game-btn" data-stance="aggressive">Aggressive</button>
+                        <!-- Its name and its two ways on one row, leaving room for the slot picked -->
+                        <div class="sheet-pet-top">
+                            <div class="sheet-pet-who">
+                                <h3>Your pet</h3>
+                                <span id="sheetPetName" class="window-label"></span>
+                            </div>
+                            <div class="joined-buttons sheet-pet-stances" role="group" aria-label="How your pet fights">
+                                <button type="button" class="game-btn" data-stance="defensive">Defensive</button>
+                                <button type="button" class="game-btn" data-stance="aggressive">Aggressive</button>
+                            </div>
                         </div>
                         <p id="sheetPetSays" class="sheet-pet-says"></p>
                         <p id="sheetPetNote" class="sheet-pet-note"></p>
@@ -264,6 +267,8 @@
                         <p class="window-label">The slot picked</p>
                         <h3 id="sheetSlotName">Head</h3>
                         <div id="sheetItems" class="sheet-items"></div>
+                        <!-- Shown while the list goes on below what is in sight -->
+                        <div id="sheetItemsMore" class="sheet-items-more" aria-hidden="true">More below &#9662;</div>
                     </section>
                 </aside>
             </div>
@@ -279,7 +284,14 @@
                 <button type="button" id="inventoryClose" class="game-btn window-bar-back" title="Back to where you were"><span>&lsaquo; Back</span><span id="inventoryBackWhere" class="window-bar-where"></span></button>
                 <!-- Whose it is: each hunter has his own bags, bank and gear -->
                 <div class="window-bar-who">
-                    <p id="inventorySubtitle" class="window-label side-label"></p>
+                    <div class="window-bar-kicker">
+                        <div class="joined-buttons" id="inventorySides" role="group" aria-label="Hunter shown">
+                            <button type="button" class="game-btn inventory-side-btn" data-side="alliance">Alliance</button>
+                            <button type="button" class="game-btn inventory-side-btn" data-side="horde">Horde</button>
+                        </div>
+                        <p id="inventorySubtitle" class="window-label side-label"></p>
+                        <span id="inventoryPurse" class="window-purse" hidden></span>
+                    </div>
                     <h2 id="inventoryTitle">Inventory</h2>
                 </div>
                 <button type="button" id="inventoryCloseAll" class="game-btn window-bar-close" title="Close and carry on">Close &times;</button>
@@ -290,15 +302,6 @@
                     <button type="button" class="game-btn inventory-tab" data-tab="crafting" role="tab">Crafting</button>
                 </nav>
             </header>
-            <div class="window-strip">
-                <!-- Which hunter's, before a game; in a game it is the one being played -->
-                <div class="joined-buttons" id="inventorySides" role="group" aria-label="Hunter shown">
-                    <button type="button" class="game-btn inventory-side-btn" data-side="alliance">Alliance</button>
-                    <button type="button" class="game-btn inventory-side-btn" data-side="horde">Horde</button>
-                </div>
-                <span id="inventoryPlaying" class="window-strip-note" hidden>In a game: the hunter you play</span>
-                <span id="inventoryPurse" class="inventory-purse window-purse" hidden></span>
-            </div>
             <div class="inventory-body" id="inventoryBody"></div>
         </div>
     </div>

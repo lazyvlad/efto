@@ -106,6 +106,8 @@ export function initializeCharacterSheet(options) {
             render();
         });
     });
+    element('sheetItems').addEventListener('scroll', showMoreBelow, { passive: true });
+    window.addEventListener('resize', () => { if (isCharacterSheetOpen()) showMoreBelow(); });
     sheet.querySelectorAll('.sheet-side-btn').forEach(button => {
         button.addEventListener('click', () => {
             game.onShowSide(button.dataset.side);
@@ -176,6 +178,14 @@ function render() {
 
     items.scrollTop = scrolled[0];
     if (sheetBody) sheetBody.scrollTop = scrolled[1];
+    showMoreBelow();
+}
+
+// The slot's list scrolls in its card: say so while more of it is out of sight below
+function showMoreBelow() {
+    const items = element('sheetItems');
+    const below = items.scrollHeight - items.clientHeight - items.scrollTop > 4;
+    items.closest('.sheet-slot-panel').classList.toggle('has-more-below', below);
 }
 
 function renderHeading(state) {
@@ -190,13 +200,14 @@ function renderHeading(state) {
         button.setAttribute('aria-pressed', String(shown));
     });
 
-    element('sheetPlaying').hidden = !state.playing;
+    // Between games the switch says which hunter; in a game his side and level say it
+    element('sheetSubtitle').hidden = !state.playing;
     element('sheetBackWhere').textContent = state.backWhere || '';
     // What the player has to spend (one purse, both hunters'); a guest has none
     const purse = element('sheetPurse');
     purse.hidden = state.coins === null || state.coins === undefined;
     purse.textContent = '';
-    if (!purse.hidden) purse.append('Purse ', make('strong', '', formatCoins(state.coins)));
+    if (!purse.hidden) purse.append(make('strong', '', formatCoins(state.coins)));
     purse.title = 'One purse for both hunters';
 
     element('sheetName').textContent = state.name || 'Hunter';
@@ -288,7 +299,9 @@ function renderStats(state) {
     }
 
     // How much gear the hunter takes into a game (a guest has no bank, so no count)
-    element('sheetCarrying').textContent = state.carried ? `${state.inHis36} of ${state.carryLimit} carried, besides what he wears` : '';
+    const carrying = element('sheetCarrying');
+    carrying.textContent = state.carried ? `Carrying ${state.inHis36} of ${state.carryLimit}` : '';
+    carrying.title = state.carried ? 'In his 36, besides what he wears' : '';
 
     // What the sets being worn add of their own, beyond the stats
     const extras = bonusText(state.totals, { stats: false });

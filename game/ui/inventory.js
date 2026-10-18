@@ -177,7 +177,7 @@ function render() {
     subtitle.dataset.side = faction;
     element('inventoryTitle').textContent = state.name || 'Hunter';
     element('inventorySides').hidden = state.playing;
-    element('inventoryPlaying').hidden = !state.playing;
+    element('inventorySubtitle').hidden = !state.playing;
     element('inventoryBackWhere').textContent = state.backWhere || '';
     document.querySelectorAll('#inventorySides .inventory-side-btn').forEach(button => {
         const shown = button.dataset.side === faction;
@@ -189,7 +189,7 @@ function render() {
     const purse = element('inventoryPurse');
     purse.hidden = state.coins === null;
     purse.textContent = '';
-    if (state.coins !== null) purse.append('Purse ', make('strong', '', formatCoins(state.coins)));
+    if (state.coins !== null) purse.append(make('strong', '', formatCoins(state.coins)));
     purse.title = 'One purse for both hunters';
 
     const body = element('inventoryBody');
