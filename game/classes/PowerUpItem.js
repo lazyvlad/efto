@@ -263,8 +263,10 @@ export class PowerUpItem extends FallingObject {
                     addNotification(gameState, '🔵 Mana Potion: into your bags', 150, '#4169E1');
                     break;
                 }
-                gameState.endlessArrowsTimer = this.data.duration;
-                addNotification(gameState, `🔵 Mana Potion: endless arrows for ${Math.round(this.data.duration / 60)}s`, 180, '#4169E1');
+                // Shorter in a boss fight (gameState.manaSeconds, game-modular.js)
+                const endlessSeconds = gameState.manaSeconds ? gameState.manaSeconds() : this.data.duration / 60;
+                gameState.endlessArrowsTimer = endlessSeconds * 60;
+                addNotification(gameState, `🔵 Mana Potion: endless arrows for ${endlessSeconds}s`, 180, '#4169E1');
                 break;
                 
             case "heal":

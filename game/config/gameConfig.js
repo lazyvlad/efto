@@ -391,8 +391,9 @@ export const gameConfig = {
     // with its key: "potion" (H) and "mana_potion" (M) unless the player changed them.
     potions: {
         'health-potion': { heal: 40, cooldown: 20 },
-        // Endless arrows: for so many seconds his shots spend none; one at a time
-        'mana-potion': { endlessArrows: true, seconds: 10, cooldown: 0 },
+        // Endless arrows: for so many seconds his shots spend none (fewer in a boss fight); one
+        // at a time
+        'mana-potion': { endlessArrows: true, seconds: 10, bossSeconds: 4, cooldown: 0 },
         // Haste, as the one that falls (powerUps.haste); one at a time
         'haste-potion': { haste: true, cooldown: 0 },
     },
