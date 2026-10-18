@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.10.9 - 2026-10-18
+
+### Added
+- **Tools** in the site menu: /tools lists the site's tools (config/tools.php).
+- **The Audio Cutter** (/tools/audio-cutter): cut, audition and assemble clips in the browser,
+  nothing uploaded; save WAV, MP3 (192 kbps) or OGG; the game's 35 voice lines and sound effects to start from (not its music, which is Blizzard's); what
+  was open comes back after Back or a reload.
+- **What's new for 3.10.9**, published as the deploy runs.
+
 ## 3.10.8 - 2026-10-18
 
 ### Added
