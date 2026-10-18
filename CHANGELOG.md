@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.10.4 - 2026-10-18
+
+### Added
+- **Trailhide**, the first zone's armor (the art agent's set): Hood, Shoulderpads, Jerkin,
+  Bracers, Grips, Belt, Leggings and Boots on both hunters, green at item level 10 and "Fine"
+  blue at 15. Dropped only as the first bosses' extra drops (config/gear.php "zone_armor", both
+  sides), the pieces the hunter lacks first; the zone's creatures and sky drop as before.
+- Zone gear may belong to both sides ("Found in Northshire Abbey or Valley of Trials"), and the
+  items page lists it under each.
+- **What's new for 3.10.4**, published as the deploy runs.
+
 ## 3.10.3 - 2026-10-18
 
 ### Added
