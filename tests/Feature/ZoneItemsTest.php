@@ -125,4 +125,34 @@ class ZoneItemsTest extends TestCase
         $this->get(route('items'))->assertOk()->assertSee('Fine Trailhide Jerkin')
             ->assertSee('Armor of the early zones')->assertSee('dropped by Garrick Padfoot in Northshire Abbey or Sarkoth in Valley of Trials');
     }
+
+    public function test_briarwatch_and_gatewarden_drop_only_from_their_own_zones_bosses(): void
+    {
+        $catalog = Gear::catalog();
+        foreach ([2 => ['briarwatch', 15, 20], 3 => ['gatewarden', 20, 25]] as $zone => [$set, $green, $blue]) {
+            $armor = array_keys(config("gear.zone_armor.$zone"));
+            $this->assertCount(16, $armor, $set);
+            foreach ($armor as $itemId) {
+                $this->assertStringStartsWith($set, $itemId);
+                $this->assertSame(str_ends_with($itemId, '-rare') ? $blue : $green, $catalog[$itemId]['itemLevel'], $itemId);
+                $this->assertArrayNotHasKey('side', $catalog[$itemId], 'either hunter can wear it');
+                $this->assertFileExists(base_path("game/assets/items/gear/$itemId.webp"));
+            }
+            foreach (['alliance', 'horde'] as $side) {
+                $seen = [];
+                for ($i = 0; $i < 40; $i++) {
+                    foreach (\App\Support\BossLoot::rollExtras(null, ['faction' => $side, 'zone' => $zone], Game::NORMAL, 'none') as $itemId) {
+                        $seen[$itemId] = true;
+                    }
+                }
+                $this->assertNotEmpty(array_intersect($armor, array_keys($seen)), "$set, $side");
+                $others = array_merge(array_keys(config('gear.zone_armor.1')), array_keys(config('gear.zone_armor.'.(5 - $zone))));
+                $this->assertEmpty(array_intersect($others, array_keys($seen)), "no other zone's armor from zone $zone");
+            }
+        }
+        $this->assertSame(['armor' => 8, 'health' => 5], $catalog['gatewarden-chest-rare']['stats']);
+        $this->assertSame(['attackPower' => 2, 'armor' => 4], $catalog['briarwatch-gloves']['stats']);
+
+        $this->get(route('items'))->assertOk()->assertSee('Fine Briarwatch Vest')->assertSee('Gatewarden Hauberk');
+    }
 }

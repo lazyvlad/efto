@@ -48,6 +48,47 @@ $trailhide = [
     'trailhide-boots-rare' => ['name' => 'Fine Trailhide Boots', 'slot' => 'boots', 'rarity' => 'rare', 'item_level' => 15, 'stats' => ['armor' => 5, 'health' => 3], 'value' => 75],
 ];
 
+// Briarwatch (zone 2: olive leather, iron rivets) and Gatewarden (zone 3: dusk-blue leather and
+// chain): the second and third zones' armor, as Trailhide, a green and a rarer blue of each,
+// worn by both hunters ("zone_armor"). Briarwatch green 15 / blue 20, Gatewarden green 20 /
+// blue 25, stats by the item levels' points as Trailhide's.
+$briarwatch = [
+    'briarwatch-cap' => ['name' => 'Briarwatch Cap', 'slot' => 'head', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['armor' => 5, 'health' => 3], 'value' => 50],
+    'briarwatch-cap-rare' => ['name' => 'Fine Briarwatch Cap', 'slot' => 'head', 'rarity' => 'rare', 'item_level' => 20, 'stats' => ['armor' => 6, 'health' => 4], 'value' => 150],
+    'briarwatch-shoulders' => ['name' => 'Briarwatch Shoulderpads', 'slot' => 'shoulders', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['armor' => 5, 'health' => 3], 'value' => 50],
+    'briarwatch-shoulders-rare' => ['name' => 'Fine Briarwatch Shoulderpads', 'slot' => 'shoulders', 'rarity' => 'rare', 'item_level' => 20, 'stats' => ['armor' => 6, 'health' => 4], 'value' => 150],
+    'briarwatch-chest' => ['name' => 'Briarwatch Vest', 'slot' => 'chest', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['armor' => 5, 'health' => 3], 'value' => 50],
+    'briarwatch-chest-rare' => ['name' => 'Fine Briarwatch Vest', 'slot' => 'chest', 'rarity' => 'rare', 'item_level' => 20, 'stats' => ['armor' => 6, 'health' => 4], 'value' => 150],
+    'briarwatch-bracers' => ['name' => 'Briarwatch Bracers', 'slot' => 'bracers', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['attackPower' => 2, 'armor' => 4], 'value' => 50],
+    'briarwatch-bracers-rare' => ['name' => 'Fine Briarwatch Bracers', 'slot' => 'bracers', 'rarity' => 'rare', 'item_level' => 20, 'stats' => ['attackPower' => 3, 'armor' => 5], 'value' => 150],
+    'briarwatch-gloves' => ['name' => 'Briarwatch Gloves', 'slot' => 'hands', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['attackPower' => 2, 'armor' => 4], 'value' => 50],
+    'briarwatch-gloves-rare' => ['name' => 'Fine Briarwatch Gloves', 'slot' => 'hands', 'rarity' => 'rare', 'item_level' => 20, 'stats' => ['attackPower' => 3, 'armor' => 5], 'value' => 150],
+    'briarwatch-belt' => ['name' => 'Briarwatch Belt', 'slot' => 'belt', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['armor' => 5, 'health' => 3], 'value' => 50],
+    'briarwatch-belt-rare' => ['name' => 'Fine Briarwatch Belt', 'slot' => 'belt', 'rarity' => 'rare', 'item_level' => 20, 'stats' => ['armor' => 6, 'health' => 4], 'value' => 150],
+    'briarwatch-leggings' => ['name' => 'Briarwatch Leggings', 'slot' => 'legs', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['armor' => 5, 'health' => 3], 'value' => 50],
+    'briarwatch-leggings-rare' => ['name' => 'Fine Briarwatch Leggings', 'slot' => 'legs', 'rarity' => 'rare', 'item_level' => 20, 'stats' => ['armor' => 6, 'health' => 4], 'value' => 150],
+    'briarwatch-boots' => ['name' => 'Briarwatch Boots', 'slot' => 'boots', 'rarity' => 'uncommon', 'item_level' => 15, 'stats' => ['armor' => 5, 'health' => 3], 'value' => 50],
+    'briarwatch-boots-rare' => ['name' => 'Fine Briarwatch Boots', 'slot' => 'boots', 'rarity' => 'rare', 'item_level' => 20, 'stats' => ['armor' => 6, 'health' => 4], 'value' => 150],
+];
+$gatewarden = [
+    'gatewarden-helmet' => ['name' => 'Gatewarden Helmet', 'slot' => 'head', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['armor' => 6, 'health' => 4], 'value' => 75],
+    'gatewarden-helmet-rare' => ['name' => 'Fine Gatewarden Helmet', 'slot' => 'head', 'rarity' => 'rare', 'item_level' => 25, 'stats' => ['armor' => 8, 'health' => 5], 'value' => 225],
+    'gatewarden-shoulders' => ['name' => 'Gatewarden Pauldrons', 'slot' => 'shoulders', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['armor' => 6, 'health' => 4], 'value' => 75],
+    'gatewarden-shoulders-rare' => ['name' => 'Fine Gatewarden Pauldrons', 'slot' => 'shoulders', 'rarity' => 'rare', 'item_level' => 25, 'stats' => ['armor' => 8, 'health' => 5], 'value' => 225],
+    'gatewarden-chest' => ['name' => 'Gatewarden Hauberk', 'slot' => 'chest', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['armor' => 6, 'health' => 4], 'value' => 75],
+    'gatewarden-chest-rare' => ['name' => 'Fine Gatewarden Hauberk', 'slot' => 'chest', 'rarity' => 'rare', 'item_level' => 25, 'stats' => ['armor' => 8, 'health' => 5], 'value' => 225],
+    'gatewarden-bracers' => ['name' => 'Gatewarden Bracers', 'slot' => 'bracers', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['attackPower' => 3, 'armor' => 5], 'value' => 75],
+    'gatewarden-bracers-rare' => ['name' => 'Fine Gatewarden Bracers', 'slot' => 'bracers', 'rarity' => 'rare', 'item_level' => 25, 'stats' => ['attackPower' => 3, 'armor' => 6], 'value' => 225],
+    'gatewarden-gloves' => ['name' => 'Gatewarden Gauntlets', 'slot' => 'hands', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['attackPower' => 3, 'armor' => 5], 'value' => 75],
+    'gatewarden-gloves-rare' => ['name' => 'Fine Gatewarden Gauntlets', 'slot' => 'hands', 'rarity' => 'rare', 'item_level' => 25, 'stats' => ['attackPower' => 3, 'armor' => 6], 'value' => 225],
+    'gatewarden-belt' => ['name' => 'Gatewarden Girdle', 'slot' => 'belt', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['armor' => 6, 'health' => 4], 'value' => 75],
+    'gatewarden-belt-rare' => ['name' => 'Fine Gatewarden Girdle', 'slot' => 'belt', 'rarity' => 'rare', 'item_level' => 25, 'stats' => ['armor' => 8, 'health' => 5], 'value' => 225],
+    'gatewarden-leggings' => ['name' => 'Gatewarden Legguards', 'slot' => 'legs', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['armor' => 6, 'health' => 4], 'value' => 75],
+    'gatewarden-leggings-rare' => ['name' => 'Fine Gatewarden Legguards', 'slot' => 'legs', 'rarity' => 'rare', 'item_level' => 25, 'stats' => ['armor' => 8, 'health' => 5], 'value' => 225],
+    'gatewarden-boots' => ['name' => 'Gatewarden Boots', 'slot' => 'boots', 'rarity' => 'uncommon', 'item_level' => 20, 'stats' => ['armor' => 6, 'health' => 4], 'value' => 75],
+    'gatewarden-boots-rare' => ['name' => 'Fine Gatewarden Boots', 'slot' => 'boots', 'rarity' => 'rare', 'item_level' => 25, 'stats' => ['armor' => 8, 'health' => 5], 'value' => 225],
+];
+
 return [
 
     /*
@@ -207,6 +248,8 @@ return [
     // creatures nor falling from its sky, so the zone's other gear drops as often as it did.
     'zone_armor' => [
         1 => $trailhide,
+        2 => $briarwatch,
+        3 => $gatewarden,
     ],
 
     'zone_items' => [
