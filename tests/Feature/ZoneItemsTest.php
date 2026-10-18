@@ -24,7 +24,10 @@ class ZoneItemsTest extends TestCase
         $catalog = Gear::catalog();
         foreach (['alliance', 'horde'] as $side) {
             $pool = config("gear.zone_items.$side.1");
-            $this->assertCount(5, $pool);
+            // Its five, and the Trailhide armor both first zones carry: eight pieces, green and blue
+            $own = array_filter(array_keys($pool), fn ($itemId) => ! str_starts_with($itemId, 'trailhide-'));
+            $this->assertCount(5, $own);
+            $this->assertCount(21, $pool);
             foreach (array_keys($pool) as $itemId) {
                 $this->assertArrayHasKey($itemId, $catalog);
                 $this->assertArrayNotHasKey('side', $catalog[$itemId], 'either hunter can wear it');
@@ -86,5 +89,22 @@ class ZoneItemsTest extends TestCase
 
         $this->assertSame(1, Gear::owned($user, 'alliance')[$drop->item_id] ?? 0, 'the Alliance hunter caught it');
         $this->assertArrayNotHasKey($drop->item_id, Gear::owned($user, 'horde'), 'the Horde hunter did not');
+    }
+
+    public function test_trailhide_is_carried_by_both_first_zones_and_named_after_both(): void
+    {
+        $zoneItems = Gear::zoneItems();
+        $hood = $zoneItems['trailhide-hood-rare'];
+        $this->assertSame(['alliance', 'horde'], $hood['sides']);
+        $this->assertSame('Northshire Abbey or Valley of Trials', $hood['zoneName']);
+        $this->assertSame('rare', $hood['rarity']);
+        $this->assertSame(15, $hood['item_level']);
+
+        $catalog = Gear::catalog();
+        $this->assertSame('Found in Northshire Abbey or Valley of Trials', $catalog['trailhide-gloves']['from']);
+        $this->assertSame(['attackPower' => 1, 'armor' => 3], $catalog['trailhide-gloves']['stats']);
+
+        // The items page lists it under both sides
+        $this->get(route('items'))->assertOk()->assertSee('Fine Trailhide Jerkin');
     }
 }

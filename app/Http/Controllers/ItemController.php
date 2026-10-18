@@ -90,8 +90,11 @@ class ItemController extends Controller
         // Each zone's own gear, by side and zone
         $zoneGear = [];
         foreach (Gear::zoneItems() as $itemId => $item) {
-            $zoneGear[$item['side']][$item['zone']]['name'] = $item['zoneName'];
-            $zoneGear[$item['side']][$item['zone']]['items'][] = self::gearRow($itemId, $gear[$itemId]) + ['name' => $item['name'], 'image' => asset('game/'.$gear[$itemId]['image']), 'rarity' => $item['rarity']];
+            // Gear both sides' zones carry is listed under each
+            foreach ($item['sides'] as $side) {
+                $zoneGear[$side][$item['zone']]['name'] = $item['zoneNames'][$side];
+                $zoneGear[$side][$item['zone']]['items'][] = self::gearRow($itemId, $gear[$itemId]) + ['name' => $item['name'], 'image' => asset('game/'.$gear[$itemId]['image']), 'rarity' => $item['rarity']];
+            }
         }
         foreach ($zoneGear as &$zones) {
             ksort($zones);
