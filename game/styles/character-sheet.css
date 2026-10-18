@@ -253,6 +253,41 @@
     box-shadow: 0 0 0 1px #000;
 }
 
+/* Something stronger is owned for this slot (ui/characterSheet.js, betterFor) */
+.sheet-slot-better {
+    position: absolute;
+    right: -5px;
+    top: -5px;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0c2a06;
+    background: radial-gradient(circle at 35% 30%, #c8ff9a, #4fd12a 60%, #2d8a14);
+    border: 1px solid #0c2a06;
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px #000, 0 0 8px rgba(120, 255, 80, 0.6);
+    pointer-events: none;
+}
+
+/* In a slot's list, a ring or trinket already worn in the other slot of the pair */
+.sheet-item-worn-in {
+    display: inline-block;
+    margin: 1px 0 2px;
+    padding: 0 6px;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #1a140c;
+    background: #e8c66a;
+    border-radius: 3px;
+}
+
+.sheet-item.is-worn-elsewhere {
+    border-style: dashed;
+}
+
 /* Empty, but something owned could go here */
 .sheet-slot.has-choice .sheet-slot-icon {
     border-style: dashed;

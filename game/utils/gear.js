@@ -116,6 +116,21 @@ export function byPower(sets = [], itemOf = item => item) {
 }
 
 /**
+ * Something owned that is stronger (itemPower) than what is worn in a slot and worn nowhere
+ * else, the strongest such, or null (also when nothing is worn there: that slot says so itself).
+ * "owned" is a Set of item ids.
+ */
+export function betterFor(slotId, equipment, items, owned, sets = []) {
+    const worn = items.find(item => item.id === equipment[slotId]);
+    if (!worn) return null;
+    const wornIds = new Set(Object.values(equipment));
+    const best = itemsForSlot(slotId, items, owned)
+        .filter(item => !wornIds.has(item.id))
+        .sort(byPower(sets))[0];
+    return best && itemPower(best, sets) > itemPower(worn, sets) ? best : null;
+}
+
+/**
  * Items (or anything holding one as .item) in groups by kind, in the sheet's order, each
  * group strongest first: [{ key, label, entries }].
  */

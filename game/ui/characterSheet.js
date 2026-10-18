@@ -12,7 +12,7 @@ import { wearables, wearableById } from '../data/wearables.js';
 import { gameConfig } from '../config/gameConfig.js';
 import { quiverText } from '../utils/quiver.js';
 import { playerCharacters } from '../data/playerCharacters.js';
-import { SLOTS, itemsForSlot, itemStats, byPower } from '../utils/gear.js';
+import { SLOTS, itemsForSlot, itemStats, byPower, betterFor } from '../utils/gear.js';
 import { bonusText } from '../utils/sets.js';
 import { keyName } from '../utils/keybindings.js';
 import { askConfirm, askText } from './gameDialog.js';
@@ -303,7 +303,10 @@ function renderSlots(state) {
             if (item) button.dataset.rarity = item.rarity || 'epic';
             // Something owned could go here and nothing is on
             button.classList.toggle('has-choice', !item && choices > 0);
-            button.title = blocked ? `${slot.label}: ${held.name} is held in both hands` : item ? `${slot.label}: ${item.name}${item.itemLevel ? `, item level ${item.itemLevel}` : ''}${unseen ? ' (hidden)' : ''}` : slot.label;
+            // Something stronger than what is on, owned (in a game: carried) and worn nowhere else
+            const better = !blocked && item ? betterFor(slot.id, state.equipment, wearables(), state.owned, gameConfig.sets) : null;
+            button.classList.toggle('has-better', Boolean(better));
+            button.title = blocked ? `${slot.label}: ${held.name} is held in both hands` : item ? `${slot.label}: ${item.name}${item.itemLevel ? `, item level ${item.itemLevel}` : ''}${unseen ? ' (hidden)' : ''}${better ? `. Stronger: ${better.name}` : ''}` : slot.label;
             button.setAttribute('aria-pressed', String(slot.id === selectedSlot));
 
             const icon = make('span', 'sheet-slot-icon');
@@ -314,6 +317,7 @@ function renderSlots(state) {
                 icon.append(picture);
             }
             if (unseen) icon.append(unseenMark());
+            if (better) icon.append(betterMark());
             const label = make('span', 'sheet-slot-label');
             label.append(make('span', 'slot-long', slot.label), make('span', 'slot-short', slot.short || slot.label));
             button.append(icon, label);
@@ -526,10 +530,14 @@ function renderSlotItems(state) {
         const banked = Boolean(state.carried) && !state.carried.has(item.id);
         const full = Boolean(state.carried) && state.inHis36 >= state.carryLimit;
         const swaps = banked && full && Boolean(wornId);
-        const action = worn ? 'Take off' : swaps ? 'Swap in' : 'Put on';
+        // Worn in the other slot of a pair (a ring, a trinket): putting it on here moves it,
+        // and leaves that slot empty
+        const wornIn = worn ? null : SLOTS.find(other => other.id !== slot.id && state.equipment[other.id] === item.id);
+        const action = worn ? 'Take off' : wornIn ? 'Move here' : swaps ? 'Swap in' : 'Put on';
         const row = make('button', 'window-item sheet-item');
         row.type = 'button';
         row.classList.toggle('is-worn', worn);
+        row.classList.toggle('is-worn-elsewhere', Boolean(wornIn));
 
         const picture = make('img');
         picture.src = item.image;
@@ -540,6 +548,7 @@ function renderSlotItems(state) {
         const text = make('span', 'window-item-text');
         text.append(
             make('span', 'window-item-name', item.name),
+            ...(wornIn ? [make('span', 'sheet-item-worn-in', `Worn in ${wornIn.label}`)] : []),
             make('span', 'window-item-stats', [statsText(itemStats(item, gameConfig.sets)), quiverText(item, gameConfig.quiver)].filter(Boolean).join(' · ') || 'No stats'),
             ...(about ? [make('span', 'window-item-note', about)] : [])
         );
@@ -547,6 +556,7 @@ function renderSlotItems(state) {
         // Looks like a button; the whole row is the one that is pressed
         row.append(picture, text, make('span', action === 'Put on' || action === 'Swap in' ? 'game-btn is-primary sheet-item-action' : 'game-btn sheet-item-action', action));
         if (swaps) row.title = `Puts it on, and ${itemById(wornId).name} goes to the bank in its place`;
+        if (wornIn) row.title = `Already worn in ${wornIn.label}: moving it here leaves ${wornIn.label} empty`;
         row.addEventListener('click', () => {
             const result = game.onEquip(slot.id, worn ? null : item);
             notice = result ? { itemId: item.id, ...(typeof result === 'string' ? { text: result, kind: 'warning' } : result) } : null;
@@ -580,6 +590,14 @@ function lookSwitch(item, hidden) {
 }
 
 // A crossed-out eye, on a slot whose piece is not drawn
+// Something stronger is owned for this slot: a green arrow up at the square's corner
+function betterMark() {
+    const mark = make('span', 'sheet-slot-better');
+    mark.setAttribute('aria-hidden', 'true');
+    mark.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12"><path d="M12 4 4 13h5v7h6v-7h5z" fill="currentColor"/></svg>';
+    return mark;
+}
+
 function unseenMark() {
     const mark = make('span', 'sheet-slot-unseen');
     mark.setAttribute('aria-hidden', 'true');

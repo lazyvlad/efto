@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 
 // Loaded through a data: URL, as in gameClock.test.mjs
 const source = await readFile(new URL('../utils/gear.js', import.meta.url));
-const { SLOTS, slotsFor, fits, itemsForSlot, validEquipment, equip, equipSet, setsWorn, mainSet, gearTotals, itemStats, carriedOf, fitsCarried, inHis36, gearGroup, groupByKind, itemPower, byPower } =
+const { SLOTS, slotsFor, fits, itemsForSlot, validEquipment, equip, equipSet, setsWorn, mainSet, gearTotals, itemStats, carriedOf, fitsCarried, inHis36, gearGroup, groupByKind, itemPower, byPower, betterFor } =
     await import(`data:text/javascript;base64,${source.toString('base64')}`);
 
 const sets = [
@@ -206,4 +206,20 @@ test('the strongest first: stats by what they are worth, then item level, then n
     // In the inventory's groups too
     const groups = groupByKind([weak, strong].map(item => ({ item })), entry => entry.item, sets);
     assert.deepEqual(groups[0].entries.map(entry => entry.item.id), ['strong', 'weak']);
+});
+
+test('a stronger piece owned for a slot, not worn elsewhere, is pointed out', () => {
+    const ringA = { id: 'ring-a', name: 'A', slot: 'ring', stats: { armor: 2 } };
+    const ringB = { id: 'ring-b', name: 'B', slot: 'ring', stats: { attackPower: 4 } };
+    const ringC = { id: 'ring-c', name: 'C', slot: 'ring', stats: { health: 3 } };
+    const items = [ringA, ringB, ringC];
+    // B is stronger than A, but it is on the other finger: nothing better to put on
+    assert.equal(betterFor('finger1', { finger1: 'ring-a', finger2: 'ring-b' }, items, new Set(['ring-a', 'ring-b']), sets), null);
+    // B free in the bags: pointed out for the finger wearing A
+    assert.equal(betterFor('finger1', { finger1: 'ring-a' }, items, new Set(['ring-a', 'ring-b']), sets).id, 'ring-b');
+    // C (3) beats A (1) but the strongest is named; nothing worn: nothing pointed out
+    assert.equal(betterFor('finger1', { finger1: 'ring-a' }, items, new Set(['ring-a', 'ring-b', 'ring-c']), sets).id, 'ring-b');
+    assert.equal(betterFor('finger1', {}, items, new Set(['ring-b']), sets), null);
+    // Not owned: not pointed out
+    assert.equal(betterFor('finger1', { finger1: 'ring-a' }, items, new Set(['ring-a']), sets), null);
 });
