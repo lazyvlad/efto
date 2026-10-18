@@ -25,7 +25,7 @@ return [
         // arrows that did not fit in the quiver, go into the bags (App\Support\Bags::afterGame)
         'mana-potion' => ['name' => 'Mana Potion', 'image' => 'assets/powerups/mana-potion.webp', 'rarity' => 'uncommon'],
         // Made, or caught: Haste caught while he is already hasted goes into the bags as one
-        'haste-potion' => ['name' => 'Haste Potion', 'image' => 'assets/powerups/speed-boost.png', 'rarity' => 'uncommon'],
+        'haste-potion' => ['name' => 'Haste Potion', 'image' => 'assets/powerups/haste-potion.webp', 'rarity' => 'uncommon'],
         'arrows' => ['name' => 'Arrows', 'image' => 'assets/powerups/bronze-arrows.webp', 'rarity' => 'common'],
         // Not made, only found: the two halves of what binds Thunderfury, a rare extra drop of
         // the last bosses of each side (boss_loot.bindings). Kept in the bank of the hunter
