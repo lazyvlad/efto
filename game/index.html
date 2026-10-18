@@ -782,6 +782,12 @@
                         </div>
                         <div id="gameOverHome" class="game-over-list"></div>
                         <div id="gameOverSold" class="game-over-notes" hidden></div>
+                        <!-- The bags as the game left them, and the way to empty them into the bank
+                             now, so the next game has room (game-modular.js, offerEmptyBags) -->
+                        <div id="gameOverBags" class="game-over-bags" hidden>
+                            <p id="gameOverBagsText"></p>
+                            <button type="button" id="gameOverEmptyBags" class="game-btn is-primary">Everything to the bank</button>
+                        </div>
                     </section>
                 </aside>
             </div>

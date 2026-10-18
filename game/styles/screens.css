@@ -939,3 +939,29 @@
         display: none !important;
     }
 }
+
+/* The end of a game: the bags, and the way to empty them into the bank */
+.game-over-bags {
+    margin-top: 10px;
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid #3d3219;
+}
+
+.game-over-bags[hidden] {
+    display: none;
+}
+
+.game-over-bags p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #cfc4ad;
+}
+
+#pauseMenu .game-over-bags .game-btn {
+    align-self: flex-start;
+    min-height: 40px;
+}

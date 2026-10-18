@@ -4913,6 +4913,11 @@ function emptyBags() {
         if (put > 0) refreshInventory();
         return put;
     };
+    // How long a mana potion's endless arrows last: shorter in a boss fight
+    gameState.manaSeconds = () => {
+        const rules = gameConfig.potions['mana-potion'];
+        return isBossFightActive() ? rules.bossSeconds : rules.seconds;
+    };
     // A Frost Trap pickup: three traps across the field, or none if there is no room for three
     gameState.deployFrostTraps = () => deployFrostTraps({
         width: canvas.logicalWidth || canvas.width,
@@ -5031,8 +5036,9 @@ function drinkPotion(itemId = POTION) {
         combatTexts.push(new CombatText(player.x + player.width / 2, player.y, `+${healed}`, '#1EFF00', false));
     }
     if (rules.endlessArrows) {
-        gameState.endlessArrowsTimer = rules.seconds * 60;
-        addNotification(gameState, `🔵 Mana Potion: endless arrows for ${rules.seconds}s`, 180, '#4169E1');
+        const seconds = gameState.manaSeconds();
+        gameState.endlessArrowsTimer = seconds * 60;
+        addNotification(gameState, `🔵 Mana Potion: endless arrows for ${seconds}s`, 180, '#4169E1');
     }
     if (rules.haste) {
         gameState.hasteTimer = gameConfig.powerUps.haste.duration;
@@ -5121,6 +5127,36 @@ function moveKept(itemId, count, to) {
     if (!hasBank() || !siteBoot.urls.bagsMove) return Promise.resolve('Log in to keep things in the bank.');
     if (isPlaying()) return Promise.resolve('Things are moved between the bank and your bags between games.');
     return postKept(siteBoot.urls.bagsMove, { item: itemId, count, to, side: currentSide() }, 'It could not be moved.');
+}
+
+// At the end of a game: how full the bags are, and the way to empty them into the bank in one
+// press, so the next game has room for what it catches (accounts with a bank only)
+function offerEmptyBags() {
+    const holder = document.getElementById('gameOverBags');
+    if (!holder) return;
+    const contents = bagContents();
+    const things = Object.values(contents).reduce((total, count) => total + count, 0) + (gameState.bagged || []).length;
+    holder.hidden = !hasBank() || things === 0;
+    if (holder.hidden) return;
+    const capacity = bagCapacity(gameConfig.bags, siteBoot.user.bags || []);
+    const used = capacity - freeBagSlots();
+    document.getElementById('gameOverBagsText').textContent = `Your bags: ${used} of ${capacity} slots taken. Empty them into the bank now, so the next game has room for what it catches.`;
+    const button = document.getElementById('gameOverEmptyBags');
+    button.disabled = false;
+    button.textContent = 'Everything to the bank';
+    button.onclick = async () => {
+        button.disabled = true;
+        button.textContent = 'Moving…';
+        let problem = '';
+        for (const [itemId, count] of Object.entries(bagContents())) {
+            if (count > 0) problem = (await moveKept(itemId, count, 'bank')) || problem;
+        }
+        for (const itemId of [...(gameState.bagged || [])]) problem = moveGear(itemId, 'bank') || problem;
+        refreshInventory();
+        document.getElementById('gameOverBagsText').textContent = problem || 'Your bags are empty: everything is in the bank.';
+        button.textContent = problem ? 'Try again' : 'Done';
+        button.disabled = !problem;
+    };
 }
 
 // Send gear that binds when worn to the other hunter: copies not yet worn, between games
@@ -5716,6 +5752,9 @@ function endGame() {
     
     const summary = gameOverSummary();
     showGameOverSummary({ ...summary, rank: '' });
+    // The bags are offered for emptying once the site has recorded the game (offerEmptyBags)
+    const bagsOffer = document.getElementById('gameOverBags');
+    if (bagsOffer) bagsOffer.hidden = true;
     
     // Where the score landed on the high scores, among those of this version of the game
     const showRank = rank => {
@@ -5746,6 +5785,7 @@ function endGame() {
                         ? { ...thing, note: `${result.bags[thing.material]} in your bags now` }
                         : thing) });
                     refreshInventory();
+                    offerEmptyBags();
                 }
                 
                 if (result.mode === 'boss_rush' || result.mode === 'boss_fight') {
