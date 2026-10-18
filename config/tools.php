@@ -12,7 +12,9 @@ return [
         'notes' => ['Works in your browser: nothing is uploaded', 'WAV, MP3 192 kbps, OGG'],
 
         // The game's own sounds, to open in it with one press: files under
-        // public/game/assets/audio/, the guild's voice lines as WAV (every browser opens those)
+        // public/game/assets/audio/, the guild's voice lines as WAV (every browser opens those).
+        // Not the game's music: it is Blizzard's (World of Warcraft's main title), and here it
+        // could be cut and saved, which their fan-content rules do not allow.
         'samples' => [
             'Voice lines' => [
                 ['name' => 'Heal call', 'file' => 'voice/01-heal-call.wav'],
@@ -52,9 +54,6 @@ return [
                 ['name' => 'Speed boost', 'file' => 'sfx/speedboost.wav'],
                 ['name' => 'Reverse gravity', 'file' => 'sfx/reverse_gravity.mp3'],
                 ['name' => 'Pet chomp', 'file' => 'sfx/pet-chomp.wav'],
-            ],
-            'Music' => [
-                ['name' => 'The game\'s music', 'file' => 'music/background.mp3'],
             ],
         ],
     ],

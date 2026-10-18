@@ -39,7 +39,7 @@
             <section class="game-card p-4 sm:p-6 ac-samples" aria-labelledby="ac-samples-heading">
                 <p class="game-label">{{ __('Or start from the game') }}</p>
                 <h3 class="game-heading text-xl mt-1" id="ac-samples-heading">{{ __('Sounds from I N P U T') }}</h3>
-                <p class="mt-1 text-sm text-gray-600">{{ __('The voice lines, sound effects and music you hear in the game. Press one to open it here.') }}</p>
+                <p class="mt-1 text-sm text-gray-600">{{ __('The voice lines and sound effects you hear in the game. Press one to open it here.') }}</p>
                 @foreach (config('tools.audio-cutter.samples') as $group => $samples)
                     <div class="ac-sample-group">
                         <p class="game-label">{{ __($group) }}</p>
