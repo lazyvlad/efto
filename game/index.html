@@ -156,6 +156,17 @@
                     <div class="spell-timer" id="spell-haste-potion-timer"></div>
                     <div class="spell-cooldown-overlay" id="spell-haste-potion-cooldown"></div>
                 </div>
+
+                <!-- The pet: how it fights, Defensive or Aggressive, switched with a press, a tap
+                     or its key (ui/petSlot.js) -->
+                <div class="spell-slot spell-pet" id="spell-pet" role="button" tabindex="-1">
+                    <div class="spell-icon">
+                        <img id="spell-pet-image" alt="Your pet" class="spell-image">
+                    </div>
+                    <div class="spell-key" data-key-of="pet_stance">P</div>
+                    <div class="spell-pet-mode" id="spell-pet-mode">Defensive</div>
+                    <div class="spell-pet-toast" id="spell-pet-toast" aria-live="polite"></div>
+                </div>
             </div>
             <div class="spell-group spell-group-shoot">
                 <div class="spell-slot" id="spell-autoshot">

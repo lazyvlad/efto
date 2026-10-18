@@ -361,3 +361,136 @@ body.hud-compact #spellBar .spell-key {
     text-shadow: 0 1px 2px #000, 0 0 3px #000;
     pointer-events: none;
 }
+
+/* ----- The pet's button (ui/petSlot.js): the pet, its key, and how it fights under it,
+   Defensive in blue, Aggressive in red. A switch lights it in its new colour for a moment and
+   says so above it (beside it on a phone). ----- */
+
+#spellBar .spell-pet {
+    overflow: visible;
+}
+
+#spellBar .spell-pet .spell-icon {
+    background: radial-gradient(circle, #2a2219, #0c0a08);
+}
+
+#spellBar .spell-pet .spell-image {
+    object-fit: contain;
+}
+
+.spell-pet-mode {
+    padding: 0 4px;
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 11px;
+    text-transform: uppercase;
+    color: #cfe3ff;
+    background: linear-gradient(180deg, #1f5fa8, #123a6b);
+    border: 1px solid #c9a94f;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+.spell-pet.is-aggressive .spell-pet-mode {
+    color: #ffe9c8;
+    background: linear-gradient(180deg, #b3231a, #6c0a06);
+}
+
+#spellBar .spell-pet.is-switched {
+    box-shadow: 0 0 0 1px #000, 0 0 16px #6fa8ff;
+}
+
+#spellBar .spell-pet.is-switched.is-aggressive {
+    box-shadow: 0 0 0 1px #000, 0 0 16px #ff8a5c;
+}
+
+.spell-pet-toast {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    padding: 3px 10px;
+    font-family: 'Marcellus', Georgia, serif;
+    font-size: 14px;
+    white-space: nowrap;
+    color: #cfe3ff;
+    background: linear-gradient(180deg, #1f5fa8, #123a6b);
+    border: 1px solid #c9a94f;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000, 0 0 14px #6fa8ff;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+}
+
+.spell-pet.is-aggressive .spell-pet-toast {
+    color: #ffe9c8;
+    background: linear-gradient(180deg, #b3231a, #6c0a06);
+    box-shadow: 0 0 0 1px #000, 0 0 14px #ff8a5c;
+}
+
+.spell-pet.is-switched .spell-pet-toast {
+    visibility: visible;
+    animation: spell-pet-toast 2s ease-out forwards;
+}
+
+@keyframes spell-pet-toast {
+    0% { opacity: 0; transform: translate(-50%, 6px); }
+    12% { opacity: 1; transform: translate(-50%, 0); }
+    75% { opacity: 1; transform: translate(-50%, -4px); }
+    100% { opacity: 0; transform: translate(-50%, -10px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spell-pet.is-switched .spell-pet-toast {
+        animation: none;
+        opacity: 1;
+    }
+}
+
+/* A phone: a round button like the others, its mode hanging under it, and the switch said
+   beside it, toward the middle of the field */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+    #spellBar#spellBar .spell-pet {
+        margin-bottom: 8px;
+    }
+
+    #spellBar#spellBar .spell-pet .spell-pet-mode {
+        display: block;
+        position: absolute;
+        left: 50%;
+        bottom: -9px;
+        transform: translateX(-50%);
+        font-size: 7px;
+    }
+
+    #spellBar#spellBar .spell-pet .spell-key {
+        display: none;
+    }
+
+    .spell-pet-toast {
+        left: auto;
+        right: calc(100% + 8px);
+        bottom: auto;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 13px;
+    }
+
+    body.hand-left .spell-pet-toast {
+        right: auto;
+        left: calc(100% + 8px);
+    }
+
+    .spell-pet.is-switched .spell-pet-toast {
+        animation-name: spell-pet-toast-side;
+    }
+
+    @keyframes spell-pet-toast-side {
+        0% { opacity: 0; transform: translateY(-50%); }
+        12% { opacity: 1; }
+        75% { opacity: 1; }
+        100% { opacity: 0; transform: translateY(-50%); }
+    }
+}

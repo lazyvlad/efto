@@ -32,6 +32,7 @@ import { bagCapacity, slotsUsed, addToBags, soldShort, setItemStacks, stowInBags
 import { MATERIALS, categoryOf } from './data/materials.js';
 import { wearables, wearableById, isKeptGear, gearCatalog } from './data/wearables.js';
 import { initializeInventory, openInventory, closeInventory, isInventoryOpen, refreshInventory } from './ui/inventory.js';
+import { refreshPetSlot } from './ui/petSlot.js';
 import { initializeCharacterSheet, refreshCharacterSheet, openCharacterSheet, closeCharacterSheet, isCharacterSheetOpen } from './ui/characterSheet.js';
 import { Pet } from './classes/Pet.js';
 import { playerCharacters, characterFor } from './data/playerCharacters.js';
@@ -674,7 +675,9 @@ function update(deltaTimeMultiplier, universalMultiplier) {
     // The pet keeps at the hunter's side and goes after an item now and then. After the items
     // and projectiles have moved, so it can see how fast each one is falling.
     if (player.pet) {
-        player.pet.update(player, fallingItems, fireballs, canvas, gameConfig.pet, creaturesAbout(), getSettings().gameplay?.petStance || 'defensive');
+        const petStance = getSettings().gameplay?.petStance || 'defensive';
+        player.pet.update(player, fallingItems, fireballs, canvas, gameConfig.pet, creaturesAbout(), petStance);
+        refreshPetSlot(player.pet.kind, petStance);
         
         // A creature it went for is bitten: a share of its health, and knocked back
         const mauled = player.pet.takeMauled();
@@ -3480,10 +3483,13 @@ function setupUIEventHandlers() {
         if (actionFor(event.code) !== 'pet_stance' || typing || event.repeat || event.ctrlKey || event.altKey || event.metaKey) return;
         if (gameState.currentScreen !== 'game' || !gameState.gameRunning) return;
         event.preventDefault();
-        const stance = (getSettings().gameplay?.petStance || 'defensive') === 'aggressive' ? 'defensive' : 'aggressive';
-        updateSetting('gameplay', 'petStance', stance);
-        const pet = player.pet?.kind?.name || 'Your pet';
-        addNotification(gameState, stance === 'aggressive' ? `${pet}: aggressive, it goes for the creatures` : `${pet}: defensive, it stays by him`, 180, '#ffd100');
+        switchPetStance();
+    });
+    // Its button on the spell bar: pressed or tapped (without the press moving the hunter)
+    document.getElementById('spell-pet')?.addEventListener('pointerdown', event => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (gameState.currentScreen === 'game' && gameState.gameRunning) switchPetStance();
     });
     const setPanelHeader = document.querySelector('#dragonstalkerProgressPanel .dragonstalker-panel-header');
     if (setPanelHeader) {
@@ -4948,6 +4954,14 @@ function refillQuiver() {
 // Each with its key and its slot on the spell bar: Health Potion (H) heals, Mana Potion (M)
 // slows time ("potions" in config/gameConfig.js)
 const POTION = 'health-potion';
+// The pet, defensive or aggressive, the other way round: its button on the spell bar says so
+// (ui/petSlot.js, drawn with the game)
+function switchPetStance() {
+    const stance = (getSettings().gameplay?.petStance || 'defensive') === 'aggressive' ? 'defensive' : 'aggressive';
+    updateSetting('gameplay', 'petStance', stance);
+    refreshPetSlot(player.pet?.kind, stance);
+}
+
 const POTIONS = [
     { id: 'health-potion', slot: 'spell-potion' },
     { id: 'mana-potion', slot: 'spell-mana-potion' },
