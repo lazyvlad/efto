@@ -1359,7 +1359,17 @@ function actAmbush(context) {
             nextPhase('back');
         }
     } else if (data.phase === 'back') {
-        if (s >= AMBUSH.back) nextPhase('home');
+        if (s >= AMBUSH.back) {
+            // The ambush spent, its shield goes with it: struck down as an Arcane Shot breaks it,
+            // the next one as far off (an ambush and a shield together were too much)
+            if (fight.shielded) {
+                fight.shielded = false;
+                fight.shieldIn = fight.stats.shieldEvery;
+                const box = hitBox(canvas);
+                if (box) context.combatTexts.push(new CombatText(fight.x, box.y + box.height * 0.5, 'Shield fades', '#D9A8FF', true));
+            }
+            nextPhase('home');
+        }
     } else {
         goHome(context, AMBUSH.home);
     }
