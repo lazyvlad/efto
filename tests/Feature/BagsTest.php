@@ -12,6 +12,14 @@ class BagsTest extends TestCase
 {
     use RefreshDatabase;
 
+    // The arithmetic of these tests is done on a backpack of sixteen slots, as it was when they
+    // were written: they are about how the bags work, not how big they are (BackpackTest)
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['loot.bags.backpack' => 16]);
+    }
+
     /**
      * Play a game of ten minutes (long enough for everything reported to be believed) and
      * hand it in.
@@ -316,7 +324,8 @@ class BagsTest extends TestCase
         $config = file_get_contents(base_path('game/config/gameConfig.js'));
         preg_match('/bags: \{\s*backpack: (\d+),[^\n]*\n\s*bagSlots: (\d+),[^\n]*\n\s*stack: (\d+),[^\n]*\n\s*fullPenalty: ([\d.]+)/', $config, $bags);
 
-        $this->assertSame((int) $bags[1], config('loot.bags.backpack'));
+        // The backpack as config/loot.php has it (setUp makes it sixteen for the other tests)
+        $this->assertSame((int) $bags[1], (require base_path('config/loot.php'))['bags']['backpack']);
         $this->assertSame((int) $bags[2], config('loot.bags.bag_slots'));
         $this->assertSame((int) $bags[3], config('loot.bags.stack'));
         $this->assertSame((float) $bags[4], config('loot.bags.full_penalty'));

@@ -17,6 +17,14 @@ class BagGearTest extends TestCase
 {
     use RefreshDatabase;
 
+    // The arithmetic of these tests is done on a backpack of sixteen slots, as it was when they
+    // were written: they are about how the bags work, not how big they are (BackpackTest)
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['loot.bags.backpack' => 16]);
+    }
+
     private function hunter(): User
     {
         $user = User::factory()->create();

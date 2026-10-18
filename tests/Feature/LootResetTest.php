@@ -58,7 +58,7 @@ class LootResetTest extends TestCase
         $this->assertSame([], Gear::quiverSides($user));
         $this->assertSame(1, BossLoot::unlockedZone($user, 'alliance'));
         $this->assertSame(0, $user->coins);
-        $this->assertSame(16, Bags::capacity($user));
+        $this->assertSame(config('loot.bags.backpack'), Bags::capacity($user), 'the backpack only, no bags bought');
         $this->assertSame([], Bags::bank($user, 'alliance'));
         $this->assertSame([], Bags::contents($user, 'alliance'));
         $this->assertNull($user->equipment);

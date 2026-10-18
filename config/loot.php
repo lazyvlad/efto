@@ -203,7 +203,7 @@ return [
     // caught is sold on the spot for less, and a material sold that way is not kept. Bags are
     // bought with coins and added to the backpack: size in slots => price in copper.
     'bags' => [
-        'backpack' => 16,
+        'backpack' => 24,
         'bag_slots' => 4,
         'stack' => 20,
         'full_penalty' => 0.1,

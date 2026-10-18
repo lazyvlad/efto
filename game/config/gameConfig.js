@@ -329,7 +329,7 @@ export const gameConfig = {
     // Everything caught goes into the bags (utils/bags.js). The site has the same numbers
     // ("bags" in config/loot.php) and the prices of the bags that can be bought.
     bags: {
-        backpack: 16,               // Slots everyone has
+        backpack: 24,               // Slots everyone has
         bagSlots: 4,                // Bags that can be added to the backpack
         stack: 20,                  // How many of one kind a slot holds
         fullPenalty: 0.1,           // With no room left, what is caught sells for this much less (0.1 = 90% of its worth)
