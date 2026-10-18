@@ -1,5 +1,20 @@
 # Changelog
 
+## 3.10.3 - 2026-10-18
+
+### Added
+- **The pet's button on the spell bar** (a round one on a phone): the pet, its key and its mode
+  under it, Defensive in blue or Aggressive in red; pressed, tapped or P switches it, and any
+  switch lights it and says so for two seconds.
+- **Stronger gear pointed out**: a green arrow on an equipped slot when something stronger
+  (item power) is owned for it and worn nowhere else.
+- **Rings and trinkets worn in the other slot** are marked "Worn in Ring 1" in a slot's list,
+  their button "Move here".
+- **What's new for 3.10.3**, published as the deploy runs.
+
+### Changed
+- **The Haste Potion's own painting** (an hourglass flask of gold) in place of the stand-in.
+
 ## 3.10.2 - 2026-10-18
 
 ### Changed

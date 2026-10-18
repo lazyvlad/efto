@@ -16,7 +16,7 @@
     "src": "game/assets/fonts/noto-sans-math.woff2"
   },
   "game/game-modular.js": {
-    "file": "assets/game-modular-BJXA6vST.js",
+    "file": "assets/game-modular-BVey8j-2.js",
     "name": "game-modular",
     "src": "game/game-modular.js",
     "isEntry": true,
@@ -25,7 +25,7 @@
     ]
   },
   "game/styles/game.css": {
-    "file": "assets/game-Cfn8J_Ko.css",
+    "file": "assets/game-B1Z_L5OR.css",
     "src": "game/styles/game.css",
     "isEntry": true,
     "name": "game",
