@@ -13,6 +13,7 @@ const defaultSettings = {
     },
     gameplay: {
         petStance: 'defensive',         // defensive: the pet fetches and bites what falls at him; aggressive: creatures first
+        fullBags: 'weakest',            // the bags full: 'weakest' sells a weaker material to keep a stronger one caught; 'keep' sells the one caught
     },
     ui: {
         handedness: 'right',            // right: move with the right hand, shoot with the left; left: the other way round

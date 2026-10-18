@@ -58,27 +58,37 @@ export function addToBags(bags, itemId, capacity, stack) {
 }
 
 /**
- * Make a slot for something kept (a material) when the bags are full: one slot's worth of junk
- * goes, the kind with the fewest in its last stack first, so the least is given up. Junk is
- * worth its coins as soon as it is caught, so nothing is lost by it.
+ * Make a slot for a material caught when the bags are full. First one slot's worth of junk
+ * goes, the kind with the fewest in its last stack, so the least is given up: junk is worth its
+ * coins as soon as it is caught, so nothing is lost by it. With no junk, and if "strength" is
+ * given (the player's choice: keep the stronger), a slot of a weaker material goes (one of a
+ * lower zone), the weakest first: that is sold short, as what does not fit is ("sold": true).
  * @param {Object} contents - { itemId: count }: changed
  * @param {Function} isJunk - (itemId) => whether it is only worth selling
- * @returns {{itemId: string, count: number}|null} What went, or null (it fits, or no junk)
+ * @param {Function|null} strength - (itemId) => how strong a material is (its zone), or null
+ *        to keep the materials there and let the one caught be the one sold
+ * @returns {{itemId: string, count: number, sold: boolean}|null} What went, or null
  */
-export function makeRoomFor(contents, itemId, capacity, stack, isJunk) {
+export function makeRoomFor(contents, itemId, capacity, stack, isJunk, strength = null) {
     if (fitsInBags(contents, itemId, capacity, stack)) return null;
-    let best = null;
-    for (const [other, count] of Object.entries(contents)) {
-        if (count <= 0 || other === itemId || !isJunk(other)) continue;
-        const size = stackOf(other, stack);
-        // What is in its last slot: taking that frees the slot
-        const last = count % size || size;
-        if (!best || last < best.count) best = { itemId: other, count: last };
-    }
-    if (!best) return null;
-    contents[best.itemId] -= best.count;
-    if (contents[best.itemId] <= 0) delete contents[best.itemId];
-    return best;
+    // What is in a kind's last slot: taking that frees the slot
+    const lastOf = other => contents[other] % stackOf(other, stack) || stackOf(other, stack);
+    const goes = (other, sold) => {
+        const count = lastOf(other);
+        contents[other] -= count;
+        if (contents[other] <= 0) delete contents[other];
+        return { itemId: other, count, sold };
+    };
+
+    const kinds = Object.keys(contents).filter(other => other !== itemId && contents[other] > 0);
+    const junk = kinds.filter(isJunk).sort((a, b) => lastOf(a) - lastOf(b));
+    if (junk.length) return goes(junk[0], false);
+
+    if (!strength) return null;
+    const mine = strength(itemId);
+    const weaker = kinds.filter(other => !isJunk(other) && strength(other) > 0 && strength(other) < mine)
+        .sort((a, b) => strength(a) - strength(b) || lastOf(a) - lastOf(b));
+    return weaker.length ? goes(weaker[0], true) : null;
 }
 
 // What something is sold for when there was no room for it, against its full worth

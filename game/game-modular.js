@@ -29,7 +29,7 @@ import { setById, piecesOf, ownedCount, setBonus, nextStep, bonusText } from './
 import { healthAtNewMax, armorReduction } from './utils/stats.js';
 import { SLOTS, validEquipment, equip, equipSet, mainSet, setsWorn, gearTotals, slotsFor, carriedOf, fitsCarried, inHis36 } from './utils/gear.js';
 import { bagCapacity, slotsUsed, addToBags, soldShort, setItemStacks, stowInBags, makeRoomFor } from './utils/bags.js';
-import { MATERIALS, categoryOf } from './data/materials.js';
+import { MATERIALS, categoryOf, materialZone } from './data/materials.js';
 import { wearables, wearableById, isKeptGear, gearCatalog } from './data/wearables.js';
 import { initializeInventory, openInventory, closeInventory, isInventoryOpen, refreshInventory } from './ui/inventory.js';
 import { refreshPetSlot } from './ui/petSlot.js';
@@ -213,7 +213,7 @@ let gameState = {
     carried: [], // The gear a player with an account takes into a game (item ids)
     setBonus: { health: 0, armor: 0, attackPower: 0, crit: 0, dodge: 0, carrying: 0, bossDamage: 0, multishot: 0, arcane: 0 }, // What everything being worn gives (gearTotals in utils/gear.js)
     gearUsed: null, // The strongest set worn in this game: { set, pieces, health, armor, attackPower }
-    bags: { contents: {}, overflow: {} }, // What the bags hold, and what did not fit: { itemId: count } each (utils/bags.js)
+    bags: { contents: {}, overflow: {}, pushed: {} }, // What the bags hold, what did not fit, and the weaker materials sold to make room: { itemId: count } each (utils/bags.js)
     bagCapacity: 16, // Slots in the bags: the backpack and the bags bought
     armor: 0, // Takes a share off every hit (utils/stats.js)
     attackPower: 0, // Each point adds one hundredth to an arrow's damage
@@ -4899,7 +4899,7 @@ function resetItemsListCache() {
 // catches. Then the quiver is topped up from the spare arrows.
 function emptyBags() {
     const kept = siteBoot && siteBoot.user ? sideOf(siteBoot.user.bagContents, gameState.faction || currentSide()) : {};
-    gameState.bags = { contents: { ...kept }, overflow: {} };
+    gameState.bags = { contents: { ...kept }, overflow: {}, pushed: {} };
     gameState.bagsAtStart = { ...kept };
     gameState.potionReadyAt = {};
     // Less the slots taken by the gear he keeps in them
@@ -5181,8 +5181,18 @@ function stowCatch(itemData) {
         return;
     }
     
-    // A material with the bags full pushes out a slot of junk (paid for already, when caught)
-    if (kind === 'material') makeRoomFor(gameState.bags.contents, itemData.id, gameState.bagCapacity, gameConfig.bags.stack, isJunkInBags);
+    // A material with the bags full pushes out a slot of junk (paid for already, when caught),
+    // or, as the player chooses (Settings, "Your bags"), a slot of a weaker material, sold short
+    if (kind === 'material') {
+        const strength = (getSettings().gameplay?.fullBags || 'weakest') === 'weakest' ? materialZone : null;
+        const went = makeRoomFor(gameState.bags.contents, itemData.id, gameState.bagCapacity, gameConfig.bags.stack, isJunkInBags, strength);
+        if (went && went.sold) {
+            gameState.bags.pushed[went.itemId] = (gameState.bags.pushed[went.itemId] || 0) + went.count;
+            const pushedItem = gameItems.find(item => item.id === went.itemId);
+            gameState.coins += went.count * soldShort(coinsForItem(pushedItem ? pushedItem.type : 'regular', gameConfig.coins), gameConfig.bags, gameState.setBonus.carrying);
+            if (player) combatTexts.push(new CombatText(player.x + player.width / 2, player.y - 18, `Sold ${went.count} ${pushedItem ? pushedItem.name : went.itemId} for room`, '#ffb37a', false));
+        }
+    }
     
     if (addToBags(gameState.bags, itemData.id, gameState.bagCapacity, gameConfig.bags.stack)) {
         // Carried: junk is as good as sold, a material is kept
@@ -5277,6 +5287,8 @@ function getGameSummary() {
         gear: noteGearUsed() || null,
         // How much of each thing caught did not fit in the bags and was sold short
         overflow: gameState.bags.overflow,
+        // The weaker materials sold short to make room for stronger ones caught
+        pushed: gameState.bags.pushed || {},
         // What was drunk or shot from the bags, and what was put in them (potions, arrows)
         ...bagChanges(),
         // Ratings as percentages with one decimal
@@ -5649,6 +5661,11 @@ function gameOverSummary() {
     if (lost.length > 0) {
         const named = lost.map(([itemId, count]) => `${count} ${gameItems.find(item => item.id === itemId)?.name || itemId}`).join(', ');
         notes.push({ text: `No room in your bags: ${named} sold for ${share}% instead of being kept. Move things to the bank or buy a bag before your next game.`, kind: 'warning' });
+    }
+    const pushed = Object.entries((gameState.bags && gameState.bags.pushed) || {}).filter(([, count]) => count > 0);
+    if (pushed.length > 0) {
+        const named = pushed.map(([itemId, count]) => `${count} ${gameItems.find(item => item.id === itemId)?.name || itemId}`).join(', ');
+        notes.push({ text: `To make room for stronger materials, sold for ${share}%: ${named}. (Settings, "Your bags", can keep them instead.)`, kind: 'warning' });
     }
     const short = Object.entries(overflow).filter(([itemId]) => !MATERIALS.has(itemId)).reduce((total, [, count]) => total + count, 0);
     if (short > 0) {

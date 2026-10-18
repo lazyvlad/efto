@@ -130,6 +130,7 @@ export function updateSettingsScreen() {
 
     setValue('handedness', settings.ui?.handedness || 'right');
     setValue('petStance', settings.gameplay?.petStance || 'defensive');
+    setValue('fullBags', settings.gameplay?.fullBags || 'weakest');
     setChecked('lockMouseToggle', settings.ui?.lockMouse !== false);
     setValue('playerPanelStyle', settings.ui?.playerPanelStyle || 'auto');
     setValue('dragonstalkerPanelStyle', settings.ui?.dragonstalkerPanelStyle || 'auto');
@@ -144,7 +145,7 @@ export function updateSettingsScreen() {
 // The choices of a few words, shown as joined buttons in place of their drop-down lists (which
 // cut their words short on a phone). The list stays, hidden, and keeps the value: a press sets
 // it and tells it changed, as picking from it would.
-const SWITCHED = ['petStance', 'handedness', 'playerPanelStyle', 'dragonstalkerPanelStyle'];
+const SWITCHED = ['petStance', 'fullBags', 'handedness', 'playerPanelStyle', 'dragonstalkerPanelStyle'];
 
 function switchOf(select) {
     let holder = select.nextElementSibling;
@@ -224,6 +225,7 @@ export function bindSettingsScreen() {
 
     bindSelect('handedness', 'ui', 'handedness', 'Handedness');
     bindSelect('petStance', 'gameplay', 'petStance', 'Your pet');
+    bindSelect('fullBags', 'gameplay', 'fullBags', 'Your bags');
     bindSelect('playerPanelStyle', 'ui', 'playerPanelStyle', 'Player panel style');
     bindSelect('dragonstalkerPanelStyle', 'ui', 'dragonstalkerPanelStyle', 'Dragonstalker panel style');
     bindRange('panelOpacity', 'panelOpacityValue', 'ui', 'panelOpacity');

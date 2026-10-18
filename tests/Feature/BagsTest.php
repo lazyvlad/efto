@@ -16,7 +16,7 @@ class BagsTest extends TestCase
      * Play a game of ten minutes (long enough for everything reported to be believed) and
      * hand it in.
      */
-    private function play(array $items, array $overflow = [], ?User $user = null)
+    private function play(array $items, array $overflow = [], ?User $user = null, array $pushed = [])
     {
         if ($user) {
             $this->actingAs($user);
@@ -26,7 +26,7 @@ class BagsTest extends TestCase
         $this->travel(600)->seconds();
 
         return $this->postJson(route('games.finish', $token), [
-            'score' => 500, 'gameTime' => 590, 'items' => $items, 'overflow' => $overflow,
+            'score' => 500, 'gameTime' => 590, 'items' => $items, 'overflow' => $overflow, 'pushed' => $pushed,
         ])->assertOk();
     }
 
@@ -323,5 +323,26 @@ class BagsTest extends TestCase
 
         preg_match_all("/'([a-z0-9-]+)'/", explode(']);', explode('new Set([', file_get_contents(base_path('game/data/materials.js')))[1])[0], $materials);
         $this->assertEqualsCanonicalizing(config('loot.materials'), $materials[1]);
+    }
+
+    public function test_a_weaker_material_sold_to_make_room_is_paid_short_and_leaves_the_bags(): void
+    {
+        $user = User::factory()->create();
+        // Every slot taken: fifteen of runecloth (zone 9), one of fadeleaf (zone 6)
+        $user->forceFill(['bag_contents' => ['runecloth' => 15 * 20, 'fadeleaf' => 20]])->save();
+
+        // Kingsblood (zone 8) caught: the fadeleaf made room, sold short; the kingsblood is kept
+        $response = $this->play(['kingsblood' => 1], [], $user, ['fadeleaf' => 20]);
+        $response->assertJsonPath('materials.kept.kingsblood', 1);
+        $this->assertSame(['runecloth' => 300, 'kingsblood' => 1], Bags::contents($user->fresh(), 'alliance'));
+        $fadeleaf = config('loot.coins.'.\App\Support\LootTable::typeOf('fadeleaf'));
+        $this->assertSame(20 * Bags::soldShort($fadeleaf), $response->json('coins.earned'));
+
+        // More said to be sold than was there: only what was there is paid
+        $before = $user->fresh()->coins;
+        $this->play([], [], $user, ['runecloth' => 5000]);
+        $this->assertSame([], Bags::contents($user->fresh(), 'alliance')['runecloth'] ?? []);
+        $runecloth = config('loot.coins.'.\App\Support\LootTable::typeOf('runecloth'));
+        $this->assertSame($before + 300 * Bags::soldShort($runecloth), $user->fresh()->coins);
     }
 }

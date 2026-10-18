@@ -323,6 +323,9 @@ class GameRecordController extends Controller
             // How much of each thing caught did not fit in the bags
             'overflow' => ['nullable', 'array', 'max:200'],
             'overflow.*' => ['integer', 'min:0', 'max:100000'],
+            // Weaker materials sold short to make room for stronger ones caught
+            'pushed' => ['nullable', 'array', 'max:200'],
+            'pushed.*' => ['integer', 'min:0', 'max:100000'],
             // What was drunk from the bags in the game (potions: config/crafting.php)
             'used' => ['nullable', 'array', 'max:20'],
             'used.*' => ['integer', 'min:0', 'max:10000'],
@@ -449,7 +452,7 @@ class GameRecordController extends Controller
         // What was only worth selling is sold; the crafting materials stay in the bags, and
         // what was drunk from them is gone. What did not fit in the bags was sold short, a
         // material with it (App\Support\Bags).
-        $settled = Bags::settle($game, $items, $data['overflow'] ?? []);
+        $settled = Bags::settle($game, $items, $data['overflow'] ?? [], $data['pushed'] ?? []);
         $coins = $settled['coins'];
         $game->update(['coins' => $coins, 'materials' => $settled['materials'] ?: null]);
         if ($game->user_id !== null) {
@@ -458,7 +461,7 @@ class GameRecordController extends Controller
             }
             $kept = fn ($list) => array_filter($list ?? [], fn ($count, $itemId) => Bags::keepable((string) $itemId), ARRAY_FILTER_USE_BOTH);
             $stored = array_intersect_key($kept($data['stored'] ?? []), config('crafting.stored_per_minute', []));
-            Bags::afterGame($game->user()->first(), $game->faction ?: 'alliance', $settled['materials'], $kept($data['used'] ?? []), $stored, (int) $game->game_time);
+            Bags::afterGame($game->user()->first(), $game->faction ?: 'alliance', $settled['materials'], $kept($data['used'] ?? []), $stored, (int) $game->game_time, $settled['pushed']);
             // The gear he caught goes with him, while there is room in his 36
             Gear::carryCaught($game->user()->first(), $game->faction ?: 'alliance', $game->pickups()->pluck('item_id')->all());
         }

@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 // Loaded through data: URLs, as in gameClock.test.mjs
 const load = async file => import(`data:text/javascript;base64,${(await readFile(new URL(file, import.meta.url))).toString('base64')}`);
 const { bagCapacity, slotsUsed, fitsInBags, addToBags, soldShort, stacksOf, makeRoomFor } = await load('../utils/bags.js');
-const { MATERIALS, categoryOf } = await load('../data/materials.js');
+const { MATERIALS, categoryOf, MATERIAL_ZONE, materialZone } = await load('../data/materials.js');
 
 const rules = { backpack: 16, bagSlots: 4, stack: 20, fullPenalty: 0.1 };
 
@@ -79,7 +79,7 @@ test('a material caught with the bags full pushes out a slot of junk, the least 
     const junk = id => id.startsWith('junk');
     // Two slots, both taken: junk-a fills one (20), junk-b has 3 in the other
     const contents = { 'junk-a': 20, 'junk-b': 3 };
-    assert.deepEqual(makeRoomFor(contents, 'peacebloom', 2, 20, junk), { itemId: 'junk-b', count: 3 });
+    assert.deepEqual(makeRoomFor(contents, 'peacebloom', 2, 20, junk), { itemId: 'junk-b', count: 3, sold: false });
     assert.deepEqual(contents, { 'junk-a': 20 });
     // Room already: nothing goes
     assert.equal(makeRoomFor(contents, 'peacebloom', 2, 20, junk), null);
@@ -89,4 +89,29 @@ test('a material caught with the bags full pushes out a slot of junk, the least 
     assert.deepEqual(kept, { peacebloom: 20, silverleaf: 20 });
     // A stack of the same kind with room: it fits, nothing goes
     assert.equal(makeRoomFor({ peacebloom: 5, 'junk-a': 20 }, 'peacebloom', 2, 20, junk), null);
+});
+
+test('with no junk, a stronger material pushes out the weakest, if the player chose so', () => {
+    const junk = id => id.startsWith('junk');
+    const zone = { linen: 1, peacebloom: 1, wool: 2, runecloth: 9 };
+    const strength = id => zone[id] || 0;
+    // Full of zone 1 and zone 9 materials; wool (zone 2) caught
+    const contents = { linen: 20, peacebloom: 7, runecloth: 20 };
+    assert.deepEqual(makeRoomFor(contents, 'wool', 3, 20, junk, strength), { itemId: 'peacebloom', count: 7, sold: true });
+    assert.deepEqual(contents, { linen: 20, runecloth: 20 });
+    // Junk still goes first, and is not sold (paid already)
+    const withJunk = { linen: 20, 'junk-a': 4 };
+    assert.deepEqual(makeRoomFor(withJunk, 'wool', 2, 20, junk, strength), { itemId: 'junk-a', count: 4, sold: false });
+    // Nothing weaker (same zone or stronger): nothing goes, the one caught is sold
+    assert.equal(makeRoomFor({ peacebloom: 20, runecloth: 20 }, 'linen', 2, 20, junk, strength), null);
+    // "Keep what's in them": no strength given, nothing goes
+    assert.equal(makeRoomFor({ linen: 20 }, 'runecloth', 1, 20, junk, null), null);
+});
+
+test('every material placed in a zone is a material, and each has one', () => {
+    for (const [id, zone] of Object.entries(MATERIAL_ZONE)) {
+        assert.ok(MATERIALS.has(id), id);
+        assert.ok(zone >= 1 && zone <= 10, id);
+    }
+    for (const id of MATERIALS) assert.ok(materialZone(id) > 0, `${id} has a zone`);
 });

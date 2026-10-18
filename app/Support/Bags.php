@@ -110,10 +110,13 @@ class Bags
      *
      * @param  array<string, int>  $items  What the game says was caught: [itemId => count]
      * @param  array<string, int>  $overflow  How much of it did not fit in the bags
-     * @return array{coins: int, materials: array<string, int>}  The coins it pays, and the
-     *                                                           materials brought back
+     * @param  array<string, int>  $pushed  The weaker materials sold short to make room for
+     *                                      stronger ones caught (the game's makeRoomFor), from
+     *                                      the bags as they were or from what was caught
+     * @return array{coins: int, materials: array<string, int>, pushed: array<string, int>}
+     *         The coins it pays, the materials brought back, and those sold to make room
      */
-    public static function settle(Game $game, array $items, array $overflow = []): array
+    public static function settle(Game $game, array $items, array $overflow = [], array $pushed = []): array
     {
         $values = config('loot.coins');
         $materials = config('loot.materials');
@@ -163,7 +166,24 @@ class Bags
         // makeRoomFor, game/utils/bags.js), so junk carried may have been more than fitted.
         $stored = self::contents($game->user, $game->faction ?: 'alliance');
         $keptCarried = array_filter($carried, fn (int $count, string $itemId) => $count > 0 && in_array($itemId, $materials, true), ARRAY_FILTER_USE_BOTH);
-        if (self::slotsUsed(self::plus($stored, $keptCarried)) > self::capacity($game->user, $game->faction ?: 'alliance')) {
+        // Weaker materials sold to make room: only materials, and never more than the bags held
+        // of them and the game brought in
+        $sold = [];
+        foreach ($pushed as $itemId => $count) {
+            $itemId = (string) $itemId;
+            if (in_array($itemId, $materials, true)) {
+                $most = ($stored[$itemId] ?? 0) + ($keptCarried[$itemId] ?? 0);
+                $count = min(max(0, (int) $count), $most);
+                if ($count > 0) {
+                    $sold[$itemId] = $count;
+                }
+            }
+        }
+        $after = self::plus($stored, $keptCarried);
+        foreach ($sold as $itemId => $count) {
+            $after[$itemId] -= $count;
+        }
+        if (self::slotsUsed(array_filter($after)) > self::capacity($game->user, $game->faction ?: 'alliance')) {
             $short = array_map(fn (int $count, string $itemId) => $count + $short[$itemId], $carried, array_keys($carried));
             $short = array_combine(array_keys($carried), $short);
             $carried = array_map(fn () => 0, $carried);
@@ -195,11 +215,15 @@ class Bags
             }
         }
 
+        foreach ($sold as $itemId => $count) {
+            $coins += $count * self::soldShort($values[LootTable::typeOf($itemId)] ?? 0, $carrying);
+        }
+
         foreach ($game->bossDrops()->pluck('boss_id') as $bossId) {
             $coins += (BossLoot::boss($bossId)['zone'] ?? 0) * config('loot.boss_coins_per_zone');
         }
 
-        return ['coins' => $coins, 'materials' => $kept];
+        return ['coins' => $coins, 'materials' => $kept, 'pushed' => $sold];
     }
 
     /**
@@ -282,7 +306,7 @@ class Bags
      * @param  array<string, int>  $used
      * @param  array<string, int>  $stored
      */
-    public static function afterGame(User $user, string $side, array $kept, array $used = [], array $stored = [], int $gameSeconds = 0): void
+    public static function afterGame(User $user, string $side, array $kept, array $used = [], array $stored = [], int $gameSeconds = 0, array $pushed = []): void
     {
         $before = self::contents($user, $side);
         $contents = $before;
@@ -292,6 +316,13 @@ class Bags
             }
         }
         $contents = self::plus(array_filter($contents), $kept);
+        // The weaker materials sold to make room (settle has checked how many)
+        foreach ($pushed as $itemId => $count) {
+            if (isset($contents[$itemId])) {
+                $contents[$itemId] -= min($contents[$itemId], max(0, (int) $count));
+            }
+        }
+        $contents = array_filter($contents);
 
         $perMinute = config('crafting.stored_per_minute', []);
         foreach ($stored as $itemId => $count) {
