@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.10.6 - 2026-10-18
+
+### Changed
+- **An ambushing boss's shield fades as its ambush ends** (VanCleef and the big cats), the next as
+  far off as after an Arcane Shot.
+- **The mana potion's endless arrows last 4 seconds in a boss fight** (10 elsewhere).
+- **The end of a game offers to empty the bags into the bank** in one press.
+- **What's new for 3.10.6**, published as the deploy runs.
+
 ## 3.10.5 - 2026-10-18
 
 ### Changed
