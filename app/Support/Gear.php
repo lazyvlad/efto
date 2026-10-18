@@ -346,8 +346,8 @@ class Gear
     /**
      * Each zone's own gear, by item: its entry in config/gear.php "zone_items", with the side
      * and zone (1 is the first) whose creatures carry it, and that zone's name. Gear both sides'
-     * zones carry (the early armor sets) has both: "sides", "zoneNames" by side, and a
-     * "zoneName" naming the two ("Northshire Abbey or Valley of Trials").
+     * zones carry (the early armor sets, "zone_armor") has both: "sides", "zoneNames" by side,
+     * and a "zoneName" naming the two ("Northshire Abbey or Valley of Trials").
      *
      * @return array<string, array>
      */
@@ -367,6 +367,13 @@ class Gear
                     }
                     $items[$itemId] = $item + ['side' => $side, 'sides' => [$side], 'zone' => (int) $zone, 'zoneName' => $name, 'zoneNames' => [$side => $name]];
                 }
+            }
+        }
+        // The early zones' armor sets: both sides' (config/gear.php "zone_armor")
+        foreach (config('gear.zone_armor', []) as $zone => $pool) {
+            $names = array_combine(self::SIDES, array_map(fn ($side) => self::zoneName($side, (int) $zone), self::SIDES));
+            foreach ($pool as $itemId => $item) {
+                $items[$itemId] = $item + ['side' => self::SIDES[0], 'sides' => self::SIDES, 'zone' => (int) $zone, 'zoneName' => implode(' or ', $names), 'zoneNames' => $names];
             }
         }
 

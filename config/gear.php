@@ -27,9 +27,8 @@
 */
 
 // Trailhide: the first zone's armor, eight pieces, a green and a rarer blue of each (the blue the
-// same painting, stronger), worn by both hunters and carried by both sides' first zones (their
-// creatures, the sky and their bosses' extra drops). Stats by the item levels' points
-// (Gear::statsFor: armor 60%, health 40%); the hand pieces half attack power, half armor.
+// same painting, stronger), worn by both hunters ("zone_armor" below). Stats by the item levels'
+// points (Gear::statsFor: armor 60%, health 40%); the hand pieces half attack power, half armor.
 $trailhide = [
     'trailhide-hood' => ['name' => 'Trailhide Hood', 'slot' => 'head', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['armor' => 3, 'health' => 2], 'value' => 25],
     'trailhide-hood-rare' => ['name' => 'Fine Trailhide Hood', 'slot' => 'head', 'rarity' => 'rare', 'item_level' => 15, 'stats' => ['armor' => 5, 'health' => 3], 'value' => 75],
@@ -203,10 +202,16 @@ return [
             10 => 'Gadgetzan, Tanaris',
         ],
     ],
+    // Each early zone's armor set, both sides' alike: dropped only by the zone's bosses as their
+    // extra drops (config/boss_loot.php "extras"), beside the zone's own gear. Not carried by its
+    // creatures nor falling from its sky, so the zone's other gear drops as often as it did.
+    'zone_armor' => [
+        1 => $trailhide,
+    ],
+
     'zone_items' => [
         'alliance' => [
             1 => [ // Northshire Abbey
-                ...$trailhide,
                 'abbey-copper-band' => ['name' => 'Abbey Copper Band', 'slot' => 'ring', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['attackPower' => 1, 'health' => 2], 'value' => 25],
                 'vinekeepers-prayer-charm' => ['name' => 'Vinekeeper’s Prayer Charm', 'slot' => 'neck', 'rarity' => 'rare', 'item_level' => 15, 'stats' => ['health' => 4, 'attackPower' => 1], 'value' => 75],
                 'vintners-field-compass' => ['name' => 'Vintner’s Field Compass', 'slot' => 'trinket', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['attackPower' => 1, 'health' => 1, 'carrying' => 1], 'value' => 25],
@@ -255,7 +260,6 @@ return [
         ],
         'horde' => [
             1 => [ // Valley of Trials
-                ...$trailhide,
                 'durotar-copper-loop' => ['name' => 'Durotar Copper Loop', 'slot' => 'ring', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['armor' => 2, 'health' => 2], 'value' => 25],
                 'trialkeepers-bone-charm' => ['name' => 'Trialkeeper’s Bone Charm', 'slot' => 'neck', 'rarity' => 'rare', 'item_level' => 15, 'stats' => ['health' => 4, 'attackPower' => 1], 'value' => 75],
                 'boarhide-water-flask' => ['name' => 'Boarhide Water Flask', 'slot' => 'trinket', 'rarity' => 'uncommon', 'item_level' => 10, 'stats' => ['attackPower' => 1, 'health' => 1, 'carrying' => 1], 'value' => 25],

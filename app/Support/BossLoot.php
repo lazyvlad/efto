@@ -136,8 +136,10 @@ class BossLoot
         }
 
         $catalog = Gear::catalog();
-        $zoneItems = array_filter(config("gear.zone_items.{$boss['faction']}.{$boss['zone']}", []),
-            fn ($item, $id) => isset($catalog[$id]) && $id !== $itemId, ARRAY_FILTER_USE_BOTH);
+        // The zone's own gear, and its armor set (config/gear.php "zone_armor"), which only these
+        // extra drops hand out
+        $pool = config("gear.zone_items.{$boss['faction']}.{$boss['zone']}", []) + config("gear.zone_armor.{$boss['zone']}", []);
+        $zoneItems = array_filter($pool, fn ($item, $id) => isset($catalog[$id]) && $id !== $itemId, ARRAY_FILTER_USE_BOTH);
         $owned = $user ? Gear::owned($user, $boss['faction']) : [];
         $chances = config('boss_loot.extras.chances');
 

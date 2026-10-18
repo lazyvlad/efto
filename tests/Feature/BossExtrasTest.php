@@ -36,7 +36,8 @@ class BossExtrasTest extends TestCase
             foreach ($bosses as $zone => $bossId) {
                 $drop = $this->kill(User::factory()->create(), $bossId);
                 $this->assertCount(2, $drop['extras'], $bossId);
-                $zoneItems = config("gear.zone_items.$side.".($zone + 1));
+                // Its zone's own gear, and its armor set (zone_armor), which only these give
+                $zoneItems = config("gear.zone_items.$side.".($zone + 1)) + config('gear.zone_armor.'.($zone + 1), []);
                 foreach ($drop['extras'] as $extra) {
                     $this->assertArrayHasKey($extra['id'], $zoneItems, "$bossId: its zone's");
                     $this->assertContains($extra['rarity'], ['uncommon', 'rare']);
@@ -51,7 +52,7 @@ class BossExtrasTest extends TestCase
     public function test_they_are_his_hunter_s_pieces_he_lacked_first_and_never_offered_again(): void
     {
         $user = User::factory()->create();
-        $zoneItems = array_keys(config('gear.zone_items.alliance.1'));
+        $zoneItems = array_keys(config('gear.zone_items.alliance.1') + config('gear.zone_armor.1'));
         // Kill after kill: a piece he had only once he lacked none the boss could give
         for ($i = 0; $i < 3; $i++) {
             $before = Gear::owned($user->fresh(), 'alliance');

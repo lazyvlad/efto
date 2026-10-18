@@ -24,10 +24,8 @@ class ZoneItemsTest extends TestCase
         $catalog = Gear::catalog();
         foreach (['alliance', 'horde'] as $side) {
             $pool = config("gear.zone_items.$side.1");
-            // Its five, and the Trailhide armor both first zones carry: eight pieces, green and blue
-            $own = array_filter(array_keys($pool), fn ($itemId) => ! str_starts_with($itemId, 'trailhide-'));
-            $this->assertCount(5, $own);
-            $this->assertCount(21, $pool);
+            // Its five, and nothing else: its armor set drops only from its bosses (zone_armor)
+            $this->assertCount(5, $pool);
             foreach (array_keys($pool) as $itemId) {
                 $this->assertArrayHasKey($itemId, $catalog);
                 $this->assertArrayNotHasKey('side', $catalog[$itemId], 'either hunter can wear it');
@@ -91,7 +89,26 @@ class ZoneItemsTest extends TestCase
         $this->assertArrayNotHasKey($drop->item_id, Gear::owned($user, 'horde'), 'the Horde hunter did not');
     }
 
-    public function test_trailhide_is_carried_by_both_first_zones_and_named_after_both(): void
+    public function test_trailhide_drops_only_as_the_first_bosses_extra_drops(): void
+    {
+        $armor = array_keys(config('gear.zone_armor.1'));
+        $this->assertCount(16, $armor);
+        foreach (['alliance', 'horde'] as $side) {
+            // Not among what its creatures carry or its sky drops
+            $this->assertEmpty(array_intersect($armor, array_keys(config("gear.zone_items.$side.1"))));
+            // Among the boss's extras, for either side: in 40 kills, some of it
+            $seen = [];
+            for ($i = 0; $i < 40; $i++) {
+                foreach (\App\Support\BossLoot::rollExtras(null, ['faction' => $side, 'zone' => 1], Game::NORMAL, 'none') as $itemId) {
+                    $seen[$itemId] = true;
+                }
+            }
+            $this->assertNotEmpty(array_intersect($armor, array_keys($seen)), $side);
+            $this->assertEmpty(array_diff(array_keys($seen), array_merge($armor, array_keys(config("gear.zone_items.$side.1")))));
+        }
+    }
+
+    public function test_trailhide_is_both_first_zones_and_named_after_both(): void
     {
         $zoneItems = Gear::zoneItems();
         $hood = $zoneItems['trailhide-hood-rare'];
