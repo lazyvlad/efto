@@ -1,5 +1,23 @@
 # Changelog
 
+## 3.10.1 - 2026-10-18
+
+### Changed
+- **One bar for every window**: Back always top left, Close always top right, the same size on
+  every screen; under Back where it goes. Character, Bags, Gear and Crafting are tabs of one
+  window, and Back goes to where it was opened from on any of them (into the game, when opened
+  in play). How to play, Loot, High scores and Settings have the same bar, over a part that
+  scrolls.
+- **On a phone**: the slim panels held upright too; every window, the pause screen and the end
+  of a game fill the screen; held sideways the pause screen is two columns and the tabs go into
+  the bar. Settings uses joined buttons, not drop-downs; keyboard-only settings and help are
+  hidden on a touch screen. Crafting rows and the character sheet fit.
+- **What's new for 3.10.1**, published as the deploy runs.
+
+### Fixed
+- **The Haste Potion** has a potion's picture (a stand-in until its painting is done).
+- **The end of a game**: the hunter no longer covers the line under the title.
+
 ## 3.10.0 - 2026-10-17
 
 ### Added

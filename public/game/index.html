@@ -52,24 +52,24 @@
     <link rel="preload" href="assets/fonts/marcellus-latin.woff2" as="font" type="font/woff2" crossorigin>
     
     <!-- CSS Files -->
-    <link rel="stylesheet" href="styles/base.css?v=3.10.0">
-    <link rel="stylesheet" href="styles/ui-components.css?v=3.10.0">
-    <link rel="stylesheet" href="styles/settings.css?v=3.10.0">
-    <link rel="stylesheet" href="styles/notifications.css?v=3.10.0">
-    <link rel="stylesheet" href="styles/game-panels.css?v=3.10.0">
-    <link rel="stylesheet" href="styles/spell-bar.css?v=3.10.0">
-    <link rel="stylesheet" href="styles/how-to-play.css?v=3.10.0">
-    <link rel="stylesheet" href="styles/mobile.css?v=3.10.0">
-    <link rel="stylesheet" href="styles/wow-theme.css?v=3.10.0">
-    <link rel="stylesheet" href="styles/game-window.css?v=3.10.0">
-    <link rel="stylesheet" href="styles/character-sheet.css?v=3.10.0">
-    <link rel="stylesheet" href="styles/inventory.css?v=3.10.0">
-    <link rel="stylesheet" href="styles/screens.css?v=3.10.0">
+    <link rel="stylesheet" href="styles/base.css?v=3.10.1">
+    <link rel="stylesheet" href="styles/ui-components.css?v=3.10.1">
+    <link rel="stylesheet" href="styles/settings.css?v=3.10.1">
+    <link rel="stylesheet" href="styles/notifications.css?v=3.10.1">
+    <link rel="stylesheet" href="styles/game-panels.css?v=3.10.1">
+    <link rel="stylesheet" href="styles/spell-bar.css?v=3.10.1">
+    <link rel="stylesheet" href="styles/how-to-play.css?v=3.10.1">
+    <link rel="stylesheet" href="styles/mobile.css?v=3.10.1">
+    <link rel="stylesheet" href="styles/wow-theme.css?v=3.10.1">
+    <link rel="stylesheet" href="styles/game-window.css?v=3.10.1">
+    <link rel="stylesheet" href="styles/character-sheet.css?v=3.10.1">
+    <link rel="stylesheet" href="styles/inventory.css?v=3.10.1">
+    <link rel="stylesheet" href="styles/screens.css?v=3.10.1">
     <!-- The in-game panels, slim (ui/hudPanels.js): last, over the per-device rules -->
-    <link rel="stylesheet" href="styles/hud.css?v=3.10.0">
-    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=3.10.0"> -->
+    <link rel="stylesheet" href="styles/hud.css?v=3.10.1">
+    <!-- <link rel="stylesheet" href="styles/mobile-fixed.css?v=3.10.1"> -->
   <!-- Built: 2025-06-30T11:09:51.498Z | Mode: Production -->
-  <!-- Built: 2026-10-17T18:02:08.599Z | Version: 3.10.0 | Mode: Production -->
+  <!-- Built: 2026-10-18T00:18:38.611Z | Version: 3.10.1 | Mode: Production -->
 </head>
 <body>
     <!-- The background: two layers that fade from one picture to the next (backgroundSystem.js) -->
@@ -149,7 +149,7 @@
                 <!-- A Haste Potion from the bags: Haste for a while (hidden while there are none) -->
                 <div class="spell-slot spell-potion" id="spell-haste-potion" role="button" tabindex="-1" hidden>
                     <div class="spell-icon">
-                        <img src="assets/powerups/speed-boost.png" alt="Haste Potion" class="spell-image">
+                        <img src="assets/powerups/haste-potion.webp" alt="Haste Potion" class="spell-image">
                     </div>
                     <div class="spell-key" data-key-of="haste_potion">J</div>
                     <div class="spell-name">Haste</div>
@@ -199,24 +199,31 @@
          the starting window or over the paused game. -->
     <div id="characterSheet" class="character-sheet-layer" hidden>
         <div class="character-sheet game-window" role="dialog" aria-modal="true" aria-labelledby="sheetName">
-            <header class="sheet-heading">
-                <img class="window-logo" src="assets/ui/input-logo.webp" alt="" width="1200" height="891">
-                <div class="sheet-who">
+            <!-- The bar every window has (game-window.css): Back top left, Close top right, the
+                 hunter's four tabs under it. Character is this sheet; the others, the inventory. -->
+            <header class="window-bar">
+                <button type="button" id="characterSheetClose" class="game-btn window-bar-back" title="Back to where you were"><span>&lsaquo; Back</span><span id="sheetBackWhere" class="window-bar-where"></span></button>
+                <div class="window-bar-who">
                     <p id="sheetSubtitle" class="window-label side-label"></p>
                     <h2 id="sheetName">Hunter</h2>
                 </div>
-                <div class="sheet-heading-buttons">
-                    <!-- Which character is shown, before a game; in a game it is the one being played -->
-                    <div class="joined-buttons" id="sheetSides" role="group" aria-label="Character shown">
-                        <button type="button" class="game-btn sheet-side-btn" data-side="alliance">Alliance</button>
-                        <button type="button" class="game-btn sheet-side-btn" data-side="horde">Horde</button>
-                    </div>
-                    <button type="button" id="sheetInventory" class="game-btn">Inventory</button>
-                    <!-- Back: to where it was opened from. Close: everything, and on with the game -->
-                    <button type="button" id="characterSheetClose" class="game-btn" title="Back to where you were">Back</button>
-                    <button type="button" id="characterSheetCloseAll" class="game-btn" title="Close and carry on">Close</button>
-                </div>
+                <button type="button" id="characterSheetCloseAll" class="game-btn window-bar-close" title="Close and carry on">Close &times;</button>
+                <nav class="joined-buttons window-bar-tabs" role="tablist" aria-label="Your hunter">
+                    <button type="button" class="game-btn is-on" data-hunter-tab="character" role="tab" aria-selected="true">Character</button>
+                    <button type="button" class="game-btn" data-hunter-tab="bags" role="tab" aria-selected="false">Bags</button>
+                    <button type="button" class="game-btn" data-hunter-tab="gear" role="tab" aria-selected="false">Gear</button>
+                    <button type="button" class="game-btn" data-hunter-tab="crafting" role="tab" aria-selected="false">Crafting</button>
+                </nav>
             </header>
+            <div class="window-strip">
+                <!-- Which character is shown, before a game; in a game it is the one being played -->
+                <div class="joined-buttons" id="sheetSides" role="group" aria-label="Character shown">
+                    <button type="button" class="game-btn sheet-side-btn" data-side="alliance">Alliance</button>
+                    <button type="button" class="game-btn sheet-side-btn" data-side="horde">Horde</button>
+                </div>
+                <span id="sheetPlaying" class="window-strip-note" hidden>In a game: the hunter you play</span>
+                <span id="sheetPurse" class="inventory-purse window-purse" hidden></span>
+            </div>
 
             <div class="sheet-body">
                 <!-- The hunter in the place he is in, with his slots around him: eight left,
@@ -268,30 +275,31 @@
          owned (ui/inventory.js). It opens over the starting window or the paused game. -->
     <div id="inventory" class="character-sheet-layer inventory-layer" hidden>
         <div class="inventory game-window" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle">
-            <header class="inventory-top">
-                <img class="window-logo" src="assets/ui/input-logo.webp" alt="" width="1200" height="891">
+            <!-- The same bar as the character sheet's: its Character tab goes back to the sheet -->
+            <header class="window-bar">
+                <button type="button" id="inventoryClose" class="game-btn window-bar-back" title="Back to where you were"><span>&lsaquo; Back</span><span id="inventoryBackWhere" class="window-bar-where"></span></button>
                 <!-- Whose it is: each hunter has his own bags, bank and gear -->
-                <div class="inventory-who">
+                <div class="window-bar-who">
                     <p id="inventorySubtitle" class="window-label side-label"></p>
                     <h2 id="inventoryTitle">Inventory</h2>
                 </div>
-                <nav class="joined-buttons inventory-tabs" role="tablist" aria-label="Inventory">
+                <button type="button" id="inventoryCloseAll" class="game-btn window-bar-close" title="Close and carry on">Close &times;</button>
+                <nav class="joined-buttons window-bar-tabs inventory-tabs" role="tablist" aria-label="Your hunter">
+                    <button type="button" id="inventoryCharacter" class="game-btn" data-hunter-tab="character" role="tab" aria-selected="false">Character</button>
                     <button type="button" class="game-btn inventory-tab" data-tab="bags" role="tab">Bags</button>
                     <button type="button" class="game-btn inventory-tab" data-tab="gear" role="tab">Gear</button>
                     <button type="button" class="game-btn inventory-tab" data-tab="crafting" role="tab">Crafting</button>
                 </nav>
-                <div class="inventory-top-side">
-                    <!-- Which hunter's, before a game; in a game it is the one being played -->
-                    <div class="joined-buttons" id="inventorySides" role="group" aria-label="Hunter shown">
-                        <button type="button" class="game-btn inventory-side-btn" data-side="alliance">Alliance</button>
-                        <button type="button" class="game-btn inventory-side-btn" data-side="horde">Horde</button>
-                    </div>
-                    <span id="inventoryPurse" class="inventory-purse" hidden></span>
-                    <button type="button" id="inventoryCharacter" class="game-btn">Character</button>
-                    <button type="button" id="inventoryClose" class="game-btn" title="Back to where you were">Back</button>
-                    <button type="button" id="inventoryCloseAll" class="game-btn" title="Close and carry on">Close</button>
-                </div>
             </header>
+            <div class="window-strip">
+                <!-- Which hunter's, before a game; in a game it is the one being played -->
+                <div class="joined-buttons" id="inventorySides" role="group" aria-label="Hunter shown">
+                    <button type="button" class="game-btn inventory-side-btn" data-side="alliance">Alliance</button>
+                    <button type="button" class="game-btn inventory-side-btn" data-side="horde">Horde</button>
+                </div>
+                <span id="inventoryPlaying" class="window-strip-note" hidden>In a game: the hunter you play</span>
+                <span id="inventoryPurse" class="inventory-purse window-purse" hidden></span>
+            </div>
             <div class="inventory-body" id="inventoryBody"></div>
         </div>
     </div>
@@ -568,11 +576,11 @@
 
                 <div class="guide-section">
                     <h3>Controls</h3>
-                    <p><strong>Desktop:</strong> Mouse to move your character</p>
+                    <p class="desktop-only"><strong>Desktop:</strong> Mouse to move your character</p>
                     <p><strong>Mobile:</strong> Touch screen to move your character</p>
                     <p><strong>Your pet:</strong> every 20 seconds it fetches one item you were not going to reach, and in between it bites harmful projectiles out of the air. Set to aggressive (on the character sheet, in Settings, or with <span data-key-of="pet_stance">P</span> in a game) it goes for the creatures first</p>
-                    <p><strong>ESC:</strong> Pause game. While you play the mouse is kept inside the game; Esc lets it go (this can be turned off in Settings)</p>
-                    <p><strong><span data-key-of="settings">S</span>:</strong> Open/close settings</p>
+                    <p class="desktop-only"><strong>ESC:</strong> Pause game. While you play the mouse is kept inside the game; Esc lets it go (this can be turned off in Settings)</p>
+                    <p class="desktop-only"><strong><span data-key-of="settings">S</span>:</strong> Open/close settings</p>
                 </div>
 
                 <div class="guide-section">
@@ -912,7 +920,7 @@
         </div>
         
         <!-- The player's saved sets (each hunter his own): press one, or its key, to wear it. The
-             one on is lit. Made by refreshSetSwitch in game-modular.elxc6uaa.js; hidden with none saved. -->
+             one on is lit. Made by refreshSetSwitch in game-modular.usi3z7ja.js; hidden with none saved. -->
         <div class="set-switch" id="setSwitch" role="group" aria-label="Wear one of your sets" hidden></div>
 
         <div class="dragonstalker-items-list" id="dragonstalkerItemsList">
@@ -922,7 +930,7 @@
     </div>
 
     <!-- Game Script -->
-    <script type="module" src="game-modular.elxc6uaa.js?v=3.10.0"></script>
+    <script type="module" src="game-modular.usi3z7ja.js?v=3.10.1"></script>
     
 
 
