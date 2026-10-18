@@ -28,7 +28,7 @@ import { dropShield, shieldBlocks } from './utils/shield.js';
 import { setById, piecesOf, ownedCount, setBonus, nextStep, bonusText } from './utils/sets.js';
 import { healthAtNewMax, armorReduction } from './utils/stats.js';
 import { SLOTS, validEquipment, equip, equipSet, mainSet, setsWorn, gearTotals, slotsFor, carriedOf, fitsCarried, inHis36 } from './utils/gear.js';
-import { bagCapacity, slotsUsed, addToBags, soldShort, setItemStacks, stowInBags } from './utils/bags.js';
+import { bagCapacity, slotsUsed, addToBags, soldShort, setItemStacks, stowInBags, makeRoomFor } from './utils/bags.js';
 import { MATERIALS, categoryOf } from './data/materials.js';
 import { wearables, wearableById, isKeptGear, gearCatalog } from './data/wearables.js';
 import { initializeInventory, openInventory, closeInventory, isInventoryOpen, refreshInventory } from './ui/inventory.js';
@@ -3122,6 +3122,10 @@ function showMainMenu() {
     showNameEntry();
 }
 
+// Fewer free bag slots than this when a game starts: the player is told, before it starts
+const BAGS_NEARLY_FULL = 4;
+let startingDespiteBags = false;
+
 // Start the game with the entered name
 function startGameFromUI() {
     const nameInput = document.getElementById('playerNameInput');
@@ -3149,6 +3153,29 @@ function startGameFromUI() {
         picker.classList.add('needs-choice');
         picker.querySelector('input').focus();
         return;
+    }
+    
+    // Bags nearly full: materials caught would not fit. Said before the game, with the way to
+    // the bags; the player may start anyway.
+    if (!startingDespiteBags) {
+        const free = siteBoot && siteBoot.user ? freeBagSlots() : null;
+        if (free !== null && free < BAGS_NEARLY_FULL) {
+            askConfirm({
+                title: free === 0 ? 'Your bags are full' : 'Your bags are nearly full',
+                text: `${free === 0 ? 'No slot is free' : `Only ${free} ${free === 1 ? 'slot is' : 'slots are'} free`} in your bags. Materials you catch need room: what does not fit is sold for less, and is not kept. ${hasBank() ? 'Move things to the bank, or make potions, before you go.' : 'Make potions with what is there, or log in to keep a bank.'}`,
+                yes: 'Start anyway',
+                no: 'Open my bags',
+            }).then(start => {
+                if (start) {
+                    startingDespiteBags = true;
+                    startGameFromUI();
+                    startingDespiteBags = false;
+                } else {
+                    showInventory('bags');
+                }
+            });
+            return;
+        }
     }
     
     gameState.playerName = playerName;
@@ -4165,6 +4192,8 @@ function updateDOMItemsPanel(gameState, gameItems) {
         level: gameConfig.levels.progressionType === 'xp' ? getLevelProgress(gameState).progress : 0,
         coins: formatCoins(gameState.coins || 0),
         bagsFull: room.used >= room.capacity,
+        // A material lost for want of room in the last moments: the chip lights up
+        bagsLosing: gameClock.now() - (gameState.bagsLostAt ?? -Infinity) < 2500,
         bags: `${room.used}/${room.capacity}`,
         statsKey: keyName('stats'),
         gearKey: keyName('gear'),
@@ -4876,6 +4905,7 @@ function emptyBags() {
     // Less the slots taken by the gear he keeps in them
     gameState.bagCapacity = bagCapacity(gameConfig.bags, siteBoot && siteBoot.user && siteBoot.user.bags ? siteBoot.user.bags : []) - (gameState.bagged || []).length;
     gameState.bagsFullSaid = false;
+    gameState.bagsLostAt = null;
     // A potion caught at full health (or while time is slowed) and the arrows the quiver cannot
     // hold go into the bags, as far as there is room: how many went in
     gameState.keepInBags = (itemId, count) => {
@@ -5151,12 +5181,20 @@ function stowCatch(itemData) {
         return;
     }
     
+    // A material with the bags full pushes out a slot of junk (paid for already, when caught)
+    if (kind === 'material') makeRoomFor(gameState.bags.contents, itemData.id, gameState.bagCapacity, gameConfig.bags.stack, isJunkInBags);
+    
     if (addToBags(gameState.bags, itemData.id, gameState.bagCapacity, gameConfig.bags.stack)) {
         // Carried: junk is as good as sold, a material is kept
         if (kind === 'junk') gameState.coins += worth;
     } else {
         // Gear that helps with carrying takes some of the loss away
         gameState.coins += soldShort(worth, gameConfig.bags, gameState.setBonus.carrying);
+        // A material lost: said over him each time, and the bags chip lights up
+        if (kind === 'material') {
+            gameState.bagsLostAt = gameClock.now();
+            if (player) combatTexts.push(new CombatText(player.x + player.width / 2, player.y - 18, `No room: ${itemData.name}`, '#ff6b5c', false));
+        }
         if (!gameState.bagsFullSaid) {
             gameState.bagsFullSaid = true;
             const share = Math.round((1 - Math.max(0, gameConfig.bags.fullPenalty - gameState.setBonus.carrying)) * 100);
@@ -5164,6 +5202,14 @@ function stowCatch(itemData) {
         }
     }
     refreshInventory();
+}
+
+// Whether something in the bags is only worth selling (paid for when it was caught): not a
+// material, a potion or arrows, nor gear kept there
+function isJunkInBags(itemId) {
+    if (MATERIALS.has(itemId) || craftedById(itemId) || isKeptGear(itemId)) return false;
+    const item = gameItems.find(candidate => candidate.id === itemId);
+    return Boolean(item) && categoryOf(item) === 'junk';
 }
 
 // How full the bags are: { used, capacity }
@@ -5596,9 +5642,16 @@ function gameOverSummary() {
     const junk = Object.entries(contents).filter(([itemId]) => !MATERIALS.has(itemId) && !isCrafted(itemId) && !isKeptGear(itemId) && gameItems.find(item => item.id === itemId)?.type !== 'set_piece')
         .reduce((total, [, count]) => total + count, 0);
     if (junk > 0) notes.push({ text: `${junk} ${junk === 1 ? 'thing' : 'things'} of no use sold for coins`, kind: '' });
-    const short = Object.values((gameState.bags && gameState.bags.overflow) || {}).reduce((total, count) => total + count, 0);
+    const overflow = (gameState.bags && gameState.bags.overflow) || {};
+    const share = Math.round((1 - Math.max(0, gameConfig.bags.fullPenalty - gameState.setBonus.carrying)) * 100);
+    // Materials that did not fit, by name: lost, not kept
+    const lost = Object.entries(overflow).filter(([itemId, count]) => count > 0 && MATERIALS.has(itemId));
+    if (lost.length > 0) {
+        const named = lost.map(([itemId, count]) => `${count} ${gameItems.find(item => item.id === itemId)?.name || itemId}`).join(', ');
+        notes.push({ text: `No room in your bags: ${named} sold for ${share}% instead of being kept. Move things to the bank or buy a bag before your next game.`, kind: 'warning' });
+    }
+    const short = Object.entries(overflow).filter(([itemId]) => !MATERIALS.has(itemId)).reduce((total, [, count]) => total + count, 0);
     if (short > 0) {
-        const share = Math.round((1 - Math.max(0, gameConfig.bags.fullPenalty - gameState.setBonus.carrying)) * 100);
         notes.push({ text: `${short} ${short === 1 ? 'thing' : 'things'} did not fit in your bags and sold for ${share}%`, kind: 'warning' });
     }
     if (!loggedIn) notes.push({ text: 'Log in to keep your coins, boss loot, gear and materials.', kind: '' });

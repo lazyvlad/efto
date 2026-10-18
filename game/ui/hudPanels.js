@@ -141,7 +141,7 @@ function drawFound() {
 /**
  * The panels' new parts, brought up to date (game-modular.js calls this as it fills the panels).
  * @param {object} figures  { level (0-1 of the way through it), coins (text), bagsFull (bool),
- *        bags (text), statsKey, gearKey, set: { pieces, of, name, more } | null, worn }
+ *        bagsLosing (bool: a material was just lost for want of room), bags (text), statsKey, gearKey, set: { pieces, of, name, more } | null, worn }
  */
 export function updateHudPanels(figures) {
     build();
@@ -157,6 +157,8 @@ export function updateHudPanels(figures) {
         const warning = chips.querySelector('.hud-chip-warning');
         setText(warning, figures.bagsFull ? `Bags full · ${figures.bags}` : '');
         warning.hidden = !figures.bagsFull;
+        // A material just lost for want of room: the chip glows red
+        warning.classList.toggle('is-losing', Boolean(figures.bagsFull && figures.bagsLosing));
         // The keys, only where there is a keyboard
         const keys = document.body.classList.contains('hud-desktop');
         const key = chips.querySelector('.hud-chip-key');

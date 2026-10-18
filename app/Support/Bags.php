@@ -156,11 +156,14 @@ class Bags
             $carried[$itemId] = $count - $short[$itemId];
         }
 
-        // More carried than the bags hold, with what was in them when the game began: the
-        // game's account of them cannot be right, and everything is paid as if there had been
-        // no room for it
+        // More kept than the bags hold, with what was in them when the game began: the game's
+        // account of them cannot be right, and everything is paid as if there had been no room
+        // for it. Only what is kept counts (the materials): junk is as good as sold when it is
+        // caught, and a material caught with the bags full pushes a slot of it out (the game's
+        // makeRoomFor, game/utils/bags.js), so junk carried may have been more than fitted.
         $stored = self::contents($game->user, $game->faction ?: 'alliance');
-        if (self::slotsUsed(self::plus($stored, array_filter($carried))) > self::capacity($game->user, $game->faction ?: 'alliance')) {
+        $keptCarried = array_filter($carried, fn (int $count, string $itemId) => $count > 0 && in_array($itemId, $materials, true), ARRAY_FILTER_USE_BOTH);
+        if (self::slotsUsed(self::plus($stored, $keptCarried)) > self::capacity($game->user, $game->faction ?: 'alliance')) {
             $short = array_map(fn (int $count, string $itemId) => $count + $short[$itemId], $carried, array_keys($carried));
             $short = array_combine(array_keys($carried), $short);
             $carried = array_map(fn () => 0, $carried);

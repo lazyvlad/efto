@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 
 // Loaded through data: URLs, as in gameClock.test.mjs
 const load = async file => import(`data:text/javascript;base64,${(await readFile(new URL(file, import.meta.url))).toString('base64')}`);
-const { bagCapacity, slotsUsed, fitsInBags, addToBags, soldShort, stacksOf } = await load('../utils/bags.js');
+const { bagCapacity, slotsUsed, fitsInBags, addToBags, soldShort, stacksOf, makeRoomFor } = await load('../utils/bags.js');
 const { MATERIALS, categoryOf } = await load('../data/materials.js');
 
 const rules = { backpack: 16, bagSlots: 4, stack: 20, fullPenalty: 0.1 };
@@ -73,4 +73,20 @@ test('every material is an item of the game, and none is a piece of a set', asyn
         assert.ok(types[id], `"${id}" is not an item of the game`);
         assert.notEqual(types[id], 'set_piece');
     }
+});
+
+test('a material caught with the bags full pushes out a slot of junk, the least of it', () => {
+    const junk = id => id.startsWith('junk');
+    // Two slots, both taken: junk-a fills one (20), junk-b has 3 in the other
+    const contents = { 'junk-a': 20, 'junk-b': 3 };
+    assert.deepEqual(makeRoomFor(contents, 'peacebloom', 2, 20, junk), { itemId: 'junk-b', count: 3 });
+    assert.deepEqual(contents, { 'junk-a': 20 });
+    // Room already: nothing goes
+    assert.equal(makeRoomFor(contents, 'peacebloom', 2, 20, junk), null);
+    // Full of kept things: nothing to push out
+    const kept = { peacebloom: 20, silverleaf: 20 };
+    assert.equal(makeRoomFor(kept, 'copper-ore', 2, 20, junk), null);
+    assert.deepEqual(kept, { peacebloom: 20, silverleaf: 20 });
+    // A stack of the same kind with room: it fits, nothing goes
+    assert.equal(makeRoomFor({ peacebloom: 5, 'junk-a': 20 }, 'peacebloom', 2, 20, junk), null);
 });

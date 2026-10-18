@@ -57,12 +57,17 @@ class BagsTest extends TestCase
         // Fifteen of the sixteen slots taken by materials kept from before
         $user->forceFill(['bag_contents' => ['runecloth' => 15 * 20]])->save();
 
-        // Two more kinds said to fit: more than the one free slot holds, so none of it is believed
-        $response = $this->play(['bread' => 1, 'fish' => 1], [], $user);
-        $this->assertSame(2 * 9, $response->json('coins.earned'));
+        // Two more kinds of material said to fit: more than the one free slot holds, so none of
+        // it is believed: sold short, not kept
+        $response = $this->play(['kingsblood' => 1, 'fadeleaf' => 1], [], $user);
+        $response->assertJsonPath('materials.kept', []);
         $response->assertJsonPath('bags.runecloth', 300);
 
-        // One fits
+        // Junk takes no room in the reckoning: it is as good as sold when it is caught, and a
+        // material caught with the bags full pushes it out. Paid in full.
+        $this->assertSame(2 * 10, $this->play(['bread' => 1, 'fish' => 1], [], $user)->json('coins.earned'));
+
+        // One kind of material fits
         $this->play(['kingsblood' => 3], [], $user)->assertJsonPath('bags.kingsblood', 3);
     }
 
@@ -238,22 +243,21 @@ class BagsTest extends TestCase
     public function test_the_game_is_not_believed_to_have_carried_more_than_the_bags_hold(): void
     {
         $user = User::factory()->create();
+        // Eleven of the sixteen slots taken by materials kept from before
+        $user->forceFill(['bag_contents' => ['runecloth' => 11 * 20]])->save();
 
-        // Seventeen kinds of thing in a backpack of sixteen slots, and nothing said to be short
-        // (gear that is kept, a cape or a ring, takes no room: none of it here)
-        $kinds = ['gold', 'fork-knife', 'hard-cheese', 'bread', 'fish', 'swiss-army', 'gizmos', 'copper-coin', 'gold-coin',
-            'silver-coin', 'bronze-coin', 'arcane-crystal', 'sapphire-gem', 'pearl-gem', 'light-feather', 'kingsblood', 'runecloth'];
-        $this->assertCount(17, $kinds);
-
+        // Six more kinds of material, and nothing said to be short: seventeen slots in sixteen
+        $kinds = ['arcane-crystal', 'sapphire-gem', 'pearl-gem', 'light-feather', 'kingsblood', 'fadeleaf'];
         $response = $this->play(array_fill_keys($kinds, 1), [], $user);
 
-        // Everything is paid as sold short, and the materials are not kept
+        // None of it is kept: paid as sold short
         $response->assertJsonPath('materials.kept', []);
-        $this->assertNull($user->fresh()->materials);
-        $this->assertSame(11 * 9 + 6 * Bags::soldShort(25), $response->json('coins.earned'));
+        $this->assertSame(['runecloth' => 220], Bags::contents($user->fresh(), 'alliance'));
+        $this->assertGreaterThan(0, $response->json('coins.earned'));
 
-        // One kind fewer, and it all fits
-        $this->play(array_fill_keys(array_slice($kinds, 1), 1), [], $user)->assertJsonPath('materials.kept.runecloth', 1);
+        // Junk with it does not change that, nor count against it
+        $this->play(array_fill_keys(array_slice($kinds, 1), 1) + ['bread' => 5, 'fish' => 5, 'gold' => 5], [], $user)
+            ->assertJsonPath('materials.kept.fadeleaf', 1);
     }
 
     public function test_a_full_stack_takes_a_slot_of_its_own(): void

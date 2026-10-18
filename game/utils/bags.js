@@ -6,7 +6,8 @@
 //
 // While there is room, what is caught is carried at its full worth. Once every slot is taken
 // and no stack of that kind has room, there is nowhere to put it: it is sold on the spot for
-// less (the "fullPenalty"), and a material sold that way is not kept.
+// less (the "fullPenalty"), and a material sold that way is not kept. A material caught then
+// first pushes out a slot of junk, which is as good as sold already (makeRoomFor).
 //
 // What is in the bags is kept as { itemId: count }: the stacks follow from the counts. A slot
 // holds "stack" of one kind, except for the kinds with a stack of their own (arrows: hundreds to
@@ -54,6 +55,30 @@ export function addToBags(bags, itemId, capacity, stack) {
 
     bags.overflow[itemId] = (bags.overflow[itemId] || 0) + 1;
     return false;
+}
+
+/**
+ * Make a slot for something kept (a material) when the bags are full: one slot's worth of junk
+ * goes, the kind with the fewest in its last stack first, so the least is given up. Junk is
+ * worth its coins as soon as it is caught, so nothing is lost by it.
+ * @param {Object} contents - { itemId: count }: changed
+ * @param {Function} isJunk - (itemId) => whether it is only worth selling
+ * @returns {{itemId: string, count: number}|null} What went, or null (it fits, or no junk)
+ */
+export function makeRoomFor(contents, itemId, capacity, stack, isJunk) {
+    if (fitsInBags(contents, itemId, capacity, stack)) return null;
+    let best = null;
+    for (const [other, count] of Object.entries(contents)) {
+        if (count <= 0 || other === itemId || !isJunk(other)) continue;
+        const size = stackOf(other, stack);
+        // What is in its last slot: taking that frees the slot
+        const last = count % size || size;
+        if (!best || last < best.count) best = { itemId: other, count: last };
+    }
+    if (!best) return null;
+    contents[best.itemId] -= best.count;
+    if (contents[best.itemId] <= 0) delete contents[best.itemId];
+    return best;
 }
 
 // What something is sold for when there was no room for it, against its full worth
