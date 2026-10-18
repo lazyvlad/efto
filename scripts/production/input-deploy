@@ -1,0 +1,32 @@
+#!/bin/bash
+# Deploy the I N P U T game (izbozobuzi.me): what is on GitHub's main, then the database and
+# Laravel's caches. Run on the server, from its own copy of the repository, as ec2-user (who
+# owns the folder), started through AWS Systems Manager by scripts/deploy-production.sh.
+set -euo pipefail
+APP=/srv/www/izbozobuzi.me/html
+LOG=/home/ec2-user/input-deploy.log
+
+if [ "$(id -un)" != "ec2-user" ]; then
+    echo "Run as ec2-user" >&2
+    exit 1
+fi
+
+# One deploy at a time
+exec 9>/tmp/input-deploy.lock
+flock -n 9 || { echo "A deploy is already running" >&2; exit 1; }
+
+{
+    echo "=== $(date -u +%Y-%m-%dT%H:%M:%SZ) deploy (${DEPLOY_BY:-ssm})"
+    cd "$APP"
+    before=$(git rev-parse --short HEAD)
+    git pull --ff-only origin main
+    after=$(git rev-parse --short HEAD)
+    php artisan migrate --force
+    php artisan optimize:clear
+    php artisan config:cache
+    php artisan route:cache
+    php artisan view:cache
+    version=$(php -r 'echo json_decode(file_get_contents("game/package.json"))->version;')
+    echo "=== deployed $before -> $after, game $version"
+} 2>&1 | tee -a "$LOG"
+exit "${PIPESTATUS[0]}"
