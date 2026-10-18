@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.10.8 - 2026-10-18
+
+### Added
+- **Briarwatch** (zone 2) and **Gatewarden** (zone 3) armor sets, eight pieces each in a green
+  and a rarer blue ("Fine"), worn by both hunters and dropped only as the extras of their own
+  zone's bosses: Briarwatch item level 15 / 20, Gatewarden 20 / 25. Listed on the Items page.
+- **What's new for 3.10.8**, published as the deploy runs.
+
 ## 3.10.7 - 2026-10-18
 
 ### Changed
