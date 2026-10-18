@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.10.5 - 2026-10-18
+
+### Changed
+- **The mana potion gives endless arrows** for 10 seconds (shots spend none; the count reads
+  the infinity sign) in place of slowing time; in boss fights one drops every 20 seconds,
+  between the health potions, on a clock of its own.
+- **The backpack holds 24 slots**, up from 16.
+- **Full bags**: a material caught pushes out a slot of junk; with none left, a slot of a weaker
+  material (an earlier zone's), sold short, as Settings "Your bags" chooses (or keep what is in
+  them). Nearly full bags are pointed out before a game; a material lost says "No room" over
+  the hunter and lights the Bags full chip; the end of a game names what was lost or sold. The
+  site is told what was pushed out and agrees on what fits.
+- **What's new for 3.10.5**, published as the deploy runs.
+
 ## 3.10.4 - 2026-10-18
 
 ### Added
