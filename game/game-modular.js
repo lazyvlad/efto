@@ -141,6 +141,7 @@ let gameState = {
     timeSlowActive: false,
     timeSlowTimer: 0,
     timeSlowMultiplier: 1.0,
+    endlessArrowsTimer: 0, // A mana potion: frames left in which his shots spend no arrows
     freezeTimeActive: false,
     freezeTimeTimer: 0,
     speedIncreaseActive: false,
@@ -2019,6 +2020,7 @@ function startGame() {
     gameState.timeSlowActive = false;
     gameState.timeSlowTimer = 0;
     gameState.timeSlowMultiplier = 1.0;
+    gameState.endlessArrowsTimer = 0;
     gameState.freezeTimeActive = false;
     gameState.freezeTimeTimer = 0;
     gameState.speedIncreaseActive = false;
@@ -2278,6 +2280,7 @@ function restartGame() {
     gameState.timeSlowActive = false;
     gameState.timeSlowTimer = 0;
     gameState.timeSlowMultiplier = 1.0;
+    gameState.endlessArrowsTimer = 0;
     gameState.freezeTimeActive = false;
     gameState.freezeTimeTimer = 0;
     dropShield(gameState);
@@ -4670,7 +4673,7 @@ function updatePlayerStats(gameState) {
     
     const arrowCountElement = document.getElementById('arrowCount');
     if (arrowCountElement) {
-        setTextIfChanged(arrowCountElement, `${gameState.arrowCount || 0}/${gameState.quiverCapacity}`);
+        setTextIfChanged(arrowCountElement, gameState.endlessArrowsTimer > 0 ? '\u221e' : `${gameState.arrowCount || 0}/${gameState.quiverCapacity}`);
         // Grey when empty, green when the quiver is full, gold in between
         if ((gameState.arrowCount || 0) === 0) {
             arrowCountElement.style.color = '#CCCCCC';
@@ -4980,8 +4983,8 @@ function drinkPotion(itemId = POTION) {
         return;
     }
     if (now < (gameState.potionReadyAt[itemId] || 0)) return;
-    if (rules.slow && gameState.timeSlowActive) {
-        addNotification(gameState, 'Time is already slowed', 120, '#4169E1');
+    if (rules.endlessArrows && gameState.endlessArrowsTimer > 0) {
+        addNotification(gameState, 'His arrows are already endless', 120, '#4169E1');
         return;
     }
     if (rules.haste && gameState.hasteTimer > 0) {
@@ -4997,11 +5000,9 @@ function drinkPotion(itemId = POTION) {
         gameState.health = Math.min(gameState.maxHealth, gameState.health + rules.heal);
         combatTexts.push(new CombatText(player.x + player.width / 2, player.y, `+${healed}`, '#1EFF00', false));
     }
-    if (rules.slow) {
-        gameState.timeSlowActive = true;
-        gameState.timeSlowTimer = rules.seconds * 60;
-        gameState.timeSlowMultiplier = rules.slow;
-        addNotification(gameState, `🔵 Time Slow ${Math.round((1 - rules.slow) * 100)}% for ${rules.seconds}s`, 180, '#4169E1');
+    if (rules.endlessArrows) {
+        gameState.endlessArrowsTimer = rules.seconds * 60;
+        addNotification(gameState, `🔵 Mana Potion: endless arrows for ${rules.seconds}s`, 180, '#4169E1');
     }
     if (rules.haste) {
         gameState.hasteTimer = gameConfig.powerUps.haste.duration;

@@ -16,7 +16,7 @@
 // player out for the most damage plays him: Dragon Cry whenever it is ready, right up under the
 // boss while it lasts and at the top of the area he may move in otherwise, Multishot on
 // cooldown (and Autoshot with --autoshot), Arcane Shot to break a shield, and a detour for an
-// arrow bundle when the quiver runs low. Spells are cast as a key press casts them, so the
+// arrow bundle when the quiver runs low, or for a mana potion (endless arrows). Spells are cast as a key press casts them, so the
 // cooldowns and arrow costs are the game's own; everything the boss does is the game's own.
 //
 // What it is not: it follows the boss perfectly and fires the moment a spell is ready, so its
@@ -102,6 +102,9 @@ async function playFight({ faction, zone, limitSeconds, autoshot, casual }) {
     const cast = id => spellSystem.castSpell(id, gameClock.now());
     let taken = 0, hits = 0, lastHealth = null, start = null, end = null, upheavalHits = 0, upheavals = 0, inUpheaval = false;
     let arrowsSpent = 0, caught = 0, lastArrows = null, dcFrames = 0, frames = 0, shieldFrames = 0;
+    // Mana potions dropped in the fight, and the seconds of endless arrows they gave
+    const manaSeen = new Set();
+    let endlessFrames = 0;
     let name = '', maxHealth = 0;
     // The hits each kind of attack landed (casual: the ambush and side charge should land none)
     const hitsBy = {};
@@ -142,6 +145,8 @@ async function playFight({ faction, zone, limitSeconds, autoshot, casual }) {
                 if (gs.arrowCount > lastArrows) caught += gs.arrowCount - lastArrows;
             }
             lastArrows = gs.arrowCount;
+            for (const item of lab.powerUps || []) if (item.data && item.data.id === 'mana_potion') manaSeen.add(item);
+            if (gs.endlessArrowsTimer > 0) endlessFrames++;
 
             if (fight) {
                 name = fight.boss.name;
@@ -161,7 +166,9 @@ async function playFight({ faction, zone, limitSeconds, autoshot, casual }) {
                 }
                 // Where to stand: low on arrows with a bundle about, on it; else under the boss
                 const box = window.__boss.hitBox(lab.canvas);
-                const bundle = gs.arrowCount < 40 && lab.powerUps.find(item => /arrow/i.test(item.id || item.data?.id || item.name || ''));
+                const bundle = (gs.arrowCount < 40 && lab.powerUps.find(item => /arrow/i.test(item.id || item.data?.id || item.name || '')))
+                    // A mana potion (endless arrows) whenever one falls and none is running
+                    || (!(gs.endlessArrowsTimer > 0) && lab.powerUps.find(item => item.data && item.data.id === 'mana_potion'));
                 // As high as he may go now (utils/movement.js), as a player is held
                 const bounds = movementBounds(H, p, gs);
                 const top = bounds.minY;
@@ -223,6 +230,7 @@ async function playFight({ faction, zone, limitSeconds, autoshot, casual }) {
                 dragonCry: +(dcFrames / Math.max(1, frames)).toFixed(2),
                 shieldedSeconds: +(shieldFrames / 60).toFixed(1),
                 upheavals, upheavalHits, hitsBy, special: gs.specialHits || {},
+                manaDrops: manaSeen.size, endlessSeconds: +(endlessFrames / Math.max(1, frames) * (start !== null ? (end - start) / 1000 : 0)).toFixed(1),
             });
         }
         requestAnimationFrame(step);
@@ -302,6 +310,7 @@ console.table(results.map(r => ({
     time: r.won ? `${r.seconds}s` : `not beaten (${r.left} left)`,
     health: r.health, arrows: r.arrowsSpent, caught: r.caught, taken: r.taken, hits: r.hits,
     'dragon cry': r.dragonCry, shielded: `${r.shieldedSeconds}s`,
+    'mana potions': r.manaDrops, 'endless arrows': `${r.endlessSeconds}s`,
     ...(r.upheavals ? { upheavals: r.upheavals, 'upheaval hits': r.upheavalHits } : {}),
     // What the ambush and the side charge themselves landed, by part (casual: none)
     ...(casual || Object.keys(r.special || {}).length ? { 'special attacks landed': Object.entries(r.special || {}).map(([part, count]) => `${part} ${count}`).join(', ') || 'none' } : {}),

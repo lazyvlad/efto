@@ -488,6 +488,18 @@ export function updateGameStateTimers(gameState, deltaTimeMultiplier) {
         }
     }
     
+    // A mana potion's endless arrows
+    if (gameState.endlessArrowsTimer > 0) {
+        if (typeof window.addBuff === 'function') {
+            window.addBuff('endlessArrows', 'Mana Potion', 'Endless arrows', gameState.endlessArrowsTimer, 'freeze');
+        }
+        gameState.endlessArrowsTimer -= deltaTimeMultiplier;
+        if (gameState.endlessArrowsTimer <= 0) {
+            gameState.endlessArrowsTimer = 0;
+            if (typeof window.removeBuff === 'function') window.removeBuff('endlessArrows');
+        }
+    }
+
     // Update freeze time timer
     if (gameState.freezeTimeActive && gameState.freezeTimeTimer > 0) {
         // Add/update buff in tracker

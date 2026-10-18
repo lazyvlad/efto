@@ -145,7 +145,7 @@ function renderGame({
     window.arrows.forEach(arrow => drawEntity(arrow));
     combatTexts.forEach(text => drawEntity(text));
     player.draw(ctx, gameState.shieldActive ? Math.max(1, gameState.shieldTimer) : 0, gameState.health / gameState.maxHealth,
-        { health: gameState.health, arrows: gameState.arrowCount, capacity: gameState.quiverCapacity, slotSize: gameConfig.quiver.slotSize, melee: meleeStatus() });
+        { health: gameState.health, arrows: gameState.arrowCount, endless: gameState.endlessArrowsTimer > 0, capacity: gameState.quiverCapacity, slotSize: gameConfig.quiver.slotSize, melee: meleeStatus() });
     // A boss's hook and chain go over the hunter they catch
     drawBossHook(ctx, canvas, alpha);
     // The bosses' painted bursts: where spells landed, stomps fell, bombs went up

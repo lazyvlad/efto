@@ -547,14 +547,17 @@ class SpellSystem {
         const arrowData = spell.effects.fire_arrow;
         const requiredAmmo = spell.ammoRequired || 1;
 
+        // A mana potion's endless arrows: none spent while they last
+        const endless = gameState.endlessArrowsTimer > 0;
+
         // Check if player has enough arrows
-        if (gameState.arrowCount < requiredAmmo) {
+        if (!endless && gameState.arrowCount < requiredAmmo) {
             this.addNotification(`${spell.name} needs ${requiredAmmo} arrows (have: ${gameState.arrowCount})`, 2000, 'warning');
             return;
         }
 
         // Consume arrows
-        gameState.arrowCount -= requiredAmmo;
+        if (!endless) gameState.arrowCount -= requiredAmmo;
 
         // Get player position for arrow spawn
         const player = gameState.player;

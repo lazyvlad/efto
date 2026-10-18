@@ -23,13 +23,12 @@ export const powerUpItems = [
         id: "mana_potion",
         name: "Mana Potion",
         image: assetRegistry.powerups.manaPotion,
-        effect: "slow_time",
-        value: 0.5, // Slow down to 50% speed for duration
-        duration: 600, // 10 seconds at 60fps
+        effect: "endless_arrows",
+        duration: 600, // 10 seconds at 60fps: his shots spend no arrows
         type: "utility",
         color: "#4169E1",
         sound: assetRegistry.audio.manaDrink,
-        description: "Slows down time",
+        description: "Endless arrows for 10 seconds",
         baseProbability: 0.25, // 25% base chance
         speedScaling: true, // Increases probability based on game speed
     },

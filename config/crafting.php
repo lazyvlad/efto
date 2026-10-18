@@ -21,7 +21,7 @@
 return [
     'items' => [
         'health-potion' => ['name' => 'Health Potion', 'image' => 'assets/powerups/health-potion.webp', 'rarity' => 'uncommon'],
-        // Not made, only caught: a mana potion caught while time is already slowed, and the
+        // Not made, only caught: a mana potion caught while its endless arrows still last, and the
         // arrows that did not fit in the quiver, go into the bags (App\Support\Bags::afterGame)
         'mana-potion' => ['name' => 'Mana Potion', 'image' => 'assets/powerups/mana-potion.webp', 'rarity' => 'uncommon'],
         // Made, or caught: Haste caught while he is already hasted goes into the bags as one

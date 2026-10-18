@@ -257,20 +257,14 @@ export class PowerUpItem extends FallingObject {
     applyEffectLogic(gameState, gameObjects = {}) {
         // Apply the effect based on type
         switch(this.data.effect) {
-            case "slow_time":
-                // Time already slowed: kept in the bags for later (M drinks one), if there is room
-                if (gameState.timeSlowActive && gameState.keepInBags && gameState.keepInBags('mana-potion', 1)) {
+            case "endless_arrows":
+                // Its arrows still last: kept in the bags for later (M drinks one), if there is room
+                if (gameState.endlessArrowsTimer > 0 && gameState.keepInBags && gameState.keepInBags('mana-potion', 1)) {
                     addNotification(gameState, '🔵 Mana Potion: into your bags', 150, '#4169E1');
                     break;
                 }
-                gameState.timeSlowActive = true;
-                gameState.timeSlowTimer = this.data.duration;
-                gameState.timeSlowMultiplier = this.data.value;
-                
-                // Add notification for time slow
-                const slowPercent = Math.round((1 - this.data.value) * 100);
-                const slowSeconds = Math.round(this.data.duration / 60);
-                addNotification(gameState, `🔵 Time Slow ${slowPercent}% for ${slowSeconds}s`, 180, '#4169E1');
+                gameState.endlessArrowsTimer = this.data.duration;
+                addNotification(gameState, `🔵 Mana Potion: endless arrows for ${Math.round(this.data.duration / 60)}s`, 180, '#4169E1');
                 break;
                 
             case "heal":

@@ -282,7 +282,9 @@ export class Player {
                     ctx.fillRect(left, secondY, segment * share, rowHeight);
                 }
             }
-            number(String(count), secondY + rowHeight / 2, count <= 0 ? '#ff7a6a' : low ? '#ffc85a' : '#f4ecd8');
+            // A mana potion's endless arrows: the sign for them, in its blue
+            if (status.endless) number('\u221e', secondY + rowHeight / 2, '#8fc4ff');
+            else number(String(count), secondY + rowHeight / 2, count <= 0 ? '#ff7a6a' : low ? '#ffc85a' : '#f4ecd8');
         }
 
         // The swing timer: a slim bar under the others, centred, that fills as his next swing

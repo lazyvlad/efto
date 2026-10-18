@@ -387,12 +387,12 @@ export const gameConfig = {
 
     // === POTIONS ===
     // Crafted between games (data/crafting.js), or caught and kept (a health potion at full
-    // health, a mana potion while time is already slowed), and drunk in a fight from the bags
+    // health, a mana potion while its endless arrows still last), and drunk in a fight from the bags
     // with its key: "potion" (H) and "mana_potion" (M) unless the player changed them.
     potions: {
         'health-potion': { heal: 40, cooldown: 20 },
-        // Time runs at this share of its speed for so many seconds; one at a time
-        'mana-potion': { slow: 0.5, seconds: 10, cooldown: 0 },
+        // Endless arrows: for so many seconds his shots spend none; one at a time
+        'mana-potion': { endlessArrows: true, seconds: 10, cooldown: 0 },
         // Haste, as the one that falls (powerUps.haste); one at a time
         'haste-potion': { haste: true, cooldown: 0 },
     },
@@ -585,6 +585,8 @@ export const gameConfig = {
         arrowBundle: 'bronze_arrows', // The arrow bundle dropped during a fight (data/powerUpItems.js)
         arrowsEvery: 600,           // Steps between arrow bundles (10 seconds)
         potionEvery: 1200,          // Steps between health potions
+        manaEvery: 1200,            // Steps between mana potions (endless arrows), on a clock of
+                                    // their own: the health potions and arrows still drop as often
         // The rogue's ambush (systems/bossSystem.js): the ground where he stands is marked, this
         // many of his widths wide, and it comes up out of it; then a backstab where he is, a mark
         // this many widths wide. Each hits for the boss's heavy damage times "damage".

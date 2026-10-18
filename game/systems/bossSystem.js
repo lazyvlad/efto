@@ -380,7 +380,8 @@ export function guardZone(gameState, canvas) {
         dealt: { arrow: 0, multishot: 0, arcane: 0, crit: 0, thunderfury: 0, charging: 0, hits: 0, dodged: 0, absorbed: 0 },
         dodgedTextAt: -Infinity, // When "Dodge" was last shown
         sinceArrows: 0,
-        sincePotion: 0
+        sincePotion: 0,
+        sinceMana: 0
     };
 
     picture(boss);
@@ -1948,6 +1949,13 @@ export function updateBoss(context) {
     if (++fight.sincePotion >= settings.potionEvery) {
         fight.sincePotion = 0;
         dropPowerUp(context, 'health_potion');
+    }
+    // A mana potion (endless arrows), on a clock of its own: the others drop as often as ever.
+    // The first after half its time, so it falls between the health potions, never with one.
+    if (++fight.sinceMana >= (fight.manaStarted ? settings.manaEvery : settings.manaEvery / 2)) {
+        fight.sinceMana = 0;
+        fight.manaStarted = true;
+        dropPowerUp(context, 'mana_potion');
     }
 
     takeArrowHits(context);
