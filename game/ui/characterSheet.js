@@ -32,6 +32,40 @@ const OUTFIT_KEYS = ['set_1', 'set_2', 'set_3', 'set_4'];
 
 let game = null;            // What the game gave when it set the sheet up
 let selectedSlot = 'head';
+
+// The cards beside the hunter that are folded up to their titles, kept in this browser: the
+// pet's starts folded (its stance is in its title, and P changes it in a game)
+const FOLDS_KEY = 'input_sheet_folds';
+let folds = (() => {
+    try {
+        return { pet: true, ...(JSON.parse(localStorage.getItem(FOLDS_KEY)) || {}) };
+    } catch (e) {
+        return { pet: true };
+    }
+})();
+
+function setFold(name, folded) {
+    folds = { ...folds, [name]: folded };
+    try {
+        localStorage.setItem(FOLDS_KEY, JSON.stringify(folds));
+    } catch (e) {
+        // Storage unavailable: folded for this visit
+    }
+}
+
+// Each card folded or open as kept, its title saying which and opening or folding it
+function showFolds() {
+    document.querySelectorAll('#characterSheet .sheet-fold').forEach(card => {
+        const folded = Boolean(folds[card.dataset.fold]);
+        card.classList.toggle('is-folded', folded);
+        const head = card.querySelector('.fold-head');
+        if (head) {
+            head.setAttribute('role', 'button');
+            head.tabIndex = 0;
+            head.setAttribute('aria-expanded', String(!folded));
+        }
+    });
+}
 let whenClosed = null;
 // What became of the last thing pressed, shown under it: { itemId, text, kind ('info' or
 // 'warning'), chooseLeave (a way to the inventory to make room) }, or null
@@ -106,6 +140,21 @@ export function initializeCharacterSheet(options) {
             render();
         });
     });
+    // A card's title folds it up, or opens it (the sets' title is drawn again with them, so
+    // the presses are heard on the sheet)
+    const toggleFold = event => {
+        const head = event.target.closest('.fold-head');
+        const card = head && head.closest('.sheet-fold');
+        if (!card || event.target.closest('button, a, input, select')) return;
+        if (event.type === 'keydown') {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+        }
+        setFold(card.dataset.fold, !folds[card.dataset.fold]);
+        render();
+    };
+    sheet.addEventListener('click', toggleFold);
+    sheet.addEventListener('keydown', toggleFold);
     element('sheetItems').addEventListener('scroll', showMoreBelow, { passive: true });
     window.addEventListener('resize', () => { if (isCharacterSheetOpen()) showMoreBelow(); });
     sheet.querySelectorAll('.sheet-side-btn').forEach(button => {
@@ -175,6 +224,7 @@ function render() {
     renderPet(state);
     renderOutfits(state);
     renderSlotItems(state);
+    showFolds();
 
     items.scrollTop = scrolled[0];
     if (sheetBody) sheetBody.scrollTop = scrolled[1];
@@ -271,6 +321,8 @@ function renderSlots(state) {
             button.addEventListener('click', () => {
                 selectedSlot = slot.id;
                 notice = null;
+                // A slot pressed: its list is what is wanted, so its card opens
+                setFold('slot', false);
                 // Another slot's things: from the top of the list
                 element('sheetItems').scrollTop = 0;
                 render();
@@ -322,7 +374,8 @@ function renderPet(state) {
     const pet = petFor(state.faction || 'alliance');
     const stance = getSettings().gameplay?.petStance === 'aggressive' ? 'aggressive' : 'defensive';
 
-    element('sheetPetName').textContent = pet.name;
+    // Folded, the title says how it fights too
+    element('sheetPetName').textContent = folds.pet ? `${pet.name} \u00b7 ${stance === 'aggressive' ? 'Aggressive' : 'Defensive'}` : pet.name;
     document.querySelectorAll('#characterSheet .sheet-pet-stances [data-stance]').forEach(button => {
         const on = button.dataset.stance === stance;
         button.classList.toggle('is-on', on);
@@ -346,7 +399,7 @@ function renderOutfits(state) {
     holder.textContent = '';
     if (!state.outfits) return;
 
-    holder.append(make('p', 'window-label sheet-outfits-label', 'Your sets'));
+    holder.append(make('p', 'window-label sheet-outfits-label fold-head', 'Your sets'));
     const row = make('div', 'sheet-outfit-row');
     holder.append(row);
     const wearing = Object.keys(state.equipment).length;

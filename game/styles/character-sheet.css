@@ -357,6 +357,47 @@
     border-color: #c9a94f;
 }
 
+/* The cards fold up to their titles: a chevron says which way, a press on the title changes it */
+.sheet-fold .fold-head {
+    position: relative;
+    padding-right: 24px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.sheet-fold .fold-head::after {
+    content: '\25BE';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    color: #c9a94f;
+}
+
+.sheet-fold.is-folded .fold-head::after {
+    content: '\25B8';
+}
+
+.sheet-fold .fold-head:hover h3,
+.sheet-fold .fold-head.window-label:hover {
+    color: #fff2ba;
+}
+
+.sheet-fold .fold-head:focus-visible {
+    outline: 2px solid #fff2ba;
+    outline-offset: 2px;
+}
+
+.sheet-fold.is-folded > :not(.fold-head) {
+    display: none !important;
+}
+
+/* Folded, the slot picked is only as tall as its title */
+.sheet-slot-panel.is-folded {
+    flex: none;
+}
+
 /* "What he has" on one line, what he carries under it if there is no room beside it */
 .character-sheet .window-card-title {
     flex-wrap: wrap;
@@ -368,26 +409,12 @@
 }
 
 .sheet-pet-top {
+    margin-top: 8px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.sheet-pet-who {
-    min-width: 0;
-}
-
-.sheet-pet-who h3 {
-    white-space: nowrap;
-}
-
-.sheet-pet-who .window-label {
-    display: block;
 }
 
 .sheet-pet-stances {
-    flex: none;
+    flex: 1 1 auto;
 }
 
 .sheet-pet-stances .game-btn {
