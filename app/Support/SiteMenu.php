@@ -40,6 +40,13 @@ class SiteMenu
                     ['route' => 'about', 'label' => __('About'), 'active' => ['about']],
                 ],
             ],
+            'tools' => [
+                'label' => __('Tools'),
+                'pages' => [
+                    ['route' => 'tools', 'label' => __('All tools'), 'active' => ['tools']],
+                    ['route' => 'tools.audio-cutter', 'label' => __('Audio Cutter'), 'active' => ['tools.audio-cutter']],
+                ],
+            ],
         ];
     }
 

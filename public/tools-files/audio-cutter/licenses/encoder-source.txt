@@ -1,0 +1,5 @@
+wasm-media-encoders 0.7.0
+Upstream: https://github.com/arseneyr/wasm-media-encoders
+JavaScript: https://unpkg.com/wasm-media-encoders@0.7.0/dist/umd/WasmMediaEncoder.min.js
+WebAssembly: https://unpkg.com/wasm-media-encoders@0.7.0/wasm/ogg.wasm
+License: encoder-LICENSE.txt

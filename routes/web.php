@@ -43,6 +43,10 @@ Route::get('/live', [LiveGamesController::class, 'index'])->name('live');
 // Every item in the game and what it pays in coins
 Route::get('/items', [ItemController::class, 'index'])->name('items');
 
+// The tools (config/tools.php): their list, and each one's page
+Route::view('/tools', 'tools.index')->name('tools');
+Route::view('/tools/audio-cutter', 'tools.audio-cutter')->name('tools.audio-cutter');
+
 // High scores as data, for the game
 Route::get('/api/scores', [ScoreController::class, 'index'])->name('scores.index');
 

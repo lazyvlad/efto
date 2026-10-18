@@ -7,6 +7,8 @@ export default defineConfig({
             input: [
                 'resources/css/app.css',
                 'resources/js/app.js',
+                // The Audio Cutter's page (resources/views/tools/audio-cutter.blade.php)
+                'resources/css/audio-cutter.css',
                 // The game itself: its scripts in one file and its styles in another, each
                 // named after its contents (GameController puts them on the game's page)
                 'game/game-modular.js',

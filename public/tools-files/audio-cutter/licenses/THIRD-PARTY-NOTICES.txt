@@ -1,0 +1,3 @@
+MP3 encoding uses unmodified lamejs 1.2.1, based on LAME. Project: https://lame.sourceforge.net/ ; JavaScript implementation: https://github.com/zhuker/lamejs . Distributed under LGPL; retain licenses/mp3-encoder-LICENSE.txt and source references. The encoder is shipped as a separate JavaScript file.
+
+OGG encoding uses wasm-media-encoders 0.7.0. Project and license details are included in licenses/encoder-source.txt and licenses/encoder-LICENSE.txt.

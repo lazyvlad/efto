@@ -17,6 +17,9 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+        {{-- A page's own styles and scripts (a tool's page, for one) --}}
+        @stack('head')
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen flex flex-col bg-gray-100">

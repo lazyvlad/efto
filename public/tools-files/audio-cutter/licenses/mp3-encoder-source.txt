@@ -1,0 +1,4 @@
+lamejs 1.2.1
+https://www.npmjs.com/package/lamejs
+https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js
+LGPL; see mp3-encoder-LICENSE.txt
