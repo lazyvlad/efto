@@ -965,3 +965,11 @@
     align-self: flex-start;
     min-height: 40px;
 }
+
+/* How to play: what only matters with a mouse and keyboard (the keys, Esc) is left out on a
+   touch screen, without changing how it is laid out elsewhere */
+@media (hover: none) and (pointer: coarse) {
+    #howToPlay .pointer-only {
+        display: none !important;
+    }
+}

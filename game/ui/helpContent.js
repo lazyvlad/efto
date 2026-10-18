@@ -1,5 +1,4 @@
 import { gameConfig } from '../config/gameConfig.js';
-import { keyName } from '../utils/keybindings.js';
 // Dynamic help content generation for the how-to-play screen.
 
 // Configuration for Dragonstalker set completion bonuses
@@ -118,13 +117,8 @@ function generateArrowSystemContent(gameState) {
     let content = `
         <p>• <strong>Quiver:</strong> ${quiver.slots} slots of ${quiver.slotSize} arrows, ${quiver.slots * quiver.slotSize} in all. A game starts with ${quiver.startFilled} slots filled (${quiver.startFilled * quiver.slotSize} arrows); arrows caught with a full quiver are lost</p>
         <p>• <strong>Large quiver:</strong> any boss may drop it for a logged-in player. It is kept on the account and adds ${quiver.bonusSlots} slots (${(quiver.slots + quiver.bonusSlots) * quiver.slotSize} arrows)</p>
-        <p>• <strong>Arrow Power-ups:</strong> Bronze (+25), Silver (+50), Thorium (+100)</p>
-        <p>• <strong>Autoshot (${keyName('autoshot')}):</strong> Fires 1 arrow straight up (0.5s cooldown, uses 1 arrow)</p>
-        <p>• <strong>Multishot (${keyName('multishot')}):</strong> Fires 5 arrows in wide spread (0.5s cooldown, uses 5 arrows)</p>
-        <p>• Arrows destroy harmful projectiles (Fireball, Frostbolt, Shadowbolt)</p>
+        <p>• <strong>Spare arrows:</strong> arrows in your bags (craft them by the bundle) fill the quiver as a game starts and whenever it runs dry</p>
         <p>• <strong>Creatures:</strong> each zone's own wildlife stalks you from the top of the field and closes in as its time runs (the thin bar under its health); every arrow that strikes it pushes it back, and reverse gravity throws it about. Once on you it stays, and pounces every couple of seconds: step aside as it gathers itself. Its bite never kills. It leaves only when killed, by arrows or your weapon up close, and drops loot that hops out of it: catch it as it falls</p>
-        <p>• Arrows pass through items, power-ups and beneficial spells - those you have to catch yourself</p>
-        <p>• Arrow power-ups display the amount they add below the icon</p>
     `;
     
     container.innerHTML = content;
