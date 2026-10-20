@@ -619,15 +619,35 @@ button.inventory-slot:hover {
     font-size: 14px;
 }
 
-.inventory-vendor-btn {
-    color: #ffd100;
-    background: none;
-    border-style: dashed;
+/* Bank or vendors beside the bags: two joined tabs at the top of the column, the one shown in blue */
+.inventory-side-switch {
+    display: flex;
+    flex: none;
+    margin-bottom: 8px;
+}
+
+.inventory-side-tab {
+    flex: 1;
+    padding: 8px 10px;
+    font-family: Marcellus, Georgia, serif;
+    font-size: 15px;
+    color: #f5e6b8;
+    background: linear-gradient(180deg, #2a2219, #100d0a);
+    border: 1px solid #8f7a45;
+    box-shadow: 0 0 0 1px #000;
     cursor: pointer;
 }
 
-.inventory-vendor-btn:hover {
-    border-color: #f1d98a;
+.inventory-side-tab + .inventory-side-tab { border-left: 0; }
+.inventory-side-tab:first-child { border-radius: 4px 0 0 4px; }
+.inventory-side-tab:last-child { border-radius: 0 4px 4px 0; }
+.inventory-side-tab:hover { color: #fff5d6; border-color: #f1d98a; }
+
+.inventory-side-tab.is-on {
+    color: #fff;
+    background: linear-gradient(180deg, #2f6fc0, #17457f);
+    border-color: #8fb8ff;
+    cursor: default;
 }
 
 /* ----- The bank beside the bags ----- */

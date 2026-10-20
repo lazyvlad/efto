@@ -213,6 +213,8 @@ function render() {
         body.insertBefore(carry, main);
         renderCarry(carry, state);
         renderBags(main, state);
+        // Bank or vendors: a switch of their own at the top of the column, always there
+        side.append(sideSwitch());
         if (sideShows === 'vendor') renderBagShop(side, state);
         else renderBank(side, state);
     }
@@ -545,14 +547,6 @@ function renderBags(main, state) {
         const size = state.bags[index];
         bags.append(make('span', size ? 'inventory-bag' : 'inventory-bag is-empty', size ? `Bag · ${size}` : 'Empty'));
     }
-    const vendor = make('button', 'inventory-bag inventory-vendor-btn', sideShows === 'vendor' ? 'The bank' : 'Vendor');
-    vendor.type = 'button';
-    vendor.addEventListener('click', () => {
-        sideShows = sideShows === 'vendor' ? 'bank' : 'vendor';
-        notice = '';
-        render();
-    });
-    bags.append(vendor);
     box.append(bags);
 
     box.append(make('p', 'inventory-text inventory-fine', state.playing
@@ -605,6 +599,26 @@ function pickedBar(itemId, state) {
             render();
         });
         bar.append(craftWith);
+    }
+    return bar;
+}
+
+// Beside the bags: the bank, or the vendors (bags, materials); which one, chosen here
+function sideSwitch() {
+    const bar = make('div', 'inventory-side-switch');
+    bar.setAttribute('role', 'tablist');
+    for (const [id, label] of [['bank', 'Bank'], ['vendor', 'Vendor']]) {
+        const tab = make('button', 'inventory-side-tab' + (sideShows === id ? ' is-on' : ''), label);
+        tab.type = 'button';
+        tab.setAttribute('role', 'tab');
+        tab.setAttribute('aria-selected', String(sideShows === id));
+        tab.addEventListener('click', () => {
+            if (sideShows === id) return;
+            sideShows = id;
+            notice = '';
+            render();
+        });
+        bar.append(tab);
     }
     return bar;
 }
