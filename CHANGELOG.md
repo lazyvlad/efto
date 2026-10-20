@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.10.10 - 2026-10-20
+
+### Changed
+- **Bags: a Bank | Vendor switch** at the top of the column beside the bags, in place of the
+  small "The bank" button among the bag labels (a player took the bank for gone).
+
+### Added (not on the map yet)
+- **The dungeon run**, at /play?dungeon=stockade only: the Stockade with a five-strong party
+  (the hunter, Smokva, Pumba, Zee Zgnan, Smrdljak), real time on Auto and turn by turn off it.
+- **What's new for 3.10.10**, published as the deploy runs.
+
 ## 3.10.9 - 2026-10-18
 
 ### Added

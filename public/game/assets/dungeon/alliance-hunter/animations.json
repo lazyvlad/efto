@@ -1,0 +1,1054 @@
+{
+  "id": "alliance-hunter",
+  "version": 6,
+  "facing": "right",
+  "cell": [
+    512,
+    512
+  ],
+  "pivot": [
+    256,
+    464
+  ],
+  "standingFigure": 328,
+  "scope": "REQUEST section9: new six-frame right-hand knife strike; all seven v5 clips retained unchanged.",
+  "scalePolicy": "Source master rulers normalize differently scaled generation plates into one physical actor scale. No per-frame resize fitting, corpse fitting, or bow/hand silhouette re-centering.",
+  "clips": {
+    "idle": {
+      "id": "idle",
+      "kind": "actor",
+      "atlas": "atlases/idle.webp",
+      "size": [
+        2048,
+        512
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "columns": 4,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 147,
+            "top": 136,
+            "right": 385,
+            "bottom": 461,
+            "width": 239,
+            "height": 326
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 148,
+            "top": 136,
+            "right": 388,
+            "bottom": 461,
+            "width": 241,
+            "height": 326
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 150,
+            "top": 140,
+            "right": 385,
+            "bottom": 461,
+            "width": 236,
+            "height": 322
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 148,
+            "top": 137,
+            "right": 386,
+            "bottom": 461,
+            "width": 239,
+            "height": 325
+          }
+        }
+      ],
+      "durations": [
+        240,
+        240,
+        240,
+        240
+      ],
+      "loop": true,
+      "holdLast": false,
+      "events": []
+    },
+    "step": {
+      "id": "step",
+      "kind": "actor",
+      "atlas": "atlases/step.webp",
+      "size": [
+        2048,
+        1024
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "columns": 4,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 127,
+            "top": 135,
+            "right": 366,
+            "bottom": 462,
+            "width": 240,
+            "height": 328
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 128,
+            "top": 135,
+            "right": 365,
+            "bottom": 462,
+            "width": 238,
+            "height": 328
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 130,
+            "top": 131,
+            "right": 366,
+            "bottom": 462,
+            "width": 237,
+            "height": 332
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 128,
+            "top": 142,
+            "right": 373,
+            "bottom": 461,
+            "width": 246,
+            "height": 320
+          }
+        },
+        {
+          "index": 4,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 128,
+            "top": 145,
+            "right": 366,
+            "bottom": 461,
+            "width": 239,
+            "height": 317
+          }
+        },
+        {
+          "index": 5,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 126,
+            "top": 140,
+            "right": 366,
+            "bottom": 461,
+            "width": 241,
+            "height": 322
+          }
+        },
+        {
+          "index": 6,
+          "rect": [
+            1024,
+            512,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 128,
+            "top": 144,
+            "right": 366,
+            "bottom": 461,
+            "width": 239,
+            "height": 318
+          }
+        },
+        {
+          "index": 7,
+          "rect": [
+            1536,
+            512,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 127,
+            "top": 146,
+            "right": 373,
+            "bottom": 462,
+            "width": 247,
+            "height": 317
+          }
+        }
+      ],
+      "durations": [
+        90,
+        90,
+        90,
+        90,
+        90,
+        90,
+        90,
+        90
+      ],
+      "loop": true,
+      "holdLast": false,
+      "events": [],
+      "stride": 184,
+      "strideUnits": "cell pixels per complete two-foot cycle"
+    },
+    "shoot": {
+      "id": "shoot",
+      "kind": "actor",
+      "atlas": "atlases/shoot.webp",
+      "size": [
+        2048,
+        512
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "columns": 4,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 126,
+            "top": 64,
+            "right": 443,
+            "bottom": 462,
+            "width": 318,
+            "height": 399
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 128,
+            "top": 71,
+            "right": 442,
+            "bottom": 462,
+            "width": 315,
+            "height": 392
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 122,
+            "top": 64,
+            "right": 420,
+            "bottom": 462,
+            "width": 299,
+            "height": 399
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 148,
+            "top": 137,
+            "right": 393,
+            "bottom": 462,
+            "width": 246,
+            "height": 326
+          }
+        }
+      ],
+      "durations": [
+        180,
+        180,
+        110,
+        190
+      ],
+      "loop": false,
+      "holdLast": false,
+      "events": [
+        {
+          "frame": 2,
+          "name": "arrow-release"
+        }
+      ]
+    },
+    "multi-shot": {
+      "id": "multi-shot",
+      "kind": "actor",
+      "atlas": "atlases/multi-shot.webp",
+      "size": [
+        2048,
+        512
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "columns": 4,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 127,
+            "top": 65,
+            "right": 445,
+            "bottom": 461,
+            "width": 319,
+            "height": 397
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 128,
+            "top": 71,
+            "right": 444,
+            "bottom": 461,
+            "width": 317,
+            "height": 391
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 123,
+            "top": 65,
+            "right": 421,
+            "bottom": 461,
+            "width": 299,
+            "height": 397
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 149,
+            "top": 138,
+            "right": 394,
+            "bottom": 462,
+            "width": 246,
+            "height": 325
+          }
+        }
+      ],
+      "durations": [
+        180,
+        180,
+        120,
+        200
+      ],
+      "loop": false,
+      "holdLast": false,
+      "events": [
+        {
+          "frame": 2,
+          "name": "arrow-release"
+        }
+      ]
+    },
+    "drink": {
+      "id": "drink",
+      "kind": "actor",
+      "atlas": "atlases/drink.webp",
+      "size": [
+        2048,
+        512
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "columns": 4,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 165,
+            "top": 137,
+            "right": 391,
+            "bottom": 462,
+            "width": 227,
+            "height": 326
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 146,
+            "top": 134,
+            "right": 367,
+            "bottom": 462,
+            "width": 222,
+            "height": 329
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 145,
+            "top": 133,
+            "right": 365,
+            "bottom": 461,
+            "width": 221,
+            "height": 329
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 136,
+            "top": 134,
+            "right": 360,
+            "bottom": 461,
+            "width": 225,
+            "height": 328
+          }
+        }
+      ],
+      "durations": [
+        180,
+        180,
+        240,
+        180
+      ],
+      "loop": false,
+      "holdLast": false,
+      "events": [
+        {
+          "frame": 2,
+          "name": "potion-consume"
+        }
+      ]
+    },
+    "hurt": {
+      "id": "hurt",
+      "kind": "actor",
+      "atlas": "atlases/hurt.webp",
+      "size": [
+        2048,
+        512
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "columns": 4,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 157,
+            "top": 134,
+            "right": 398,
+            "bottom": 461,
+            "width": 242,
+            "height": 328
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 117,
+            "top": 157,
+            "right": 400,
+            "bottom": 461,
+            "width": 284,
+            "height": 305
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 125,
+            "top": 144,
+            "right": 383,
+            "bottom": 462,
+            "width": 259,
+            "height": 319
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 151,
+            "top": 134,
+            "right": 395,
+            "bottom": 461,
+            "width": 245,
+            "height": 328
+          }
+        }
+      ],
+      "durations": [
+        70,
+        100,
+        110,
+        120
+      ],
+      "loop": false,
+      "holdLast": false,
+      "events": []
+    },
+    "death": {
+      "id": "death",
+      "kind": "actor",
+      "atlas": "atlases/death.webp",
+      "size": [
+        2048,
+        512
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "columns": 4,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 132,
+            "top": 161,
+            "right": 384,
+            "bottom": 461,
+            "width": 253,
+            "height": 301
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 100,
+            "top": 213,
+            "right": 388,
+            "bottom": 461,
+            "width": 289,
+            "height": 249
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 54,
+            "top": 287,
+            "right": 449,
+            "bottom": 462,
+            "width": 396,
+            "height": 176
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 59,
+            "top": 348,
+            "right": 447,
+            "bottom": 462,
+            "width": 389,
+            "height": 115
+          }
+        }
+      ],
+      "durations": [
+        170,
+        190,
+        220,
+        1000
+      ],
+      "loop": false,
+      "holdLast": true,
+      "events": []
+    },
+    "strike": {
+      "id": "strike",
+      "kind": "actor",
+      "atlas": "atlases/strike.webp",
+      "size": [
+        2048,
+        1024
+      ],
+      "cell": [
+        512,
+        512
+      ],
+      "columns": 4,
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 148,
+            "top": 136,
+            "right": 428,
+            "bottom": 461,
+            "width": 281,
+            "height": 326
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 136,
+            "top": 137,
+            "right": 439,
+            "bottom": 461,
+            "width": 304,
+            "height": 325
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 137,
+            "top": 141,
+            "right": 459,
+            "bottom": 460,
+            "width": 323,
+            "height": 320
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 142,
+            "top": 141,
+            "right": 432,
+            "bottom": 461,
+            "width": 291,
+            "height": 321
+          }
+        },
+        {
+          "index": 4,
+          "rect": [
+            0,
+            512,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 146,
+            "top": 135,
+            "right": 433,
+            "bottom": 461,
+            "width": 288,
+            "height": 327
+          }
+        },
+        {
+          "index": 5,
+          "rect": [
+            512,
+            512,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 142,
+            "top": 134,
+            "right": 394,
+            "bottom": 462,
+            "width": 253,
+            "height": 329
+          }
+        }
+      ],
+      "durations": [
+        100,
+        90,
+        70,
+        90,
+        100,
+        150
+      ],
+      "loop": false,
+      "holdLast": false,
+      "then": "idle",
+      "contactAtMs": 260,
+      "events": [
+        {
+          "frame": 3,
+          "name": "melee-contact"
+        }
+      ],
+      "phases": [
+        "draw",
+        "anticipation",
+        "swing",
+        "contact",
+        "follow-through",
+        "recover"
+      ]
+    }
+  }
+}

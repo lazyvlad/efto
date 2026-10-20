@@ -1,0 +1,1514 @@
+{
+  "id": "gnome-mage-spells",
+  "version": 1,
+  "clips": {
+    "fireball-flight": {
+      "id": "fireball-flight",
+      "loop": true,
+      "anchor": "projectile-core",
+      "layer": "projectile",
+      "durations": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "drawHeight": 66,
+      "kind": "projectile",
+      "atlas": "effects/fireball-flight.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "columns": 4,
+      "pivot": [
+        368,
+        256
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            368,
+            256
+          ],
+          "bounds": {
+            "left": 18,
+            "top": 141,
+            "right": 427,
+            "bottom": 358,
+            "width": 410,
+            "height": 218
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            368,
+            256
+          ],
+          "bounds": {
+            "left": 23,
+            "top": 139,
+            "right": 427,
+            "bottom": 363,
+            "width": 405,
+            "height": 225
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            368,
+            256
+          ],
+          "bounds": {
+            "left": 16,
+            "top": 121,
+            "right": 425,
+            "bottom": 355,
+            "width": 410,
+            "height": 235
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            368,
+            256
+          ],
+          "bounds": {
+            "left": 39,
+            "top": 120,
+            "right": 425,
+            "bottom": 356,
+            "width": 387,
+            "height": 237
+          }
+        }
+      ],
+      "holdLast": false,
+      "clearOnEnd": false,
+      "clearOnCancel": true,
+      "fadeOutMs": 0,
+      "lifetimeOwner": "engine; never infer duration or damage ticks from animation loop"
+    },
+    "fireball-impact": {
+      "id": "fireball-impact",
+      "loop": false,
+      "anchor": "target-chest",
+      "layer": "above-actor",
+      "durations": [
+        70,
+        90,
+        100,
+        140
+      ],
+      "drawHeight": 125,
+      "kind": "effect",
+      "atlas": "effects/fireball-impact.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "columns": 4,
+      "pivot": [
+        256,
+        256
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 125,
+            "top": 115,
+            "right": 379,
+            "bottom": 376,
+            "width": 255,
+            "height": 262
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 105,
+            "top": 82,
+            "right": 429,
+            "bottom": 408,
+            "width": 325,
+            "height": 327
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 43,
+            "top": 29,
+            "right": 462,
+            "bottom": 441,
+            "width": 420,
+            "height": 413
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 83,
+            "top": 66,
+            "right": 445,
+            "bottom": 420,
+            "width": 363,
+            "height": 355
+          }
+        }
+      ],
+      "holdLast": false,
+      "clearOnEnd": true,
+      "clearOnCancel": true,
+      "fadeOutMs": 120
+    },
+    "frostbolt-flight": {
+      "id": "frostbolt-flight",
+      "loop": true,
+      "anchor": "projectile-core",
+      "layer": "projectile",
+      "durations": [
+        100,
+        100,
+        100,
+        100
+      ],
+      "drawHeight": 58,
+      "kind": "projectile",
+      "atlas": "effects/frostbolt-flight.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "columns": 4,
+      "pivot": [
+        368,
+        256
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            368,
+            256
+          ],
+          "bounds": {
+            "left": 48,
+            "top": 179,
+            "right": 472,
+            "bottom": 349,
+            "width": 425,
+            "height": 171
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            368,
+            256
+          ],
+          "bounds": {
+            "left": 40,
+            "top": 176,
+            "right": 467,
+            "bottom": 343,
+            "width": 428,
+            "height": 168
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            368,
+            256
+          ],
+          "bounds": {
+            "left": 26,
+            "top": 179,
+            "right": 465,
+            "bottom": 351,
+            "width": 440,
+            "height": 173
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            368,
+            256
+          ],
+          "bounds": {
+            "left": 21,
+            "top": 164,
+            "right": 460,
+            "bottom": 346,
+            "width": 440,
+            "height": 183
+          }
+        }
+      ],
+      "holdLast": false,
+      "clearOnEnd": false,
+      "clearOnCancel": true,
+      "fadeOutMs": 0,
+      "lifetimeOwner": "engine; never infer duration or damage ticks from animation loop"
+    },
+    "frostbolt-impact": {
+      "id": "frostbolt-impact",
+      "loop": false,
+      "anchor": "target-chest",
+      "layer": "above-actor",
+      "durations": [
+        70,
+        90,
+        110,
+        150
+      ],
+      "drawHeight": 112,
+      "kind": "effect",
+      "atlas": "effects/frostbolt-impact.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "columns": 4,
+      "pivot": [
+        256,
+        256
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 178,
+            "top": 163,
+            "right": 359,
+            "bottom": 338,
+            "width": 182,
+            "height": 176
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 114,
+            "top": 106,
+            "right": 408,
+            "bottom": 392,
+            "width": 295,
+            "height": 287
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 42,
+            "top": 28,
+            "right": 461,
+            "bottom": 446,
+            "width": 420,
+            "height": 419
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 114,
+            "top": 124,
+            "right": 386,
+            "bottom": 387,
+            "width": 273,
+            "height": 264
+          }
+        }
+      ],
+      "holdLast": false,
+      "clearOnEnd": true,
+      "clearOnCancel": true,
+      "fadeOutMs": 120
+    },
+    "arcane-missile-flight": {
+      "id": "arcane-missile-flight",
+      "loop": true,
+      "anchor": "projectile-core",
+      "layer": "projectile",
+      "durations": [
+        80,
+        80,
+        80,
+        80
+      ],
+      "drawHeight": 54,
+      "kind": "projectile",
+      "atlas": "effects/arcane-missile-flight.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "columns": 4,
+      "pivot": [
+        368,
+        256
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            368,
+            256
+          ],
+          "bounds": {
+            "left": 16,
+            "top": 163,
+            "right": 431,
+            "bottom": 338,
+            "width": 416,
+            "height": 176
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            368,
+            256
+          ],
+          "bounds": {
+            "left": 18,
+            "top": 149,
+            "right": 434,
+            "bottom": 344,
+            "width": 417,
+            "height": 196
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            368,
+            256
+          ],
+          "bounds": {
+            "left": 24,
+            "top": 159,
+            "right": 441,
+            "bottom": 372,
+            "width": 418,
+            "height": 214
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            368,
+            256
+          ],
+          "bounds": {
+            "left": 23,
+            "top": 162,
+            "right": 445,
+            "bottom": 363,
+            "width": 423,
+            "height": 202
+          }
+        }
+      ],
+      "holdLast": false,
+      "clearOnEnd": false,
+      "clearOnCancel": true,
+      "fadeOutMs": 0,
+      "lifetimeOwner": "engine; never infer duration or damage ticks from animation loop"
+    },
+    "arcane-missile-impact": {
+      "id": "arcane-missile-impact",
+      "loop": false,
+      "anchor": "target-chest",
+      "layer": "above-actor",
+      "durations": [
+        60,
+        70,
+        90,
+        120
+      ],
+      "drawHeight": 92,
+      "kind": "effect",
+      "atlas": "effects/arcane-missile-impact.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "columns": 4,
+      "pivot": [
+        256,
+        256
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 190,
+            "top": 170,
+            "right": 337,
+            "bottom": 321,
+            "width": 148,
+            "height": 152
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 93,
+            "top": 78,
+            "right": 428,
+            "bottom": 417,
+            "width": 336,
+            "height": 340
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 47,
+            "top": 37,
+            "right": 466,
+            "bottom": 449,
+            "width": 420,
+            "height": 413
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 99,
+            "top": 107,
+            "right": 389,
+            "bottom": 406,
+            "width": 291,
+            "height": 300
+          }
+        }
+      ],
+      "holdLast": false,
+      "clearOnEnd": true,
+      "clearOnCancel": true,
+      "fadeOutMs": 120
+    },
+    "frost-nova-ring": {
+      "id": "frost-nova-ring",
+      "loop": false,
+      "anchor": "caster-floor",
+      "layer": "below-actor",
+      "durations": [
+        70,
+        90,
+        110,
+        170
+      ],
+      "drawHeight": 235,
+      "kind": "effect",
+      "atlas": "effects/frost-nova-ring.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "columns": 4,
+      "pivot": [
+        256,
+        420
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 201,
+            "top": 390,
+            "right": 331,
+            "bottom": 445,
+            "width": 131,
+            "height": 56
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 128,
+            "top": 368,
+            "right": 377,
+            "bottom": 471,
+            "width": 250,
+            "height": 104
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 94,
+            "top": 310,
+            "right": 416,
+            "bottom": 495,
+            "width": 323,
+            "height": 186
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 131,
+            "top": 362,
+            "right": 383,
+            "bottom": 472,
+            "width": 253,
+            "height": 111
+          }
+        }
+      ],
+      "holdLast": false,
+      "clearOnEnd": true,
+      "clearOnCancel": true,
+      "fadeOutMs": 120
+    },
+    "frost-nova-bind": {
+      "id": "frost-nova-bind",
+      "loop": true,
+      "anchor": "target-floor",
+      "layer": "above-actor",
+      "durations": [
+        180,
+        180,
+        180,
+        180
+      ],
+      "drawHeight": 105,
+      "kind": "effect",
+      "atlas": "effects/frost-nova-bind.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "columns": 4,
+      "pivot": [
+        256,
+        420
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 87,
+            "top": 296,
+            "right": 441,
+            "bottom": 463,
+            "width": 355,
+            "height": 168
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 79,
+            "top": 254,
+            "right": 437,
+            "bottom": 465,
+            "width": 359,
+            "height": 212
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 77,
+            "top": 249,
+            "right": 428,
+            "bottom": 461,
+            "width": 352,
+            "height": 213
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 79,
+            "top": 247,
+            "right": 432,
+            "bottom": 466,
+            "width": 354,
+            "height": 220
+          }
+        }
+      ],
+      "holdLast": false,
+      "clearOnEnd": false,
+      "clearOnCancel": true,
+      "fadeOutMs": 0,
+      "lifetimeOwner": "engine; never infer duration or damage ticks from animation loop"
+    },
+    "blink-out": {
+      "id": "blink-out",
+      "loop": false,
+      "anchor": "caster-floor",
+      "layer": "above-actor",
+      "durations": [
+        60,
+        70,
+        80,
+        110
+      ],
+      "drawHeight": 220,
+      "kind": "effect",
+      "atlas": "effects/blink-out.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "columns": 4,
+      "pivot": [
+        256,
+        420
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 58,
+            "top": 163,
+            "right": 450,
+            "bottom": 464,
+            "width": 393,
+            "height": 302
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 134,
+            "top": 97,
+            "right": 382,
+            "bottom": 453,
+            "width": 249,
+            "height": 357
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 156,
+            "top": 134,
+            "right": 347,
+            "bottom": 451,
+            "width": 192,
+            "height": 318
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 163,
+            "top": 196,
+            "right": 346,
+            "bottom": 441,
+            "width": 184,
+            "height": 246
+          }
+        }
+      ],
+      "holdLast": false,
+      "clearOnEnd": true,
+      "clearOnCancel": true,
+      "fadeOutMs": 110
+    },
+    "blink-in": {
+      "id": "blink-in",
+      "loop": false,
+      "anchor": "destination-floor",
+      "layer": "behind-actor",
+      "durations": [
+        70,
+        80,
+        100,
+        130
+      ],
+      "drawHeight": 220,
+      "kind": "effect",
+      "atlas": "effects/blink-in.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "columns": 4,
+      "pivot": [
+        256,
+        420
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 99,
+            "top": 262,
+            "right": 428,
+            "bottom": 448,
+            "width": 330,
+            "height": 187
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 53,
+            "top": 80,
+            "right": 463,
+            "bottom": 456,
+            "width": 411,
+            "height": 377
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 72,
+            "top": 16,
+            "right": 438,
+            "bottom": 458,
+            "width": 367,
+            "height": 443
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 75,
+            "top": 94,
+            "right": 432,
+            "bottom": 451,
+            "width": 358,
+            "height": 358
+          }
+        }
+      ],
+      "holdLast": false,
+      "clearOnEnd": true,
+      "clearOnCancel": true,
+      "fadeOutMs": 120
+    },
+    "ice-barrier-loop": {
+      "id": "ice-barrier-loop",
+      "loop": true,
+      "anchor": "caster-floor",
+      "layer": "behind-actor",
+      "durations": [
+        180,
+        180,
+        180,
+        180
+      ],
+      "drawHeight": 240,
+      "kind": "effect",
+      "atlas": "effects/ice-barrier-loop.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "columns": 4,
+      "pivot": [
+        256,
+        420
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 61,
+            "top": 133,
+            "right": 465,
+            "bottom": 439,
+            "width": 405,
+            "height": 307
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 56,
+            "top": 122,
+            "right": 461,
+            "bottom": 439,
+            "width": 406,
+            "height": 318
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 53,
+            "top": 114,
+            "right": 458,
+            "bottom": 439,
+            "width": 406,
+            "height": 326
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 49,
+            "top": 118,
+            "right": 452,
+            "bottom": 439,
+            "width": 404,
+            "height": 322
+          }
+        }
+      ],
+      "holdLast": false,
+      "clearOnEnd": false,
+      "clearOnCancel": true,
+      "fadeOutMs": 0,
+      "lifetimeOwner": "engine; never infer duration or damage ticks from animation loop"
+    },
+    "ice-barrier-break": {
+      "id": "ice-barrier-break",
+      "loop": false,
+      "anchor": "caster-floor",
+      "layer": "behind-actor",
+      "durations": [
+        70,
+        90,
+        120,
+        160
+      ],
+      "drawHeight": 240,
+      "kind": "effect",
+      "atlas": "effects/ice-barrier-break.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "columns": 4,
+      "pivot": [
+        256,
+        420
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 64,
+            "top": 113,
+            "right": 461,
+            "bottom": 427,
+            "width": 398,
+            "height": 315
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 55,
+            "top": 106,
+            "right": 474,
+            "bottom": 426,
+            "width": 420,
+            "height": 321
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 59,
+            "top": 109,
+            "right": 463,
+            "bottom": 426,
+            "width": 405,
+            "height": 318
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            420
+          ],
+          "bounds": {
+            "left": 74,
+            "top": 129,
+            "right": 412,
+            "bottom": 434,
+            "width": 339,
+            "height": 306
+          }
+        }
+      ],
+      "holdLast": false,
+      "clearOnEnd": true,
+      "clearOnCancel": true,
+      "fadeOutMs": 120
+    }
+  },
+  "spells": {
+    "fireball": {
+      "id": "fireball",
+      "name": "Fireball",
+      "school": "fire",
+      "icon": "icons/fireball.webp",
+      "actorClip": "cast",
+      "bodyEventAtMs": 320,
+      "clips": [
+        "fireball-flight",
+        "fireball-impact"
+      ],
+      "scope": "Visual proposal; stats, cast times, targets, ranges, cooldowns and availability are game-agent decisions."
+    },
+    "frostbolt": {
+      "id": "frostbolt",
+      "name": "Frostbolt",
+      "school": "frost",
+      "icon": "icons/frostbolt.webp",
+      "actorClip": "cast",
+      "bodyEventAtMs": 320,
+      "clips": [
+        "frostbolt-flight",
+        "frostbolt-impact"
+      ],
+      "scope": "Visual proposal; stats, cast times, targets, ranges, cooldowns and availability are game-agent decisions."
+    },
+    "arcane-missiles": {
+      "id": "arcane-missiles",
+      "name": "Arcane Missiles",
+      "school": "arcane",
+      "icon": "icons/arcane-missiles.webp",
+      "actorClip": "channel",
+      "clips": [
+        "arcane-missile-flight",
+        "arcane-missile-impact"
+      ],
+      "scope": "Visual proposal; stats, cast times, targets, ranges, cooldowns and availability are game-agent decisions."
+    },
+    "frost-nova": {
+      "id": "frost-nova",
+      "name": "Frost Nova",
+      "school": "frost",
+      "icon": "icons/frost-nova.webp",
+      "actorClip": "cast",
+      "bodyEventAtMs": 320,
+      "clips": [
+        "frost-nova-ring",
+        "frost-nova-bind"
+      ],
+      "scope": "Visual proposal; stats, cast times, targets, ranges, cooldowns and availability are game-agent decisions."
+    },
+    "blink": {
+      "id": "blink",
+      "name": "Blink",
+      "school": "arcane",
+      "icon": "icons/blink.webp",
+      "actorClip": "cast",
+      "bodyEventAtMs": 320,
+      "clips": [
+        "blink-out",
+        "blink-in"
+      ],
+      "scope": "Visual proposal; stats, cast times, targets, ranges, cooldowns and availability are game-agent decisions."
+    },
+    "ice-barrier": {
+      "id": "ice-barrier",
+      "name": "Ice Barrier",
+      "school": "frost",
+      "icon": "icons/ice-barrier.webp",
+      "actorClip": "barrier",
+      "bodyEventAtMs": 300,
+      "clips": [
+        "ice-barrier-loop",
+        "ice-barrier-break"
+      ],
+      "scope": "Visual proposal; stats, cast times, targets, ranges, cooldowns and availability are game-agent decisions."
+    }
+  },
+  "cell": [
+    512,
+    512
+  ],
+  "facing": "right",
+  "alphaBlend": "source-over",
+  "scalePolicy": "drawHeight refers to the complete512px effect cell at the front row, not painted bounds or actor figure. Multiply by existing row scale.",
+  "scope": "Six original spell art kits. All body art and earlier deliveries retained; no production mechanics or spell rules changed."
+}
