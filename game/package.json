@@ -10,7 +10,9 @@
     "assets:report": "node tools/optimize-assets.js",
     "assets:optimize": "node tools/optimize-assets.js --dir ../public/game --write",
     "clean": "node -e \"const fs = require('fs-extra'); fs.removeSync('../public/game'); fs.removeSync('dev_dist');\"",
-    "boss-lab": "node tools/boss-lab.mjs"
+    "boss-lab": "node tools/boss-lab.mjs",
+    "dungeon-lab": "node tools/dungeon-lab.mjs",
+    "dungeon-art": "node tools/dungeon-art-version.mjs"
   },
   "devDependencies": {
     "chalk": "^4.1.2",

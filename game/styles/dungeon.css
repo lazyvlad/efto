@@ -1,0 +1,1149 @@
+/* The dungeon run (dungeon/dungeonGame.js): the stage fills the screen; the panels sit over its
+   edges as the INPUT Screens design draws them. Gold trim, dark stone, Marcellus headings. */
+
+body.in-dungeon > *:not(#dungeon) {
+    visibility: hidden;
+}
+
+#dungeon {
+    position: fixed;
+    inset: 0;
+    z-index: 5000;
+    overflow: hidden;
+    background: #0a0806;
+    color: #f4ecd8;
+    font-family: 'Trebuchet MS', 'Segoe UI', Verdana, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+#dungeon .dg-stage {
+    position: absolute;
+    inset: 0;
+    display: block;
+    touch-action: none;
+    cursor: pointer;
+}
+
+#dungeon .dg-label {
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #a89a78;
+    text-shadow: 0 1px 2px #000;
+}
+
+/* ---- Along the top ---- */
+
+#dungeon .dg-top {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: start;
+    gap: 16px;
+    padding: 14px 20px;
+    pointer-events: none;
+}
+
+#dungeon .dg-top > * {
+    pointer-events: auto;
+}
+
+#dungeon .dg-title {
+    font-family: Marcellus, Georgia, serif;
+    font-size: 26px;
+    color: #ffd100;
+    text-shadow: 0 2px 4px #000;
+}
+
+#dungeon .dg-wave {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 13px;
+    text-shadow: 0 1px 2px #000;
+}
+
+#dungeon .dg-waves {
+    display: flex;
+    gap: 7px;
+}
+
+#dungeon .dg-waves i {
+    width: 12px;
+    height: 12px;
+    transform: rotate(45deg);
+    background: #1a1410;
+    border: 1px solid #c9a94f;
+    box-shadow: 0 0 0 1px #000;
+}
+
+#dungeon .dg-waves i.done { background: #ffd100; }
+#dungeon .dg-waves i.now { background: #b3231a; box-shadow: 0 0 0 1px #000, 0 0 8px #ff6a50; }
+
+#dungeon .dg-boss-tag {
+    padding: 1px 7px;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #a89a78;
+    background: #1a1410;
+    border: 1px solid #c9a94f;
+}
+
+#dungeon .dg-next-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+#dungeon .dg-next-list {
+    display: flex;
+    gap: 6px;
+}
+
+#dungeon .dg-next {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font-size: 10px;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px #000;
+}
+
+#dungeon .dg-next img {
+    width: 44px;
+    height: 44px;
+    border: 2px solid #3fbf4f;
+    border-radius: 6px;
+    background: #1a1410;
+    box-shadow: 0 0 0 1px #000;
+}
+
+#dungeon .dg-next.foe img { border-color: #d8382c; }
+#dungeon .dg-next.first img { width: 54px; height: 54px; border-color: #ffd100; box-shadow: 0 0 0 1px #000, 0 0 12px #ffd100; }
+
+#dungeon .dg-pause-button,
+#dungeon .dg-btn {
+    padding: 8px 16px;
+    font-family: Marcellus, Georgia, serif;
+    font-size: 15px;
+    color: #f4ecd8;
+    background: linear-gradient(180deg, #3a2d1c, #1a1410);
+    border: 1px solid #c9a94f;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000;
+    cursor: pointer;
+}
+
+#dungeon .dg-btn:not(.quiet) {
+    color: #ffd100;
+    background:
+        linear-gradient(180deg, #b3231a 0%, #8e120c 46%, #6c0a06 54%, #4a0503 100%) padding-box,
+        linear-gradient(160deg, #f6e3a1 0%, #b9902f 18%, #6b4f16 42%, #a57f2a 60%, #efd88d 80%, #7a5a1a 100%) border-box;
+    border: 2px solid transparent;
+}
+
+#dungeon .dg-btn:hover,
+#dungeon .dg-pause-button:hover {
+    filter: brightness(1.2);
+}
+
+/* ---- The foe pointed at ---- */
+
+#dungeon .dg-foe,
+#dungeon .dg-you-box {
+    width: 236px;
+    padding: 10px 14px;
+    background: rgba(10, 8, 6, 0.88);
+    border: 1px solid #c9a94f;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #000;
+}
+
+#dungeon .dg-foe {
+    position: absolute;
+    right: 20px;
+    top: 110px;
+}
+
+#dungeon .dg-foe[hidden] {
+    display: none;
+}
+
+#dungeon .dg-foe-head {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+#dungeon .dg-foe-face {
+    width: 48px;
+    height: 48px;
+    border: 2px solid #d8382c;
+    border-radius: 6px;
+    background: #1a1410;
+}
+
+#dungeon .dg-foe-name {
+    font-family: Marcellus, Georgia, serif;
+    font-size: 16px;
+    color: #ffb4a8;
+}
+
+#dungeon .dg-foe-goes {
+    font-size: 11px;
+    color: #a89a78;
+}
+
+#dungeon .dg-stats {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 12px;
+    font-size: 12px;
+}
+
+#dungeon .dg-stats span { color: #a89a78; }
+#dungeon .dg-stats b { font-weight: 400; text-align: right; }
+
+/* ---- Along the bottom ---- */
+
+#dungeon .dg-bottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: end;
+    gap: 16px;
+    padding: 14px 20px;
+    pointer-events: none;
+}
+
+#dungeon .dg-bottom > * {
+    pointer-events: auto;
+}
+
+#dungeon .dg-party {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#dungeon .dg-member {
+    display: flex;
+    gap: 9px;
+    align-items: center;
+    width: 250px;
+    padding: 5px 9px;
+    background: rgba(10, 8, 6, 0.84);
+    border: 1px solid #c9a94f;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #000;
+}
+
+#dungeon .dg-member.fallen {
+    filter: grayscale(1) brightness(0.6);
+}
+
+#dungeon .dg-face {
+    width: 42px;
+    height: 42px;
+    flex: none;
+    border: 2px solid #c9a94f;
+    border-radius: 50%;
+    background: #1a1410;
+}
+
+#dungeon .dg-member-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+#dungeon .dg-member-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+
+#dungeon .dg-member-name {
+    font-family: Marcellus, Georgia, serif;
+    font-size: 14px;
+    color: #ffd100;
+}
+
+#dungeon .dg-member-role {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #a89a78;
+}
+
+#dungeon .dg-member-note {
+    font-size: 10px;
+    color: #ffe9a8;
+}
+
+#dungeon .dg-member-note:empty {
+    display: none;
+}
+
+/* His pet, a line on his card */
+#dungeon .dg-pet-line {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    align-items: center;
+    gap: 6px;
+    margin-top: 1px;
+    font-size: 10px;
+    color: #cfc4ad;
+}
+
+#dungeon .dg-pet-line .dg-bar {
+    height: 5px;
+}
+
+#dungeon .dg-pet-line b {
+    font-weight: 400;
+}
+
+#dungeon .dg-pet-line[data-stance="aggressive"] b { color: #ff8a5c; }
+#dungeon .dg-pet-line[data-stance="defensive"] b { color: #9cc8ff; }
+#dungeon .dg-pet-line.fallen { opacity: 0.5; }
+
+#dungeon .dg-bar {
+    position: relative;
+    height: 12px;
+    background: #1a1410;
+    border: 1px solid #000;
+    box-shadow: 0 0 0 1px rgba(201, 169, 79, 0.45);
+}
+
+#dungeon .dg-bar i {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: #3fbf4f;
+}
+
+#dungeon .dg-bar span {
+    position: absolute;
+    inset: 0;
+    text-align: center;
+    font-size: 10px;
+    line-height: 12px;
+    color: #fff;
+    text-shadow: 0 1px 2px #000;
+}
+
+#dungeon .dg-bar.dg-turn {
+    height: 4px;
+}
+
+#dungeon .dg-bar.dg-turn i {
+    background: #ffd100;
+}
+
+#dungeon .dg-spells {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    padding: 10px 14px;
+    background: rgba(10, 8, 6, 0.8);
+    border: 1px solid #c9a94f;
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px #000;
+}
+
+#dungeon .dg-spell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    background: none;
+    border: 0;
+    cursor: pointer;
+}
+
+#dungeon .dg-spell-auto {
+    cursor: default;
+}
+
+#dungeon .dg-spell:disabled {
+    cursor: not-allowed;
+    filter: grayscale(0.8) brightness(0.6);
+}
+
+#dungeon .dg-icon {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    overflow: hidden;
+    border: 2px solid #c9a94f;
+    border-radius: 6px;
+    background: radial-gradient(circle, #2a2219, #0c0a08);
+    box-shadow: 0 0 0 1px #000;
+}
+
+#dungeon .dg-icon.small {
+    width: 50px;
+    height: 50px;
+}
+
+#dungeon .dg-spell-auto .dg-icon {
+    box-shadow: 0 0 0 1px #000, 0 0 14px #ffd100;
+}
+
+#dungeon .dg-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#dungeon .dg-spell-pet .dg-icon img {
+    object-fit: contain;
+    padding: 3px;
+}
+
+#dungeon .dg-spell:hover:not(:disabled) .dg-icon {
+    border-color: #f1d98a;
+}
+
+#dungeon .dg-cd {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 0;
+    background: rgba(0, 0, 0, 0.65);
+}
+
+#dungeon .dg-cd-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 3px #000;
+}
+
+#dungeon .dg-icon kbd {
+    position: absolute;
+    left: 3px;
+    top: 1px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    color: #ffd100;
+    text-shadow: 0 1px 2px #000;
+}
+
+#dungeon .dg-auto {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 1px 0;
+    text-align: center;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    color: #1a1100;
+    background: #ffd100;
+}
+
+#dungeon .dg-name {
+    font-size: 10px;
+    color: #cfc4ad;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px #000;
+}
+
+#dungeon .dg-spell-pet[data-stance="aggressive"] .dg-name { color: #ff8a5c; }
+#dungeon .dg-spell-pet[data-stance="defensive"] .dg-name { color: #9cc8ff; }
+
+#dungeon .dg-divider {
+    width: 1px;
+    align-self: stretch;
+    margin: 0 4px;
+    background: #c9a94f;
+    opacity: 0.5;
+}
+
+#dungeon .dg-you-box {
+    justify-self: end;
+}
+
+/* ---- Paused, and the end of the run ---- */
+
+#dungeon .dg-pause,
+#dungeon .dg-end {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 4, 3, 0.62);
+}
+
+#dungeon .dg-pause[hidden],
+#dungeon .dg-end[hidden],
+#dungeon .dg-loading[hidden] {
+    display: none;
+}
+
+#dungeon .dg-window {
+    max-width: min(460px, 90vw);
+    padding: 22px 26px;
+    text-align: center;
+    background:
+        linear-gradient(180deg, #211c18 0%, #15110e 45%, #0c0a08 100%) padding-box,
+        linear-gradient(160deg, #f6e3a1 0%, #b9902f 18%, #6b4f16 42%, #a57f2a 60%, #efd88d 80%, #7a5a1a 100%) border-box;
+    border: 3px solid transparent;
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px #000, 0 18px 50px rgba(0, 0, 0, 0.7);
+}
+
+#dungeon .dg-window h2 {
+    margin: 0 0 8px;
+    font-family: Marcellus, Georgia, serif;
+    font-weight: 400;
+    font-size: 28px;
+    color: #ffd100;
+}
+
+#dungeon .dg-end[data-result="lost"] h2 {
+    color: #ff8a5c;
+}
+
+#dungeon .dg-window p {
+    margin: 0 0 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #cfc4ad;
+}
+
+#dungeon .dg-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+#dungeon .dg-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Marcellus, Georgia, serif;
+    font-size: 22px;
+    color: #ffd100;
+}
+
+/* ---- A phone, or any short or narrow screen: smaller panels, the party as a small block ---- */
+
+@media (max-width: 900px), (max-height: 560px) {
+    #dungeon .dg-top,
+    #dungeon .dg-bottom {
+        padding: 8px 10px;
+        gap: 8px;
+    }
+
+    #dungeon .dg-title { font-size: 16px; }
+    #dungeon .dg-wave { font-size: 11px; }
+    #dungeon .dg-boss-tag { display: none; }
+    #dungeon .dg-next img { width: 28px; height: 28px; }
+    #dungeon .dg-next.first img { width: 32px; height: 32px; }
+    #dungeon .dg-next span { display: none; }
+    #dungeon .dg-next-box .dg-label { display: none; }
+    #dungeon .dg-pause-button { padding: 6px 10px; font-size: 13px; }
+
+    #dungeon .dg-member { width: 150px; padding: 3px 6px; gap: 6px; }
+    #dungeon .dg-face { width: 24px; height: 24px; }
+    #dungeon .dg-member-name { font-size: 11px; }
+    #dungeon .dg-member-role, #dungeon .dg-member-note { display: none; }
+    #dungeon .dg-bar { height: 7px; }
+    #dungeon .dg-bar span { display: none; }
+    #dungeon .dg-party { gap: 3px; }
+
+    #dungeon .dg-spells { padding: 6px; gap: 6px; }
+    #dungeon .dg-icon { width: 44px; height: 44px; }
+    #dungeon .dg-icon.small { width: 38px; height: 38px; }
+    #dungeon .dg-name { display: none; }
+    #dungeon .dg-you-box { display: none; }
+    #dungeon .dg-foe { top: 60px; right: 10px; width: 200px; padding: 8px 10px; }
+}
+
+/* Upright phone: the party moves up out of the spells' way */
+@media (max-width: 600px) and (orientation: portrait) {
+    #dungeon:not(.dg-rotated) .dg-bottom {
+        grid-template-columns: 1fr;
+        justify-items: center;
+    }
+
+    #dungeon:not(.dg-rotated) .dg-party {
+        position: absolute;
+        left: 10px;
+        top: 70px;
+    }
+}
+
+/* ---- Who the orders are for: the three, at the left of the spell bar ---- */
+
+#dungeon .dg-spells {
+    gap: 12px;
+}
+
+#dungeon .dg-who {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-right: 10px;
+    border-right: 1px solid rgba(201, 169, 79, 0.5);
+}
+
+#dungeon .dg-bar-spells {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+#dungeon .dg-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 26px;
+    padding: 1px 8px 1px 2px;
+    font-family: Marcellus, Georgia, serif;
+    font-size: 12px;
+    color: #cfc4ad;
+    background: linear-gradient(180deg, #2a2219, #100d0a);
+    border: 1px solid #5d4c25;
+    border-radius: 13px;
+    cursor: pointer;
+}
+
+#dungeon .dg-chip img {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+}
+
+#dungeon .dg-chip.selected {
+    color: #1a1100;
+    background: #ffd100;
+    border-color: #ffe066;
+    box-shadow: 0 0 10px rgba(255, 209, 0, 0.6);
+}
+
+#dungeon .dg-chip.held:not(.selected)::after {
+    content: '⚑';
+    color: #ffd100;
+    font-size: 11px;
+}
+
+#dungeon .dg-chip:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+#dungeon .dg-member {
+    cursor: pointer;
+}
+
+#dungeon .dg-member.selected {
+    border-color: #ffd100;
+    box-shadow: 0 0 0 1px #000, 0 0 12px rgba(255, 209, 0, 0.55);
+}
+
+#dungeon .dg-spell[hidden],
+#dungeon .dg-divider[hidden] {
+    display: none;
+}
+
+/* A spell that would do nothing now (nobody beside him to Swipe): dim, still pressable */
+#dungeon .dg-spell.idle .dg-icon {
+    filter: brightness(0.55) saturate(0.6);
+}
+
+/* The companions' spells, drawn until their icons are painted */
+#dungeon .dg-glyph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+#dungeon .dg-glyph svg {
+    width: 62%;
+    height: 62%;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: drop-shadow(0 1px 2px #000);
+}
+
+#dungeon .dg-glyph.nature { color: #c8f59a; background: radial-gradient(circle at 40% 35%, #3f6b25, #14240b); }
+#dungeon .dg-glyph.holy { color: #fff0b0; background: radial-gradient(circle at 40% 35%, #8a6a1c, #1d2f55); }
+#dungeon .dg-glyph.plain { color: #f4ecd8; background: radial-gradient(circle at 40% 35%, #3a2d1c, #120e0b); }
+
+@media (max-width: 900px), (max-height: 560px) {
+    #dungeon .dg-who { gap: 2px; padding-right: 6px; }
+    #dungeon .dg-chip { min-height: 22px; font-size: 0; padding: 1px; gap: 0; }
+    #dungeon .dg-chip img { width: 20px; height: 20px; }
+    #dungeon .dg-bar-spells { gap: 6px; }
+}
+
+/* ---- Auto mode, and the pet's button ---- */
+
+#dungeon .dg-top-buttons {
+    justify-self: end;
+    display: flex;
+    gap: 8px;
+}
+
+#dungeon .dg-auto-button {
+    padding: 8px 14px;
+    font-family: Marcellus, Georgia, serif;
+    font-size: 15px;
+    color: #cfc4ad;
+    background: linear-gradient(180deg, #2a2219, #100d0a);
+    border: 1px solid #8f7a45;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000;
+    cursor: pointer;
+}
+
+#dungeon .dg-auto-button[aria-pressed="true"] {
+    color: #1a1100;
+    background: #ffd100;
+    border-color: #ffe066;
+    box-shadow: 0 0 0 1px #000, 0 0 12px rgba(255, 209, 0, 0.6);
+}
+
+#dungeon .dg-spell.auto-on .dg-icon {
+    box-shadow: 0 0 0 1px #000, 0 0 10px rgba(255, 209, 0, 0.55);
+}
+
+#dungeon .dg-spell-pet[data-stance="dead"] .dg-name { color: #b8f08a; }
+#dungeon .dg-spell-pet[data-stance="dead"] .dg-icon img { filter: grayscale(1) brightness(0.6); }
+
+@media (max-width: 900px), (max-height: 560px) {
+    #dungeon .dg-auto-button { padding: 6px 10px; font-size: 13px; }
+}
+
+/* ---- The paladin heals from the party's cards ---- */
+
+#dungeon .dg-member {
+    position: relative;
+}
+
+#dungeon .dg-heal {
+    position: relative;
+    flex: none;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid #c9a94f;
+    border-radius: 6px;
+    background: #0c0a08;
+    box-shadow: 0 0 0 1px #000;
+    cursor: pointer;
+}
+
+#dungeon .dg-heal img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#dungeon .dg-heal b {
+    position: absolute;
+    right: 2px;
+    bottom: -3px;
+    font-size: 17px;
+    font-weight: 700;
+    color: #7dff8a;
+    text-shadow: 0 1px 2px #000, 0 0 4px #000;
+}
+
+#dungeon .dg-heal.small {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+}
+
+#dungeon .dg-heal.small b { font-size: 12px; bottom: -2px; }
+
+#dungeon .dg-heal:hover:not(:disabled) {
+    border-color: #7dff8a;
+    box-shadow: 0 0 0 1px #000, 0 0 10px rgba(125, 255, 138, 0.6);
+}
+
+#dungeon .dg-heal.healing {
+    border-color: #7dff8a;
+    box-shadow: 0 0 0 1px #000, 0 0 14px rgba(125, 255, 138, 0.85);
+}
+
+#dungeon .dg-heal:disabled {
+    cursor: not-allowed;
+    filter: grayscale(1) brightness(0.5);
+}
+
+/* Asking whom: the cards and the stage take the answer */
+#dungeon.aiming .dg-stage { cursor: crosshair; }
+
+#dungeon.aiming .dg-member {
+    border-color: #7dff8a;
+    box-shadow: 0 0 0 1px #000, 0 0 12px rgba(125, 255, 138, 0.5);
+}
+
+#dungeon .dg-spell.aiming .dg-icon {
+    border-color: #7dff8a;
+    box-shadow: 0 0 0 1px #000, 0 0 14px rgba(125, 255, 138, 0.9);
+}
+
+#dungeon .dg-spells {
+    position: relative;
+}
+
+#dungeon .dg-aim {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    padding: 6px 12px;
+    white-space: nowrap;
+    font-size: 13px;
+    color: #e6ffd8;
+    background: linear-gradient(180deg, #2f6b25, #173a12);
+    border: 1px solid #c9a94f;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000;
+}
+
+#dungeon .dg-aim[hidden] { display: none; }
+
+@media (max-width: 900px), (max-height: 560px) {
+    #dungeon .dg-heal { width: 22px; height: 22px; }
+    #dungeon .dg-heal b { font-size: 12px; }
+    #dungeon .dg-aim { font-size: 11px; white-space: normal; width: 260px; }
+}
+
+/* ---- Each one's auto mode, on his card ---- */
+
+#dungeon .dg-member-head {
+    gap: 6px;
+}
+
+#dungeon .dg-auto-toggle {
+    margin-left: auto;
+    padding: 0 6px;
+    font-family: inherit;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 15px;
+    color: #a89a78;
+    background: #1a1410;
+    border: 1px solid #5d4c25;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+#dungeon .dg-auto-toggle[aria-pressed="true"] {
+    color: #1a1100;
+    background: #ffd100;
+    border-color: #ffe066;
+    box-shadow: 0 0 6px rgba(255, 209, 0, 0.6);
+}
+
+#dungeon .dg-auto-button[data-state="some"] {
+    color: #ffe066;
+    border-color: #ffd100;
+}
+
+@media (max-width: 900px), (max-height: 560px) {
+    #dungeon .dg-auto-toggle { font-size: 8px; line-height: 13px; padding: 0 4px; }
+}
+
+/* A phone held upright: the dungeon turned a quarter (dungeonGame.js orient), to be played with
+   the phone on its side even when its rotation is locked */
+#dungeon.dg-rotated {
+    inset: auto;
+    top: 0;
+    left: 0;
+    transform-origin: top left;
+    transform: rotate(90deg) translateY(-100%);
+}
+
+/* ---- A short dungeon (a phone on its side, or upright with the dungeon turned): party down
+   the left, spells down the right. dg-short is set from the dungeon's own height (dungeonGame.js) ---- */
+/* The bottom panel spans the screen; the party and the spells are placed in it */
+#dungeon.dg-short .dg-bottom {
+    display: block;
+    inset: 0;
+    padding: 0;
+    pointer-events: none;
+}
+
+#dungeon.dg-short .dg-party {
+    position: absolute;
+    left: 6px;
+    top: 50px;
+    bottom: 6px;
+    width: 118px;
+    justify-content: flex-end;
+    gap: 4px;
+    pointer-events: auto;
+}
+
+#dungeon.dg-short .dg-member {
+    width: 118px;
+    padding: 3px 4px;
+    gap: 4px;
+    box-sizing: border-box;
+}
+
+#dungeon.dg-short .dg-member-head { gap: 3px; }
+#dungeon.dg-short .dg-member-name { font-size: 10px; }
+#dungeon.dg-short .dg-auto-toggle { font-size: 7px; line-height: 12px; padding: 0 3px; }
+#dungeon.dg-short .dg-face { width: 22px; height: 22px; }
+#dungeon.dg-short .dg-heal { width: 26px; height: 26px; }
+#dungeon.dg-short .dg-heal b { font-size: 12px; }
+#dungeon.dg-short .dg-bar { height: 6px; }
+#dungeon.dg-short .dg-bar.dg-turn { height: 3px; }
+
+/* His pet: its bar and its heal only */
+#dungeon.dg-short .dg-pet-line { grid-template-columns: 1fr auto; gap: 3px; }
+#dungeon.dg-short .dg-pet-line > span, #dungeon.dg-short .dg-pet-line > b { display: none; }
+#dungeon.dg-short .dg-heal.small { width: 16px; height: 16px; }
+
+#dungeon.dg-short .dg-spells {
+    position: absolute;
+    right: 6px;
+    top: 50px;
+    bottom: 6px;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 4px;
+    padding: 5px;
+    overflow-y: auto;
+    pointer-events: auto;
+}
+
+#dungeon.dg-short .dg-who {
+    flex-direction: row;
+    gap: 2px;
+    padding: 0 0 4px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(201, 169, 79, 0.5);
+}
+
+#dungeon.dg-short .dg-bar-spells {
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+#dungeon.dg-short .dg-icon { width: 42px; height: 42px; }
+#dungeon.dg-short .dg-icon.small { width: 34px; height: 34px; }
+#dungeon.dg-short .dg-divider { width: 70%; height: 1px; align-self: center; margin: 1px 0; }
+
+#dungeon.dg-short .dg-aim {
+    left: auto;
+    right: calc(100% + 8px);
+    bottom: auto;
+    top: 0;
+    transform: none;
+    width: 200px;
+}
+
+#dungeon.dg-short .dg-foe { top: 50px; right: 84px; }
+
+
+/* ---- The paladin's heal plan and the guide ---- */
+
+#dungeon .dg-help-button {
+    width: 38px;
+    padding: 8px 0;
+    font-family: Marcellus, Georgia, serif;
+    font-size: 16px;
+    color: #ffd100;
+    background: linear-gradient(180deg, #3a2d1c, #1a1410);
+    border: 1px solid #c9a94f;
+    border-radius: 4px;
+    box-shadow: 0 0 0 1px #000;
+    cursor: pointer;
+}
+
+#dungeon .dg-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(5, 4, 3, 0.62);
+}
+
+#dungeon .dg-overlay[hidden] { display: none; }
+
+#dungeon .dg-window.dg-wide {
+    max-width: min(620px, 94vw);
+    max-height: 92%;
+    overflow-y: auto;
+    text-align: left;
+}
+
+#dungeon .dg-plan-mode {
+    margin: 0 0 8px;
+    padding: 0;
+    border: 0;
+    font-size: 14px;
+}
+
+#dungeon .dg-plan-mode legend,
+#dungeon .dg-plan-allow caption {
+    margin-bottom: 4px;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #a89a78;
+    text-align: left;
+}
+
+#dungeon .dg-plan-mode label {
+    display: block;
+    padding: 3px 0;
+    color: #f4ecd8;
+}
+
+#dungeon .dg-plan-order {
+    margin: 0 0 14px;
+    padding: 0 0 0 22px;
+    color: #a89a78;
+}
+
+#dungeon .dg-plan-order li {
+    padding: 2px 0;
+}
+
+#dungeon .dg-plan-order span {
+    display: inline-block;
+    min-width: 130px;
+    color: #f4ecd8;
+}
+
+#dungeon .dg-plan-order button {
+    width: 30px;
+    height: 26px;
+    margin-left: 4px;
+    color: #f5e6b8;
+    background: linear-gradient(180deg, #2a2219, #100d0a);
+    border: 1px solid #8f7a45;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#dungeon .dg-plan-order button:disabled { opacity: 0.35; cursor: default; }
+
+#dungeon .dg-plan-allow {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+#dungeon .dg-plan-allow th,
+#dungeon .dg-plan-allow td {
+    padding: 5px 6px;
+    border-bottom: 1px solid #3d3219;
+    text-align: center;
+}
+
+#dungeon .dg-plan-allow th[scope="row"] { text-align: left; color: #f4ecd8; font-weight: 400; }
+#dungeon .dg-plan-allow thead th { font-weight: 400; color: #ffe9a8; font-size: 12px; }
+#dungeon .dg-plan-allow input { width: 18px; height: 18px; accent-color: #b9902f; }
+
+#dungeon .dg-plan-note {
+    margin: 10px 0 14px !important;
+    font-size: 12px !important;
+}
+
+#dungeon .dg-guide {
+    margin: 0 0 16px;
+    padding-left: 18px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #cfc4ad;
+}
+
+#dungeon .dg-guide li { margin-bottom: 6px; }
+#dungeon .dg-guide b { color: #ffe9a8; font-weight: 400; }
+
+#dungeon.dg-short .dg-help-button { width: 32px; padding: 6px 0; font-size: 14px; }
+#dungeon.dg-short .dg-window.dg-wide { padding: 12px 16px; }
+#dungeon.dg-short .dg-guide { font-size: 12px; }
+
+/* The paladin's card has his Plan button where the others say their role */
+#dungeon .dg-member:has(.dg-plan-button) .dg-member-role { display: none; }
+/* On a phone his card is too narrow for it: the Heal plan button in his spell bar serves */
+#dungeon.dg-short .dg-plan-button { display: none; }
+
+/* ---- A turn the player plays: whose, what to do, Wait and Defend ---- */
+#dungeon .dg-turn-panel {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    white-space: nowrap;
+    background: rgba(10, 8, 6, 0.92);
+    border: 1px solid #ffd100;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #000, 0 0 16px rgba(255, 209, 0, 0.45);
+}
+#dungeon .dg-turn-panel[hidden] { display: none; }
+#dungeon .dg-turn-who { font-family: Marcellus, Georgia, serif; font-weight: 400; font-size: 16px; color: #ffd100; }
+#dungeon .dg-turn-how { font-size: 12px; color: #cfc4ad; }
+#dungeon .dg-turn-panel .dg-btn { padding: 4px 12px; font-size: 13px; }
+#dungeon .dg-turn-panel .dg-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+#dungeon .dg-pet-line .dg-auto-toggle { margin-left: 0; }
+#dungeon.dg-short .dg-turn-panel { left: auto; right: calc(100% + 8px); bottom: auto; top: 0; transform: none; flex-wrap: wrap; white-space: normal; width: 240px; }
+#dungeon.dg-short .dg-pet-line .dg-auto-toggle { display: inline-block; }
+
+/* The aim tip sits above the turn panel when both show */
+#dungeon .dg-turn-panel:not([hidden]) ~ .dg-aim { bottom: calc(100% + 56px); }
+#dungeon.dg-short .dg-turn-panel:not([hidden]) ~ .dg-aim { bottom: auto; top: 96px; }
+
+/* Names stay on one line (Zee Zgnan) */
+#dungeon .dg-member-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+#dungeon .dg-member-head { min-width: 0; }
+/* With their names, the cards need no role word: the room is the name's */
+#dungeon .dg-member-role { display: none; }

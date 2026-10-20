@@ -1,0 +1,4 @@
+{
+    "//": "The dungeon modules are ES modules (Node loads them so in the tests and the dungeon lab)",
+    "type": "module"
+}

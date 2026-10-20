@@ -1,0 +1,31 @@
+{
+  "id": "hunter-projectiles",
+  "projectiles": {
+    "arrow": {
+      "file": "arrow.webp",
+      "size": [
+        256,
+        64
+      ],
+      "pivot": [
+        128,
+        32
+      ],
+      "facing": "right",
+      "suggestedWidth": 80
+    },
+    "arcane-shot": {
+      "file": "arcane-shot.webp",
+      "size": [
+        256,
+        96
+      ],
+      "pivot": [
+        128,
+        48
+      ],
+      "facing": "right",
+      "suggestedWidth": 100
+    }
+  }
+}

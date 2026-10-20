@@ -1,0 +1,713 @@
+{
+  "id": "dungeon-spells",
+  "version": 1,
+  "clips": {
+    "growl-ring": {
+      "id": "growl-ring",
+      "atlas": "effects/growl-ring.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            440
+          ],
+          "bounds": {
+            "left": 153,
+            "top": 414,
+            "right": 358,
+            "bottom": 466,
+            "width": 206,
+            "height": 53
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            440
+          ],
+          "bounds": {
+            "left": 117,
+            "top": 394,
+            "right": 393,
+            "bottom": 486,
+            "width": 277,
+            "height": 93
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            440
+          ],
+          "bounds": {
+            "left": 114,
+            "top": 375,
+            "right": 396,
+            "bottom": 504,
+            "width": 283,
+            "height": 130
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            440
+          ],
+          "bounds": {
+            "left": 118,
+            "top": 395,
+            "right": 392,
+            "bottom": 484,
+            "width": 275,
+            "height": 90
+          }
+        }
+      ],
+      "durations": [
+        80,
+        100,
+        120,
+        140
+      ],
+      "loop": false,
+      "holdLast": false,
+      "anchor": "floor",
+      "layer": "above-actor",
+      "clearOnEnd": true
+    },
+    "swipe-arc": {
+      "id": "swipe-arc",
+      "atlas": "effects/swipe-arc.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 141,
+            "top": 165,
+            "right": 369,
+            "bottom": 347,
+            "width": 229,
+            "height": 183
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 94,
+            "top": 120,
+            "right": 416,
+            "bottom": 390,
+            "width": 323,
+            "height": 271
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 46,
+            "top": 78,
+            "right": 465,
+            "bottom": 432,
+            "width": 420,
+            "height": 355
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 89,
+            "top": 103,
+            "right": 421,
+            "bottom": 408,
+            "width": 333,
+            "height": 306
+          }
+        }
+      ],
+      "durations": [
+        80,
+        100,
+        120,
+        140
+      ],
+      "loop": false,
+      "holdLast": false,
+      "anchor": "actor-front",
+      "layer": "above-actor",
+      "clearOnEnd": true
+    },
+    "barkskin-shell": {
+      "id": "barkskin-shell",
+      "atlas": "effects/barkskin-shell.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 51,
+            "top": 171,
+            "right": 459,
+            "bottom": 462,
+            "width": 409,
+            "height": 292
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 53,
+            "top": 154,
+            "right": 456,
+            "bottom": 462,
+            "width": 404,
+            "height": 309
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 47,
+            "top": 145,
+            "right": 461,
+            "bottom": 462,
+            "width": 415,
+            "height": 318
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            464
+          ],
+          "bounds": {
+            "left": 47,
+            "top": 154,
+            "right": 464,
+            "bottom": 462,
+            "width": 418,
+            "height": 309
+          }
+        }
+      ],
+      "durations": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "loop": true,
+      "holdLast": false,
+      "anchor": "actor-floor",
+      "layer": "behind-actor",
+      "clearOnEnd": true
+    },
+    "stun-stars": {
+      "id": "stun-stars",
+      "atlas": "effects/stun-stars.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 66,
+            "top": 150,
+            "right": 445,
+            "bottom": 360,
+            "width": 380,
+            "height": 211
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 63,
+            "top": 150,
+            "right": 447,
+            "bottom": 361,
+            "width": 385,
+            "height": 212
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 65,
+            "top": 157,
+            "right": 445,
+            "bottom": 353,
+            "width": 381,
+            "height": 197
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            256
+          ],
+          "bounds": {
+            "left": 69,
+            "top": 146,
+            "right": 442,
+            "bottom": 365,
+            "width": 374,
+            "height": 220
+          }
+        }
+      ],
+      "durations": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "loop": true,
+      "holdLast": false,
+      "anchor": "above-head",
+      "layer": "above-actor",
+      "clearOnEnd": true
+    },
+    "protection-bubble": {
+      "id": "protection-bubble",
+      "atlas": "effects/protection-bubble.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            432
+          ],
+          "bounds": {
+            "left": 51,
+            "top": 103,
+            "right": 460,
+            "bottom": 463,
+            "width": 410,
+            "height": 361
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            432
+          ],
+          "bounds": {
+            "left": 47,
+            "top": 107,
+            "right": 463,
+            "bottom": 463,
+            "width": 417,
+            "height": 357
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            432
+          ],
+          "bounds": {
+            "left": 46,
+            "top": 112,
+            "right": 465,
+            "bottom": 463,
+            "width": 420,
+            "height": 352
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            432
+          ],
+          "bounds": {
+            "left": 52,
+            "top": 114,
+            "right": 458,
+            "bottom": 463,
+            "width": 407,
+            "height": 350
+          }
+        }
+      ],
+      "durations": [
+        150,
+        150,
+        150,
+        150
+      ],
+      "loop": true,
+      "holdLast": false,
+      "anchor": "actor-floor",
+      "layer": "above-actor",
+      "clearOnEnd": true
+    },
+    "lay-on-hands-column": {
+      "id": "lay-on-hands-column",
+      "atlas": "effects/lay-on-hands-column.webp",
+      "cell": [
+        512,
+        512
+      ],
+      "size": [
+        2048,
+        512
+      ],
+      "frames": [
+        {
+          "index": 0,
+          "rect": [
+            0,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            438
+          ],
+          "bounds": {
+            "left": 148,
+            "top": 93,
+            "right": 363,
+            "bottom": 463,
+            "width": 216,
+            "height": 371
+          }
+        },
+        {
+          "index": 1,
+          "rect": [
+            512,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            432
+          ],
+          "bounds": {
+            "left": 137,
+            "top": 78,
+            "right": 374,
+            "bottom": 463,
+            "width": 238,
+            "height": 386
+          }
+        },
+        {
+          "index": 2,
+          "rect": [
+            1024,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            432
+          ],
+          "bounds": {
+            "left": 105,
+            "top": 44,
+            "right": 406,
+            "bottom": 463,
+            "width": 302,
+            "height": 420
+          }
+        },
+        {
+          "index": 3,
+          "rect": [
+            1536,
+            0,
+            512,
+            512
+          ],
+          "pivot": [
+            256,
+            438
+          ],
+          "bounds": {
+            "left": 138,
+            "top": 98,
+            "right": 373,
+            "bottom": 463,
+            "width": 236,
+            "height": 366
+          }
+        }
+      ],
+      "durations": [
+        80,
+        100,
+        120,
+        140
+      ],
+      "loop": false,
+      "holdLast": false,
+      "anchor": "actor-floor",
+      "layer": "above-actor",
+      "clearOnEnd": true
+    }
+  },
+  "projectiles": {
+    "hammer-of-justice": {
+      "file": "effects/hammer-of-justice.webp",
+      "size": [
+        256,
+        256
+      ],
+      "pivot": [
+        128,
+        128
+      ],
+      "facing": "right-up",
+      "suggestedWidth": 56
+    }
+  },
+  "spellMap": {
+    "taunt": {
+      "icon": "icons/taunt.webp",
+      "effect": null
+    },
+    "growl": {
+      "icon": "icons/growl.webp",
+      "effect": "growl-ring",
+      "actorClip": "druid-tank/bear-roar"
+    },
+    "swipe": {
+      "icon": "icons/swipe.webp",
+      "effect": "swipe-arc"
+    },
+    "barkskin": {
+      "icon": "icons/barkskin.webp",
+      "effect": "barkskin-shell"
+    },
+    "holy-light": {
+      "icon": "icons/holy-light.webp",
+      "reuse": "paladin-healer/atlases/holy-impact.webp"
+    },
+    "hammer-of-justice": {
+      "icon": "icons/hammer-of-justice.webp",
+      "projectile": "hammer-of-justice",
+      "effect": "stun-stars"
+    },
+    "blessing-of-protection": {
+      "icon": "icons/blessing-of-protection.webp",
+      "effect": "protection-bubble",
+      "actorClip": "paladin-healer/blessing"
+    },
+    "lay-on-hands": {
+      "icon": "icons/lay-on-hands.webp",
+      "effect": "lay-on-hands-column",
+      "actorClip": "paladin-healer/blessing"
+    }
+  }
+}

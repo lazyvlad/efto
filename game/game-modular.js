@@ -1,5 +1,6 @@
 // Import all modules
 import { gameConfig } from './config/gameConfig.js';
+import { startDungeon } from './dungeon/dungeonGame.js';
 import { GAME_VERSION } from './config/gameVersion.js';
 import { CombatText } from './classes/CombatText.js';
 import { measureAhead } from './utils/spriteFit.js';
@@ -435,6 +436,12 @@ async function init() {
     
     // NOW we can hide loading screen and show the welcome screen
     hideLoadingScreen();
+    // The dungeon run, not on the map yet: opened at /play?dungeon=stockade (dungeon/)
+    if (new URLSearchParams(location.search).get('dungeon') === 'stockade') {
+        const speed = Math.max(1, Math.min(8, Number(new URLSearchParams(location.search).get('speed')) || 1));
+        startDungeon({ gear: allianceGear(), speed, onLeave: () => { location.search = ''; } });
+        return;
+    }
     showNameEntry();
     // A guest coming back, or a guest session to bring to the account logged in to
     showGuestSession();
@@ -1081,6 +1088,18 @@ function restoreEquipment() {
     gameState.bagged = chosenBagGear(side).filter(itemId => owned.has(itemId) && !gameState.carried.includes(itemId));
     gameState.wornSet = mainSet(gameState.equipment, wearables(), gameConfig.sets) || rememberedSet();
     refreshSetBonus();
+}
+
+// What the Alliance hunter's worn gear gives (the dungeon run is the Alliance's), whichever side
+// was picked last: his outfit as restoreEquipment puts it on him
+function allianceGear() {
+    const side = 'alliance';
+    const owned = forSide(ownedPieces(), side);
+    const chosen = withStarterWeapon(chosenEquipment(side), side);
+    const equipment = chosen
+        ? validEquipment(withStarterFor(chosen, owned, side), wearables(), owned)
+        : equipSet(starterLoadout(side), rememberedSet(), wearables(), owned);
+    return gearTotals(equipment, wearables(), gameConfig.sets);
 }
 
 // The gear a side's hunter keeps in his bags besides his 36 (INPUT_BOOT.user.bagGear)
